@@ -411,7 +411,7 @@ public class BidiStructuredProcessor
     /**
      * Transforms a string that has a particular semantic meaning to render it
      * correctly on BiDi locales with specific usage details for target Locale, 
-     * text orientation & if the UI is RTL centric. 
+     * text orientation & an indication if the UI is RTL. 
      * <br/><br/>
      * For more details, see {@link #transform(String)}
      * 
@@ -556,10 +556,8 @@ public class BidiStructuredProcessor
      * 
      * @param str
      *          String - the String to transform
-     * @param env
-     *          Environment - the environment details to control the transform
-     * @param textType
-     *          StructuredTypes - the supported format of the String
+     * @param expert
+     *          Expert - the appropriate expert to perform the transformation
      * @return 
      *          String - the transformed String
      */
@@ -642,12 +640,29 @@ public class BidiStructuredProcessor
         return getInstance(textType, env);
     }
     
+    /**
+     * Returns an instantiated instance of a BidiStructuredProcessor. This is called from the above convenience methods. 
+     * 
+     * @param textType
+     *          StructuredTypes - the desired type for the stateful processing
+     * @param env
+     *          Environment - the desired (can be default) environment details to associate with the expert
+     * @return
+     *          BidiStructuredProcessor - an instance of of stateful BidiStructuredProcessor
+     */
     private static BidiStructuredProcessor getInstance(StructuredTypes textType, Environment env)
     {
         return new BidiStructuredProcessor(ExpertFactory.getStatefulExpert(textType.getInstance(), env));
     }
 
-    
+    /**
+     * Stateful transformation utilizing this instance.
+     * 
+     * @param str
+     *          String - the data to transform.
+     * @return 
+     *          String - the transformed String
+     */
     public String transformWithState(String str)
     {
         return getStatefulExpert().leanToFullText(str);
