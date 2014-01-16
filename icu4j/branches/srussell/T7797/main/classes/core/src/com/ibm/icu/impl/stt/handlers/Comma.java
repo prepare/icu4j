@@ -5,7 +5,7 @@
  *******************************************************************************
  */
 
-package com.ibm.icu.text.stt.handlers;
+package com.ibm.icu.impl.stt.handlers;
 
 /**
  * Handler adapted to processing comma-delimited lists, such as:
@@ -15,7 +15,7 @@ package com.ibm.icu.text.stt.handlers;
  * </pre>
  */
 public class Comma extends TypeHandler {
-	public Comma() {
-		super(",");
-	}
+    public Comma() {
+        super(",");
+    }
 }

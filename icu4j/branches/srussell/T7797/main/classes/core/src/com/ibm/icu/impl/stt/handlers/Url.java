@@ -5,19 +5,13 @@
  *******************************************************************************
  */
 
-package com.ibm.icu.text.stt.handlers;
+package com.ibm.icu.impl.stt.handlers;
 
 /**
- * Handler adapted to processing property file statements. It expects the
- * following string format:
- * 
- * <pre>
- * name = value
- * </pre>
+ * Handler adapted to processing URLs.
  */
-public class Property extends Single {
-
-	public Property() {
-		super("=");
-	}
+public class Url extends TypeHandler {
+    public Url() {
+        super(":?#/@.[]");
+    }
 }

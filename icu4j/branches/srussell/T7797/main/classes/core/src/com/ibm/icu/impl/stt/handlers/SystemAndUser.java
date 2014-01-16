@@ -5,13 +5,18 @@
  *******************************************************************************
  */
 
-package com.ibm.icu.text.stt.handlers;
+package com.ibm.icu.impl.stt.handlers;
 
 /**
- * Handler adapted to processing URLs.
+ * Handler adapted to processing structured text with the following format:
+ * 
+ * <pre>
+ * system(user)
+ * </pre>
  */
-public class Url extends TypeHandler {
-	public Url() {
-		super(":?#/@.[]");
-	}
+public class SystemAndUser extends Single {
+
+    public SystemAndUser() {
+        super("(");
+    }
 }
