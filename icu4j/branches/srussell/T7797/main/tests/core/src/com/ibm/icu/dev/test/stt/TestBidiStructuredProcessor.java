@@ -34,84 +34,29 @@ public class TestBidiStructuredProcessor extends TestFmwk
         new TestBidiStructuredProcessor().run(args);
     }
 
-    public static String toPseudo(String text) {
-        char[] chars = text.toCharArray();
-        int len = chars.length;
-
-        for (int i = 0; i < len; i++) {
-            char c = chars[i];
-            if (c >= 'A' && c <= 'Z')
-                chars[i] = (char) (c + 'a' - 'A');
-            else if (c >= 0x05D0 && c < 0x05EA)
-                chars[i] = (char) (c + 'A' - 0x05D0);
-            else if (c == 0x05EA)
-                chars[i] = '~';
-            else if (c == 0x0644)
-                chars[i] = '#';
-            else if (c >= 0x0665 && c <= 0x0669)
-                chars[i] = (char) (c + '5' - 0x0665);
-            else if (c == LRM)
-                chars[i] = '@';
-            else if (c == RLM)
-                chars[i] = '&';
-            else if (c == LRE)
-                chars[i] = '>';
-            else if (c == RLE)
-                chars[i] = '<';
-            else if (c == PDF)
-                chars[i] = '^';
-            else if (c == '\n')
-                chars[i] = '|';
-            else if (c == '\r')
-                chars[i] = '`';
+    // TODO flush out a reasonable test
+    public void TestStateful()
+    {
+        BidiStructuredProcessor bsp = BidiStructuredProcessor.getInstance(BidiStructuredProcessor.StructuredTypes.JAVA);
+        String[] javaCode = 
+        {
+                "class HelloWorldApp",
+                "{",
+                "\tpublic static void main(String[] args)",
+                "\t{",
+                "\t\tSystem.out.println(\"Hello World!\"); // Display the string.",
+                "\t}",
+                "}"
+        };
+        
+        StringBuffer result = new StringBuffer();
+        for(int x = 0; x < javaCode.length; x++)
+        {
+            result.append(bsp.transformWithState(javaCode[x]));
         }
-        return new String(chars);
+        System.out.println(result.toString());
     }
-
-    public static String toUT16(String text) {
-        char[] chars = text.toCharArray();
-        int len = chars.length;
-
-        for (int i = 0; i < len; i++) {
-            char c = chars[i];
-            if (c >= '5' && c <= '9')
-                chars[i] = (char) (0x0665 + c - '5');
-            else if (c >= 'A' && c <= 'Z')
-                chars[i] = (char) (0x05D0 + c - 'A');
-            else if (c == '~')
-                chars[i] = (char) (0x05EA);
-            else if (c == '#')
-                chars[i] = (char) (0x0644);
-            else if (c == '@')
-                chars[i] = LRM;
-            else if (c == '&')
-                chars[i] = RLM;
-            else if (c == '>')
-                chars[i] = LRE;
-            else if (c == '<')
-                chars[i] = RLE;
-            else if (c == '^')
-                chars[i] = PDF;
-            else if (c == '|')
-                chars[i] = '\n';
-            else if (c == '`')
-                chars[i] = '\r';
-        }
-        return new String(chars);
-    }
-
-    static String array_display(int[] array) {
-        if (array == null) {
-            return "null";
-        }
-        StringBuffer sb = new StringBuffer(50);
-        int len = array.length;
-        for (int i = 0; i < len; i++) {
-            sb.append(array[i]);
-            sb.append(' ');
-        }
-        return sb.toString();
-    }
+    
     
     private void doTest1(String data, String result) 
     {
@@ -161,7 +106,9 @@ public class TestBidiStructuredProcessor extends TestFmwk
 
     // not really testing a part of the exposed API. Left over from refactoring Processor (keeping for historical reference)
     private void doTest4(String msg, String data, int[] offsets, Orientation direction,
-            int affixLength, String result) {
+            int affixLength, String result) 
+    {
+        
         String txt = msg + "text=" + data + "\n    offsets="
                 + array_display(offsets) + "\n    direction=" + direction
                 + "\n    affixLength=" + affixLength;
@@ -217,4 +164,89 @@ public class TestBidiStructuredProcessor extends TestFmwk
         doTest4("Util #4.8 - ", "ABCDEFG", null, BidiStructuredProcessor.Orientation.RTL, 2, "<&ABCDEFG&^");
     }
 
+    public static String toPseudo(String text) 
+    {
+        char[] chars = text.toCharArray();
+        int len = chars.length;
+
+        for (int i = 0; i < len; i++) 
+        {
+            char c = chars[i];
+            if (c >= 'A' && c <= 'Z')
+                chars[i] = (char) (c + 'a' - 'A');
+            else if (c >= 0x05D0 && c < 0x05EA)
+                chars[i] = (char) (c + 'A' - 0x05D0);
+            else if (c == 0x05EA)
+                chars[i] = '~';
+            else if (c == 0x0644)
+                chars[i] = '#';
+            else if (c >= 0x0665 && c <= 0x0669)
+                chars[i] = (char) (c + '5' - 0x0665);
+            else if (c == LRM)
+                chars[i] = '@';
+            else if (c == RLM)
+                chars[i] = '&';
+            else if (c == LRE)
+                chars[i] = '>';
+            else if (c == RLE)
+                chars[i] = '<';
+            else if (c == PDF)
+                chars[i] = '^';
+            else if (c == '\n')
+                chars[i] = '|';
+            else if (c == '\r')
+                chars[i] = '`';
+        }
+        return new String(chars);
+    }
+
+    public static String toUT16(String text) 
+    {
+        char[] chars = text.toCharArray();
+        int len = chars.length;
+
+        for (int i = 0; i < len; i++) 
+        {
+            char c = chars[i];
+            if (c >= '5' && c <= '9')
+                chars[i] = (char) (0x0665 + c - '5');
+            else if (c >= 'A' && c <= 'Z')
+                chars[i] = (char) (0x05D0 + c - 'A');
+            else if (c == '~')
+                chars[i] = (char) (0x05EA);
+            else if (c == '#')
+                chars[i] = (char) (0x0644);
+            else if (c == '@')
+                chars[i] = LRM;
+            else if (c == '&')
+                chars[i] = RLM;
+            else if (c == '>')
+                chars[i] = LRE;
+            else if (c == '<')
+                chars[i] = RLE;
+            else if (c == '^')
+                chars[i] = PDF;
+            else if (c == '|')
+                chars[i] = '\n';
+            else if (c == '`')
+                chars[i] = '\r';
+        }
+        return new String(chars);
+    }
+
+    static String array_display(int[] array) 
+    {
+        if (array == null) 
+            return "null";
+
+        StringBuffer sb = new StringBuffer(50);
+        int len = array.length;
+        for (int i = 0; i < len; i++) 
+        {
+            sb.append(array[i]);
+            sb.append(' ');
+        }
+        return sb.toString();
+    }
+    
 }

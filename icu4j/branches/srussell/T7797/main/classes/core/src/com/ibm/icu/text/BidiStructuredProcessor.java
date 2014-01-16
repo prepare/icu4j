@@ -387,8 +387,27 @@ public class BidiStructuredProcessor
         }
     }
 
+    /**
+     * the stateful expert associated when instantiating a BidiStructuredProcessor
+     */
+    private Expert statefulExpert = null;
     
-    
+    /**
+     * protected constructor for use by:<br/>
+     * <br/>{@link #getInstance(StructuredTypes)}<br/>
+     * {@link #getInstance(StructuredTypes, Environment)} or<br/> 
+     * {@link #getInstance(StructuredTypes, ULocale, Orientation, boolean)}
+     * 
+     * @param newStatefulExpert
+     *          Expert - the expert implementation that supports this instance
+     */
+    protected BidiStructuredProcessor(Expert newStatefulExpert) 
+    {
+        super();
+        
+        this.setStatefulExpert(newStatefulExpert);
+    }
+
     /**
      * Transforms a string that has a particular semantic meaning to render it
      * correctly on BiDi locales with specific usage details for target Locale, 
@@ -590,5 +609,67 @@ public class BidiStructuredProcessor
         return defaultSeparators;
     }
 
+    /**
+     * Returns an instance of a BidiStructuredProcessor suitable for stateful processing. 
+     * @param textType
+     *          StructuredTypes - the desired type for the stateful processing
+     * @param locale
+     *          ULocale - the Locale associated with future transforms
+     * @param orientation
+     *          Orientation - the text orientation of future transforms
+     * @param mirrored
+     *          boolean - true if the desired target is generally RTL
+     * @return
+     *          BidiStructuredProcessor - an instance of of stateful BidiStructuredProcessor
+     */
+    public static BidiStructuredProcessor getInstance(StructuredTypes textType, ULocale locale, Orientation orientation, boolean mirrored)
+    {
+        Environment env = new Environment(locale, mirrored, orientation);
+        return getInstance(textType, env);
+    }
+    
+    /**
+     * Returns an instance of a BidiStructuredProcessor suitable for stateful processing when only the text type is known.
+     * 
+     * @param textType
+     *          StructuredTypes - the desired type for the stateful processing
+     * @return
+     *          BidiStructuredProcessor - an instance of of stateful BidiStructuredProcessor
+     */
+    public static BidiStructuredProcessor getInstance(StructuredTypes textType)
+    {
+        Environment env = new Environment(null, false, BidiStructuredProcessor.Orientation.UNKNOWN);
+        return getInstance(textType, env);
+    }
+    
+    private static BidiStructuredProcessor getInstance(StructuredTypes textType, Environment env)
+    {
+        return new BidiStructuredProcessor(ExpertFactory.getStatefulExpert(textType.getInstance(), env));
+    }
+
+    
+    public String transformWithState(String str)
+    {
+        return getStatefulExpert().leanToFullText(str);
+    }
+    
+    /**
+     * @return the statefulExpert
+     */
+    protected Expert getStatefulExpert() 
+    {
+        if(statefulExpert == null)  // should never happen
+            throw new IllegalStateException("no expert associated with this BidiStructuredProcessor"); 
+            
+        return statefulExpert;
+    }
+
+    /**
+     * @param statefulExpert the statefulExpert to set
+     */
+    protected void setStatefulExpert(Expert statefulExpert) 
+    {
+        this.statefulExpert = statefulExpert;
+    }
 }
 
