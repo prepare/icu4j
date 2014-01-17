@@ -4387,7 +4387,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
         StringBuffer result = new StringBuffer();
         Date d = new Date();
-        Calendar cal = GregorianCalendar.getInstance(TimeZone.getTimeZone("GMT"), Locale.US); 
+        GregorianCalendar cal = new GregorianCalendar(TimeZone.getTimeZone("GMT"), Locale.US); 
         SimpleDateFormat sdfmt = new SimpleDateFormat();
         ParsePosition p = new ParsePosition(0);
         for (TestMultiPatternMatchItem item: items) {
