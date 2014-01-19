@@ -3,13 +3,15 @@
 * Copyright (C) 2013-2014, International Business Machines
 * Corporation and others.  All Rights Reserved.
 *******************************************************************************
-* SharedObject.java
+* SharedObject.java, ported from sharedobject.h/.cpp
 *
 * @since 2013dec19
 * @author Markus W. Scherer
 */
 
 package com.ibm.icu.impl.coll;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Base class for shared, reference-counted, auto-deleted objects.
@@ -66,14 +68,19 @@ package com.ibm.icu.impl.coll;
  * or else adopting a different model.
  */
 class SharedObject implements Cloneable {
-public:
     /** Initializes refCount to 0. */
     public SharedObject() {}
 
     /** Initializes refCount to 0. */
     @Override
     public SharedObject clone() {
-        SharedObject c = super.clone();
+        SharedObject c;
+        try {
+            c = (SharedObject)super.clone();
+        } catch (CloneNotSupportedException e) {
+            // Should never happen.
+            throw new RuntimeException(e);
+        }
         c.refCount = new AtomicInteger();
         return c;
     }
@@ -100,5 +107,5 @@ public:
         // Deletion in Java is up to the garbage collector.
     }
 
-    private final AtomicInteger refCount = new AtomicInteger();
+    private AtomicInteger refCount = new AtomicInteger();
 }

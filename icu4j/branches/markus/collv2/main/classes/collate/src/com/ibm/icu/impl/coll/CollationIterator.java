@@ -1,9 +1,9 @@
 /*
 *******************************************************************************
-* Copyright (C) 2010-2013, International Business Machines
+* Copyright (C) 2010-2014, International Business Machines
 * Corporation and others.  All Rights Reserved.
 *******************************************************************************
-* collationiterator.h
+* CollationIterator.java, ported from collationiterator.h/.cpp
 *
 * @since 2010oct27
 * @author Markus W. Scherer
@@ -11,15 +11,10 @@
 
 package com.ibm.icu.impl.coll;
 
-#include "cmemory.h"
-#include "collation.h"
-#include "collationdata.h"
-
-U_NAMESPACE_BEGIN
-
-class SkippedState;
-class UCharsTrie;
-class UVector32;
+import com.ibm.icu.impl.Normalizer2Impl.Hangul;
+import com.ibm.icu.impl.Trie2_32;
+import com.ibm.icu.util.BytesTrie;
+import com.ibm.icu.util.CharsTrie;
 
 /**
  * Collation element iterator and abstract character iterator.
@@ -27,7 +22,26 @@ class UVector32;
  * When a method returns a code point value, it must be in 0..10FFFF,
  * except it can be negative as a sentinel value.
  */
-abstract class CollationIterator {
+abstract class CollationIterator implements Cloneable {
+    // TODO: There must be a Java class for a growable array of ints without auto-boxing to Integer?!
+    public static final class UVector32 {
+        public UVector32() {}
+        public int size() { return length; }
+        public void addElement(int e) {
+            if(length >= buffer.length) {
+                int[] newBuffer = new int[2 * buffer.length];
+                System.arraycopy(buffer, 0, newBuffer, 0, length);
+                buffer = newBuffer;
+            }
+            buffer[length++] = e;
+        }
+        public void removeAllElements() {
+            length = 0;
+        }
+        private int[] buffer = new int[32];
+        private int length = 0;
+    }
+
     private static final class CEBuffer {
         /** Large enough for CEs of most short strings. */
         private static final int INITIAL_CAPACITY = 40;
@@ -35,9 +49,10 @@ abstract class CollationIterator {
         CEBuffer() {}
 
         void append(long ce) {
-            if(length < INITIAL_CAPACITY || ensureAppendCapacity(1)) {
-                buffer[length++] = ce;
+            if(length >= INITIAL_CAPACITY) {
+                ensureAppendCapacity(1);
             }
+            buffer[length++] = ce;
         }
 
         void appendUnsafe(long ce) {
@@ -55,7 +70,7 @@ abstract class CollationIterator {
                 }
             } while(capacity < (length + appCap));
             long[] newBuffer = new long[capacity];
-            System.arrayCopy(buffer, 0, newBuffer, 0, length);
+            System.arraycopy(buffer, 0, newBuffer, 0, length);
             buffer = newBuffer;
         }
 
@@ -175,28 +190,25 @@ abstract class CollationIterator {
     CollationIterator(CollationData d, boolean numeric) {
         this.trie = d.trie;
         this.data = d;
-        this.cesIndex = 0;
-        this.skipped = null;
         this.numCpFwd = -1;
-        this.isNumeric = numeric
+        this.isNumeric = numeric;
     }
 
-    CollationIterator.CollationIterator(const CollationIterator &other)
-            : trie(other.trie),
-              data(other.data),
-              cesIndex(other.cesIndex),
-              skipped(null),
-              numCpFwd(other.numCpFwd),
-              isNumeric(other.isNumeric) {
-        int length = other.ceBuffer.length;
-        if(length > 0 && ceBuffer.ensureAppendCapacity(length)) {
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        CollationIterator c = (CollationIterator)super.clone();
+        c.skipped = null;
+        int length = ceBuffer.length;
+        if(length > 0) {
+            c.ceBuffer.ensureAppendCapacity(length);
             for(int i = 0; i < length; ++i) {
-                ceBuffer.set(i, other.ceBuffer.get(i));
+                c.ceBuffer.set(i, ceBuffer.get(i));
             }
-            ceBuffer.length = length;
+            c.ceBuffer.length = length;
         } else {
-            cesIndex = 0;
+            c.cesIndex = 0;
         }
+        return c;
     }
 
     boolean equals(CollationIterator other) {
@@ -205,7 +217,7 @@ abstract class CollationIterator {
         // Assume that the caller compares the data.
         // Ignore skipped since that should be unused between calls to nextCE().
         // (It only stays around to avoid another memory allocation.)
-        if(!(typeid(*this) == typeid(other) &&
+        if(!(this.getClass().equals(other.getClass()) &&
                 ceBuffer.length == other.ceBuffer.length &&
                 cesIndex == other.cesIndex &&
                 numCpFwd == other.numCpFwd &&
@@ -237,7 +249,7 @@ abstract class CollationIterator {
         }
         assert cesIndex == ceBuffer.length;
         ceBuffer.incLength();
-        long cAndCE32 = handleNextCE32(c);
+        long cAndCE32 = handleNextCE32();
         int c = (int)(cAndCE32 >> 32);
         int ce32 = (int)cAndCE32;
         int t = ce32 & 0xff;
@@ -296,7 +308,42 @@ abstract class CollationIterator {
     /**
      * Returns the previous collation element.
      */
-    final long previousCE(UVector32 &offsets);
+    final long previousCE(UVector32 offsets) {
+        if(ceBuffer.length > 0) {
+            // Return the previous buffered CE.
+            return ceBuffer.get(--ceBuffer.length);
+        }
+        offsets.removeAllElements();
+        int limitOffset = getOffset();
+        int c = previousCodePoint();
+        if(c < 0) { return Collation.NO_CE; }
+        if(data.isUnsafeBackward(c, isNumeric)) {
+            return previousCEUnsafe(c, offsets);
+        }
+        // Simple, safe-backwards iteration:
+        // Get a CE going backwards, handle prefixes but no contractions.
+        int ce32 = data.getCE32(c);
+        CollationData d;
+        if(ce32 == Collation.FALLBACK_CE32) {
+            d = data.base;
+            ce32 = d.getCE32(c);
+        } else {
+            d = data;
+        }
+        if(Collation.isSimpleOrLongCE32(ce32)) {
+            return Collation.ceFromCE32(ce32);
+        }
+        appendCEsFromCE32(d, c, ce32, false);
+        if(ceBuffer.length > 1) {
+            offsets.addElement(getOffset());
+            // For an expansion, the offset of each non-initial CE is the limit offset,
+            // consistent with forward iteration.
+            while(offsets.size() <= ceBuffer.length) {
+                offsets.addElement(limitOffset);
+            };
+        }
+        return ceBuffer.get(--ceBuffer.length);
+    }
 
     final int getCEsLength() {
         return ceBuffer.length;
@@ -329,8 +376,6 @@ abstract class CollationIterator {
      * Public for identical-level comparison and for testing.
      */
     abstract int previousCodePoint();
-
-    protected CollationIterator(const CollationIterator &other);
 
     protected final void reset() {
         cesIndex = ceBuffer.length = 0;
@@ -401,94 +446,7 @@ abstract class CollationIterator {
     }
 
     protected final void appendCEsFromCE32(CollationData d, int c, int ce32,
-                           boolean forward);
-
-    // Main lookup trie of the data object.
-    protected final Trie2_32 trie;
-    protected final CollationData data;
-
-    private final long nextCEFromCE32(CollationData d, int c, int ce32) {
-        --ceBuffer.length;  // Undo ceBuffer.incLength().
-        appendCEsFromCE32(d, c, ce32, true);
-        return ceBuffer.get(cesIndex++);
-    }
-
-    /**
-     * Computes a CE from c's ce32 which has the OFFSET_TAG.
-     */
-    private static final long getCEFromOffsetCE32(CollationData d, int c, int ce32);
-
-    private final int getCE32FromPrefix(CollationData d, int ce32);
-
-    private final int nextSkippedCodePoint();
-
-    private final void backwardNumSkipped(int n);
-
-    private final int nextCE32FromContraction(
-            CollationData d, int contractionCE32,
-            CharSequence trieChars, int trieOffset, int ce32, int c);
-
-    private final int nextCE32FromDiscontiguousContraction(
-            CollationData d, UCharsTrie &suffixes, int ce32,
-            int lookAhead, int c);
-
-    /**
-     * Returns the previous CE when data.isUnsafeBackward(c, isNumeric).
-     */
-    private final long previousCEUnsafe(int c, UVector32 &offsets);
-
-    /**
-     * Turns a string of digits (bytes 0..9)
-     * into a sequence of CEs that will sort in numeric order.
-     *
-     * Starts from this ce32's digit value and consumes the following/preceding digits.
-     * The digits string must not be empty and must not have leading zeros.
-     */
-    private final void appendNumericCEs(int ce32, boolean forward);
-
-    /**
-     * Turns 1..254 digits into a sequence of CEs.
-     * Called by appendNumericCEs() for each segment of at most 254 digits.
-     */
-    private final void appendNumericSegmentCEs(const char *digits, int length);
-
-    private final CEBuffer ceBuffer = new CEBuffer();
-    private int cesIndex;
-
-    private SkippedState skipped;
-
-    // Number of code points to read forward, or -1.
-    // Used as a forward iteration limit in previousCEUnsafe().
-    private int numCpFwd;
-    // Numeric collation (CollationSettings.NUMERIC).
-    private boolean isNumeric;
-}
-
-/*
-*******************************************************************************
-* Copyright (C) 2010-2013, International Business Machines
-* Corporation and others.  All Rights Reserved.
-*******************************************************************************
-* collationiterator.cpp
-*
-* @since 2010oct27
-* @author Markus W. Scherer
-*/
-
-#include "unicode/ucharstrie.h"
-#include "unicode/ustringtrie.h"
-#include "charstr.h"
-#include "cmemory.h"
-#include "collation.h"
-#include "collationdata.h"
-#include "collationfcd.h"
-#include "collationiterator.h"
-#include "normalizer2impl.h"
-#include "uassert.h"
-#include "uvectr32.h"
-
-    void
-    CollationIterator.appendCEsFromCE32(CollationData d, int c, int ce32, boolean forward) {
+                           boolean forward) {
         while(Collation.isSpecialCE32(ce32)) {
             switch(Collation.tagFromCE32(ce32)) {
             case Collation.FALLBACK_TAG:
@@ -501,30 +459,27 @@ abstract class CollationIterator {
                 ceBuffer.append(Collation.ceFromLongSecondaryCE32(ce32));
                 return;
             case Collation.LATIN_EXPANSION_TAG:
-                if(ceBuffer.ensureAppendCapacity(2)) {
-                    ceBuffer.set(ceBuffer.length, Collation.latinCE0FromCE32(ce32));
-                    ceBuffer.set(ceBuffer.length + 1, Collation.latinCE1FromCE32(ce32));
-                    ceBuffer.length += 2;
-                }
+                ceBuffer.ensureAppendCapacity(2);
+                ceBuffer.set(ceBuffer.length, Collation.latinCE0FromCE32(ce32));
+                ceBuffer.set(ceBuffer.length + 1, Collation.latinCE1FromCE32(ce32));
+                ceBuffer.length += 2;
                 return;
             case Collation.EXPANSION32_TAG: {
-                const uint32_t *ce32s = d.ce32s + Collation.indexFromCE32(ce32);
+                int index = Collation.indexFromCE32(ce32);
                 int length = Collation.lengthFromCE32(ce32);
-                if(ceBuffer.ensureAppendCapacity(length)) {
-                    do {
-                        ceBuffer.set(ceBuffer.length++, Collation.ceFromCE32(*ce32s++));
-                    } while(--length > 0);
-                }
+                ceBuffer.ensureAppendCapacity(length);
+                do {
+                    ceBuffer.appendUnsafe(Collation.ceFromCE32(d.ce32s[index++]));
+                } while(--length > 0);
                 return;
             }
             case Collation.EXPANSION_TAG: {
-                const long *ces = d.ces + Collation.indexFromCE32(ce32);
+                int index = Collation.indexFromCE32(ce32);
                 int length = Collation.lengthFromCE32(ce32);
-                if(ceBuffer.ensureAppendCapacity(length)) {
-                    do {
-                        ceBuffer.set(ceBuffer.length++, *ces++);
-                    } while(--length > 0);
-                }
+                ceBuffer.ensureAppendCapacity(length);
+                do {
+                    ceBuffer.appendUnsafe(d.ces[index++]);
+                } while(--length > 0);
                 return;
             }
             case Collation.BUILDER_DATA_TAG:
@@ -613,13 +568,12 @@ abstract class CollationIterator {
                 if((ce32 & Collation.HANGUL_NO_SPECIAL_JAMO) != 0) {
                     // None of the Jamo CE32s are isSpecialCE32().
                     // Avoid recursive function calls and per-Jamo tests.
-                    if(ceBuffer.ensureAppendCapacity(t == 0 ? 2 : 3)) {
-                        ceBuffer.set(ceBuffer.length, Collation.ceFromCE32(jamoCE32s[c]));
-                        ceBuffer.set(ceBuffer.length + 1, Collation.ceFromCE32(jamoCE32s[19 + v]));
-                        ceBuffer.length += 2;
-                        if(t != 0) {
-                            ceBuffer.set(ceBuffer.length++, Collation.ceFromCE32(jamoCE32s[39 + t]));
-                        }
+                    ceBuffer.ensureAppendCapacity(t == 0 ? 2 : 3);
+                    ceBuffer.set(ceBuffer.length, Collation.ceFromCE32(jamoCE32s[c]));
+                    ceBuffer.set(ceBuffer.length + 1, Collation.ceFromCE32(jamoCE32s[19 + v]));
+                    ceBuffer.length += 2;
+                    if(t != 0) {
+                        ceBuffer.appendUnsafe(Collation.ceFromCE32(jamoCE32s[39 + t]));
                     }
                     return;
                 } else {
@@ -639,10 +593,10 @@ abstract class CollationIterator {
             }
             case Collation.LEAD_SURROGATE_TAG: {
                 assert(forward);  // Backward iteration should never see lead surrogate code _unit_ data.
-                assert(U16_IS_LEAD(c));
-                UChar trail;
-                if(U16_IS_TRAIL(trail = handleGetTrailSurrogate())) {
-                    c = U16_GET_SUPPLEMENTARY(c, trail);
+                assert(isLeadSurrogate(c));
+                char trail;
+                if(Character.isLowSurrogate(trail = handleGetTrailSurrogate())) {
+                    c = Character.toCodePoint((char)c, trail);
                     ce32 &= Collation.LEAD_TYPE_MASK;
                     if(ce32 == Collation.LEAD_ALL_UNASSIGNED) {
                         ce32 = Collation.UNASSIGNED_CE32;  // unassigned-implicit
@@ -664,7 +618,7 @@ abstract class CollationIterator {
                 return;
             case Collation.IMPLICIT_TAG:
                 assert(c >= 0);
-                if(U_IS_SURROGATE(c) && forbidSurrogateCodePoints()) {
+                if(isSurrogate(c) && forbidSurrogateCodePoints()) {
                     ce32 = Collation.FFFD_CE32;
                     break;
                 } else {
@@ -676,31 +630,48 @@ abstract class CollationIterator {
         ceBuffer.append(Collation.ceFromSimpleCE32(ce32));
     }
 
-    int
-    CollationIterator.getCE32FromPrefix(CollationData d, int ce32,
-                                        ) {
+    // TODO: Propose widening the UTF16 method.
+    private static final boolean isSurrogate(int c) {
+        return (c & 0xfffff800) == 0xd800;
+    }
+
+    // TODO: Propose widening the UTF16 method.
+    private static final boolean isLeadSurrogate(int c) {
+        return (c & 0xfffffc00) == 0xd800;
+    }
+
+    // Main lookup trie of the data object.
+    protected final Trie2_32 trie;
+    protected final CollationData data;
+
+    private final long nextCEFromCE32(CollationData d, int c, int ce32) {
+        --ceBuffer.length;  // Undo ceBuffer.incLength().
+        appendCEsFromCE32(d, c, ce32, true);
+        return ceBuffer.get(cesIndex++);
+    }
+
+    private final int getCE32FromPrefix(CollationData d, int ce32) {
         int index = Collation.indexFromCE32(ce32);
         ce32 = d.getCE32FromContexts(index);  // Default if no prefix match.
         index += 2;
         // Number of code points read before the original code point.
         int lookBehind = 0;
-        UCharsTrie prefixes(d.contexts, index);
+        CharsTrie prefixes = new CharsTrie(d.contexts, index);
         for(;;) {
             int c = previousCodePoint();
             if(c < 0) { break; }
             ++lookBehind;
-            UStringTrieResult match = prefixes.nextForCodePoint(c);
-            if(USTRINGTRIE_HAS_VALUE(match)) {
+            BytesTrie.Result match = prefixes.nextForCodePoint(c);
+            if(match.hasValue()) {
                 ce32 = prefixes.getValue();
             }
-            if(!USTRINGTRIE_HAS_NEXT(match)) { break; }
+            if(!match.hasNext()) { break; }
         }
         forwardNumCodePoints(lookBehind);
         return ce32;
     }
 
-    int
-    CollationIterator.nextSkippedCodePoint() {
+    private final int nextSkippedCodePoint() {
         if(skipped != null && skipped.hasNext()) { return skipped.next(); }
         if(numCpFwd == 0) { return Collation.SENTINEL_CP; }
         int c = nextCodePoint();
@@ -709,8 +680,7 @@ abstract class CollationIterator {
         return c;
     }
 
-    void
-    CollationIterator.backwardNumSkipped(int n) {
+    private final void backwardNumSkipped(int n) {
         if(skipped != null && !skipped.isEmpty()) {
             n = skipped.backwardNumCodePoints(n);
         }
@@ -718,10 +688,9 @@ abstract class CollationIterator {
         if(numCpFwd >= 0) { numCpFwd += n; }
     }
 
-    int
-    CollationIterator.nextCE32FromContraction(CollationData d, int contractionCE32,
-                                              const UChar *p, int ce32, int c,
-                                              ) {
+    private final int nextCE32FromContraction(
+            CollationData d, int contractionCE32,
+            CharSequence trieChars, int trieOffset, int ce32, int c) {
         // c: next code point after the original one
 
         // Number of code points read beyond the original code point.
@@ -732,20 +701,20 @@ abstract class CollationIterator {
         // Normally we only need a contiguous match,
         // and therefore need not remember the suffixes state from before a mismatch for retrying.
         // If we are already processing skipped combining marks, then we do track the state.
-        UCharsTrie suffixes(p);
+        CharsTrie suffixes = new CharsTrie(trieChars, trieOffset);
         if(skipped != null && !skipped.isEmpty()) { skipped.saveTrieState(suffixes); }
-        UStringTrieResult match = suffixes.firstForCodePoint(c);
+        BytesTrie.Result match = suffixes.firstForCodePoint(c);
         for(;;) {
             int nextCp;
-            if(USTRINGTRIE_HAS_VALUE(match)) {
+            if(match.hasValue()) {
                 ce32 = suffixes.getValue();
-                if(!USTRINGTRIE_HAS_NEXT(match) || (c = nextSkippedCodePoint()) < 0) {
+                if(!match.hasNext() || (c = nextSkippedCodePoint()) < 0) {
                     return ce32;
                 }
                 if(skipped != null && !skipped.isEmpty()) { skipped.saveTrieState(suffixes); }
                 sinceMatch = 1;
-            } else if(match == USTRINGTRIE_NO_MATCH || (nextCp = nextSkippedCodePoint()) < 0) {
-                // No match for c, or partial match (USTRINGTRIE_NO_VALUE) and no further text.
+            } else if(match == BytesTrie.Result.NO_MATCH || (nextCp = nextSkippedCodePoint()) < 0) {
+                // No match for c, or partial match (BytesTrie.Result.NO_VALUE) and no further text.
                 // Back up if necessary, and try a discontiguous contraction.
                 if((contractionCE32 & Collation.CONTRACT_TRAILING_CCC) != 0 &&
                         // Discontiguous contraction matching extends an existing match.
@@ -771,7 +740,7 @@ abstract class CollationIterator {
                 }
                 break;
             } else {
-                // Continue after partial match (USTRINGTRIE_NO_VALUE) for c.
+                // Continue after partial match (BytesTrie.Result.NO_VALUE) for c.
                 // It does not have a result value, therefore it is not itself "a match in the table".
                 // If a partially-matched c has ccc!=0 then
                 // it might be skipped in discontiguous contraction.
@@ -785,11 +754,9 @@ abstract class CollationIterator {
         return ce32;
     }
 
-    int
-    CollationIterator.nextCE32FromDiscontiguousContraction(
-            CollationData d, UCharsTrie &suffixes, int ce32,
-            int lookAhead, int c,
-            ) {
+    private final int nextCE32FromDiscontiguousContraction(
+            CollationData d, CharsTrie suffixes, int ce32,
+            int lookAhead, int c) {
         // UCA section 3.3.2 Contractions:
         // Contractions that end with non-starter characters
         // are known as discontiguous contractions.
@@ -807,7 +774,7 @@ abstract class CollationIterator {
         // S2.1.3 If there is a match, replace S by S + C, and remove C.
 
         // First: Is a discontiguous contraction even possible?
-        char fcd16 = d.getFCD16(c);
+        int fcd16 = d.getFCD16(c);
         assert(fcd16 > 0xff);  // The caller checked this already, as a shortcut.
         int nextCp = nextSkippedCodePoint();
         if(nextCp < 0) {
@@ -816,7 +783,7 @@ abstract class CollationIterator {
             return ce32;
         }
         ++lookAhead;
-        uint8_t prevCC = (uint8_t)fcd16;
+        int prevCC = fcd16 & 0xff;
         fcd16 = d.getFCD16(nextCp);
         if(fcd16 <= 0xff) {
             // The next code point after c is a starter (S2.1.1 "process each non-starter").
@@ -853,21 +820,21 @@ abstract class CollationIterator {
         int sinceMatch = 2;
         c = nextCp;
         for(;;) {
-            UStringTrieResult match;
+            BytesTrie.Result match;
             // "If C is not blocked from S, find if S + C has a match in the table." (S2.1.2)
-            if(prevCC < (fcd16 >> 8) && USTRINGTRIE_HAS_VALUE(match = suffixes.nextForCodePoint(c))) {
+            if(prevCC < (fcd16 >> 8) && (match = suffixes.nextForCodePoint(c)).hasValue()) {
                 // "If there is a match, replace S by S + C, and remove C." (S2.1.3)
                 // Keep prevCC unchanged.
                 ce32 = suffixes.getValue();
                 sinceMatch = 0;
                 skipped.recordMatch();
-                if(!USTRINGTRIE_HAS_NEXT(match)) { break; }
+                if(!match.hasNext()) { break; }
                 skipped.saveTrieState(suffixes);
             } else {
                 // No match for "S + C", skip C.
                 skipped.skip(c);
                 skipped.resetToTrieState(suffixes);
-                prevCC = (uint8_t)fcd16;
+                prevCC = fcd16 & 0xff;
             }
             if((c = nextSkippedCodePoint()) < 0) { break; }
             ++sinceMatch;
@@ -885,7 +852,7 @@ abstract class CollationIterator {
             // and we are not in a recursive discontiguous contraction.
             // Append CEs from the contraction ce32
             // and then from the combining marks that we skipped before the match.
-            int c = Collation.SENTINEL_CP;
+            c = Collation.SENTINEL_CP;
             for(;;) {
                 appendCEsFromCE32(d, c, ce32, true);
                 // Fetch CE32s for skipped combining marks from the normal data, with fallback,
@@ -909,200 +876,10 @@ abstract class CollationIterator {
         return ce32;
     }
 
-    void
-    CollationIterator.appendNumericCEs(int ce32, boolean forward) {
-        // Collect digits.
-        CharString digits;
-        if(forward) {
-            for(;;) {
-                char digit = Collation.digitFromCE32(ce32);
-                digits.append(digit);
-                if(numCpFwd == 0) { break; }
-                int c = nextCodePoint();
-                if(c < 0) { break; }
-                ce32 = data.getCE32(c);
-                if(ce32 == Collation.FALLBACK_CE32) {
-                    ce32 = data.base.getCE32(c);
-                }
-                if(!Collation.hasCE32Tag(ce32, Collation.DIGIT_TAG)) {
-                    backwardNumCodePoints(1);
-                    break;
-                }
-                if(numCpFwd > 0) { --numCpFwd; }
-            }
-        } else {
-            for(;;) {
-                char digit = Collation.digitFromCE32(ce32);
-                digits.append(digit);
-                int c = previousCodePoint();
-                if(c < 0) { break; }
-                ce32 = data.getCE32(c);
-                if(ce32 == Collation.FALLBACK_CE32) {
-                    ce32 = data.base.getCE32(c);
-                }
-                if(!Collation.hasCE32Tag(ce32, Collation.DIGIT_TAG)) {
-                    forwardNumCodePoints(1);
-                    break;
-                }
-            }
-            // Reverse the digit string.
-            char *p = digits.data();
-            char *q = p + digits.length() - 1;
-            while(p < q) {
-                char digit = *p;
-                *p++ = *q;
-                *q-- = digit;
-            }
-        }
-        int pos = 0;
-        do {
-            // Skip leading zeros.
-            while(pos < (digits.length() - 1) && digits[pos] == 0) { ++pos; }
-            // Write a sequence of CEs for at most 254 digits at a time.
-            int segmentLength = digits.length() - pos;
-            if(segmentLength > 254) { segmentLength = 254; }
-            appendNumericSegmentCEs(digits.data() + pos, segmentLength);
-            pos += segmentLength;
-        } while(pos < digits.length());
-    }
-
-    void
-    CollationIterator.appendNumericSegmentCEs(const char *digits, int length) {
-        assert(1 <= length && length <= 254);
-        assert(length == 1 || digits[0] != 0);
-        long numericPrimary = data.numericPrimary;
-        // Note: We use primary byte values 2..255: digits are not compressible.
-        if(length <= 7) {
-            // Very dense encoding for small numbers.
-            int value = digits[0];
-            for(int i = 1; i < length; ++i) {
-                value = value * 10 + digits[i];
-            }
-            // Primary weight second byte values:
-            //     74 byte values   2.. 75 for small numbers in two-byte primary weights.
-            //     40 byte values  76..115 for medium numbers in three-byte primary weights.
-            //     16 byte values 116..131 for large numbers in four-byte primary weights.
-            //    124 byte values 132..255 for very large numbers with 4..127 digit pairs.
-            int firstByte = 2;
-            int numBytes = 74;
-            if(value < numBytes) {
-                // Two-byte primary for 0..73, good for day & month numbers etc.
-                long primary = numericPrimary | ((firstByte + value) << 16);
-                ceBuffer.append(Collation.makeCE(primary));
-                return;
-            }
-            value -= numBytes;
-            firstByte += numBytes;
-            numBytes = 40;
-            if(value < numBytes * 254) {
-                // Three-byte primary for 74..10233=74+40*254-1, good for year numbers and more.
-                long primary = numericPrimary |
-                    ((firstByte + value / 254) << 16) | ((2 + value % 254) << 8);
-                ceBuffer.append(Collation.makeCE(primary));
-                return;
-            }
-            value -= numBytes * 254;
-            firstByte += numBytes;
-            numBytes = 16;
-            if(value < numBytes * 254 * 254) {
-                // Four-byte primary for 10234..1042489=10234+16*254*254-1.
-                long primary = numericPrimary | (2 + value % 254);
-                value /= 254;
-                primary |= (2 + value % 254) << 8;
-                value /= 254;
-                primary |= (firstByte + value % 254) << 16;
-                ceBuffer.append(Collation.makeCE(primary));
-                return;
-            }
-            // original value > 1042489
-        }
-        assert(length >= 7);
-
-        // The second primary byte value 132..255 indicates the number of digit pairs (4..127),
-        // then we generate primary bytes with those pairs.
-        // Omit trailing 00 pairs.
-        // Decrement the value for the last pair.
-
-        // Set the exponent. 4 pairs.132, 5 pairs.133, ..., 127 pairs.255.
-        int numPairs = (length + 1) / 2;
-        long primary = numericPrimary | ((132 - 4 + numPairs) << 16);
-        // Find the length without trailing 00 pairs.
-        while(digits[length - 1] == 0 && digits[length - 2] == 0) {
-            length -= 2;
-        }
-        // Read the first pair.
-        int pair;
-        int pos;
-        if(length & 1) {
-            // Only "half a pair" if we have an odd number of digits.
-            pair = digits[0];
-            pos = 1;
-        } else {
-            pair = digits[0] * 10 + digits[1];
-            pos = 2;
-        }
-        pair = 11 + 2 * pair;
-        // Add the pairs of digits between pos and length.
-        int shift = 8;
-        while(pos < length) {
-            if(shift == 0) {
-                // Every three pairs/bytes we need to store a 4-byte-primary CE
-                // and start with a new CE with the '0' primary lead byte.
-                primary |= pair;
-                ceBuffer.append(Collation.makeCE(primary));
-                primary = numericPrimary;
-                shift = 16;
-            } else {
-                primary |= pair << shift;
-                shift -= 8;
-            }
-            pair = 11 + 2 * (digits[pos] * 10 + digits[pos + 1]);
-            pos += 2;
-        }
-        primary |= (pair - 1) << shift;
-        ceBuffer.append(Collation.makeCE(primary));
-    }
-
-    long
-    CollationIterator.previousCE(UVector32 &offsets) {
-        if(ceBuffer.length > 0) {
-            // Return the previous buffered CE.
-            return ceBuffer.get(--ceBuffer.length);
-        }
-        offsets.removeAllElements();
-        int limitOffset = getOffset();
-        int c = previousCodePoint();
-        if(c < 0) { return Collation.NO_CE; }
-        if(data.isUnsafeBackward(c, isNumeric)) {
-            return previousCEUnsafe(c, offsets);
-        }
-        // Simple, safe-backwards iteration:
-        // Get a CE going backwards, handle prefixes but no contractions.
-        int ce32 = data.getCE32(c);
-        CollationData d;
-        if(ce32 == Collation.FALLBACK_CE32) {
-            d = data.base;
-            ce32 = d.getCE32(c);
-        } else {
-            d = data;
-        }
-        if(Collation.isSimpleOrLongCE32(ce32)) {
-            return Collation.ceFromCE32(ce32);
-        }
-        appendCEsFromCE32(d, c, ce32, false);
-        if(ceBuffer.length > 1) {
-            offsets.addElement(getOffset());
-            // For an expansion, the offset of each non-initial CE is the limit offset,
-            // consistent with forward iteration.
-            while(offsets.size() <= ceBuffer.length) {
-                offsets.addElement(limitOffset);
-            };
-        }
-        return ceBuffer.get(--ceBuffer.length);
-    }
-
-    long
-    CollationIterator.previousCEUnsafe(int c, UVector32 &offsets) {
+    /**
+     * Returns the previous CE when data.isUnsafeBackward(c, isNumeric).
+     */
+    private final long previousCEUnsafe(int c, UVector32 offsets) {
         // We just move through the input counting safe and unsafe code points
         // without collecting the unsafe-backward substring into a buffer and
         // switching to it.
@@ -1166,3 +943,174 @@ abstract class CollationIterator {
         cesIndex = 0;  // Avoid cesIndex > ceBuffer.length when that gets decremented.
         return ceBuffer.get(--ceBuffer.length);
     }
+
+    /**
+     * Turns a string of digits (bytes 0..9)
+     * into a sequence of CEs that will sort in numeric order.
+     *
+     * Starts from this ce32's digit value and consumes the following/preceding digits.
+     * The digits string must not be empty and must not have leading zeros.
+     */
+    private final void appendNumericCEs(int ce32, boolean forward) {
+        // Collect digits.
+        // TODO: Use some kind of a byte buffer? We only store values 0..9.
+        StringBuilder digits = new StringBuilder();
+        if(forward) {
+            for(;;) {
+                char digit = Collation.digitFromCE32(ce32);
+                digits.append(digit);
+                if(numCpFwd == 0) { break; }
+                int c = nextCodePoint();
+                if(c < 0) { break; }
+                ce32 = data.getCE32(c);
+                if(ce32 == Collation.FALLBACK_CE32) {
+                    ce32 = data.base.getCE32(c);
+                }
+                if(!Collation.hasCE32Tag(ce32, Collation.DIGIT_TAG)) {
+                    backwardNumCodePoints(1);
+                    break;
+                }
+                if(numCpFwd > 0) { --numCpFwd; }
+            }
+        } else {
+            for(;;) {
+                char digit = Collation.digitFromCE32(ce32);
+                digits.append(digit);
+                int c = previousCodePoint();
+                if(c < 0) { break; }
+                ce32 = data.getCE32(c);
+                if(ce32 == Collation.FALLBACK_CE32) {
+                    ce32 = data.base.getCE32(c);
+                }
+                if(!Collation.hasCE32Tag(ce32, Collation.DIGIT_TAG)) {
+                    forwardNumCodePoints(1);
+                    break;
+                }
+            }
+            // Reverse the digit string.
+            digits.reverse();
+        }
+        int pos = 0;
+        do {
+            // Skip leading zeros.
+            while(pos < (digits.length() - 1) && digits.charAt(pos) == 0) { ++pos; }
+            // Write a sequence of CEs for at most 254 digits at a time.
+            int segmentLength = digits.length() - pos;
+            if(segmentLength > 254) { segmentLength = 254; }
+            appendNumericSegmentCEs(digits.subSequence(pos, pos + segmentLength));
+            pos += segmentLength;
+        } while(pos < digits.length());
+    }
+
+    /**
+     * Turns 1..254 digits into a sequence of CEs.
+     * Called by appendNumericCEs() for each segment of at most 254 digits.
+     */
+    private final void appendNumericSegmentCEs(CharSequence digits) {
+        int length = digits.length();
+        assert(1 <= length && length <= 254);
+        assert(length == 1 || digits.charAt(0) != 0);
+        long numericPrimary = data.numericPrimary;
+        // Note: We use primary byte values 2..255: digits are not compressible.
+        if(length <= 7) {
+            // Very dense encoding for small numbers.
+            int value = digits.charAt(0);
+            for(int i = 1; i < length; ++i) {
+                value = value * 10 + digits.charAt(i);
+            }
+            // Primary weight second byte values:
+            //     74 byte values   2.. 75 for small numbers in two-byte primary weights.
+            //     40 byte values  76..115 for medium numbers in three-byte primary weights.
+            //     16 byte values 116..131 for large numbers in four-byte primary weights.
+            //    124 byte values 132..255 for very large numbers with 4..127 digit pairs.
+            int firstByte = 2;
+            int numBytes = 74;
+            if(value < numBytes) {
+                // Two-byte primary for 0..73, good for day & month numbers etc.
+                long primary = numericPrimary | ((firstByte + value) << 16);
+                ceBuffer.append(Collation.makeCE(primary));
+                return;
+            }
+            value -= numBytes;
+            firstByte += numBytes;
+            numBytes = 40;
+            if(value < numBytes * 254) {
+                // Three-byte primary for 74..10233=74+40*254-1, good for year numbers and more.
+                long primary = numericPrimary |
+                    ((firstByte + value / 254) << 16) | ((2 + value % 254) << 8);
+                ceBuffer.append(Collation.makeCE(primary));
+                return;
+            }
+            value -= numBytes * 254;
+            firstByte += numBytes;
+            numBytes = 16;
+            if(value < numBytes * 254 * 254) {
+                // Four-byte primary for 10234..1042489=10234+16*254*254-1.
+                long primary = numericPrimary | (2 + value % 254);
+                value /= 254;
+                primary |= (2 + value % 254) << 8;
+                value /= 254;
+                primary |= (firstByte + value % 254) << 16;
+                ceBuffer.append(Collation.makeCE(primary));
+                return;
+            }
+            // original value > 1042489
+        }
+        assert(length >= 7);
+
+        // The second primary byte value 132..255 indicates the number of digit pairs (4..127),
+        // then we generate primary bytes with those pairs.
+        // Omit trailing 00 pairs.
+        // Decrement the value for the last pair.
+
+        // Set the exponent. 4 pairs.132, 5 pairs.133, ..., 127 pairs.255.
+        int numPairs = (length + 1) / 2;
+        long primary = numericPrimary | ((132 - 4 + numPairs) << 16);
+        // Find the length without trailing 00 pairs.
+        while(digits.charAt(length - 1) == 0 && digits.charAt(length - 2) == 0) {
+            length -= 2;
+        }
+        // Read the first pair.
+        int pair;
+        int pos;
+        if((length & 1) != 0) {
+            // Only "half a pair" if we have an odd number of digits.
+            pair = digits.charAt(0);
+            pos = 1;
+        } else {
+            pair = digits.charAt(0) * 10 + digits.charAt(1);
+            pos = 2;
+        }
+        pair = 11 + 2 * pair;
+        // Add the pairs of digits between pos and length.
+        int shift = 8;
+        while(pos < length) {
+            if(shift == 0) {
+                // Every three pairs/bytes we need to store a 4-byte-primary CE
+                // and start with a new CE with the '0' primary lead byte.
+                primary |= pair;
+                ceBuffer.append(Collation.makeCE(primary));
+                primary = numericPrimary;
+                shift = 16;
+            } else {
+                primary |= pair << shift;
+                shift -= 8;
+            }
+            pair = 11 + 2 * (digits.charAt(pos) * 10 + digits.charAt(pos + 1));
+            pos += 2;
+        }
+        primary |= (pair - 1) << shift;
+        ceBuffer.append(Collation.makeCE(primary));
+    }
+
+    private final CEBuffer ceBuffer = new CEBuffer();
+    private int cesIndex;
+
+    private SkippedState skipped;
+
+    // Number of code points to read forward, or -1.
+    // Used as a forward iteration limit in previousCEUnsafe().
+    private int numCpFwd;
+    // Numeric collation (CollationSettings.NUMERIC).
+    private boolean isNumeric;
+}

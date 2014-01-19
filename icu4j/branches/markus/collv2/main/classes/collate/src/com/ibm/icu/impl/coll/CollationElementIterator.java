@@ -30,21 +30,6 @@
 
 package com.ibm.icu.impl.coll;
 
-#include "unicode/unistr.h"
-#include "unicode/uobject.h"
-
-struct UCollationElements;
-struct UHashtable;
-
-U_NAMESPACE_BEGIN
-
-struct CollationData;
-
-class CollationIterator;
-class RuleBasedCollator;
-class UCollationPCE;
-class UVector32;
-
 /**
 * The CollationElementIterator class is used as an iterator to walk through     
 * each character of an international string. Use the iterator to return the

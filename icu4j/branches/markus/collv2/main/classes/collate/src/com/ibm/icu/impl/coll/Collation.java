@@ -1,9 +1,9 @@
 /*
 *******************************************************************************
-* Copyright (C) 2010-2013, International Business Machines
+* Copyright (C) 2010-2014, International Business Machines
 * Corporation and others.  All Rights Reserved.
 *******************************************************************************
-* collation.h
+* Collation.java, ported from collation.h/.cpp
 *
 * @since 2010oct27
 * @author Markus W. Scherer
@@ -403,14 +403,14 @@ final class Collation {
     /**
      * Returns the digit value from a DIGIT_TAG ce32.
      */
-    static int digitFromCE32(int ce32) {
-        return (ce32 >> 8) & 0xf;
+    static char digitFromCE32(int ce32) {
+        return (char)((ce32 >> 8) & 0xf);
     }
 
     /** Returns a 64-bit CE from a simple CE32 (not special). */
     static long ceFromSimpleCE32(int ce32) {
         // normal form ppppsstt . pppp0000ss00tt00
-        assert (ce32 & 0xff) < SPECIAL_CE32_LOW_BYTE
+        assert (ce32 & 0xff) < SPECIAL_CE32_LOW_BYTE;
         return ((long)(ce32 & 0xffff0000) << 32) | ((ce32 & 0xff00) << 16) | ((ce32 & 0xff) << 8);
     }
 
@@ -427,7 +427,7 @@ final class Collation {
                 return ((long)ce32 << 32) | COMMON_SEC_AND_TER_CE;
             } else {
                 // long-secondary form ssssttC2 . 00000000sssstt00
-                assert (tertiary & 0xf) == LONG_SECONDARY_TAG
+                assert (tertiary & 0xf) == LONG_SECONDARY_TAG;
                 return (long)ce32 & 0xffffffffL;
             }
         }
@@ -580,7 +580,7 @@ final class Collation {
     }
 
     static long reorder(byte[] reorderTable, long primary) {
-        return ((reorderTable[primary >> 24] & 0xffL) << 24) | (primary & 0xffffff);
+        return ((reorderTable[(int)primary >>> 24] & 0xffL) << 24) | (primary & 0xffffff);
     }
 
     // private Collation()  // No instantiation.

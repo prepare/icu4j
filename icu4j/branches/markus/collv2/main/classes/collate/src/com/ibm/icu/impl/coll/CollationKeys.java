@@ -11,17 +11,6 @@
 
 package com.ibm.icu.impl.coll;
 
-#include "unicode/bytestream.h"
-#include "unicode/ucol.h"
-#include "charstr.h"
-#include "collation.h"
-
-U_NAMESPACE_BEGIN
-
-class CollationIterator;
-struct CollationDataReader;
-struct CollationSettings;
-
 class SortKeyByteSink extends ByteSink {
 public:
     SortKeyByteSink(char *dest, int destCapacity)
