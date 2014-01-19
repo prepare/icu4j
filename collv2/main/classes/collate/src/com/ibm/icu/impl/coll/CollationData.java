@@ -1,15 +1,21 @@
 /*
 *******************************************************************************
-* Copyright (C) 2010-2013, International Business Machines
+* Copyright (C) 2010-2014, International Business Machines
 * Corporation and others.  All Rights Reserved.
 *******************************************************************************
-* collationdata.h
+* CollationData.java, ported from collationdata.h/.cpp
 *
 * @since 2010oct27
 * @author Markus W. Scherer
 */
 
 package com.ibm.icu.impl.coll;
+
+import com.ibm.icu.impl.Normalizer2Impl;
+import com.ibm.icu.impl.Trie2_32;
+import com.ibm.icu.lang.UScript;
+import com.ibm.icu.text.Collator;
+import com.ibm.icu.text.UnicodeSet;
 
 /**
  * Collation data container.
@@ -45,7 +51,7 @@ final class CollationData {
     }
 
     boolean isCompressiblePrimary(long p) {
-        return isCompressibleLeadByte(p >> 24);
+        return isCompressibleLeadByte((int)p >>> 24);
     }
 
     /**
@@ -94,7 +100,7 @@ final class CollationData {
     /**
      * Returns the FCD16 value for code point c. c must be >= 0.
      */
-    char getFCD16(int c) {
+    int getFCD16(int c) {
         return nfcImpl.getFCD16(c);
     }
 
@@ -135,7 +141,7 @@ final class CollationData {
      */
     int getGroupForPrimary(long p) {
         p >>= 24;  // Reordering groups are distinguished by primary lead bytes.
-        for(int i = 0; i < scriptsLength; i = i + 2 + scripts[i + 1]) {
+        for(int i = 0; i < scripts.length; i = i + 2 + scripts[i + 1]) {
             int lastByte = scripts[i] & 0xff;
             if(p <= lastByte) {
                 return scripts[i + 2];
@@ -146,7 +152,7 @@ final class CollationData {
 
     private int findScript(int script) {
         if(script < 0 || 0xffff < script) { return -1; }
-        for(int i = 0; i < scriptsLength;) {
+        for(int i = 0; i < scripts.length;) {
             int limit = i + 2 + scripts[i + 1];
             for(int j = i + 2; j < limit; ++j) {
                 if(script == scripts[j]) { return i; }
@@ -158,7 +164,7 @@ final class CollationData {
 
     int[] getEquivalentScripts(int script) {
         int i = findScript(script);
-        if(i < 0) { return 0; }
+        if(i < 0) { return EMPTY_INT_ARRAY; }
         int length = scripts[i + 1];
         assert(length != 0);
         int dest[] = new int[length];
@@ -233,14 +239,17 @@ final class CollationData {
         // Reorder according to the input scripts, continuing from the bottom of the bytes range.
         for(int i = 0; i < length;) {
             int script = reorder[i++];
-            if(script == USCRIPT_UNKNOWN) {
+            if(script == UScript.UNKNOWN) {
                 // Put the remaining scripts at the top.
                 while(i < length) {
                     script = reorder[--length];
-                    if(script == USCRIPT_UNKNOWN ||  // Must occur at most once.
-                            script == Collator.ReorderCodes.DEFAULT) {
-                        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-                        return;
+                    if(script == UScript.UNKNOWN) {  // Must occur at most once.
+                        throw new IllegalArgumentException(
+                                "setReorderCodes(): duplicate UScript.UNKNOWN");
+                    }
+                    if(script == Collator.ReorderCodes.DEFAULT) {
+                        throw new IllegalArgumentException(
+                                "setReorderCodes(): UScript.DEFAULT together with other scripts");
                     }
                     int index = findScript(script);
                     if(index < 0) { continue; }
@@ -248,8 +257,9 @@ final class CollationData {
                     int firstByte = head >> 8;
                     int lastByte = head & 0xff;
                     if(table[firstByte] != 0) {  // Duplicate or equivalent script.
-                        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-                        return;
+                        throw new IllegalArgumentException(
+                                "setReorderCodes(): duplicate or equivalent script " +
+                                scriptCodeString(script));
                     }
                     do { table[lastByte--] = (byte)highByte--; } while(firstByte <= lastByte);
                 }
@@ -258,8 +268,8 @@ final class CollationData {
             if(script == Collator.ReorderCodes.DEFAULT) {
                 // The default code must be the only one in the list, and that is handled by the caller.
                 // Otherwise it must not be used.
-                errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-                return;
+                throw new IllegalArgumentException(
+                        "setReorderCodes(): UScript.DEFAULT together with other scripts");
             }
             int index = findScript(script);
             if(index < 0) { continue; }
@@ -267,8 +277,9 @@ final class CollationData {
             int firstByte = head >> 8;
             int lastByte = head & 0xff;
             if(table[firstByte] != 0) {  // Duplicate or equivalent script.
-                errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-                return;
+                throw new IllegalArgumentException(
+                        "setReorderCodes(): duplicate or equivalent script " +
+                        scriptCodeString(script));
             }
             do { table[firstByte++] = (byte)lowByte++; } while(firstByte <= lastByte);
         }
@@ -280,6 +291,14 @@ final class CollationData {
         }
         assert(lowByte == highByte + 1);
     }
+
+    private static String scriptCodeString(int script) {
+        // Do not use the script name here: We do not want to depend on that data.
+        return (script < Collator.ReorderCodes.FIRST) ?
+                Integer.toString(script) : "0x" + Integer.toHexString(script);
+    }
+
+    private static final int[] EMPTY_INT_ARRAY = new int[0];
 
     /** @see jamoCE32s */
     private static final int JAMO_CE32S_LENGTH = 19 + 21 + 27;

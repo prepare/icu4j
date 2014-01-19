@@ -1,15 +1,17 @@
 /*
 *******************************************************************************
-* Copyright (C) 2012-2013, International Business Machines
+* Copyright (C) 2012-2014, International Business Machines
 * Corporation and others.  All Rights Reserved.
 *******************************************************************************
-* collationfcd.h
+* CollationFCD.java, ported from collationfcd.h/.cpp
 *
 * @since 2012aug18
 * @author Markus W. Scherer
 */
 
 package com.ibm.icu.impl.coll;
+
+import com.ibm.icu.text.UTF16;
 
 /**
  * Data and functions for the FCD check fast path.
@@ -73,7 +75,7 @@ final class CollationFCD {
         // c can be negative, e.g., Collation.SENTINEL_CP.
         // U+0300 is the first character with lccc!=0.
         if(c < 0x300) { return false; }
-        if(c > 0xffff) { c = U16_LEAD(c); }
+        if(c > 0xffff) { c = UTF16.getLeadSurrogate(c); }
         int i;
         return
             (i = lcccIndex[c >> 5]) != 0 &&

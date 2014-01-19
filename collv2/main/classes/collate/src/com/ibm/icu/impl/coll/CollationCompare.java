@@ -11,9 +11,6 @@
 
 package com.ibm.icu.impl.coll;
 
-class CollationIterator;
-struct CollationSettings;
-
 final class CollationCompare /* all methods are static */ {
 public:
     static UCollationResult compareUpToQuaternary(CollationIterator &left, CollationIterator &right,
