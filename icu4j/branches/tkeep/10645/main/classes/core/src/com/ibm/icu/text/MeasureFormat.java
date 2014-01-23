@@ -343,6 +343,7 @@ public class MeasureFormat extends UFormat {
      * @param fieldPosition Identifies a field in the formatted text.
      * @param measures the measures to format.
      * @return appendable.
+     * @throws AppendFailureException if error happens writing to Appendable.
      * @see MeasureFormat#formatMeasures(Measure...)
      * @draft ICU 53
      * @provisional
@@ -844,8 +845,7 @@ public class MeasureFormat extends UFormat {
             appendable.append(o.toString());
             return appendable;
         } catch (IOException e) {
-            // TODO(rocketman): Design some unchecked ICU Exception.
-            throw new RuntimeException(e);
+            throw new AppendFailureException(e);
         } 
     }
     
