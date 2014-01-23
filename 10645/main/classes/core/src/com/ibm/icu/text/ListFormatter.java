@@ -189,22 +189,30 @@ final public class ListFormatter {
         // TODO optimize this for the common case that the patterns are all of the
         // form {0}<sometext>{1}.
         // We avoid MessageFormat, because there is no "sub" formatting.
+        return format(items, -1).toString();
+    }
+    
+    // Formats a collection of objects and returns the formatted string plus the offset
+    // in the string where the index th element appears. index is zero based. If index is
+    // negative or greater than or equal to the size of items then this function returns -1 for
+    // the offset.
+    FormattedListBuilder format(Collection<?> items, int index) {
         Iterator<?> it = items.iterator();
         int count = items.size();
         switch (count) {
         case 0:
-            return "";
+            return new FormattedListBuilder("", false);
         case 1:
-            return it.next().toString();
+            return new FormattedListBuilder(it.next(), index == 0);
         case 2:
-            return format2(two, it.next(), it.next());
+            return new FormattedListBuilder(it.next(), index == 0).append(two, it.next(), index == 1);
         }
-        String result = it.next().toString();
-        result = format2(start, result, it.next());
-        for (count -= 3; count > 0; --count) {
-            result = format2(middle, result, it.next());
+        FormattedListBuilder builder = new FormattedListBuilder(it.next(), index == 0);
+        builder.append(start, it.next(), index == 1);
+        for (int idx = 2; idx < count - 1; ++idx) {
+            builder.append(middle, it.next(), index == idx);
         }
-        return format2(end, result, it.next());
+        return builder.append(end, it.next(), index == count - 1);
     }
     
     /**
@@ -235,17 +243,67 @@ final public class ListFormatter {
     public ULocale getLocale() {
         return locale;
     }
-
-    private String format2(String pattern, Object a, Object b) {
-        int i0 = pattern.indexOf("{0}");
-        int i1 = pattern.indexOf("{1}");
-        if (i0 < 0 || i1 < 0) {
-            throw new IllegalArgumentException("Missing {0} or {1} in pattern " + pattern);
+    
+    // Builds a formatted list
+    static class FormattedListBuilder {
+        private String current;
+        private int offset;
+        
+        // Start is the first object in the list; If recordOffset is true, records the offset of
+        // this first object.
+        public FormattedListBuilder(Object start, boolean recordOffset) {
+            this.current = start.toString();
+            this.offset = recordOffset ? 0 : -1;
         }
-        if (i0 < i1) {
-            return pattern.substring(0, i0) + a + pattern.substring(i0+3, i1) + b + pattern.substring(i1+3);
-        } else {
-            return pattern.substring(0, i1) + b + pattern.substring(i1+3, i0) + a + pattern.substring(i0+3);
+        
+        // Appends additional object. pattern is a template indicating where the new object gets
+        // added in relation to the rest of the list. {0} represents the rest of the list; {1}
+        // represents the new object in pattern. next is the object to be added. If recordOffset
+        // is true, records the offset of next in the formatted string.
+        public FormattedListBuilder append(String pattern, Object next, boolean recordOffset) {
+            int i0 = pattern.indexOf("{0}");
+            int i1 = pattern.indexOf("{1}");
+            if (i0 < 0 || i1 < 0) {
+                throw new IllegalArgumentException("Missing {0} or {1} in pattern " + pattern);
+            }
+            if (i0 < i1) {
+                StringBuilder builder = new StringBuilder(pattern.substring(0, i0));
+                if (offsetRecorded()) {
+                    offset += builder.length();
+                }
+                builder.append(current).append(pattern, i0+3, i1);
+                if (recordOffset) {
+                    offset = builder.length();
+                }
+                builder.append(next).append(pattern.substring(i1+3));
+                current = builder.toString();
+            } else {
+                StringBuilder builder = new StringBuilder(pattern.substring(0, i1));
+                if (recordOffset) {
+                    offset = builder.length();
+                }
+                builder.append(next).append(pattern, i1+3, i0);
+                if (offsetRecorded()) {
+                    offset += builder.length();
+                }
+                builder.append(current).append(pattern.substring(i0+3));
+                current = builder.toString();
+            }
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return current;
+        }
+        
+        // Gets the last recorded offset
+        public int getOffset() {
+            return offset;
+        }
+        
+        private boolean offsetRecorded() {
+            return offset >= 0;
         }
     }
 
