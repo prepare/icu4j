@@ -8,11 +8,13 @@
 
 package com.ibm.icu.dev.test.serializable;
 
+import java.io.IOException;
 import java.util.Locale;
 
 import com.ibm.icu.impl.IllegalIcuArgumentException;
 import com.ibm.icu.impl.InvalidFormatException;
 import com.ibm.icu.impl.locale.LocaleSyntaxException;
+import com.ibm.icu.text.AppendFailureException;
 import com.ibm.icu.text.ArabicShapingException;
 import com.ibm.icu.text.StringPrepParseException;
 import com.ibm.icu.util.IllformedLocaleException;
@@ -67,6 +69,15 @@ public class ExceptionTests
             }
             
             return exceptions;
+        }
+    }
+    
+    static class AppendFailureExceptionHandler extends ExceptionHandler
+    {
+        public Object[] getTestObjects() {
+            return new AppendFailureException[] { 
+                    new AppendFailureException(new IOException("some message"))
+            };
         }
     }
     
