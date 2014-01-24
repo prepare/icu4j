@@ -1,20 +1,15 @@
 /*
 *******************************************************************************
-* Copyright (C) 2013, International Business Machines
+* Copyright (C) 2013-2014, International Business Machines
 * Corporation and others.  All Rights Reserved.
 *******************************************************************************
-* collationrootelements.h
+* CollationRootElements.java, ported from collationrootelements.h/.cpp
 *
 * @since 2013mar01
 * @author Markus W. Scherer
 */
 
 package com.ibm.icu.impl.coll;
-
-#include "unicode/uobject.h"
-#include "collation.h"
-
-U_NAMESPACE_BEGIN
 
 /**
  * Container and access methods for collation elements and weights
@@ -88,14 +83,14 @@ final class CollationRootElements {
      * Returns the first assigned tertiary CE.
      */
     long getFirstTertiaryCE() {
-        return elements[elements[IX_FIRST_TERTIARY_INDEX]] & ~SEC_TER_DELTA_FLAG;
+        return elements[(int)elements[IX_FIRST_TERTIARY_INDEX]] & ~SEC_TER_DELTA_FLAG;
     }
 
     /**
      * Returns the last assigned tertiary CE.
      */
     long getLastTertiaryCE() {
-        return elements[elements[IX_FIRST_SECONDARY_INDEX] - 1] & ~SEC_TER_DELTA_FLAG;
+        return elements[(int)elements[IX_FIRST_SECONDARY_INDEX] - 1] & ~SEC_TER_DELTA_FLAG;
     }
 
     /**
@@ -120,21 +115,21 @@ final class CollationRootElements {
      * Returns the first assigned secondary CE.
      */
     long getFirstSecondaryCE() {
-        return elements[elements[IX_FIRST_SECONDARY_INDEX]] & ~SEC_TER_DELTA_FLAG;
+        return elements[(int)elements[IX_FIRST_SECONDARY_INDEX]] & ~SEC_TER_DELTA_FLAG;
     }
 
     /**
      * Returns the last assigned secondary CE.
      */
     long getLastSecondaryCE() {
-        return elements[elements[IX_FIRST_PRIMARY_INDEX] - 1] & ~SEC_TER_DELTA_FLAG;
+        return elements[(int)elements[IX_FIRST_PRIMARY_INDEX] - 1] & ~SEC_TER_DELTA_FLAG;
     }
 
     /**
      * Returns the first assigned primary weight.
      */
     long getFirstPrimary() {
-        return elements[elements[IX_FIRST_PRIMARY_INDEX]];  // step=0: cannot be a range end
+        return elements[(int)elements[IX_FIRST_PRIMARY_INDEX]];  // step=0: cannot be a range end
     }
 
     /**
@@ -150,7 +145,7 @@ final class CollationRootElements {
      */
     long lastCEWithPrimaryBefore(long p) {
         if(p == 0) { return 0; }
-        assert(p > elements[elements[IX_FIRST_PRIMARY_INDEX]]);
+        assert(p > elements[(int)elements[IX_FIRST_PRIMARY_INDEX]]);
         int index = findP(p);
         long q = elements[index];
         long secTer;
@@ -225,7 +220,7 @@ final class CollationRootElements {
         if(p == (q & 0xffffff00L)) {
             // Found p itself. Return the previous primary.
             // See if p is at the end of a previous range.
-            step = (int32_t)q & PRIMARY_STEP_MASK;
+            step = (int)q & PRIMARY_STEP_MASK;
             if(step == 0) {
                 // p is not at the end of a range. Look for the previous primary.
                 do {
@@ -237,7 +232,7 @@ final class CollationRootElements {
             // p is in a range, and not at the start.
             long nextElement = elements[index + 1];
             assert(isEndOfPrimaryRange(nextElement));
-            step = (int32_t)nextElement & PRIMARY_STEP_MASK;
+            step = (int)nextElement & PRIMARY_STEP_MASK;
         }
         // Return the previous range primary.
         if((p & 0xffff) == 0) {
@@ -252,7 +247,7 @@ final class CollationRootElements {
         int index;
         int previousSec, sec;
         if(p == 0) {
-            index = (int32_t)elements[IX_FIRST_SECONDARY_INDEX];
+            index = (int)elements[IX_FIRST_SECONDARY_INDEX];
             // Gap at the beginning of the secondary CE range.
             previousSec = 0;
             sec = (int)(elements[index] >> 16);
@@ -279,11 +274,11 @@ final class CollationRootElements {
         long secTer;
         if(p == 0) {
             if(s == 0) {
-                index = (int32_t)elements[IX_FIRST_TERTIARY_INDEX];
+                index = (int)elements[IX_FIRST_TERTIARY_INDEX];
                 // Gap at the beginning of the tertiary CE range.
                 previousTer = 0;
             } else {
-                index = (int32_t)elements[IX_FIRST_SECONDARY_INDEX];
+                index = (int)elements[IX_FIRST_SECONDARY_INDEX];
                 previousTer = Collation.MERGE_SEPARATOR_WEIGHT16;
             }
             secTer = elements[index] & ~SEC_TER_DELTA_FLAG;
@@ -325,7 +320,7 @@ final class CollationRootElements {
         assert(p == (elements[index] & 0xffffff00L) || isEndOfPrimaryRange(elements[index + 1]));
         long q = elements[++index];
         int step;
-        if((q & SEC_TER_DELTA_FLAG) == 0 && (step = (int32_t)q & PRIMARY_STEP_MASK) != 0) {
+        if((q & SEC_TER_DELTA_FLAG) == 0 && (step = (int)q & PRIMARY_STEP_MASK) != 0) {
             // Return the next primary in this range.
             if((p & 0xffff) == 0) {
                 return Collation.incTwoBytePrimaryByOffset(p, isCompressible, step);
@@ -349,11 +344,11 @@ final class CollationRootElements {
         int secLimit;
         if(index == 0) {
             // primary = 0
-            index = (int32_t)elements[IX_FIRST_SECONDARY_INDEX];
+            index = (int)elements[IX_FIRST_SECONDARY_INDEX];
             // Gap at the end of the secondary CE range.
             secLimit = 0x10000;
         } else {
-            assert(index >= (int32_t)elements[IX_FIRST_PRIMARY_INDEX]);
+            assert(index >= (int)elements[IX_FIRST_PRIMARY_INDEX]);
             ++index;
             // Gap for secondaries of primary CEs.
             secLimit = getSecondaryBoundary();
@@ -375,16 +370,16 @@ final class CollationRootElements {
         if(index == 0) {
             // primary = 0
             if(s == 0) {
-                index = (int32_t)elements[IX_FIRST_TERTIARY_INDEX];
+                index = (int)elements[IX_FIRST_TERTIARY_INDEX];
                 // Gap at the end of the tertiary CE range.
                 terLimit = 0x4000;
             } else {
-                index = (int32_t)elements[IX_FIRST_SECONDARY_INDEX];
+                index = (int)elements[IX_FIRST_SECONDARY_INDEX];
                 // Gap for tertiaries of primary/secondary CEs.
                 terLimit = getTertiaryBoundary();
             }
         } else {
-            assert(index >= (int32_t)elements[IX_FIRST_PRIMARY_INDEX]);
+            assert(index >= (int)elements[IX_FIRST_PRIMARY_INDEX]);
             ++index;
             terLimit = getTertiaryBoundary();
         }
@@ -409,9 +404,9 @@ final class CollationRootElements {
         // For example, it might be a reordering group boundary.
         assert((p >> 24) != Collation.UNASSIGNED_IMPLICIT_BYTE);
         // modified binary search
-        int start = (int32_t)elements[IX_FIRST_PRIMARY_INDEX];
+        int start = (int)elements[IX_FIRST_PRIMARY_INDEX];
         assert(p >= elements[start]);
-        int limit = length - 1;
+        int limit = elements.length - 1;
         assert(elements[limit] >= PRIMARY_SENTINEL);
         assert(p < elements[limit]);
         while((start + 1) < limit) {

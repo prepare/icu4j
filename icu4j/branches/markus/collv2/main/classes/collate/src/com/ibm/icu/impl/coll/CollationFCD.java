@@ -108,7 +108,7 @@ final class CollationFCD {
      * @param fcd16 the FCD value (lccc/tccc combination) of a code point
      * @return true if fcd16 is from U+0F73, U+0F75 or U+0F81
      */
-    static boolean isFCD16OfTibetanCompositeVowel(char fcd16) {
+    static boolean isFCD16OfTibetanCompositeVowel(int fcd16) {
         return fcd16 == 0x8182 || fcd16 == 0x8184;
     }
 
