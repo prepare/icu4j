@@ -211,21 +211,23 @@ abstract class CollationIterator implements Cloneable {
         return c;
     }
 
-    boolean equals(CollationIterator other) {
+    @Override
+    public boolean equals(Object other) {
         // Subclasses: Call this method and then add more specific checks.
         // Compare the iterator state but not the collation data (trie & data fields):
         // Assume that the caller compares the data.
         // Ignore skipped since that should be unused between calls to nextCE().
         // (It only stays around to avoid another memory allocation.)
-        if(!(this.getClass().equals(other.getClass()) &&
-                ceBuffer.length == other.ceBuffer.length &&
-                cesIndex == other.cesIndex &&
-                numCpFwd == other.numCpFwd &&
-                isNumeric == other.isNumeric)) {
+        if(!this.getClass().equals(other.getClass())) { return false; }
+        CollationIterator o = (CollationIterator)other;
+        if(!(ceBuffer.length == o.ceBuffer.length &&
+                cesIndex == o.cesIndex &&
+                numCpFwd == o.numCpFwd &&
+                isNumeric == o.isNumeric)) {
             return false;
         }
         for(int i = 0; i < ceBuffer.length; ++i) {
-            if(ceBuffer.get(i) != other.ceBuffer.get(i)) { return false; }
+            if(ceBuffer.get(i) != o.ceBuffer.get(i)) { return false; }
         }
         return true;
     }
@@ -394,12 +396,13 @@ abstract class CollationIterator implements Cloneable {
      */
     protected long handleNextCE32() {
         int c = nextCodePoint();
-        int result = (c < 0) ? Collation.FALLBACK_CE32 : data.getCE32(c);
-        return makeCodePointAndCE32Pair(c, result);
+        if(c < 0) { return NO_CP_AND_CE32; }
+        return makeCodePointAndCE32Pair(c, data.getCE32(c));
     }
     protected long makeCodePointAndCE32Pair(int c, int ce32) {
         return ((long)c << 32) | (ce32 & 0xffffffffL);
     }
+    protected static final long NO_CP_AND_CE32 = (-1L << 32) | (Collation.FALLBACK_CE32 & 0xffffffffL);
 
     /**
      * Called when handleNextCE32() returns a LEAD_SURROGATE_TAG for a lead surrogate code unit.
@@ -636,8 +639,13 @@ abstract class CollationIterator implements Cloneable {
     }
 
     // TODO: Propose widening the UTF16 method.
-    private static final boolean isLeadSurrogate(int c) {
+    protected static final boolean isLeadSurrogate(int c) {
         return (c & 0xfffffc00) == 0xd800;
+    }
+
+    // TODO: Propose widening the UTF16 method.
+    protected static final boolean isTrailSurrogate(int c) {
+        return (c & 0xfffffc00) == 0xdc00;
     }
 
     // Main lookup trie of the data object.

@@ -1,9 +1,9 @@
 /*
 *******************************************************************************
-* Copyright (C) 2013, International Business Machines
+* Copyright (C) 2013-2014, International Business Machines
 * Corporation and others.  All Rights Reserved.
 *******************************************************************************
-* collationtailoring.h
+* CollationTailoring.java, ported from collationtailoring.h/.cpp
 *
 * @since 2013mar12
 * @author Markus W. Scherer

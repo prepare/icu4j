@@ -57,37 +57,6 @@
 * 2012-2013    markus      Rewritten in C++ again.
 */
 
-#ifndef TBLCOLL_H
-#define TBLCOLL_H
-
-#include "unicode/utypes.h"
-
-#if !UCONFIG_NO_COLLATION
-
-#include "unicode/coll.h"
-#include "unicode/locid.h"
-#include "unicode/uiter.h"
-#include "unicode/ucol.h"
-
-U_NAMESPACE_BEGIN
-
-struct CollationData;
-struct CollationSettings;
-struct CollationTailoring;
-/**
-* @stable ICU 2.0
-*/
-class StringSearch;
-/**
-* @stable ICU 2.0
-*/
-class CollationElementIterator;
-class CollationKey;
-class SortKeyByteSink;
-class UnicodeSet;
-class UnicodeString;
-class UVector64;
-
 /**
  * The RuleBasedCollator class provides the implementation of
  * Collator, using data-driven tables. The user can create a customized
@@ -804,1447 +773,1384 @@ private:
     uint32_t explicitlySetAttributes;
 
     boolean actualLocaleIsSameAsValid;
-};
-
-U_NAMESPACE_END
-
-#endif  // !UCONFIG_NO_COLLATION
-#endif  // TBLCOLL_H
-/*
-*******************************************************************************
-* Copyright (C) 1996-2014, International Business Machines
-* Corporation and others.  All Rights Reserved.
-*******************************************************************************
-* rulebasedcollator.cpp
-*
-* (replaced the former tblcoll.cpp)
-*
-* @since 2012feb14 with new and old collation code
-* @author Markus W. Scherer
-*/
-
-#include "unicode/utypes.h"
-
-#if !UCONFIG_NO_COLLATION
-
-#include "unicode/coll.h"
-#include "unicode/coleitr.h"
-#include "unicode/localpointer.h"
-#include "unicode/locid.h"
-#include "unicode/sortkey.h"
-#include "unicode/tblcoll.h"
-#include "unicode/ucol.h"
-#include "unicode/uiter.h"
-#include "unicode/uloc.h"
-#include "unicode/uniset.h"
-#include "unicode/unistr.h"
-#include "unicode/usetiter.h"
-#include "unicode/utf8.h"
-#include "unicode/uversion.h"
-#include "bocsu.h"
-#include "charstr.h"
-#include "cmemory.h"
-#include "collation.h"
-#include "collationcompare.h"
-#include "collationdata.h"
-#include "collationdatareader.h"
-#include "collationfastlatin.h"
-#include "collationiterator.h"
-#include "collationkeys.h"
-#include "collationroot.h"
-#include "collationsets.h"
-#include "collationsettings.h"
-#include "collationtailoring.h"
-#include "cstring.h"
-#include "uassert.h"
-#include "ucol_imp.h"
-#include "uhash.h"
-#include "uitercollationiterator.h"
-#include "ustr_imp.h"
-#include "utf16collationiterator.h"
-#include "utf8collationiterator.h"
-#include "uvectr64.h"
-
-class FixedSortKeyByteSink extendsSortKeyByteSink {
-public:
-    FixedSortKeyByteSink(char *dest, int destCapacity)
-            : SortKeyByteSink(dest, destCapacity) {}
-    virtual ~FixedSortKeyByteSink();
-
-private:
-    virtual void AppendBeyondCapacity(const char *bytes, int n, int length);
-    virtual boolean Resize(int appendCapacity, int length);
-};
-
-FixedSortKeyByteSink.~FixedSortKeyByteSink() {}
-
-void
-FixedSortKeyByteSink.AppendBeyondCapacity(const char *bytes, int /*n*/, int length) {
-    // buffer_ != null && bytes != null && n > 0 && appended_ > capacity_
-    // Fill the buffer completely.
-    int available = capacity_ - length;
-    if (available > 0) {
-        uprv_memcpy(buffer_ + length, bytes, available);
-    }
 }
 
-boolean
-FixedSortKeyByteSink.Resize(int /*appendCapacity*/, int /*length*/) {
-    return false;
-}
+    class FixedSortKeyByteSink extends SortKeyByteSink {
+    public:
+        FixedSortKeyByteSink(char *dest, int destCapacity)
+                : SortKeyByteSink(dest, destCapacity) {}
+        virtual ~FixedSortKeyByteSink();
 
-}  // namespace
+    private:
+        virtual void AppendBeyondCapacity(const char *bytes, int n, int length);
+        virtual boolean Resize(int appendCapacity, int length);
+    };
 
-// Not in an anonymous namespace, so that it can be a friend of CollationKey.
-class CollationKeyByteSink extendsSortKeyByteSink {
-public:
-    CollationKeyByteSink(CollationKey &key)
-            : SortKeyByteSink(reinterpret_cast<char *>(key.getBytes()), key.getCapacity()),
-              key_(key) {}
-    virtual ~CollationKeyByteSink();
+    FixedSortKeyByteSink.~FixedSortKeyByteSink() {}
 
-private:
-    virtual void AppendBeyondCapacity(const char *bytes, int n, int length);
-    virtual boolean Resize(int appendCapacity, int length);
-
-    CollationKey &key_;
-};
-
-CollationKeyByteSink.~CollationKeyByteSink() {}
-
-void
-CollationKeyByteSink.AppendBeyondCapacity(const char *bytes, int n, int length) {
-    // buffer_ != null && bytes != null && n > 0 && appended_ > capacity_
-    if (Resize(n, length)) {
-        uprv_memcpy(buffer_ + length, bytes, n);
+    void
+    FixedSortKeyByteSink.AppendBeyondCapacity(const char *bytes, int /*n*/, int length) {
+        // buffer_ != null && bytes != null && n > 0 && appended_ > capacity_
+        // Fill the buffer completely.
+        int available = capacity_ - length;
+        if (available > 0) {
+            uprv_memcpy(buffer_ + length, bytes, available);
+        }
     }
-}
 
-boolean
-CollationKeyByteSink.Resize(int appendCapacity, int length) {
-    if (buffer_ == null) {
-        return false;  // allocation failed before already
-    }
-    int newCapacity = 2 * capacity_;
-    int altCapacity = length + 2 * appendCapacity;
-    if (newCapacity < altCapacity) {
-        newCapacity = altCapacity;
-    }
-    if (newCapacity < 200) {
-        newCapacity = 200;
-    }
-    uint8_t *newBuffer = key_.reallocate(newCapacity, length);
-    if (newBuffer == null) {
-        SetNotOk();
+    boolean
+    FixedSortKeyByteSink.Resize(int /*appendCapacity*/, int /*length*/) {
         return false;
     }
-    buffer_ = reinterpret_cast<char *>(newBuffer);
-    capacity_ = newCapacity;
-    return true;
-}
 
-RuleBasedCollator.RuleBasedCollator(const RuleBasedCollator &other)
-        : Collator(other),
-          data(other.data),
-          settings(other.settings),
-          tailoring(other.tailoring),
-          validLocale(other.validLocale),
-          explicitlySetAttributes(other.explicitlySetAttributes),
-          actualLocaleIsSameAsValid(other.actualLocaleIsSameAsValid) {
-    settings.addRef();
-    tailoring.addRef();
-}
+    }  // namespace
 
-RuleBasedCollator.RuleBasedCollator(const uint8_t *bin, int length,
-                                     const RuleBasedCollator *base)
-        : data(null),
-          settings(null),
-          tailoring(null),
-          validLocale(""),
-          explicitlySetAttributes(0),
-          actualLocaleIsSameAsValid(false) {
-    if(U_FAILURE) { return; }
-    if(bin == null || length <= 0 || base == null) {
-        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-        return;
-    }
-    const CollationTailoring *root = CollationRoot.getRoot;
-    if(U_FAILURE) { return; }
-    if(base.tailoring != root) {
-        errorCode = U_UNSUPPORTED_ERROR;
-        return;
-    }
-    LocalPointer<CollationTailoring> t(new CollationTailoring(base.tailoring.settings));
-    if(t.isNull() || t.isBogus()) {
-        errorCode = U_MEMORY_ALLOCATION_ERROR;
-        return;
-    }
-    CollationDataReader.read(base.tailoring, bin, length, *t);
-    if(U_FAILURE) { return; }
-    t.actualLocale.setToBogus();
-    adoptTailoring(t.orphan());
-}
+    // Not in an anonymous namespace, so that it can be a friend of CollationKey.
+    class CollationKeyByteSink extendsSortKeyByteSink {
+    public:
+        CollationKeyByteSink(CollationKey &key)
+                : SortKeyByteSink(reinterpret_cast<char *>(key.getBytes()), key.getCapacity()),
+                  key_(key) {}
+        virtual ~CollationKeyByteSink();
 
-RuleBasedCollator.RuleBasedCollator(const CollationTailoring *t)
-        : data(t.data),
-          settings(t.settings),
-          tailoring(t),
-          validLocale(t.actualLocale),
-          explicitlySetAttributes(0),
-          actualLocaleIsSameAsValid(false) {
-    settings.addRef();
-    tailoring.addRef();
-}
+    private:
+        virtual void AppendBeyondCapacity(const char *bytes, int n, int length);
+        virtual boolean Resize(int appendCapacity, int length);
 
-void
-RuleBasedCollator.adoptTailoring(CollationTailoring *t) {
-    assert(settings == null && data == null && tailoring == null);
-    data = t.data;
-    settings = t.settings;
-    settings.addRef();
-    t.addRef();
-    tailoring = t;
-    validLocale = t.actualLocale;
-    actualLocaleIsSameAsValid = false;
-}
+        CollationKey &key_;
+    };
 
-RuleBasedCollator &RuleBasedCollator.operator=(const RuleBasedCollator &other) {
-    if(this == &other) { return *this; }
-    SharedObject.copyPtr(other.settings, settings);
-    SharedObject.copyPtr(other.tailoring, tailoring);
-    data = tailoring.data;
-    validLocale = other.validLocale;
-    explicitlySetAttributes = other.explicitlySetAttributes;
-    actualLocaleIsSameAsValid = other.actualLocaleIsSameAsValid;
-    return *this;
-}
+    CollationKeyByteSink.~CollationKeyByteSink() {}
 
-UOBJECT_DEFINE_RTTI_IMPLEMENTATION(RuleBasedCollator)
-
-boolean
-RuleBasedCollator.operator==(const Collator& other) {
-    if(this == &other) { return true; }
-    if(!Collator.operator==(other)) { return false; }
-    const RuleBasedCollator &o = static_cast<const RuleBasedCollator &>(other);
-    if(*settings != *o.settings) { return false; }
-    if(data == o.data) { return true; }
-    boolean thisIsRoot = data.base == null;
-    boolean otherIsRoot = o.data.base == null;
-    assert(!thisIsRoot || !otherIsRoot);  // otherwise their data pointers should be ==
-    if(thisIsRoot != otherIsRoot) { return false; }
-    if((thisIsRoot || !tailoring.rules.isEmpty()) &&
-            (otherIsRoot || !o.tailoring.rules.isEmpty())) {
-        // Shortcut: If both collators have valid rule strings, then compare those.
-        if(tailoring.rules == o.tailoring.rules) { return true; }
-    }
-    // Different rule strings can result in the same or equivalent tailoring.
-    // The rule strings are optional in ICU resource bundles, although included by default.
-    // cloneBinary() drops the rule string.
-    UErrorCode errorCode = U_ZERO_ERROR;
-    LocalPointer<UnicodeSet> thisTailored(getTailoredSet);
-    LocalPointer<UnicodeSet> otherTailored(o.getTailoredSet);
-    if(U_FAILURE) { return false; }
-    if(*thisTailored != *otherTailored) { return false; }
-    // For completeness, we should compare all of the mappings;
-    // or we should create a list of strings, sort it with one collator,
-    // and check if both collators compare adjacent strings the same
-    // (order & strength, down to quaternary); or similar.
-    // Testing equality of collators seems unusual.
-    return true;
-}
-
-int32_t
-RuleBasedCollator.hashCode() {
-    int h = settings.hashCode();
-    if(data.base == null) { return h; }  // root collator
-    // Do not rely on the rule string, see comments in operator==().
-    UErrorCode errorCode = U_ZERO_ERROR;
-    LocalPointer<UnicodeSet> set(getTailoredSet);
-    if(U_FAILURE) { return 0; }
-    UnicodeSetIterator iter(*set);
-    while(iter.next() && !iter.isString()) {
-        h ^= data.getCE32(iter.getCodepoint());
-    }
-    return h;
-}
-
-void
-RuleBasedCollator.setLocales(ULocale requested, ULocale valid,
-                              ULocale actual) {
-    if(actual == tailoring.actualLocale) {
-        actualLocaleIsSameAsValid = false;
-    } else if(tailoring.actualLocale.isBogus()) {
-        tailoring.actualLocale = actual;
-        actualLocaleIsSameAsValid = false;
-    } else {
-        assert(actual == valid);
-        actualLocaleIsSameAsValid = true;
-    }
-    validLocale = valid;
-    // Ignore requested, see also ticket #10477.
-}
-
-Locale
-RuleBasedCollator.getLocale(ULocDataLocaleType type, UErrorCode& errorCode) {
-    if(U_FAILURE) {
-        return Locale.getRoot();
-    }
-    switch(type) {
-    case ULOC_ACTUAL_LOCALE:
-        return actualLocaleIsSameAsValid ? validLocale : tailoring.actualLocale;
-    case ULOC_VALID_LOCALE:
-    case ULOC_REQUESTED_LOCALE:  // TODO: Drop this, see ticket #10477.
-        return validLocale;
-    default:
-        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-        return Locale.getRoot();
-    }
-}
-
-const char *
-RuleBasedCollator.internalGetLocaleID(ULocDataLocaleType type) {
-    if(U_FAILURE) {
-        return null;
-    }
-    const Locale *result;
-    switch(type) {
-    case ULOC_ACTUAL_LOCALE:
-        result = actualLocaleIsSameAsValid ? &validLocale : &tailoring.actualLocale;
-        break;
-    case ULOC_VALID_LOCALE:
-    case ULOC_REQUESTED_LOCALE:  // TODO: Drop this, see ticket #10477.
-        result = &validLocale;
-        break;
-    default:
-        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-        return null;
-    }
-    if(result.isBogus()) { return null; }
-    const char *id = result.getName();
-    return id[0] == 0 ? "root" : id;
-}
-
-const UnicodeString&
-RuleBasedCollator.getRules() {
-    return tailoring.rules;
-}
-
-void
-RuleBasedCollator.getRules(UColRuleOption delta, UnicodeString &buffer) {
-    if(delta == UCOL_TAILORING_ONLY) {
-        buffer = tailoring.rules;
-        return;
-    }
-    // UCOL_FULL_RULES
-    buffer.remove();
-    CollationLoader.appendRootRules(buffer);
-    buffer.append(tailoring.rules).getTerminatedBuffer();
-}
-
-void
-RuleBasedCollator.getVersion(VersionInfo version) {
-    uprv_memcpy(version, tailoring.version, U_MAX_VERSION_LENGTH);
-    version[0] += (VersionInfo.UCOL_RUNTIME_VERSION << 4) + (VersionInfo.UCOL_RUNTIME_VERSION >> 4);
-}
-
-UnicodeSet *
-RuleBasedCollator.getTailoredSet() {
-    UnicodeSet *tailored = new UnicodeSet();
-    if(tailored == null) {
-        errorCode = U_MEMORY_ALLOCATION_ERROR;
-        return null;
-    }
-    if(data.base != null) {
-        TailoredSet(tailored).forData(data);
-        if(U_FAILURE) {
-            delete tailored;
-            return null;
+    void
+    CollationKeyByteSink.AppendBeyondCapacity(const char *bytes, int n, int length) {
+        // buffer_ != null && bytes != null && n > 0 && appended_ > capacity_
+        if (Resize(n, length)) {
+            uprv_memcpy(buffer_ + length, bytes, n);
         }
     }
-    return tailored;
-}
 
-void
-RuleBasedCollator.internalGetContractionsAndExpansions(
-        UnicodeSet *contractions, UnicodeSet *expansions,
-        boolean addPrefixes) {
-    if(U_FAILURE) { return; }
-    if(contractions != null) {
-        contractions.clear();
-    }
-    if(expansions != null) {
-        expansions.clear();
-    }
-    ContractionsAndExpansions(contractions, expansions, null, addPrefixes).forData(data);
-}
-
-void
-RuleBasedCollator.internalAddContractions(int c, UnicodeSet &set) {
-    if(U_FAILURE) { return; }
-    ContractionsAndExpansions(&set, null, null, false).forCodePoint(data, c);
-}
-
-const CollationSettings &
-RuleBasedCollator.getDefaultSettings() {
-    return *tailoring.settings;
-}
-
-UColAttributeValue
-RuleBasedCollator.getAttribute(UColAttribute attr) {
-    if(U_FAILURE) { return UCOL_DEFAULT; }
-    int option;
-    switch(attr) {
-    case UCOL_FRENCH_COLLATION:
-        option = CollationSettings.BACKWARD_SECONDARY;
-        break;
-    case UCOL_ALTERNATE_HANDLING:
-        return settings.getAlternateHandling();
-    case UCOL_CASE_FIRST:
-        return settings.getCaseFirst();
-    case UCOL_CASE_LEVEL:
-        option = CollationSettings.CASE_LEVEL;
-        break;
-    case UCOL_NORMALIZATION_MODE:
-        option = CollationSettings.CHECK_FCD;
-        break;
-    case UCOL_STRENGTH:
-        return (UColAttributeValue)settings.getStrength();
-    case UCOL_HIRAGANA_QUATERNARY_MODE:
-        // Deprecated attribute, unsettable.
-        return UCOL_OFF;
-    case UCOL_NUMERIC_COLLATION:
-        option = CollationSettings.NUMERIC;
-        break;
-    default:
-        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-        return UCOL_DEFAULT;
-    }
-    return ((settings.options & option) == 0) ? UCOL_OFF : UCOL_ON;
-}
-
-void
-RuleBasedCollator.setAttribute(UColAttribute attr, UColAttributeValue value,
-                                ) {
-    UColAttributeValue oldValue = getAttribute(attr);
-    if(U_FAILURE) { return; }
-    if(value == oldValue) {
-        setAttributeExplicitly(attr);
-        return;
-    }
-    const CollationSettings &defaultSettings = getDefaultSettings();
-    if(settings == &defaultSettings) {
-        if(value == UCOL_DEFAULT) {
-            setAttributeDefault(attr);
-            return;
+    boolean
+    CollationKeyByteSink.Resize(int appendCapacity, int length) {
+        if (buffer_ == null) {
+            return false;  // allocation failed before already
         }
-    }
-    CollationSettings ownedSettings = getOwnedSettings();
-    if(ownedSettings == null) {
-        errorCode = U_MEMORY_ALLOCATION_ERROR;
-        return;
-    }
-
-    switch(attr) {
-    case UCOL_FRENCH_COLLATION:
-        ownedSettings.setFlag(CollationSettings.BACKWARD_SECONDARY, value,
-                               defaultSettings.options);
-        break;
-    case UCOL_ALTERNATE_HANDLING:
-        ownedSettings.setAlternateHandling(value, defaultSettings.options);
-        break;
-    case UCOL_CASE_FIRST:
-        ownedSettings.setCaseFirst(value, defaultSettings.options);
-        break;
-    case UCOL_CASE_LEVEL:
-        ownedSettings.setFlag(CollationSettings.CASE_LEVEL, value,
-                               defaultSettings.options);
-        break;
-    case UCOL_NORMALIZATION_MODE:
-        ownedSettings.setFlag(CollationSettings.CHECK_FCD, value,
-                               defaultSettings.options);
-        break;
-    case UCOL_STRENGTH:
-        ownedSettings.setStrength(value, defaultSettings.options);
-        break;
-    case UCOL_HIRAGANA_QUATERNARY_MODE:
-        // Deprecated attribute. Check for valid values but do not change anything.
-        if(value != UCOL_OFF && value != UCOL_ON && value != UCOL_DEFAULT) {
-            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+        int newCapacity = 2 * capacity_;
+        int altCapacity = length + 2 * appendCapacity;
+        if (newCapacity < altCapacity) {
+            newCapacity = altCapacity;
         }
-        break;
-    case UCOL_NUMERIC_COLLATION:
-        ownedSettings.setFlag(CollationSettings.NUMERIC, value, defaultSettings.options);
-        break;
-    default:
-        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-        break;
-    }
-    if(U_FAILURE) { return; }
-    setFastLatinOptions(*ownedSettings);
-    if(value == UCOL_DEFAULT) {
-        setAttributeDefault(attr);
-    } else {
-        setAttributeExplicitly(attr);
-    }
-}
-
-Collator &
-RuleBasedCollator.setMaxVariable(UColReorderCode group) {
-    if(U_FAILURE) { return *this; }
-    // Convert the reorder code into a MaxVariable number, or UCOL_DEFAULT=-1.
-    int value;
-    if(group == Collator.ReorderCodes.DEFAULT) {
-        value = UCOL_DEFAULT;
-    } else if(Collator.ReorderCodes.FIRST <= group && group <= Collator.ReorderCodes.CURRENCY) {
-        value = group - Collator.ReorderCodes.FIRST;
-    } else {
-        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-        return *this;
-    }
-    CollationSettings.MaxVariable oldValue = settings.getMaxVariable();
-    if(value == oldValue) {
-        setAttributeExplicitly(ATTR_VARIABLE_TOP);
-        return *this;
-    }
-    const CollationSettings &defaultSettings = getDefaultSettings();
-    if(settings == &defaultSettings) {
-        if(value == UCOL_DEFAULT) {
-            setAttributeDefault(ATTR_VARIABLE_TOP);
-            return *this;
+        if (newCapacity < 200) {
+            newCapacity = 200;
         }
-    }
-    CollationSettings ownedSettings = getOwnedSettings();
-    if(ownedSettings == null) {
-        errorCode = U_MEMORY_ALLOCATION_ERROR;
-        return *this;
-    }
-
-    if(group == Collator.ReorderCodes.DEFAULT) {
-        group = (UColReorderCode)(Collator.ReorderCodes.FIRST + defaultSettings.getMaxVariable());
-    }
-    uint32_t varTop = data.getLastPrimaryForGroup(group);
-    assert(varTop != 0);
-    ownedSettings.setMaxVariable(value, defaultSettings.options);
-    if(U_FAILURE) { return *this; }
-    ownedSettings.variableTop = varTop;
-    setFastLatinOptions(*ownedSettings);
-    if(value == UCOL_DEFAULT) {
-        setAttributeDefault(ATTR_VARIABLE_TOP);
-    } else {
-        setAttributeExplicitly(ATTR_VARIABLE_TOP);
-    }
-    return *this;
-}
-
-UColReorderCode
-RuleBasedCollator.getMaxVariable() {
-    return (UColReorderCode)(Collator.ReorderCodes.FIRST + settings.getMaxVariable());
-}
-
-uint32_t
-RuleBasedCollator.getVariableTop(UErrorCode & /*errorCode*/) {
-    return settings.variableTop;
-}
-
-uint32_t
-RuleBasedCollator.setVariableTop(const UChar *varTop, int len) {
-    if(U_FAILURE) { return 0; }
-    if(varTop == null && len !=0) {
-        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
-    }
-    if(len < 0) { len = u_strlen(varTop); }
-    if(len == 0) {
-        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
-    }
-    boolean numeric = settings.isNumeric();
-    long ce1, ce2;
-    if(settings.dontCheckFCD()) {
-        UTF16CollationIterator ci(data, numeric, varTop, varTop, varTop + len);
-        ce1 = ci.nextCE;
-        ce2 = ci.nextCE;
-    } else {
-        FCDUTF16CollationIterator ci(data, numeric, varTop, varTop, varTop + len);
-        ce1 = ci.nextCE;
-        ce2 = ci.nextCE;
-    }
-    if(ce1 == Collation.NO_CE || ce2 != Collation.NO_CE) {
-        errorCode = U_CE_NOT_FOUND_ERROR;
-        return 0;
-    }
-    setVariableTop(ce1 >>> 32);
-    return settings.variableTop;
-}
-
-uint32_t
-RuleBasedCollator.setVariableTop(const UnicodeString &varTop) {
-    return setVariableTop(varTop.getBuffer(), varTop.length());
-}
-
-void
-RuleBasedCollator.setVariableTop(uint32_t varTop) {
-    if(U_FAILURE) { return; }
-    if(varTop != settings.variableTop) {
-        // Pin the variable top to the end of the reordering group which contains it.
-        // Only a few special groups are supported.
-        int group = data.getGroupForPrimary(varTop);
-        if(group < Collator.ReorderCodes.FIRST || Collator.ReorderCodes.CURRENCY < group) {
-            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-            return;
+        uint8_t *newBuffer = key_.reallocate(newCapacity, length);
+        if (newBuffer == null) {
+            SetNotOk();
+            return false;
         }
-        uint32_t v = data.getLastPrimaryForGroup(group);
-        assert(v != 0 && v >= varTop);
-        varTop = v;
-        if(varTop != settings.variableTop) {
-            CollationSettings ownedSettings = getOwnedSettings();
-            if(ownedSettings == null) {
-                errorCode = U_MEMORY_ALLOCATION_ERROR;
-                return;
-            }
-            ownedSettings.setMaxVariable(group - Collator.ReorderCodes.FIRST,
-                                          getDefaultSettings().options);
-            if(U_FAILURE) { return; }
-            ownedSettings.variableTop = varTop;
-            setFastLatinOptions(*ownedSettings);
-        }
+        buffer_ = reinterpret_cast<char *>(newBuffer);
+        capacity_ = newCapacity;
+        return true;
     }
-    if(varTop == getDefaultSettings().variableTop) {
-        setAttributeDefault(ATTR_VARIABLE_TOP);
-    } else {
-        setAttributeExplicitly(ATTR_VARIABLE_TOP);
-    }
-}
 
-int32_t
-RuleBasedCollator.getReorderCodes(int *dest, int capacity,
-                                   ) {
-    if(U_FAILURE) { return 0; }
-    if(capacity < 0 || (dest == null && capacity > 0)) {
-        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
+    RuleBasedCollator.RuleBasedCollator(const RuleBasedCollator &other)
+            : Collator(other),
+              data(other.data),
+              settings(other.settings),
+              tailoring(other.tailoring),
+              validLocale(other.validLocale),
+              explicitlySetAttributes(other.explicitlySetAttributes),
+              actualLocaleIsSameAsValid(other.actualLocaleIsSameAsValid) {
+        settings.addRef();
+        tailoring.addRef();
     }
-    int length = settings.reorderCodesLength;
-    if(length == 0) { return 0; }
-    if(length > capacity) {
-        errorCode = U_BUFFER_OVERFLOW_ERROR;
-        return length;
-    }
-    uprv_memcpy(dest, settings.reorderCodes, length * 4);
-    return length;
-}
 
-void
-RuleBasedCollator.setReorderCodes(const int *reorderCodes, int length,
-                                   ) {
-    if(U_FAILURE) { return; }
-    if(length < 0 || (reorderCodes == null && length > 0)) {
-        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-        return;
-    }
-    if(length == settings.reorderCodesLength &&
-            uprv_memcmp(reorderCodes, settings.reorderCodes, length * 4) == 0) {
-        return;
-    }
-    const CollationSettings &defaultSettings = getDefaultSettings();
-    if(length == 1 && reorderCodes[0] == Collator.ReorderCodes.DEFAULT) {
-        if(settings != &defaultSettings) {
-            CollationSettings ownedSettings = getOwnedSettings();
-            if(ownedSettings == null) {
-                errorCode = U_MEMORY_ALLOCATION_ERROR;
-                return;
-            }
-            ownedSettings.aliasReordering(defaultSettings.reorderCodes,
-                                           defaultSettings.reorderCodesLength,
-                                           defaultSettings.reorderTable);
-            setFastLatinOptions(*ownedSettings);
-        }
-        return;
-    }
-    CollationSettings ownedSettings = getOwnedSettings();
-    if(ownedSettings == null) {
-        errorCode = U_MEMORY_ALLOCATION_ERROR;
-        return;
-    }
-    if(length == 0) {
-        ownedSettings.resetReordering();
-    } else {
-        uint8_t reorderTable[256];
-        data.makeReorderTable(reorderCodes, length, reorderTable);
+    RuleBasedCollator.RuleBasedCollator(const uint8_t *bin, int length,
+                                        const RuleBasedCollator *base)
+            : data(null),
+              settings(null),
+              tailoring(null),
+              validLocale(""),
+              explicitlySetAttributes(0),
+              actualLocaleIsSameAsValid(false) {
         if(U_FAILURE) { return; }
-        if(!ownedSettings.setReordering(reorderCodes, length, reorderTable)) {
+        if(bin == null || length <= 0 || base == null) {
+            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+            return;
+        }
+        const CollationTailoring *root = CollationRoot.getRoot;
+        if(U_FAILURE) { return; }
+        if(base.tailoring != root) {
+            errorCode = U_UNSUPPORTED_ERROR;
+            return;
+        }
+        LocalPointer<CollationTailoring> t(new CollationTailoring(base.tailoring.settings));
+        if(t.isNull() || t.isBogus()) {
             errorCode = U_MEMORY_ALLOCATION_ERROR;
             return;
         }
+        CollationDataReader.read(base.tailoring, bin, length, *t);
+        if(U_FAILURE) { return; }
+        t.actualLocale.setToBogus();
+        adoptTailoring(t.orphan());
     }
-    setFastLatinOptions(*ownedSettings);
-}
 
-void
-RuleBasedCollator.setFastLatinOptions(CollationSettings &ownedSettings) {
-    ownedSettings.fastLatinOptions = CollationFastLatin.getOptions(
-            data, ownedSettings,
-            ownedSettings.fastLatinPrimaries, LENGTHOF(ownedSettings.fastLatinPrimaries));
-}
-
-UCollationResult
-RuleBasedCollator.compare(const UnicodeString &left, const UnicodeString &right,
-                           ) {
-    if(U_FAILURE) { return UCOL_EQUAL; }
-    return doCompare(left.getBuffer(), left.length(),
-                     right.getBuffer(), right.length());
-}
-
-UCollationResult
-RuleBasedCollator.compare(const UnicodeString &left, const UnicodeString &right,
-                           int length) {
-    if(U_FAILURE || length == 0) { return UCOL_EQUAL; }
-    if(length < 0) {
-        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-        return UCOL_EQUAL;
+    RuleBasedCollator.RuleBasedCollator(const CollationTailoring *t)
+            : data(t.data),
+              settings(t.settings),
+              tailoring(t),
+              validLocale(t.actualLocale),
+              explicitlySetAttributes(0),
+              actualLocaleIsSameAsValid(false) {
+        settings.addRef();
+        tailoring.addRef();
     }
-    int leftLength = left.length();
-    int rightLength = right.length();
-    if(leftLength > length) { leftLength = length; }
-    if(rightLength > length) { rightLength = length; }
-    return doCompare(left.getBuffer(), leftLength,
-                     right.getBuffer(), rightLength);
-}
 
-UCollationResult
-RuleBasedCollator.compare(const UChar *left, int leftLength,
-                           const UChar *right, int rightLength,
-                           ) {
-    if(U_FAILURE) { return UCOL_EQUAL; }
-    if((left == null && leftLength != 0) || (right == null && rightLength != 0)) {
-        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-        return UCOL_EQUAL;
+    void
+    RuleBasedCollator.adoptTailoring(CollationTailoring *t) {
+        assert(settings == null && data == null && tailoring == null);
+        data = t.data;
+        settings = t.settings;
+        settings.addRef();
+        t.addRef();
+        tailoring = t;
+        validLocale = t.actualLocale;
+        actualLocaleIsSameAsValid = false;
     }
-    // Make sure both or neither strings have a known length.
-    // We do not optimize for mixed length/termination.
-    if(leftLength >= 0) {
-        if(rightLength < 0) { rightLength = u_strlen(right); }
-    } else {
-        if(rightLength >= 0) { leftLength = u_strlen(left); }
+
+    RuleBasedCollator &RuleBasedCollator.operator=(const RuleBasedCollator &other) {
+        if(this == &other) { return *this; }
+        SharedObject.copyPtr(other.settings, settings);
+        SharedObject.copyPtr(other.tailoring, tailoring);
+        data = tailoring.data;
+        validLocale = other.validLocale;
+        explicitlySetAttributes = other.explicitlySetAttributes;
+        actualLocaleIsSameAsValid = other.actualLocaleIsSameAsValid;
+        return *this;
     }
-    return doCompare(left, leftLength, right, rightLength);
-}
 
-namespace {
+    UOBJECT_DEFINE_RTTI_IMPLEMENTATION(RuleBasedCollator)
 
-/**
- * Abstract iterator for identical-level string comparisons.
- * Returns FCD code points and handles temporary switching to NFD.
- */
-class NFDIterator {
-public:
-    NFDIterator() : index(-1), length(0) {}
-    virtual ~NFDIterator() {}
-    /**
-     * Returns the next code point from the internal normalization buffer,
-     * or else the next text code point.
-     * Returns -1 at the end of the text.
-     */
-    int nextCodePoint() {
-        if(index >= 0) {
-            if(index == length) {
-                index = -1;
-            } else {
-                int c;
-                U16_NEXT_UNSAFE(decomp, index, c);
-                return c;
+    boolean
+    RuleBasedCollator.operator==(const Collator& other) {
+        if(this == &other) { return true; }
+        if(!Collator.operator==(other)) { return false; }
+        const RuleBasedCollator &o = static_cast<const RuleBasedCollator &>(other);
+        if(*settings != *o.settings) { return false; }
+        if(data == o.data) { return true; }
+        boolean thisIsRoot = data.base == null;
+        boolean otherIsRoot = o.data.base == null;
+        assert(!thisIsRoot || !otherIsRoot);  // otherwise their data pointers should be ==
+        if(thisIsRoot != otherIsRoot) { return false; }
+        if((thisIsRoot || !tailoring.rules.isEmpty()) &&
+                (otherIsRoot || !o.tailoring.rules.isEmpty())) {
+            // Shortcut: If both collators have valid rule strings, then compare those.
+            if(tailoring.rules == o.tailoring.rules) { return true; }
+        }
+        // Different rule strings can result in the same or equivalent tailoring.
+        // The rule strings are optional in ICU resource bundles, although included by default.
+        // cloneBinary() drops the rule string.
+        UErrorCode errorCode = U_ZERO_ERROR;
+        LocalPointer<UnicodeSet> thisTailored(getTailoredSet);
+        LocalPointer<UnicodeSet> otherTailored(o.getTailoredSet);
+        if(U_FAILURE) { return false; }
+        if(*thisTailored != *otherTailored) { return false; }
+        // For completeness, we should compare all of the mappings;
+        // or we should create a list of strings, sort it with one collator,
+        // and check if both collators compare adjacent strings the same
+        // (order & strength, down to quaternary); or similar.
+        // Testing equality of collators seems unusual.
+        return true;
+    }
+
+    int32_t
+    RuleBasedCollator.hashCode() {
+        int h = settings.hashCode();
+        if(data.base == null) { return h; }  // root collator
+        // Do not rely on the rule string, see comments in operator==().
+        UErrorCode errorCode = U_ZERO_ERROR;
+        LocalPointer<UnicodeSet> set(getTailoredSet);
+        if(U_FAILURE) { return 0; }
+        UnicodeSetIterator iter(*set);
+        while(iter.next() && !iter.isString()) {
+            h ^= data.getCE32(iter.getCodepoint());
+        }
+        return h;
+    }
+
+    void
+    RuleBasedCollator.setLocales(ULocale requested, ULocale valid,
+                                  ULocale actual) {
+        if(actual == tailoring.actualLocale) {
+            actualLocaleIsSameAsValid = false;
+        } else if(tailoring.actualLocale.isBogus()) {
+            tailoring.actualLocale = actual;
+            actualLocaleIsSameAsValid = false;
+        } else {
+            assert(actual == valid);
+            actualLocaleIsSameAsValid = true;
+        }
+        validLocale = valid;
+        // Ignore requested, see also ticket #10477.
+    }
+
+    Locale
+    RuleBasedCollator.getLocale(ULocDataLocaleType type, UErrorCode& errorCode) {
+        if(U_FAILURE) {
+            return Locale.getRoot();
+        }
+        switch(type) {
+        case ULOC_ACTUAL_LOCALE:
+            return actualLocaleIsSameAsValid ? validLocale : tailoring.actualLocale;
+        case ULOC_VALID_LOCALE:
+        case ULOC_REQUESTED_LOCALE:  // TODO: Drop this, see ticket #10477.
+            return validLocale;
+        default:
+            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+            return Locale.getRoot();
+        }
+    }
+
+    const char *
+    RuleBasedCollator.internalGetLocaleID(ULocDataLocaleType type) {
+        if(U_FAILURE) {
+            return null;
+        }
+        const Locale *result;
+        switch(type) {
+        case ULOC_ACTUAL_LOCALE:
+            result = actualLocaleIsSameAsValid ? &validLocale : &tailoring.actualLocale;
+            break;
+        case ULOC_VALID_LOCALE:
+        case ULOC_REQUESTED_LOCALE:  // TODO: Drop this, see ticket #10477.
+            result = &validLocale;
+            break;
+        default:
+            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+            return null;
+        }
+        if(result.isBogus()) { return null; }
+        const char *id = result.getName();
+        return id[0] == 0 ? "root" : id;
+    }
+
+    const UnicodeString&
+    RuleBasedCollator.getRules() {
+        return tailoring.rules;
+    }
+
+    void
+    RuleBasedCollator.getRules(UColRuleOption delta, UnicodeString &buffer) {
+        if(delta == UCOL_TAILORING_ONLY) {
+            buffer = tailoring.rules;
+            return;
+        }
+        // UCOL_FULL_RULES
+        buffer.remove();
+        CollationLoader.appendRootRules(buffer);
+        buffer.append(tailoring.rules).getTerminatedBuffer();
+    }
+
+    void
+    RuleBasedCollator.getVersion(VersionInfo version) {
+        uprv_memcpy(version, tailoring.version, U_MAX_VERSION_LENGTH);
+        version[0] += (VersionInfo.UCOL_RUNTIME_VERSION << 4) + (VersionInfo.UCOL_RUNTIME_VERSION >> 4);
+    }
+
+    UnicodeSet *
+    RuleBasedCollator.getTailoredSet() {
+        UnicodeSet *tailored = new UnicodeSet();
+        if(tailored == null) {
+            errorCode = U_MEMORY_ALLOCATION_ERROR;
+            return null;
+        }
+        if(data.base != null) {
+            TailoredSet(tailored).forData(data);
+            if(U_FAILURE) {
+                delete tailored;
+                return null;
             }
         }
-        return nextRawCodePoint();
-    }
-    /**
-     * @param nfcImpl
-     * @param c the last code point returned by nextCodePoint() or nextDecomposedCodePoint()
-     * @return the first code point in c's decomposition,
-     *         or c itself if it was decomposed already or if it does not decompose
-     */
-    int nextDecomposedCodePoint(const Normalizer2Impl &nfcImpl, int c) {
-        if(index >= 0) { return c; }
-        decomp = nfcImpl.getDecomposition(c, buffer, length);
-        if(decomp == null) { return c; }
-        index = 0;
-        U16_NEXT_UNSAFE(decomp, index, c);
-        return c;
-    }
-protected:
-    /**
-     * Returns the next text code point in FCD order.
-     * Returns -1 at the end of the text.
-     */
-    abstract int nextRawCodePoint();
-private:
-    const UChar *decomp;
-    UChar buffer[4];
-    int index;
-    int length;
-};
-
-class UTF16NFDIterator extendsNFDIterator {
-public:
-    UTF16NFDIterator(const UChar *text, const UChar *textLimit) : s(text), limit(textLimit) {}
-protected:
-    virtual int nextRawCodePoint() {
-        if(s == limit) { return Collation.SENTINEL_CP; }
-        int c = *s++;
-        if(limit == null && c == 0) {
-            s = null;
-            return Collation.SENTINEL_CP;
-        }
-        UChar trail;
-        if(U16_IS_LEAD(c) && s != limit && U16_IS_TRAIL(trail = *s)) {
-            ++s;
-            c = U16_GET_SUPPLEMENTARY(c, trail);
-        }
-        return c;
+        return tailored;
     }
 
-    const UChar *s;
-    const UChar *limit;
-};
-
-class FCDUTF16NFDIterator extendsUTF16NFDIterator {
-public:
-    FCDUTF16NFDIterator(const Normalizer2Impl &nfcImpl, const UChar *text, const UChar *textLimit)
-            : UTF16NFDIterator(null, null) {
-        UErrorCode errorCode = U_ZERO_ERROR;
-        const UChar *spanLimit = nfcImpl.makeFCD(text, textLimit, null);
+    void
+    RuleBasedCollator.internalGetContractionsAndExpansions(
+            UnicodeSet *contractions, UnicodeSet *expansions,
+            boolean addPrefixes) {
         if(U_FAILURE) { return; }
-        if(spanLimit == textLimit || (textLimit == null && *spanLimit == 0)) {
-            s = text;
-            limit = spanLimit;
+        if(contractions != null) {
+            contractions.clear();
+        }
+        if(expansions != null) {
+            expansions.clear();
+        }
+        ContractionsAndExpansions(contractions, expansions, null, addPrefixes).forData(data);
+    }
+
+    void
+    RuleBasedCollator.internalAddContractions(int c, UnicodeSet &set) {
+        if(U_FAILURE) { return; }
+        ContractionsAndExpansions(&set, null, null, false).forCodePoint(data, c);
+    }
+
+    const CollationSettings &
+    RuleBasedCollator.getDefaultSettings() {
+        return *tailoring.settings;
+    }
+
+    UColAttributeValue
+    RuleBasedCollator.getAttribute(UColAttribute attr) {
+        if(U_FAILURE) { return UCOL_DEFAULT; }
+        int option;
+        switch(attr) {
+        case UCOL_FRENCH_COLLATION:
+            option = CollationSettings.BACKWARD_SECONDARY;
+            break;
+        case UCOL_ALTERNATE_HANDLING:
+            return settings.getAlternateHandling();
+        case UCOL_CASE_FIRST:
+            return settings.getCaseFirst();
+        case UCOL_CASE_LEVEL:
+            option = CollationSettings.CASE_LEVEL;
+            break;
+        case UCOL_NORMALIZATION_MODE:
+            option = CollationSettings.CHECK_FCD;
+            break;
+        case UCOL_STRENGTH:
+            return (UColAttributeValue)settings.getStrength();
+        case UCOL_HIRAGANA_QUATERNARY_MODE:
+            // Deprecated attribute, unsettable.
+            return UCOL_OFF;
+        case UCOL_NUMERIC_COLLATION:
+            option = CollationSettings.NUMERIC;
+            break;
+        default:
+            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+            return UCOL_DEFAULT;
+        }
+        return ((settings.options & option) == 0) ? UCOL_OFF : UCOL_ON;
+    }
+
+    void
+    RuleBasedCollator.setAttribute(UColAttribute attr, UColAttributeValue value,
+                                    ) {
+        UColAttributeValue oldValue = getAttribute(attr);
+        if(U_FAILURE) { return; }
+        if(value == oldValue) {
+            setAttributeExplicitly(attr);
+            return;
+        }
+        const CollationSettings &defaultSettings = getDefaultSettings();
+        if(settings == &defaultSettings) {
+            if(value == UCOL_DEFAULT) {
+                setAttributeDefault(attr);
+                return;
+            }
+        }
+        CollationSettings ownedSettings = getOwnedSettings();
+        if(ownedSettings == null) {
+            errorCode = U_MEMORY_ALLOCATION_ERROR;
+            return;
+        }
+
+        switch(attr) {
+        case UCOL_FRENCH_COLLATION:
+            ownedSettings.setFlag(CollationSettings.BACKWARD_SECONDARY, value,
+                                  defaultSettings.options);
+            break;
+        case UCOL_ALTERNATE_HANDLING:
+            ownedSettings.setAlternateHandling(value, defaultSettings.options);
+            break;
+        case UCOL_CASE_FIRST:
+            ownedSettings.setCaseFirst(value, defaultSettings.options);
+            break;
+        case UCOL_CASE_LEVEL:
+            ownedSettings.setFlag(CollationSettings.CASE_LEVEL, value,
+                                  defaultSettings.options);
+            break;
+        case UCOL_NORMALIZATION_MODE:
+            ownedSettings.setFlag(CollationSettings.CHECK_FCD, value,
+                                  defaultSettings.options);
+            break;
+        case UCOL_STRENGTH:
+            ownedSettings.setStrength(value, defaultSettings.options);
+            break;
+        case UCOL_HIRAGANA_QUATERNARY_MODE:
+            // Deprecated attribute. Check for valid values but do not change anything.
+            if(value != UCOL_OFF && value != UCOL_ON && value != UCOL_DEFAULT) {
+                errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+            }
+            break;
+        case UCOL_NUMERIC_COLLATION:
+            ownedSettings.setFlag(CollationSettings.NUMERIC, value, defaultSettings.options);
+            break;
+        default:
+            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+            break;
+        }
+        if(U_FAILURE) { return; }
+        setFastLatinOptions(*ownedSettings);
+        if(value == UCOL_DEFAULT) {
+            setAttributeDefault(attr);
         } else {
-            str.setTo(text, (int32_t)(spanLimit - text));
-            {
-                ReorderingBuffer buffer(nfcImpl, str);
-                if(buffer.init(str.length())) {
-                    nfcImpl.makeFCD(spanLimit, textLimit, &buffer);
+            setAttributeExplicitly(attr);
+        }
+    }
+
+    Collator &
+    RuleBasedCollator.setMaxVariable(UColReorderCode group) {
+        if(U_FAILURE) { return *this; }
+        // Convert the reorder code into a MaxVariable number, or UCOL_DEFAULT=-1.
+        int value;
+        if(group == Collator.ReorderCodes.DEFAULT) {
+            value = UCOL_DEFAULT;
+        } else if(Collator.ReorderCodes.FIRST <= group && group <= Collator.ReorderCodes.CURRENCY) {
+            value = group - Collator.ReorderCodes.FIRST;
+        } else {
+            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+            return *this;
+        }
+        CollationSettings.MaxVariable oldValue = settings.getMaxVariable();
+        if(value == oldValue) {
+            setAttributeExplicitly(ATTR_VARIABLE_TOP);
+            return *this;
+        }
+        const CollationSettings &defaultSettings = getDefaultSettings();
+        if(settings == &defaultSettings) {
+            if(value == UCOL_DEFAULT) {
+                setAttributeDefault(ATTR_VARIABLE_TOP);
+                return *this;
+            }
+        }
+        CollationSettings ownedSettings = getOwnedSettings();
+        if(ownedSettings == null) {
+            errorCode = U_MEMORY_ALLOCATION_ERROR;
+            return *this;
+        }
+
+        if(group == Collator.ReorderCodes.DEFAULT) {
+            group = (UColReorderCode)(Collator.ReorderCodes.FIRST + defaultSettings.getMaxVariable());
+        }
+        uint32_t varTop = data.getLastPrimaryForGroup(group);
+        assert(varTop != 0);
+        ownedSettings.setMaxVariable(value, defaultSettings.options);
+        if(U_FAILURE) { return *this; }
+        ownedSettings.variableTop = varTop;
+        setFastLatinOptions(*ownedSettings);
+        if(value == UCOL_DEFAULT) {
+            setAttributeDefault(ATTR_VARIABLE_TOP);
+        } else {
+            setAttributeExplicitly(ATTR_VARIABLE_TOP);
+        }
+        return *this;
+    }
+
+    UColReorderCode
+    RuleBasedCollator.getMaxVariable() {
+        return (UColReorderCode)(Collator.ReorderCodes.FIRST + settings.getMaxVariable());
+    }
+
+    uint32_t
+    RuleBasedCollator.getVariableTop(UErrorCode & /*errorCode*/) {
+        return settings.variableTop;
+    }
+
+    uint32_t
+    RuleBasedCollator.setVariableTop(const UChar *varTop, int len) {
+        if(U_FAILURE) { return 0; }
+        if(varTop == null && len !=0) {
+            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+            return 0;
+        }
+        if(len < 0) { len = u_strlen(varTop); }
+        if(len == 0) {
+            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+            return 0;
+        }
+        boolean numeric = settings.isNumeric();
+        long ce1, ce2;
+        if(settings.dontCheckFCD()) {
+            UTF16CollationIterator ci(data, numeric, varTop, varTop, varTop + len);
+            ce1 = ci.nextCE;
+            ce2 = ci.nextCE;
+        } else {
+            FCDUTF16CollationIterator ci(data, numeric, varTop, varTop, varTop + len);
+            ce1 = ci.nextCE;
+            ce2 = ci.nextCE;
+        }
+        if(ce1 == Collation.NO_CE || ce2 != Collation.NO_CE) {
+            errorCode = U_CE_NOT_FOUND_ERROR;
+            return 0;
+        }
+        setVariableTop(ce1 >>> 32);
+        return settings.variableTop;
+    }
+
+    uint32_t
+    RuleBasedCollator.setVariableTop(const UnicodeString &varTop) {
+        return setVariableTop(varTop.getBuffer(), varTop.length());
+    }
+
+    void
+    RuleBasedCollator.setVariableTop(uint32_t varTop) {
+        if(U_FAILURE) { return; }
+        if(varTop != settings.variableTop) {
+            // Pin the variable top to the end of the reordering group which contains it.
+            // Only a few special groups are supported.
+            int group = data.getGroupForPrimary(varTop);
+            if(group < Collator.ReorderCodes.FIRST || Collator.ReorderCodes.CURRENCY < group) {
+                errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+                return;
+            }
+            uint32_t v = data.getLastPrimaryForGroup(group);
+            assert(v != 0 && v >= varTop);
+            varTop = v;
+            if(varTop != settings.variableTop) {
+                CollationSettings ownedSettings = getOwnedSettings();
+                if(ownedSettings == null) {
+                    errorCode = U_MEMORY_ALLOCATION_ERROR;
+                    return;
+                }
+                ownedSettings.setMaxVariable(group - Collator.ReorderCodes.FIRST,
+                                              getDefaultSettings().options);
+                if(U_FAILURE) { return; }
+                ownedSettings.variableTop = varTop;
+                setFastLatinOptions(*ownedSettings);
+            }
+        }
+        if(varTop == getDefaultSettings().variableTop) {
+            setAttributeDefault(ATTR_VARIABLE_TOP);
+        } else {
+            setAttributeExplicitly(ATTR_VARIABLE_TOP);
+        }
+    }
+
+    int32_t
+    RuleBasedCollator.getReorderCodes(int *dest, int capacity,
+                                      ) {
+        if(U_FAILURE) { return 0; }
+        if(capacity < 0 || (dest == null && capacity > 0)) {
+            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+            return 0;
+        }
+        int length = settings.reorderCodesLength;
+        if(length == 0) { return 0; }
+        if(length > capacity) {
+            errorCode = U_BUFFER_OVERFLOW_ERROR;
+            return length;
+        }
+        uprv_memcpy(dest, settings.reorderCodes, length * 4);
+        return length;
+    }
+
+    void
+    RuleBasedCollator.setReorderCodes(const int *reorderCodes, int length,
+                                      ) {
+        if(U_FAILURE) { return; }
+        if(length < 0 || (reorderCodes == null && length > 0)) {
+            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+            return;
+        }
+        if(length == settings.reorderCodesLength &&
+                uprv_memcmp(reorderCodes, settings.reorderCodes, length * 4) == 0) {
+            return;
+        }
+        const CollationSettings &defaultSettings = getDefaultSettings();
+        if(length == 1 && reorderCodes[0] == Collator.ReorderCodes.DEFAULT) {
+            if(settings != &defaultSettings) {
+                CollationSettings ownedSettings = getOwnedSettings();
+                if(ownedSettings == null) {
+                    errorCode = U_MEMORY_ALLOCATION_ERROR;
+                    return;
+                }
+                ownedSettings.aliasReordering(defaultSettings.reorderCodes,
+                                              defaultSettings.reorderCodesLength,
+                                              defaultSettings.reorderTable);
+                setFastLatinOptions(*ownedSettings);
+            }
+            return;
+        }
+        CollationSettings ownedSettings = getOwnedSettings();
+        if(ownedSettings == null) {
+            errorCode = U_MEMORY_ALLOCATION_ERROR;
+            return;
+        }
+        if(length == 0) {
+            ownedSettings.resetReordering();
+        } else {
+            uint8_t reorderTable[256];
+            data.makeReorderTable(reorderCodes, length, reorderTable);
+            if(U_FAILURE) { return; }
+            if(!ownedSettings.setReordering(reorderCodes, length, reorderTable)) {
+                errorCode = U_MEMORY_ALLOCATION_ERROR;
+                return;
+            }
+        }
+        setFastLatinOptions(*ownedSettings);
+    }
+
+    void
+    RuleBasedCollator.setFastLatinOptions(CollationSettings &ownedSettings) {
+        ownedSettings.fastLatinOptions = CollationFastLatin.getOptions(
+                data, ownedSettings,
+                ownedSettings.fastLatinPrimaries, LENGTHOF(ownedSettings.fastLatinPrimaries));
+    }
+
+    UCollationResult
+    RuleBasedCollator.compare(const UnicodeString &left, const UnicodeString &right,
+                              ) {
+        if(U_FAILURE) { return UCOL_EQUAL; }
+        return doCompare(left.getBuffer(), left.length(),
+                        right.getBuffer(), right.length());
+    }
+
+    UCollationResult
+    RuleBasedCollator.compare(const UnicodeString &left, const UnicodeString &right,
+                              int length) {
+        if(U_FAILURE || length == 0) { return UCOL_EQUAL; }
+        if(length < 0) {
+            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+            return UCOL_EQUAL;
+        }
+        int leftLength = left.length();
+        int rightLength = right.length();
+        if(leftLength > length) { leftLength = length; }
+        if(rightLength > length) { rightLength = length; }
+        return doCompare(left.getBuffer(), leftLength,
+                        right.getBuffer(), rightLength);
+    }
+
+    UCollationResult
+    RuleBasedCollator.compare(const UChar *left, int leftLength,
+                              const UChar *right, int rightLength,
+                              ) {
+        if(U_FAILURE) { return UCOL_EQUAL; }
+        if((left == null && leftLength != 0) || (right == null && rightLength != 0)) {
+            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+            return UCOL_EQUAL;
+        }
+        // Make sure both or neither strings have a known length.
+        // We do not optimize for mixed length/termination.
+        if(leftLength >= 0) {
+            if(rightLength < 0) { rightLength = u_strlen(right); }
+        } else {
+            if(rightLength >= 0) { leftLength = u_strlen(left); }
+        }
+        return doCompare(left, leftLength, right, rightLength);
+    }
+
+    namespace {
+
+    /**
+    * Abstract iterator for identical-level string comparisons.
+    * Returns FCD code points and handles temporary switching to NFD.
+    */
+    class NFDIterator {
+    public:
+        NFDIterator() : index(-1), length(0) {}
+        virtual ~NFDIterator() {}
+        /**
+        * Returns the next code point from the internal normalization buffer,
+        * or else the next text code point.
+        * Returns -1 at the end of the text.
+        */
+        int nextCodePoint() {
+            if(index >= 0) {
+                if(index == length) {
+                    index = -1;
+                } else {
+                    int c;
+                    U16_NEXT_UNSAFE(decomp, index, c);
+                    return c;
                 }
             }
-            if(U_SUCCESS) {
-                s = str.getBuffer();
-                limit = s + str.length();
+            return nextRawCodePoint();
+        }
+        /**
+        * @param nfcImpl
+        * @param c the last code point returned by nextCodePoint() or nextDecomposedCodePoint()
+        * @return the first code point in c's decomposition,
+        *         or c itself if it was decomposed already or if it does not decompose
+        */
+        int nextDecomposedCodePoint(const Normalizer2Impl &nfcImpl, int c) {
+            if(index >= 0) { return c; }
+            decomp = nfcImpl.getDecomposition(c, buffer, length);
+            if(decomp == null) { return c; }
+            index = 0;
+            U16_NEXT_UNSAFE(decomp, index, c);
+            return c;
+        }
+    protected:
+        /**
+        * Returns the next text code point in FCD order.
+        * Returns -1 at the end of the text.
+        */
+        abstract int nextRawCodePoint();
+    private:
+        const UChar *decomp;
+        UChar buffer[4];
+        int index;
+        int length;
+    };
+
+    class UTF16NFDIterator extendsNFDIterator {
+    public:
+        UTF16NFDIterator(const UChar *text, const UChar *textLimit) : s(text), limit(textLimit) {}
+    protected:
+        virtual int nextRawCodePoint() {
+            if(s == limit) { return Collation.SENTINEL_CP; }
+            int c = *s++;
+            if(limit == null && c == 0) {
+                s = null;
+                return Collation.SENTINEL_CP;
+            }
+            UChar trail;
+            if(U16_IS_LEAD(c) && s != limit && U16_IS_TRAIL(trail = *s)) {
+                ++s;
+                c = U16_GET_SUPPLEMENTARY(c, trail);
+            }
+            return c;
+        }
+
+        const UChar *s;
+        const UChar *limit;
+    };
+
+    class FCDUTF16NFDIterator extendsUTF16NFDIterator {
+    public:
+        FCDUTF16NFDIterator(const Normalizer2Impl &nfcImpl, const UChar *text, const UChar *textLimit)
+                : UTF16NFDIterator(null, null) {
+            UErrorCode errorCode = U_ZERO_ERROR;
+            const UChar *spanLimit = nfcImpl.makeFCD(text, textLimit, null);
+            if(U_FAILURE) { return; }
+            if(spanLimit == textLimit || (textLimit == null && *spanLimit == 0)) {
+                s = text;
+                limit = spanLimit;
+            } else {
+                str.setTo(text, (int32_t)(spanLimit - text));
+                {
+                    ReorderingBuffer buffer(nfcImpl, str);
+                    if(buffer.init(str.length())) {
+                        nfcImpl.makeFCD(spanLimit, textLimit, &buffer);
+                    }
+                }
+                if(U_SUCCESS) {
+                    s = str.getBuffer();
+                    limit = s + str.length();
+                }
             }
         }
-    }
-private:
-    UnicodeString str;
-};
+    private:
+        UnicodeString str;
+    };
 
-class UIterNFDIterator extendsNFDIterator {
-public:
-    UIterNFDIterator(UCharIterator &it) : iter(it) {}
-protected:
-    virtual int nextRawCodePoint() {
-        return uiter_next32(&iter);
-    }
-private:
-    UCharIterator &iter;
-};
-
-class FCDUIterNFDIterator extendsNFDIterator {
-public:
-    FCDUIterNFDIterator(CollationData data, UCharIterator &it, int startIndex)
-            : uici(data, false, it, startIndex) {}
-protected:
-    virtual int nextRawCodePoint() {
-        UErrorCode errorCode = U_ZERO_ERROR;
-        return uici.nextCodePoint;
-    }
-private:
-    FCDUIterCollationIterator uici;
-};
-
-UCollationResult compareNFDIter(const Normalizer2Impl &nfcImpl,
-                                NFDIterator &left, NFDIterator &right) {
-    for(;;) {
-        // Fetch the next FCD code point from each string.
-        int leftCp = left.nextCodePoint();
-        int rightCp = right.nextCodePoint();
-        if(leftCp == rightCp) {
-            if(leftCp < 0) { break; }
-            continue;
+    class UIterNFDIterator extendsNFDIterator {
+    public:
+        UIterNFDIterator(UCharIterator &it) : iter(it) {}
+    protected:
+        virtual int nextRawCodePoint() {
+            return uiter_next32(&iter);
         }
-        // If they are different, then decompose each and compare again.
-        if(leftCp < 0) {
-            leftCp = -2;  // end of string
-        } else if(leftCp == 0xfffe) {
-            leftCp = -1;  // U+FFFE: merge separator
-        } else {
-            leftCp = left.nextDecomposedCodePoint(nfcImpl, leftCp);
-        }
-        if(rightCp < 0) {
-            rightCp = -2;  // end of string
-        } else if(rightCp == 0xfffe) {
-            rightCp = -1;  // U+FFFE: merge separator
-        } else {
-            rightCp = right.nextDecomposedCodePoint(nfcImpl, rightCp);
-        }
-        if(leftCp < rightCp) { return UCOL_LESS; }
-        if(leftCp > rightCp) { return UCOL_GREATER; }
-    }
-    return UCOL_EQUAL;
-}
+    private:
+        UCharIterator &iter;
+    };
 
-}  // namespace
+    class FCDUIterNFDIterator extendsNFDIterator {
+    public:
+        FCDUIterNFDIterator(CollationData data, UCharIterator &it, int startIndex)
+                : uici(data, false, it, startIndex) {}
+    protected:
+        virtual int nextRawCodePoint() {
+            UErrorCode errorCode = U_ZERO_ERROR;
+            return uici.nextCodePoint;
+        }
+    private:
+        FCDUIterCollationIterator uici;
+    };
 
-UCollationResult
-RuleBasedCollator.doCompare(const UChar *left, int leftLength,
-                             const UChar *right, int rightLength,
-                             ) {
-    // U_FAILURE checked by caller.
-    if(left == right && leftLength == rightLength) {
+    UCollationResult compareNFDIter(const Normalizer2Impl &nfcImpl,
+                                    NFDIterator &left, NFDIterator &right) {
+        for(;;) {
+            // Fetch the next FCD code point from each string.
+            int leftCp = left.nextCodePoint();
+            int rightCp = right.nextCodePoint();
+            if(leftCp == rightCp) {
+                if(leftCp < 0) { break; }
+                continue;
+            }
+            // If they are different, then decompose each and compare again.
+            if(leftCp < 0) {
+                leftCp = -2;  // end of string
+            } else if(leftCp == 0xfffe) {
+                leftCp = -1;  // U+FFFE: merge separator
+            } else {
+                leftCp = left.nextDecomposedCodePoint(nfcImpl, leftCp);
+            }
+            if(rightCp < 0) {
+                rightCp = -2;  // end of string
+            } else if(rightCp == 0xfffe) {
+                rightCp = -1;  // U+FFFE: merge separator
+            } else {
+                rightCp = right.nextDecomposedCodePoint(nfcImpl, rightCp);
+            }
+            if(leftCp < rightCp) { return UCOL_LESS; }
+            if(leftCp > rightCp) { return UCOL_GREATER; }
+        }
         return UCOL_EQUAL;
     }
 
-    // Identical-prefix test.
-    const UChar *leftLimit;
-    const UChar *rightLimit;
-    int equalPrefixLength = 0;
-    if(leftLength < 0) {
-        leftLimit = null;
-        rightLimit = null;
-        UChar c;
-        while((c = left[equalPrefixLength]) == right[equalPrefixLength]) {
-            if(c == 0) { return UCOL_EQUAL; }
-            ++equalPrefixLength;
+    }  // namespace
+
+    UCollationResult
+    RuleBasedCollator.doCompare(const UChar *left, int leftLength,
+                                const UChar *right, int rightLength,
+                                ) {
+        // U_FAILURE checked by caller.
+        if(left == right && leftLength == rightLength) {
+            return UCOL_EQUAL;
         }
-    } else {
-        leftLimit = left + leftLength;
-        rightLimit = right + rightLength;
-        for(;;) {
-            if(equalPrefixLength == leftLength) {
-                if(equalPrefixLength == rightLength) { return UCOL_EQUAL; }
-                break;
-            } else if(equalPrefixLength == rightLength ||
-                      left[equalPrefixLength] != right[equalPrefixLength]) {
-                break;
+
+        // Identical-prefix test.
+        const UChar *leftLimit;
+        const UChar *rightLimit;
+        int equalPrefixLength = 0;
+        if(leftLength < 0) {
+            leftLimit = null;
+            rightLimit = null;
+            UChar c;
+            while((c = left[equalPrefixLength]) == right[equalPrefixLength]) {
+                if(c == 0) { return UCOL_EQUAL; }
+                ++equalPrefixLength;
             }
-            ++equalPrefixLength;
-        }
-    }
-
-    boolean numeric = settings.isNumeric();
-    if(equalPrefixLength > 0) {
-        if((equalPrefixLength != leftLength &&
-                    data.isUnsafeBackward(left[equalPrefixLength], numeric)) ||
-                (equalPrefixLength != rightLength &&
-                    data.isUnsafeBackward(right[equalPrefixLength], numeric))) {
-            // Identical prefix: Back up to the start of a contraction or reordering sequence.
-            while(--equalPrefixLength > 0 &&
-                    data.isUnsafeBackward(left[equalPrefixLength], numeric)) {}
-        }
-        // Notes:
-        // - A longer string can compare equal to a prefix of it if only ignorables follow.
-        // - With a backward level, a longer string can compare less-than a prefix of it.
-
-        // Pass the actual start of each string into the CollationIterators,
-        // plus the equalPrefixLength position,
-        // so that prefix matches back into the equal prefix work.
-    }
-
-    int result;
-    int fastLatinOptions = settings.fastLatinOptions;
-    if(fastLatinOptions >= 0 &&
-            (equalPrefixLength == leftLength ||
-                left[equalPrefixLength] <= CollationFastLatin.LATIN_MAX) &&
-            (equalPrefixLength == rightLength ||
-                right[equalPrefixLength] <= CollationFastLatin.LATIN_MAX)) {
-        if(leftLength >= 0) {
-            result = CollationFastLatin.compareUTF16(data.fastLatinTable,
-                                                      settings.fastLatinPrimaries,
-                                                      fastLatinOptions,
-                                                      left + equalPrefixLength,
-                                                      leftLength - equalPrefixLength,
-                                                      right + equalPrefixLength,
-                                                      rightLength - equalPrefixLength);
         } else {
-            result = CollationFastLatin.compareUTF16(data.fastLatinTable,
-                                                      settings.fastLatinPrimaries,
-                                                      fastLatinOptions,
-                                                      left + equalPrefixLength, -1,
-                                                      right + equalPrefixLength, -1);
-        }
-    } else {
-        result = CollationFastLatin.BAIL_OUT_RESULT;
-    }
-
-    if(result == CollationFastLatin.BAIL_OUT_RESULT) {
-        if(settings.dontCheckFCD()) {
-            UTF16CollationIterator leftIter(data, numeric,
-                                            left, left + equalPrefixLength, leftLimit);
-            UTF16CollationIterator rightIter(data, numeric,
-                                            right, right + equalPrefixLength, rightLimit);
-            result = CollationCompare.compareUpToQuaternary(leftIter, rightIter, *settings);
-        } else {
-            FCDUTF16CollationIterator leftIter(data, numeric,
-                                              left, left + equalPrefixLength, leftLimit);
-            FCDUTF16CollationIterator rightIter(data, numeric,
-                                                right, right + equalPrefixLength, rightLimit);
-            result = CollationCompare.compareUpToQuaternary(leftIter, rightIter, *settings);
-        }
-    }
-    if(result != UCOL_EQUAL || settings.getStrength() < UCOL_IDENTICAL || U_FAILURE) {
-        return (UCollationResult)result;
-    }
-
-    // Note: If NUL-terminated, we could get the actual limits from the iterators now.
-    // That would complicate the iterators a bit, NUL-terminated strings are only a C convenience,
-    // and the benefit seems unlikely to be measurable.
-
-    // Compare identical level.
-    const Normalizer2Impl &nfcImpl = data.nfcImpl;
-    left += equalPrefixLength;
-    right += equalPrefixLength;
-    if(settings.dontCheckFCD()) {
-        UTF16NFDIterator leftIter(left, leftLimit);
-        UTF16NFDIterator rightIter(right, rightLimit);
-        return compareNFDIter(nfcImpl, leftIter, rightIter);
-    } else {
-        FCDUTF16NFDIterator leftIter(nfcImpl, left, leftLimit);
-        FCDUTF16NFDIterator rightIter(nfcImpl, right, rightLimit);
-        return compareNFDIter(nfcImpl, leftIter, rightIter);
-    }
-}
-
-UCollationResult
-RuleBasedCollator.compare(UCharIterator &left, UCharIterator &right,
-                           ) {
-    if(U_FAILURE || &left == &right) { return UCOL_EQUAL; }
-    boolean numeric = settings.isNumeric();
-
-    // Identical-prefix test.
-    int equalPrefixLength = 0;
-    {
-        int leftUnit;
-        int rightUnit;
-        while((leftUnit = left.next(&left)) == (rightUnit = right.next(&right))) {
-            if(leftUnit < 0) { return UCOL_EQUAL; }
-            ++equalPrefixLength;
-        }
-
-        // Back out the code units that differed, for the real collation comparison.
-        if(leftUnit >= 0) { left.previous(&left); }
-        if(rightUnit >= 0) { right.previous(&right); }
-
-        if(equalPrefixLength > 0) {
-            if((leftUnit >= 0 && data.isUnsafeBackward(leftUnit, numeric)) ||
-                    (rightUnit >= 0 && data.isUnsafeBackward(rightUnit, numeric))) {
-                // Identical prefix: Back up to the start of a contraction or reordering sequence.
-                do {
-                    --equalPrefixLength;
-                    leftUnit = left.previous(&left);
-                    right.previous(&right);
-                } while(equalPrefixLength > 0 && data.isUnsafeBackward(leftUnit, numeric));
+            leftLimit = left + leftLength;
+            rightLimit = right + rightLength;
+            for(;;) {
+                if(equalPrefixLength == leftLength) {
+                    if(equalPrefixLength == rightLength) { return UCOL_EQUAL; }
+                    break;
+                } else if(equalPrefixLength == rightLength ||
+                          left[equalPrefixLength] != right[equalPrefixLength]) {
+                    break;
+                }
+                ++equalPrefixLength;
             }
-            // See the notes in the UTF-16 version.
         }
-    }
 
-    UCollationResult result;
-    if(settings.dontCheckFCD()) {
-        UIterCollationIterator leftIter(data, numeric, left);
-        UIterCollationIterator rightIter(data, numeric, right);
-        result = CollationCompare.compareUpToQuaternary(leftIter, rightIter, *settings);
-    } else {
-        FCDUIterCollationIterator leftIter(data, numeric, left, equalPrefixLength);
-        FCDUIterCollationIterator rightIter(data, numeric, right, equalPrefixLength);
-        result = CollationCompare.compareUpToQuaternary(leftIter, rightIter, *settings);
-    }
-    if(result != UCOL_EQUAL || settings.getStrength() < UCOL_IDENTICAL || U_FAILURE) {
-        return result;
-    }
-
-    // Compare identical level.
-    left.move(&left, equalPrefixLength, UITER_ZERO);
-    right.move(&right, equalPrefixLength, UITER_ZERO);
-    const Normalizer2Impl &nfcImpl = data.nfcImpl;
-    if(settings.dontCheckFCD()) {
-        UIterNFDIterator leftIter(left);
-        UIterNFDIterator rightIter(right);
-        return compareNFDIter(nfcImpl, leftIter, rightIter);
-    } else {
-        FCDUIterNFDIterator leftIter(data, left, equalPrefixLength);
-        FCDUIterNFDIterator rightIter(data, right, equalPrefixLength);
-        return compareNFDIter(nfcImpl, leftIter, rightIter);
-    }
-}
-
-CollationKey &
-RuleBasedCollator.getCollationKey(const UnicodeString &s, CollationKey &key,
-                                   ) {
-    return getCollationKey(s.getBuffer(), s.length(), key);
-}
-
-CollationKey &
-RuleBasedCollator.getCollationKey(const UChar *s, int length, CollationKey& key,
-                                   ) {
-    if(U_FAILURE) {
-        return key.setToBogus();
-    }
-    if(s == null && length != 0) {
-        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-        return key.setToBogus();
-    }
-    key.reset();  // resets the "bogus" state
-    CollationKeyByteSink sink(key);
-    writeSortKey(s, length, sink);
-    if(U_FAILURE) {
-        key.setToBogus();
-    } else if(key.isBogus()) {
-        errorCode = U_MEMORY_ALLOCATION_ERROR;
-    } else {
-        key.setLength(sink.NumberOfBytesAppended());
-    }
-    return key;
-}
-
-int32_t
-RuleBasedCollator.getSortKey(const UnicodeString &s,
-                              uint8_t *dest, int capacity) {
-    return getSortKey(s.getBuffer(), s.length(), dest, capacity);
-}
-
-int32_t
-RuleBasedCollator.getSortKey(const UChar *s, int length,
-                              uint8_t *dest, int capacity) {
-    if((s == null && length != 0) || capacity < 0 || (dest == null && capacity > 0)) {
-        return 0;
-    }
-    uint8_t noDest[1] = { 0 };
-    if(dest == null) {
-        // Distinguish pure preflighting from an allocation error.
-        dest = noDest;
-        capacity = 0;
-    }
-    FixedSortKeyByteSink sink(reinterpret_cast<char *>(dest), capacity);
-    UErrorCode errorCode = U_ZERO_ERROR;
-    writeSortKey(s, length, sink);
-    return U_SUCCESS ? sink.NumberOfBytesAppended() : 0;
-}
-
-void
-RuleBasedCollator.writeSortKey(const UChar *s, int length,
-                                SortKeyByteSink &sink) {
-    if(U_FAILURE) { return; }
-    const UChar *limit = (length >= 0) ? s + length : null;
-    boolean numeric = settings.isNumeric();
-    CollationKeys.LevelCallback callback;
-    if(settings.dontCheckFCD()) {
-        UTF16CollationIterator iter(data, numeric, s, s, limit);
-        CollationKeys.writeSortKeyUpToQuaternary(iter, data.compressibleBytes, *settings,
-                                                  sink, Collation.PRIMARY_LEVEL,
-                                                  callback, true);
-    } else {
-        FCDUTF16CollationIterator iter(data, numeric, s, s, limit);
-        CollationKeys.writeSortKeyUpToQuaternary(iter, data.compressibleBytes, *settings,
-                                                  sink, Collation.PRIMARY_LEVEL,
-                                                  callback, true);
-    }
-    if(settings.getStrength() == UCOL_IDENTICAL) {
-        writeIdenticalLevel(s, limit, sink);
-    }
-    private static final char terminator = 0;  // TERMINATOR_BYTE
-    sink.Append(&terminator, 1);
-}
-
-void
-RuleBasedCollator.writeIdenticalLevel(const UChar *s, const UChar *limit,
-                                       SortKeyByteSink &sink) {
-    // NFD quick check
-    const UChar *nfdQCYesLimit = data.nfcImpl.decompose(s, limit, null);
-    if(U_FAILURE) { return; }
-    sink.Append(Collation.LEVEL_SEPARATOR_BYTE);
-    int prev = 0;
-    if(nfdQCYesLimit != s) {
-        prev = u_writeIdenticalLevelRun(prev, s, (int32_t)(nfdQCYesLimit - s), sink);
-    }
-    // Is there non-NFD text?
-    int destLengthEstimate;
-    if(limit != null) {
-        if(nfdQCYesLimit == limit) { return; }
-        destLengthEstimate = (int32_t)(limit - nfdQCYesLimit);
-    } else {
-        // s is NUL-terminated
-        if(*nfdQCYesLimit == 0) { return; }
-        destLengthEstimate = -1;
-    }
-    UnicodeString nfd;
-    data.nfcImpl.decompose(nfdQCYesLimit, limit, nfd, -1);
-    u_writeIdenticalLevelRun(prev, nfd.getBuffer(), nfd.length(), sink);
-}
-
-namespace {
-
-/**
- * internalNextSortKeyPart() calls CollationKeys.writeSortKeyUpToQuaternary()
- * with an instance of this callback class.
- * When another level is about to be written, the callback
- * records the level and the number of bytes that will be written until
- * the sink (which is actually a FixedSortKeyByteSink) fills up.
- *
- * When internalNextSortKeyPart() is called again, it restarts with the last level
- * and ignores as many bytes as were written previously for that level.
- */
-class PartLevelCallback implements CollationKeys.LevelCallback {
-public:
-    PartLevelCallback(const SortKeyByteSink &s)
-            : sink(s), level(Collation.PRIMARY_LEVEL) {
-        levelCapacity = sink.GetRemainingCapacity();
-    }
-    virtual ~PartLevelCallback() {}
-    virtual boolean needToWrite(Collation.Level l) {
-        if(!sink.Overflowed()) {
-            // Remember a level that will be at least partially written.
-            level = l;
-            levelCapacity = sink.GetRemainingCapacity();
-            return true;
-        } else {
-            return false;
-        }
-    }
-    Collation.Level getLevel() { return level; }
-    int getLevelCapacity() { return levelCapacity; }
-
-private:
-    const SortKeyByteSink &sink;
-    Collation.Level level;
-    int levelCapacity;
-};
-
-}  // namespace
-
-int32_t
-RuleBasedCollator.internalNextSortKeyPart(UCharIterator *iter, uint32_t state[2],
-                                           uint8_t *dest, int count) {
-    if(U_FAILURE) { return 0; }
-    if(iter == null || state == null || count < 0 || (count > 0 && dest == null)) {
-        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
-    }
-    if(count == 0) { return 0; }
-
-    FixedSortKeyByteSink sink(reinterpret_cast<char *>(dest), count);
-    sink.IgnoreBytes((int32_t)state[1]);
-    iter.move(iter, 0, UITER_START);
-
-    Collation.Level level = (Collation.Level)state[0];
-    if(level <= Collation.QUATERNARY_LEVEL) {
         boolean numeric = settings.isNumeric();
-        PartLevelCallback callback(sink);
-        if(settings.dontCheckFCD()) {
-            UIterCollationIterator ci(data, numeric, *iter);
-            CollationKeys.writeSortKeyUpToQuaternary(ci, data.compressibleBytes, *settings,
-                                                      sink, level, callback, false);
+        if(equalPrefixLength > 0) {
+            if((equalPrefixLength != leftLength &&
+                        data.isUnsafeBackward(left[equalPrefixLength], numeric)) ||
+                    (equalPrefixLength != rightLength &&
+                        data.isUnsafeBackward(right[equalPrefixLength], numeric))) {
+                // Identical prefix: Back up to the start of a contraction or reordering sequence.
+                while(--equalPrefixLength > 0 &&
+                        data.isUnsafeBackward(left[equalPrefixLength], numeric)) {}
+            }
+            // Notes:
+            // - A longer string can compare equal to a prefix of it if only ignorables follow.
+            // - With a backward level, a longer string can compare less-than a prefix of it.
+
+            // Pass the actual start of each string into the CollationIterators,
+            // plus the equalPrefixLength position,
+            // so that prefix matches back into the equal prefix work.
+        }
+
+        int result;
+        int fastLatinOptions = settings.fastLatinOptions;
+        if(fastLatinOptions >= 0 &&
+                (equalPrefixLength == leftLength ||
+                    left[equalPrefixLength] <= CollationFastLatin.LATIN_MAX) &&
+                (equalPrefixLength == rightLength ||
+                    right[equalPrefixLength] <= CollationFastLatin.LATIN_MAX)) {
+            if(leftLength >= 0) {
+                result = CollationFastLatin.compareUTF16(data.fastLatinTable,
+                                                          settings.fastLatinPrimaries,
+                                                          fastLatinOptions,
+                                                          left + equalPrefixLength,
+                                                          leftLength - equalPrefixLength,
+                                                          right + equalPrefixLength,
+                                                          rightLength - equalPrefixLength);
+            } else {
+                result = CollationFastLatin.compareUTF16(data.fastLatinTable,
+                                                          settings.fastLatinPrimaries,
+                                                          fastLatinOptions,
+                                                          left + equalPrefixLength, -1,
+                                                          right + equalPrefixLength, -1);
+            }
         } else {
-            FCDUIterCollationIterator ci(data, numeric, *iter, 0);
-            CollationKeys.writeSortKeyUpToQuaternary(ci, data.compressibleBytes, *settings,
-                                                      sink, level, callback, false);
+            result = CollationFastLatin.BAIL_OUT_RESULT;
         }
-        if(U_FAILURE) { return 0; }
-        if(sink.NumberOfBytesAppended() > count) {
-            state[0] = (uint32_t)callback.getLevel();
-            state[1] = (uint32_t)callback.getLevelCapacity();
-            return count;
+
+        if(result == CollationFastLatin.BAIL_OUT_RESULT) {
+            if(settings.dontCheckFCD()) {
+                UTF16CollationIterator leftIter(data, numeric,
+                                                left, left + equalPrefixLength, leftLimit);
+                UTF16CollationIterator rightIter(data, numeric,
+                                                right, right + equalPrefixLength, rightLimit);
+                result = CollationCompare.compareUpToQuaternary(leftIter, rightIter, *settings);
+            } else {
+                FCDUTF16CollationIterator leftIter(data, numeric,
+                                                  left, left + equalPrefixLength, leftLimit);
+                FCDUTF16CollationIterator rightIter(data, numeric,
+                                                    right, right + equalPrefixLength, rightLimit);
+                result = CollationCompare.compareUpToQuaternary(leftIter, rightIter, *settings);
+            }
         }
-        // All of the normal levels are done.
+        if(result != UCOL_EQUAL || settings.getStrength() < UCOL_IDENTICAL || U_FAILURE) {
+            return (UCollationResult)result;
+        }
+
+        // Note: If NUL-terminated, we could get the actual limits from the iterators now.
+        // That would complicate the iterators a bit, NUL-terminated strings are only a C convenience,
+        // and the benefit seems unlikely to be measurable.
+
+        // Compare identical level.
+        const Normalizer2Impl &nfcImpl = data.nfcImpl;
+        left += equalPrefixLength;
+        right += equalPrefixLength;
+        if(settings.dontCheckFCD()) {
+            UTF16NFDIterator leftIter(left, leftLimit);
+            UTF16NFDIterator rightIter(right, rightLimit);
+            return compareNFDIter(nfcImpl, leftIter, rightIter);
+        } else {
+            FCDUTF16NFDIterator leftIter(nfcImpl, left, leftLimit);
+            FCDUTF16NFDIterator rightIter(nfcImpl, right, rightLimit);
+            return compareNFDIter(nfcImpl, leftIter, rightIter);
+        }
+    }
+
+    UCollationResult
+    RuleBasedCollator.compare(UCharIterator &left, UCharIterator &right,
+                              ) {
+        if(U_FAILURE || &left == &right) { return UCOL_EQUAL; }
+        boolean numeric = settings.isNumeric();
+
+        // Identical-prefix test.
+        int equalPrefixLength = 0;
+        {
+            int leftUnit;
+            int rightUnit;
+            while((leftUnit = left.next(&left)) == (rightUnit = right.next(&right))) {
+                if(leftUnit < 0) { return UCOL_EQUAL; }
+                ++equalPrefixLength;
+            }
+
+            // Back out the code units that differed, for the real collation comparison.
+            if(leftUnit >= 0) { left.previous(&left); }
+            if(rightUnit >= 0) { right.previous(&right); }
+
+            if(equalPrefixLength > 0) {
+                if((leftUnit >= 0 && data.isUnsafeBackward(leftUnit, numeric)) ||
+                        (rightUnit >= 0 && data.isUnsafeBackward(rightUnit, numeric))) {
+                    // Identical prefix: Back up to the start of a contraction or reordering sequence.
+                    do {
+                        --equalPrefixLength;
+                        leftUnit = left.previous(&left);
+                        right.previous(&right);
+                    } while(equalPrefixLength > 0 && data.isUnsafeBackward(leftUnit, numeric));
+                }
+                // See the notes in the UTF-16 version.
+            }
+        }
+
+        UCollationResult result;
+        if(settings.dontCheckFCD()) {
+            UIterCollationIterator leftIter(data, numeric, left);
+            UIterCollationIterator rightIter(data, numeric, right);
+            result = CollationCompare.compareUpToQuaternary(leftIter, rightIter, *settings);
+        } else {
+            FCDUIterCollationIterator leftIter(data, numeric, left, equalPrefixLength);
+            FCDUIterCollationIterator rightIter(data, numeric, right, equalPrefixLength);
+            result = CollationCompare.compareUpToQuaternary(leftIter, rightIter, *settings);
+        }
+        if(result != UCOL_EQUAL || settings.getStrength() < UCOL_IDENTICAL || U_FAILURE) {
+            return result;
+        }
+
+        // Compare identical level.
+        left.move(&left, equalPrefixLength, UITER_ZERO);
+        right.move(&right, equalPrefixLength, UITER_ZERO);
+        const Normalizer2Impl &nfcImpl = data.nfcImpl;
+        if(settings.dontCheckFCD()) {
+            UIterNFDIterator leftIter(left);
+            UIterNFDIterator rightIter(right);
+            return compareNFDIter(nfcImpl, leftIter, rightIter);
+        } else {
+            FCDUIterNFDIterator leftIter(data, left, equalPrefixLength);
+            FCDUIterNFDIterator rightIter(data, right, equalPrefixLength);
+            return compareNFDIter(nfcImpl, leftIter, rightIter);
+        }
+    }
+
+    CollationKey &
+    RuleBasedCollator.getCollationKey(const UnicodeString &s, CollationKey &key,
+                                      ) {
+        return getCollationKey(s.getBuffer(), s.length(), key);
+    }
+
+    CollationKey &
+    RuleBasedCollator.getCollationKey(const UChar *s, int length, CollationKey& key,
+                                      ) {
+        if(U_FAILURE) {
+            return key.setToBogus();
+        }
+        if(s == null && length != 0) {
+            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+            return key.setToBogus();
+        }
+        key.reset();  // resets the "bogus" state
+        CollationKeyByteSink sink(key);
+        writeSortKey(s, length, sink);
+        if(U_FAILURE) {
+            key.setToBogus();
+        } else if(key.isBogus()) {
+            errorCode = U_MEMORY_ALLOCATION_ERROR;
+        } else {
+            key.setLength(sink.NumberOfBytesAppended());
+        }
+        return key;
+    }
+
+    int32_t
+    RuleBasedCollator.getSortKey(const UnicodeString &s,
+                                  uint8_t *dest, int capacity) {
+        return getSortKey(s.getBuffer(), s.length(), dest, capacity);
+    }
+
+    int32_t
+    RuleBasedCollator.getSortKey(const UChar *s, int length,
+                                  uint8_t *dest, int capacity) {
+        if((s == null && length != 0) || capacity < 0 || (dest == null && capacity > 0)) {
+            return 0;
+        }
+        uint8_t noDest[1] = { 0 };
+        if(dest == null) {
+            // Distinguish pure preflighting from an allocation error.
+            dest = noDest;
+            capacity = 0;
+        }
+        FixedSortKeyByteSink sink(reinterpret_cast<char *>(dest), capacity);
+        UErrorCode errorCode = U_ZERO_ERROR;
+        writeSortKey(s, length, sink);
+        return U_SUCCESS ? sink.NumberOfBytesAppended() : 0;
+    }
+
+    void
+    RuleBasedCollator.writeSortKey(const UChar *s, int length,
+                                    SortKeyByteSink &sink) {
+        if(U_FAILURE) { return; }
+        const UChar *limit = (length >= 0) ? s + length : null;
+        boolean numeric = settings.isNumeric();
+        CollationKeys.LevelCallback callback;
+        if(settings.dontCheckFCD()) {
+            UTF16CollationIterator iter(data, numeric, s, s, limit);
+            CollationKeys.writeSortKeyUpToQuaternary(iter, data.compressibleBytes, *settings,
+                                                      sink, Collation.PRIMARY_LEVEL,
+                                                      callback, true);
+        } else {
+            FCDUTF16CollationIterator iter(data, numeric, s, s, limit);
+            CollationKeys.writeSortKeyUpToQuaternary(iter, data.compressibleBytes, *settings,
+                                                      sink, Collation.PRIMARY_LEVEL,
+                                                      callback, true);
+        }
         if(settings.getStrength() == UCOL_IDENTICAL) {
-            level = Collation.IDENTICAL_LEVEL;
-            iter.move(iter, 0, UITER_START);
+            writeIdenticalLevel(s, limit, sink);
         }
-        // else fall through to setting ZERO_LEVEL
+        private static final char terminator = 0;  // TERMINATOR_BYTE
+        sink.Append(&terminator, 1);
     }
 
-    if(level == Collation.IDENTICAL_LEVEL) {
-        int levelCapacity = sink.GetRemainingCapacity();
-        UnicodeString s;
-        for(;;) {
-            int c = iter.next(iter);
-            if(c < 0) { break; }
-            s.append((UChar)c);
+    void
+    RuleBasedCollator.writeIdenticalLevel(const UChar *s, const UChar *limit,
+                                          SortKeyByteSink &sink) {
+        // NFD quick check
+        const UChar *nfdQCYesLimit = data.nfcImpl.decompose(s, limit, null);
+        if(U_FAILURE) { return; }
+        sink.Append(Collation.LEVEL_SEPARATOR_BYTE);
+        int prev = 0;
+        if(nfdQCYesLimit != s) {
+            prev = u_writeIdenticalLevelRun(prev, s, (int32_t)(nfdQCYesLimit - s), sink);
         }
-        const UChar *sArray = s.getBuffer();
-        writeIdenticalLevel(sArray, sArray + s.length(), sink);
+        // Is there non-NFD text?
+        int destLengthEstimate;
+        if(limit != null) {
+            if(nfdQCYesLimit == limit) { return; }
+            destLengthEstimate = (int32_t)(limit - nfdQCYesLimit);
+        } else {
+            // s is NUL-terminated
+            if(*nfdQCYesLimit == 0) { return; }
+            destLengthEstimate = -1;
+        }
+        UnicodeString nfd;
+        data.nfcImpl.decompose(nfdQCYesLimit, limit, nfd, -1);
+        u_writeIdenticalLevelRun(prev, nfd.getBuffer(), nfd.length(), sink);
+    }
+
+    namespace {
+
+    /**
+    * internalNextSortKeyPart() calls CollationKeys.writeSortKeyUpToQuaternary()
+    * with an instance of this callback class.
+    * When another level is about to be written, the callback
+    * records the level and the number of bytes that will be written until
+    * the sink (which is actually a FixedSortKeyByteSink) fills up.
+    *
+    * When internalNextSortKeyPart() is called again, it restarts with the last level
+    * and ignores as many bytes as were written previously for that level.
+    */
+    class PartLevelCallback implements CollationKeys.LevelCallback {
+    public:
+        PartLevelCallback(const SortKeyByteSink &s)
+                : sink(s), level(Collation.PRIMARY_LEVEL) {
+            levelCapacity = sink.GetRemainingCapacity();
+        }
+        virtual ~PartLevelCallback() {}
+        virtual boolean needToWrite(Collation.Level l) {
+            if(!sink.Overflowed()) {
+                // Remember a level that will be at least partially written.
+                level = l;
+                levelCapacity = sink.GetRemainingCapacity();
+                return true;
+            } else {
+                return false;
+            }
+        }
+        Collation.Level getLevel() { return level; }
+        int getLevelCapacity() { return levelCapacity; }
+
+    private:
+        const SortKeyByteSink &sink;
+        Collation.Level level;
+        int levelCapacity;
+    };
+
+    }  // namespace
+
+    int32_t
+    RuleBasedCollator.internalNextSortKeyPart(UCharIterator *iter, uint32_t state[2],
+                                              uint8_t *dest, int count) {
         if(U_FAILURE) { return 0; }
-        if(sink.NumberOfBytesAppended() > count) {
-            state[0] = (uint32_t)level;
-            state[1] = (uint32_t)levelCapacity;
-            return count;
+        if(iter == null || state == null || count < 0 || (count > 0 && dest == null)) {
+            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+            return 0;
+        }
+        if(count == 0) { return 0; }
+
+        FixedSortKeyByteSink sink(reinterpret_cast<char *>(dest), count);
+        sink.IgnoreBytes((int32_t)state[1]);
+        iter.move(iter, 0, UITER_START);
+
+        Collation.Level level = (Collation.Level)state[0];
+        if(level <= Collation.QUATERNARY_LEVEL) {
+            boolean numeric = settings.isNumeric();
+            PartLevelCallback callback(sink);
+            if(settings.dontCheckFCD()) {
+                UIterCollationIterator ci(data, numeric, *iter);
+                CollationKeys.writeSortKeyUpToQuaternary(ci, data.compressibleBytes, *settings,
+                                                          sink, level, callback, false);
+            } else {
+                FCDUIterCollationIterator ci(data, numeric, *iter, 0);
+                CollationKeys.writeSortKeyUpToQuaternary(ci, data.compressibleBytes, *settings,
+                                                          sink, level, callback, false);
+            }
+            if(U_FAILURE) { return 0; }
+            if(sink.NumberOfBytesAppended() > count) {
+                state[0] = (uint32_t)callback.getLevel();
+                state[1] = (uint32_t)callback.getLevelCapacity();
+                return count;
+            }
+            // All of the normal levels are done.
+            if(settings.getStrength() == UCOL_IDENTICAL) {
+                level = Collation.IDENTICAL_LEVEL;
+                iter.move(iter, 0, UITER_START);
+            }
+            // else fall through to setting ZERO_LEVEL
+        }
+
+        if(level == Collation.IDENTICAL_LEVEL) {
+            int levelCapacity = sink.GetRemainingCapacity();
+            UnicodeString s;
+            for(;;) {
+                int c = iter.next(iter);
+                if(c < 0) { break; }
+                s.append((UChar)c);
+            }
+            const UChar *sArray = s.getBuffer();
+            writeIdenticalLevel(sArray, sArray + s.length(), sink);
+            if(U_FAILURE) { return 0; }
+            if(sink.NumberOfBytesAppended() > count) {
+                state[0] = (uint32_t)level;
+                state[1] = (uint32_t)levelCapacity;
+                return count;
+            }
+        }
+
+        // ZERO_LEVEL: Fill the remainder of dest with 00 bytes.
+        state[0] = (uint32_t)Collation.ZERO_LEVEL;
+        state[1] = 0;
+        int length = sink.NumberOfBytesAppended();
+        int i = length;
+        while(i < count) { dest[i++] = 0; }
+        return length;
+    }
+
+    void
+    RuleBasedCollator.internalGetCEs(const UnicodeString &str, UVector64 &ces,
+                                      ) {
+        if(U_FAILURE) { return; }
+        const UChar *s = str.getBuffer();
+        const UChar *limit = s + str.length();
+        boolean numeric = settings.isNumeric();
+        if(settings.dontCheckFCD()) {
+            UTF16CollationIterator iter(data, numeric, s, s, limit);
+            long ce;
+            while((ce = iter.nextCE) != Collation.NO_CE) {
+                ces.addElement(ce);
+            }
+        } else {
+            FCDUTF16CollationIterator iter(data, numeric, s, s, limit);
+            long ce;
+            while((ce = iter.nextCE) != Collation.NO_CE) {
+                ces.addElement(ce);
+            }
         }
     }
 
-    // ZERO_LEVEL: Fill the remainder of dest with 00 bytes.
-    state[0] = (uint32_t)Collation.ZERO_LEVEL;
-    state[1] = 0;
-    int length = sink.NumberOfBytesAppended();
-    int i = length;
-    while(i < count) { dest[i++] = 0; }
-    return length;
-}
+    namespace {
 
-void
-RuleBasedCollator.internalGetCEs(const UnicodeString &str, UVector64 &ces,
-                                  ) {
-    if(U_FAILURE) { return; }
-    const UChar *s = str.getBuffer();
-    const UChar *limit = s + str.length();
-    boolean numeric = settings.isNumeric();
-    if(settings.dontCheckFCD()) {
-        UTF16CollationIterator iter(data, numeric, s, s, limit);
-        long ce;
-        while((ce = iter.nextCE) != Collation.NO_CE) {
-            ces.addElement(ce);
+    void appendSubtag(CharString &s, char letter, const char *subtag, int length,
+                      ) {
+        if(U_FAILURE || length == 0) { return; }
+        if(!s.isEmpty()) {
+            s.append('_');
         }
-    } else {
-        FCDUTF16CollationIterator iter(data, numeric, s, s, limit);
-        long ce;
-        while((ce = iter.nextCE) != Collation.NO_CE) {
-            ces.addElement(ce);
+        s.append(letter);
+        for(int i = 0; i < length; ++i) {
+            s.append(uprv_toupper(subtag[i]));
         }
     }
-}
 
-namespace {
-
-void appendSubtag(CharString &s, char letter, const char *subtag, int length,
-                  ) {
-    if(U_FAILURE || length == 0) { return; }
-    if(!s.isEmpty()) {
-        s.append('_');
-    }
-    s.append(letter);
-    for(int i = 0; i < length; ++i) {
-        s.append(uprv_toupper(subtag[i]));
-    }
-}
-
-void appendAttribute(CharString &s, char letter, UColAttributeValue value,
-                     ) {
-    if(U_FAILURE) { return; }
-    if(!s.isEmpty()) {
-        s.append('_');
-    }
-    private static final char *valueChars = "1234...........IXO..SN..LU......";
-    s.append(letter);
-    s.append(valueChars[value]);
-}
-
-}  // namespace
-
-int32_t
-RuleBasedCollator.internalGetShortDefinitionString(const char *locale,
-                                                    char *buffer, int capacity,
-                                                    ) {
-    if(U_FAILURE) { return 0; }
-    if(buffer == null ? capacity != 0 : capacity < 0) {
-        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
-    }
-    if(locale == null) {
-        locale = internalGetLocaleID(ULOC_VALID_LOCALE);
+    void appendAttribute(CharString &s, char letter, UColAttributeValue value,
+                        ) {
+        if(U_FAILURE) { return; }
+        if(!s.isEmpty()) {
+            s.append('_');
+        }
+        private static final char *valueChars = "1234...........IXO..SN..LU......";
+        s.append(letter);
+        s.append(valueChars[value]);
     }
 
-    char resultLocale[ULOC_FULLNAME_CAPACITY + 1];
-    int length = ucol_getFunctionalEquivalent(resultLocale, ULOC_FULLNAME_CAPACITY,
-                                                  "collation", locale,
-                                                  null, &errorCode);
-    if(U_FAILURE) { return 0; }
-    if(length == 0) {
-        uprv_strcpy(resultLocale, "root");
-    } else {
-        resultLocale[length] = 0;
+    }  // namespace
+
+    int32_t
+    RuleBasedCollator.internalGetShortDefinitionString(const char *locale,
+                                                        char *buffer, int capacity,
+                                                        ) {
+        if(U_FAILURE) { return 0; }
+        if(buffer == null ? capacity != 0 : capacity < 0) {
+            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+            return 0;
+        }
+        if(locale == null) {
+            locale = internalGetLocaleID(ULOC_VALID_LOCALE);
+        }
+
+        char resultLocale[ULOC_FULLNAME_CAPACITY + 1];
+        int length = ucol_getFunctionalEquivalent(resultLocale, ULOC_FULLNAME_CAPACITY,
+                                                      "collation", locale,
+                                                      null, &errorCode);
+        if(U_FAILURE) { return 0; }
+        if(length == 0) {
+            uprv_strcpy(resultLocale, "root");
+        } else {
+            resultLocale[length] = 0;
+        }
+
+        // Append items in alphabetic order of their short definition letters.
+        CharString result;
+        char subtag[ULOC_KEYWORD_AND_VALUES_CAPACITY];
+
+        if(attributeHasBeenSetExplicitly(UCOL_ALTERNATE_HANDLING)) {
+            appendAttribute(result, 'A', getAttribute(UCOL_ALTERNATE_HANDLING));
+        }
+        // ATTR_VARIABLE_TOP not supported because 'B' was broken.
+        // See ICU tickets #10372 and #10386.
+        if(attributeHasBeenSetExplicitly(UCOL_CASE_FIRST)) {
+            appendAttribute(result, 'C', getAttribute(UCOL_CASE_FIRST));
+        }
+        if(attributeHasBeenSetExplicitly(UCOL_NUMERIC_COLLATION)) {
+            appendAttribute(result, 'D', getAttribute(UCOL_NUMERIC_COLLATION));
+        }
+        if(attributeHasBeenSetExplicitly(UCOL_CASE_LEVEL)) {
+            appendAttribute(result, 'E', getAttribute(UCOL_CASE_LEVEL));
+        }
+        if(attributeHasBeenSetExplicitly(UCOL_FRENCH_COLLATION)) {
+            appendAttribute(result, 'F', getAttribute(UCOL_FRENCH_COLLATION));
+        }
+        // Note: UCOL_HIRAGANA_QUATERNARY_MODE is deprecated and never changes away from default.
+        length = uloc_getKeywordValue(resultLocale, "collation", subtag, LENGTHOF(subtag), &errorCode);
+        appendSubtag(result, 'K', subtag, length);
+        length = uloc_getLanguage(resultLocale, subtag, LENGTHOF(subtag), &errorCode);
+        appendSubtag(result, 'L', subtag, length);
+        if(attributeHasBeenSetExplicitly(UCOL_NORMALIZATION_MODE)) {
+            appendAttribute(result, 'N', getAttribute(UCOL_NORMALIZATION_MODE));
+        }
+        length = uloc_getCountry(resultLocale, subtag, LENGTHOF(subtag), &errorCode);
+        appendSubtag(result, 'R', subtag, length);
+        if(attributeHasBeenSetExplicitly(UCOL_STRENGTH)) {
+            appendAttribute(result, 'S', getAttribute(UCOL_STRENGTH));
+        }
+        length = uloc_getVariant(resultLocale, subtag, LENGTHOF(subtag), &errorCode);
+        appendSubtag(result, 'V', subtag, length);
+        length = uloc_getScript(resultLocale, subtag, LENGTHOF(subtag), &errorCode);
+        appendSubtag(result, 'Z', subtag, length);
+
+        if(U_FAILURE) { return 0; }
+        if(result.length() <= capacity) {
+            uprv_memcpy(buffer, result.data(), result.length());
+        }
+        return u_terminateChars(buffer, capacity, result.length(), &errorCode);
     }
 
-    // Append items in alphabetic order of their short definition letters.
-    CharString result;
-    char subtag[ULOC_KEYWORD_AND_VALUES_CAPACITY];
+    void
+    RuleBasedCollator.computeMaxExpansions(const CollationTailoring *t) {
+        t.maxExpansions = CollationElementIterator.computeMaxExpansions(t.data);
+    }
 
-    if(attributeHasBeenSetExplicitly(UCOL_ALTERNATE_HANDLING)) {
-        appendAttribute(result, 'A', getAttribute(UCOL_ALTERNATE_HANDLING));
+    boolean
+    RuleBasedCollator.initMaxExpansions() {
+        umtx_initOnce(tailoring.maxExpansionsInitOnce, computeMaxExpansions, tailoring);
+        return U_SUCCESS;
     }
-    // ATTR_VARIABLE_TOP not supported because 'B' was broken.
-    // See ICU tickets #10372 and #10386.
-    if(attributeHasBeenSetExplicitly(UCOL_CASE_FIRST)) {
-        appendAttribute(result, 'C', getAttribute(UCOL_CASE_FIRST));
-    }
-    if(attributeHasBeenSetExplicitly(UCOL_NUMERIC_COLLATION)) {
-        appendAttribute(result, 'D', getAttribute(UCOL_NUMERIC_COLLATION));
-    }
-    if(attributeHasBeenSetExplicitly(UCOL_CASE_LEVEL)) {
-        appendAttribute(result, 'E', getAttribute(UCOL_CASE_LEVEL));
-    }
-    if(attributeHasBeenSetExplicitly(UCOL_FRENCH_COLLATION)) {
-        appendAttribute(result, 'F', getAttribute(UCOL_FRENCH_COLLATION));
-    }
-    // Note: UCOL_HIRAGANA_QUATERNARY_MODE is deprecated and never changes away from default.
-    length = uloc_getKeywordValue(resultLocale, "collation", subtag, LENGTHOF(subtag), &errorCode);
-    appendSubtag(result, 'K', subtag, length);
-    length = uloc_getLanguage(resultLocale, subtag, LENGTHOF(subtag), &errorCode);
-    appendSubtag(result, 'L', subtag, length);
-    if(attributeHasBeenSetExplicitly(UCOL_NORMALIZATION_MODE)) {
-        appendAttribute(result, 'N', getAttribute(UCOL_NORMALIZATION_MODE));
-    }
-    length = uloc_getCountry(resultLocale, subtag, LENGTHOF(subtag), &errorCode);
-    appendSubtag(result, 'R', subtag, length);
-    if(attributeHasBeenSetExplicitly(UCOL_STRENGTH)) {
-        appendAttribute(result, 'S', getAttribute(UCOL_STRENGTH));
-    }
-    length = uloc_getVariant(resultLocale, subtag, LENGTHOF(subtag), &errorCode);
-    appendSubtag(result, 'V', subtag, length);
-    length = uloc_getScript(resultLocale, subtag, LENGTHOF(subtag), &errorCode);
-    appendSubtag(result, 'Z', subtag, length);
 
-    if(U_FAILURE) { return 0; }
-    if(result.length() <= capacity) {
-        uprv_memcpy(buffer, result.data(), result.length());
+    CollationElementIterator *
+    RuleBasedCollator.createCollationElementIterator(const UnicodeString& source) {
+        UErrorCode errorCode = U_ZERO_ERROR;
+        if(!initMaxExpansions) { return null; }
+        CollationElementIterator *cei = new CollationElementIterator(source, this);
+        if(U_FAILURE) {
+            delete cei;
+            return null;
+        }
+        return cei;
     }
-    return u_terminateChars(buffer, capacity, result.length(), &errorCode);
-}
 
-void
-RuleBasedCollator.computeMaxExpansions(const CollationTailoring *t) {
-    t.maxExpansions = CollationElementIterator.computeMaxExpansions(t.data);
-}
-
-boolean
-RuleBasedCollator.initMaxExpansions() {
-    umtx_initOnce(tailoring.maxExpansionsInitOnce, computeMaxExpansions, tailoring);
-    return U_SUCCESS;
-}
-
-CollationElementIterator *
-RuleBasedCollator.createCollationElementIterator(const UnicodeString& source) {
-    UErrorCode errorCode = U_ZERO_ERROR;
-    if(!initMaxExpansions) { return null; }
-    CollationElementIterator *cei = new CollationElementIterator(source, this);
-    if(U_FAILURE) {
-        delete cei;
-        return null;
+    CollationElementIterator *
+    RuleBasedCollator.createCollationElementIterator(const CharacterIterator& source) {
+        UErrorCode errorCode = U_ZERO_ERROR;
+        if(!initMaxExpansions) { return null; }
+        CollationElementIterator *cei = new CollationElementIterator(source, this);
+        if(U_FAILURE) {
+            delete cei;
+            return null;
+        }
+        return cei;
     }
-    return cei;
-}
 
-CollationElementIterator *
-RuleBasedCollator.createCollationElementIterator(const CharacterIterator& source) {
-    UErrorCode errorCode = U_ZERO_ERROR;
-    if(!initMaxExpansions) { return null; }
-    CollationElementIterator *cei = new CollationElementIterator(source, this);
-    if(U_FAILURE) {
-        delete cei;
-        return null;
+    int32_t
+    RuleBasedCollator.getMaxExpansion(int order) {
+        return CollationElementIterator.getMaxExpansion(tailoring.maxExpansions, order);
     }
-    return cei;
-}
-
-int32_t
-RuleBasedCollator.getMaxExpansion(int order) {
-    return CollationElementIterator.getMaxExpansion(tailoring.maxExpansions, order);
-}
-
-U_NAMESPACE_END
-
-#endif  // !UCONFIG_NO_COLLATION
