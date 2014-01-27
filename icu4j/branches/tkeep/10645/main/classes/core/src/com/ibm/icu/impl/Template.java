@@ -7,7 +7,6 @@
 package com.ibm.icu.impl;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -28,17 +27,17 @@ import java.util.List;
  */
 public class Template {
     private final String patternWithoutPlaceholders;
+    private final int placeholderCount;
     
     // [0] first offset; [1] first placeholderId; [2] second offset;
     // [3] second placeholderId etc.
     private final int[] placeholderIdsOrderedByOffset;
-    private final BitSet placeholderIdSet;
 
     private Template(String pattern, PlaceholdersBuilder builder) {
         this.patternWithoutPlaceholders = pattern;
         this.placeholderIdsOrderedByOffset =
                 builder.getPlaceholderIdsOrderedByOffset();
-        this.placeholderIdSet = builder.getPlaceholderIdSet();
+        this.placeholderCount = builder.getPlaceholderCount();
     }
 
     /**
@@ -79,7 +78,7 @@ public class Template {
                 if (ch >= '0' && ch <= '9') {
                     idBuilder.add(ch);
                 } else if (ch == '}' && idBuilder.isValid()) {
-                    placeholdersBuilder.add(idBuilder.toId(), newPattern.length());
+                    placeholdersBuilder.add(idBuilder.getId(), newPattern.length());
                     state = State.INIT;
                 } else {
                     newPattern.append('{');
@@ -101,6 +100,9 @@ public class Template {
         case PLACEHOLDER:
             newPattern.append('{');
             idBuilder.appendTo(newPattern);
+            break;
+        default:
+            throw new IllegalStateException();
         }
         return new Template(newPattern.toString(), placeholdersBuilder);
         
@@ -135,17 +137,10 @@ public class Template {
     }
     
     /**
-     * Returns whether or not this template has a particular placeholder.
-     */
-    public boolean has(int placeholderId) {
-        return placeholderIdSet.get(placeholderId);
-    }
-    
-    /**
      * Returns the max placeholder ID + 1.
      */
     public int getPlaceholderCount() {
-        return placeholderIdSet.length();
+        return placeholderCount;
     }
     
     /**
@@ -199,11 +194,11 @@ public class Template {
     }
     
     private void evaluatePrivate(Object[] values, ResultBuilder builder) {
-        if (values.length < placeholderIdSet.length()) {
+        if (values.length < placeholderCount) {
             throw new IllegalArgumentException(
                     "There must be at least as values as placeholders.");
         }
-        builder.setPlaceholderCount(placeholderIdSet.length());   
+        builder.setPlaceholderCount(placeholderCount);   
         if (placeholderIdsOrderedByOffset.length == 0) {
             builder.setResult(patternWithoutPlaceholders);
             return;
@@ -240,41 +235,47 @@ public class Template {
     
     private static class PlaceholderIdBuilder {
         private int id = 0;
+        private int idLen = 0;
         
         public void reset() {
-            id = -1;
+            id = 0;
+            idLen = 0;
         }
 
-        public int toId() {
+        public int getId() {
            return id;
         }
 
         public void appendTo(StringBuilder appendTo) {
-            if (id >= 0) {
+            if (idLen > 0) {
                 appendTo.append(id);
             }
         }
 
         public boolean isValid() {
-           return id >= 0;
+           return idLen > 0;
         }
 
         public void add(char ch) {
-            if (id < 0) {
-                id = 0;
-            }
             id = id * 10 + ch - '0';
+            idLen++;
         }     
     }
     
     private static class PlaceholdersBuilder {
         private List<Integer> placeholderIdsOrderedByOffset = new ArrayList<Integer>();
-        private BitSet placeholderIdSet = new BitSet();
+        private int placeholderCount = 0;
         
         public void add(int placeholderId, int offset) {
             placeholderIdsOrderedByOffset.add(offset);
             placeholderIdsOrderedByOffset.add(placeholderId);
-            placeholderIdSet.set(placeholderId);
+            if (placeholderId >= placeholderCount) {
+                placeholderCount = placeholderId + 1;
+            }
+        }
+        
+        public int getPlaceholderCount() {
+            return placeholderCount;
         }
         
         public int[] getPlaceholderIdsOrderedByOffset() {
@@ -283,10 +284,6 @@ public class Template {
                 result[i] = placeholderIdsOrderedByOffset.get(i).intValue();
             }
             return result;
-        }
-        
-        public BitSet getPlaceholderIdSet() {
-            return placeholderIdSet;
         }
     }
     

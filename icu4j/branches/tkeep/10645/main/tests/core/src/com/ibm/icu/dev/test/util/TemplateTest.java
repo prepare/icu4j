@@ -40,9 +40,6 @@ public class TemplateTest extends TestFmwk {
                  "TestWithNoPlaceholders",
                  0,
                  t.getPlaceholderCount());
-         assertFalse(
-                 "TestWithNoPlaceholders",
-                 t.has(0));
          assertEquals(
                  "TestWithNoPlaceholders",
                  "This doesn't have templates {0}",
@@ -71,16 +68,10 @@ public class TemplateTest extends TestFmwk {
      public void TestWithPlaceholders() {
          Template t = Template.compile(
                  "Templates {2}{1} and {4} are out of order.");
-         boolean[] validPlaceholderIds = {false, true, true, false, true};
          assertEquals(
                  "TestWithPlaceholders",
-                 validPlaceholderIds.length,
+                 5,
                  t.getPlaceholderCount());
-         for (int i = 0; i < validPlaceholderIds.length; i++) {
-             if (t.has(i) != validPlaceholderIds[i]) {
-                 fail("has() returned wrong value for " + i);
-             }
-         }
          try {
              t.evaluate("freddy", "tommy", "frog", "leg");
              fail("Expected IllegalArgumentException");
