@@ -37,26 +37,35 @@ public class TemplateTest extends TestFmwk {
      public void TestWithNoPlaceholders() {
          Template t = Template.compile("This doesn''t have templates '{0}");
          assertEquals(
-                 "TestWithNoPlaceholders",
+                 "getPlaceholderCount",
                  0,
                  t.getPlaceholderCount());
          assertEquals(
-                 "TestWithNoPlaceholders",
+                 "evaluate",
                  "This doesn't have templates {0}",
                  t.evaluate());
          assertEquals(
-                 "TestWithNoPlaceholders",
+                 "toString",
                  "This doesn't have templates {0}",
                  t.toString());
          Template.Evaluation eval = t.evaluateFull();
          assertEquals(
-                 "TestWithNoPlaceholders",
+                 "toString2",
                  "This doesn't have templates {0}",
                  eval.toString());
          assertEquals(
-                 "TestWithNoPlaceholders",
+                 "getOffset(0)",
                  -1,
                  eval.getOffset(0));
+         t = Template.compile("Some {} messed {12d up stuff.");
+         assertEquals(
+                 "getPlaceholderCount",
+                 0,
+                 t.getPlaceholderCount());
+         assertEquals(
+                 "evaluate",
+                 "Some {} messed {12d up stuff.",
+                 t.evaluate("to"));
      }
      
      public void TestOnePlaceholder() {
@@ -69,7 +78,7 @@ public class TemplateTest extends TestFmwk {
          Template t = Template.compile(
                  "Templates {2}{1} and {4} are out of order.");
          assertEquals(
-                 "TestWithPlaceholders",
+                 "getPlaceholderCount",
                  5,
                  t.getPlaceholderCount());
          try {
@@ -79,11 +88,11 @@ public class TemplateTest extends TestFmwk {
              // Expected
          }
          assertEquals(
-                 "TestWithPlaceholders",
+                 "evaluate",
                  "Templates frogtommy and {0} are out of order.",
                  t.evaluate("freddy", "tommy", "frog", "leg", "{0}"));
          assertEquals(
-                 "TestWithPlaceholders",
+                 "toString",
                  "Templates {2}{1} and {4} are out of order.",
                  t.toString());
          Template.Evaluation eval =
@@ -95,7 +104,7 @@ public class TemplateTest extends TestFmwk {
              }
          }
          assertEquals(
-                 "TestWithPlaceholders",
+                 "toString2",
                  "Templates frogtommy and {0} are out of order.",
                  eval.toString());
      }
