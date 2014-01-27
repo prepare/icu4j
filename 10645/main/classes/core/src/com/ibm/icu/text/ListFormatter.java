@@ -268,15 +268,20 @@ final public class ListFormatter {
         // represents the new object in pattern. next is the object to be added. If recordOffset
         // is true, records the offset of next in the formatted string.
         public FormattedListBuilder append(Template pattern, Object next, boolean recordOffset) {
-            if (!pattern.has(0) || !pattern.has(1)) {
-                throw new IllegalArgumentException("Missing {0} or {1} in pattern " + pattern);
+            if (pattern.getPlaceholderCount() != 2) {
+                throw new IllegalArgumentException("Need {0} and {1} only in pattern " + pattern);
             }
             if (recordOffset || offsetRecorded()) {
                 Template.Evaluation evaluation = pattern.evaluateFull(current, next);
+                int oneOffset = evaluation.getOffset(1);
+                int zeroOffset = evaluation.getOffset(0);
+                if (zeroOffset == -1 || oneOffset == -1) {
+                    throw new IllegalArgumentException("{0} or {1} missing from pattern " + pattern);
+                }
                 if (recordOffset) {
-                    offset = evaluation.getOffset(1);
+                    offset = oneOffset;
                 } else {
-                    offset += evaluation.getOffset(0);
+                    offset += zeroOffset;
                 }
                 current = evaluation.toString();
             } else {
