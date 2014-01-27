@@ -31,28 +31,31 @@ abstract class DictionaryBreakEngine implements LanguageBreakEngine {
 
     public int findBreaks(CharacterIterator text_, int startPos, int endPos, 
             boolean reverse, int breakType, Stack<Integer> foundBreaks) {
-        if (breakType < 0 || breakType >= 32 ||
-                ((1 << breakType) & fTypes) == 0) {
-            return 0;
-        }
+        //This test is not in the corresponding C++ code.
+        //if (breakType < 0 || breakType >= 32 ||
+        //        ((1 << breakType) & fTypes) == 0) {
+        //    return 0;
+        //}
 
         int result = 0;
         UCharacterIterator text = UCharacterIterator.getInstance(text_);
         int start = text.getIndex();
         int current, rangeStart, rangeEnd;
-        int c = text.current();
+        int c = text.currentCodePoint();
         if (reverse) {
             boolean isDict = fSet.contains(c);
             while ((current = text.getIndex()) > startPos && isDict) {
-                c = text.previous();
+                c = text.previousCodePoint();
                 isDict = fSet.contains(c);
             }
             rangeStart = (current < startPos) ? startPos :
-                current + (isDict ? 0 : 1);
+                                                current + (isDict ? 0 : 1);
             rangeEnd = start + 1;
         } else {
             while ((current = text.getIndex()) < endPos && fSet.contains(c)) {
-                c = text.next();
+                //c = text.next();
+                text.nextCodePoint();         // TODO:  recast loop for post-increment
+                c = text.currentCodePoint();
             }
             rangeStart = start;
             rangeEnd = current;

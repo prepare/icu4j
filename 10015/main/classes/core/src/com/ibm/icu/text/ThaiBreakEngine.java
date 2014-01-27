@@ -38,18 +38,18 @@ class ThaiBreakEngine implements LanguageBreakEngine {
         }
 
         // Fill the list of candidates if needed, select the longest, and return the number found
-        public int candidates(CharacterIterator fIter, DictionaryMatcher dict, int rangeEnd) {
-            int start = fIter.getIndex();
+        public int candidates(CharacterIterator text, DictionaryMatcher dict, int rangeEnd) {
+            int start = text.getIndex();
             if (start != offset) {
                 offset = start;
-                prefix = dict.matches(fIter, rangeEnd - start, lengths, count, lengths.length);
+                prefix = dict.matches(text, rangeEnd - start, lengths, count, lengths.length);
                 // Dictionary leaves text after longest prefix, not longest word. Back up.
                 if (count[0] <= 0) {
-                    fIter.setIndex(start);
+                    text.setIndex(start);
                 }
             }
             if (count[0] > 0) {
-                fIter.setIndex(start + lengths[count[0]-1]);
+                text.setIndex(start + lengths[count[0]-1]);
             }
             current = count[0] - 1;
             mark = current;
@@ -109,7 +109,6 @@ class ThaiBreakEngine implements LanguageBreakEngine {
         // Initialize UnicodeSets
         fThaiWordSet = new UnicodeSet();
         fMarkSet = new UnicodeSet();
-        fEndWordSet = new UnicodeSet();
         fBeginWordSet = new UnicodeSet();
         fSuffixSet = new UnicodeSet();
 
@@ -118,7 +117,7 @@ class ThaiBreakEngine implements LanguageBreakEngine {
 
         fMarkSet.applyPattern("[[:Thai:]&[:LineBreak=SA:]&[:M:]]");
         fMarkSet.add(0x0020);
-        fEndWordSet = fThaiWordSet;
+        fEndWordSet = new UnicodeSet(fThaiWordSet);
         fEndWordSet.remove(0x0E31); // MAI HAN-AKAT
         fEndWordSet.remove(0x0E40, 0x0E44); // SARA E through SARA AI MAIMALAI
         fBeginWordSet.add(0x0E01, 0x0E2E); //KO KAI through HO NOKHUK
@@ -183,9 +182,9 @@ class ThaiBreakEngine implements LanguageBreakEngine {
 
             // If there was more than one, see which one can take us forward the most words
             else if (candidates > 1) {
-                boolean foundBest = false;
                 // If we're already at the end of the range, we're done
                 if (fIter.getIndex() < rangeEnd) {
+                  foundBest:
                     do {
                         int wordsMatched = 1;
                         if (words[(wordsFound+1)%THAI_LOOKAHEAD].candidates(fIter, fDictionary, rangeEnd) > 0) {
@@ -197,7 +196,7 @@ class ThaiBreakEngine implements LanguageBreakEngine {
 
                             // If we're already at the end of the range, we're done
                             if (fIter.getIndex() >= rangeEnd) {
-                                break;
+                                break foundBest;
                             }
 
                             // See if any of the possible second words is followed by a third word
@@ -205,12 +204,13 @@ class ThaiBreakEngine implements LanguageBreakEngine {
                                 // If we find a third word, stop right away
                                 if (words[(wordsFound+2)%THAI_LOOKAHEAD].candidates(fIter, fDictionary, rangeEnd) > 0) {
                                     words[wordsFound%THAI_LOOKAHEAD].markCurrent();
-                                    foundBest = true;
-                                    break;
+                                    break foundBest;
                                 }
                             } while (words[(wordsFound+1)%THAI_LOOKAHEAD].backUp(fIter));
                         }
-                    } while (words[wordsFound%THAI_LOOKAHEAD].backUp(fIter) && !foundBest);
+                    } 
+                    while (words[wordsFound%THAI_LOOKAHEAD].backUp(fIter));
+                    // foundBest: end of loop
                 }
                 wordLength = words[wordsFound%THAI_LOOKAHEAD].acceptMarked(fIter);
                 wordsFound += 1;
