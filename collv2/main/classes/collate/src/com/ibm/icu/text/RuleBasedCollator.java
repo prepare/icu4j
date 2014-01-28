@@ -1456,8 +1456,10 @@ public final class RuleBasedCollator extends Collator {
 
     /**
      * Attribute values to be used when setting the Collator options
+     * @internal TODO: move to impl.coll?
+     * @deprecated This API is ICU internal only.
      */
-    static interface AttributeValue {
+    public static interface AttributeValue {
         /**
          * Indicates that the default attribute value will be used. See individual attribute for details on its default
          * value.
@@ -1529,8 +1531,10 @@ public final class RuleBasedCollator extends Collator {
     /**
      * Attributes that collation service understands. All the attributes can take DEFAULT value, as well as the values
      * specific to each one.
+     * @internal TODO: move to impl.coll?
+     * @deprecated This API is ICU internal only.
      */
-    static interface Attribute {
+    public static interface Attribute {
         /**
          * Attribute for direction of secondary weights - used in French. Acceptable values are ON, which results in
          * secondary weights being considered backwards and OFF which treats secondary weights in the order they appear.

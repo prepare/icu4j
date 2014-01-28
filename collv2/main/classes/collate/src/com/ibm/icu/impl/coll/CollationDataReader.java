@@ -439,20 +439,16 @@ final class CollationDataReader /* all static */ {
         }
 
         if(reorderCodesLength == 0 || reorderTable != null) {
-            settings.aliasReordering(reorderCodes, reorderCodesLength, reorderTable);
+            settings.setReordering(reorderCodes, reorderTable);
         } else {
-            uint8_t table[256];
-            baseData.makeReorderTable(reorderCodes, reorderCodesLength, table);
-            if(U_FAILURE) { return; }
-            if(!settings.setReordering(reorderCodes, reorderCodesLength,table)) {
-                errorCode = U_MEMORY_ALLOCATION_ERROR;
-                return;
-            }
+            byte[] table = new byte[256];
+            baseData.makeReorderTable(reorderCodes, table);
+            settings.setReordering(reorderCodes, table);
         }
 
         settings.fastLatinOptions = CollationFastLatin.getOptions(
-            tailoring.data, *settings,
-            settings.fastLatinPrimaries, LENGTHOF(settings.fastLatinPrimaries));
+            tailoring.data, settings,
+            settings.fastLatinPrimaries);
     }
 
     static boolean U_CALLCONV

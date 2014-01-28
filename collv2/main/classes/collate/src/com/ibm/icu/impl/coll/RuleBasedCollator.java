@@ -747,7 +747,7 @@ private:
     void writeIdenticalLevel(const UChar *s, const UChar *limit,
                              SortKeyByteSink &sink);
 
-    const CollationSettings &getDefaultSettings();
+    CollationSettings getDefaultSettings();
 
     // TODO: Use an EnumSet?
     void setAttributeDefault(int attribute) {
@@ -1094,7 +1094,7 @@ private:
         ContractionsAndExpansions(&set, null, null, false).forCodePoint(data, c);
     }
 
-    const CollationSettings &
+    CollationSettings 
     RuleBasedCollator.getDefaultSettings() {
         return *tailoring.settings;
     }
@@ -1141,7 +1141,7 @@ private:
             setAttributeExplicitly(attr);
             return;
         }
-        const CollationSettings &defaultSettings = getDefaultSettings();
+        CollationSettings defaultSettings = getDefaultSettings();
         if(settings == &defaultSettings) {
             if(value == UCOL_DEFAULT) {
                 setAttributeDefault(attr);
@@ -1216,7 +1216,7 @@ private:
             setAttributeExplicitly(ATTR_VARIABLE_TOP);
             return *this;
         }
-        const CollationSettings &defaultSettings = getDefaultSettings();
+        CollationSettings defaultSettings = getDefaultSettings();
         if(settings == &defaultSettings) {
             if(value == UCOL_DEFAULT) {
                 setAttributeDefault(ATTR_VARIABLE_TOP);
@@ -1345,49 +1345,30 @@ private:
     }
 
     void
-    RuleBasedCollator.setReorderCodes(const int *reorderCodes, int length,
-                                      ) {
-        if(U_FAILURE) { return; }
-        if(length < 0 || (reorderCodes == null && length > 0)) {
-            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+    RuleBasedCollator.setReorderCodes(int[] reorderCodes) {
+        if(Arrays.equals(order, settings.reorderCodesLength)) {
             return;
         }
-        if(length == settings.reorderCodesLength &&
-                uprv_memcmp(reorderCodes, settings.reorderCodes, length * 4) == 0) {
-            return;
-        }
-        const CollationSettings &defaultSettings = getDefaultSettings();
+        int length = (reorderCodes != null) ? reorderCodes.length : 0;
+        CollationSettings defaultSettings = getDefaultSettings();
         if(length == 1 && reorderCodes[0] == Collator.ReorderCodes.DEFAULT) {
-            if(settings != &defaultSettings) {
+            if(settings != defaultSettings) {
                 CollationSettings ownedSettings = getOwnedSettings();
-                if(ownedSettings == null) {
-                    errorCode = U_MEMORY_ALLOCATION_ERROR;
-                    return;
-                }
-                ownedSettings.aliasReordering(defaultSettings.reorderCodes,
-                                              defaultSettings.reorderCodesLength,
-                                              defaultSettings.reorderTable);
-                setFastLatinOptions(*ownedSettings);
+                ownedSettings.setReordering(defaultSettings.reorderCodes,
+                                            defaultSettings.reorderTable);
+                setFastLatinOptions(ownedSettings);
             }
             return;
         }
         CollationSettings ownedSettings = getOwnedSettings();
-        if(ownedSettings == null) {
-            errorCode = U_MEMORY_ALLOCATION_ERROR;
-            return;
-        }
         if(length == 0) {
             ownedSettings.resetReordering();
         } else {
-            uint8_t reorderTable[256];
-            data.makeReorderTable(reorderCodes, length, reorderTable);
-            if(U_FAILURE) { return; }
-            if(!ownedSettings.setReordering(reorderCodes, length, reorderTable)) {
-                errorCode = U_MEMORY_ALLOCATION_ERROR;
-                return;
-            }
+            byte[] reorderTable = new byte[256];
+            data.makeReorderTable(reorderCodes, reorderTable);
+            ownedSettings.setReordering(reorderCodes.clone(), reorderTable);
         }
-        setFastLatinOptions(*ownedSettings);
+        setFastLatinOptions(ownedSettings);
     }
 
     void
