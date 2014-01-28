@@ -816,7 +816,6 @@ private:
 
     void
     CollationRuleParser.parseReordering(const UnicodeString &raw) {
-        if(U_FAILURE) { return; }
         int i = 7;  // after "reorder"
         if(i == raw.length()) {
             // empty [reorder] with no codes
@@ -824,12 +823,11 @@ private:
             return;
         }
         // Parse the codes in [reorder aa bb cc].
-        UVector32 reorderCodes;
-        if(U_FAILURE) { return; }
+        ArrayList<Integer> reorderCodes = new ArrayList<Integer>;
         CharString word;
         while(i < raw.length()) {
             ++i;  // skip the word-separating space
-            int limit = raw.indexOf((UChar)0x20, i);
+            int limit = raw.indexOf(' ', i);
             if(limit < 0) { limit = raw.length(); }
             word.clear().appendInvariantChars(raw.tempSubStringBetween(i, limit));
             if(U_FAILURE) { return; }
@@ -848,12 +846,10 @@ private:
             settings.resetReordering();
             return;
         }
-        uint8_t table[256];
-        baseData.makeReorderTable(reorderCodes.getBuffer(), length, table);
-        if(U_FAILURE) { return; }
-        if(!settings.setReordering(reorderCodes.getBuffer(), length, table)) {
-            errorCode = U_MEMORY_ALLOCATION_ERROR;
-        }
+        int[] codes = reorderCodes.toArray();
+        byte[] table = new byte[256];
+        baseData.makeReorderTable(codes, table);
+        settings.setReordering(codes, table);
     }
 
     private static final char *const gSpecialReorderCodes[] = {

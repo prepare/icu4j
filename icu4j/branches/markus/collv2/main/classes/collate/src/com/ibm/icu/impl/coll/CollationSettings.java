@@ -11,6 +11,11 @@
 
 package com.ibm.icu.impl.coll;
 
+import java.util.Arrays;
+
+import com.ibm.icu.text.Collator;
+import com.ibm.icu.text.RuleBasedCollator.AttributeValue;
+
 /**
  * Collation settings/options/attributes.
  * These are the values that can be changed via API.
@@ -84,30 +89,67 @@ final class CollationSettings extends SharedObject {
     static final int MAX_VAR_SYMBOL = 2;
     static final int MAX_VAR_CURRENCY = 3;
 
-    CollationSettings()
-            : options((UCOL_DEFAULT_STRENGTH << STRENGTH_SHIFT) |
-                      (MAX_VAR_PUNCT << MAX_VARIABLE_SHIFT)),
-              variableTop(0),
-              reorderTable(null),
-              reorderCodes(null), reorderCodesLength(0), reorderCodesCapacity(0),
-              fastLatinOptions(-1) {}
+    CollationSettings() {}
 
-    CollationSettings(const CollationSettings &other);
-    virtual ~CollationSettings();
-
-    boolean operator==(const CollationSettings &other);
-
-    boolean operator!=(const CollationSettings &other) {
-        return !operator==(other);
+    @Override
+    public CollationSettings clone() {
+        CollationSettings newSettings = (CollationSettings)super.clone();
+        newSettings.fastLatinPrimaries = fastLatinPrimaries.clone();
+        return newSettings;
     }
 
-    int hashCode();
+    @Override
+    public boolean equals(Object other) {
+        if(!this.getClass().equals(other.getClass())) { return false; }
+        CollationSettings o = (CollationSettings)other;
+        if(options != o.options) { return false; }
+        if((options & ALTERNATE_MASK) != 0 && variableTop != o.variableTop) { return false; }
+        if(!Arrays.equals(reorderCodes, o.reorderCodes)) { return false; }
+        return true;
+    }
 
-    void resetReordering();
-    void aliasReordering(const int *codes, int length, const uint8_t *table);
-    boolean setReordering(const int *codes, int length, const uint8_t table[256]);
+    @Override
+    public int hashCode() {
+        int h = options << 8;
+        if((options & ALTERNATE_MASK) != 0) { h ^= variableTop; }
+        h ^= reorderCodes.length;
+        for(int i = 0; i < reorderCodes.length; ++i) {
+            h ^= (reorderCodes[i] << i);
+        }
+        return h;
+    }
 
-    void setStrength(int value, int defaultOptions, UErrorCode &errorCode);
+    void resetReordering() {
+        // When we turn off reordering, we want to set a null permutation
+        // rather than a no-op permutation.
+        reorderTable = null;
+        reorderCodes = EMPTY_INT_ARRAY;
+    }
+    // No aliasReordering() in Java. Use setReordering(). See comments near reorderCodes.
+    void setReordering(int[] codes, byte[] table) {
+        assert (codes.length == 0) == (table == null);
+        reorderTable = table;
+        reorderCodes = codes;
+    }
+
+    // TODO: Most setters probably need to be split into set() vs. setDefault() to match the Java Collator API.
+    void setStrength(int value, int defaultOptions) {
+        int noStrength = options & ~STRENGTH_MASK;
+        switch(value) {
+        case Collator.PRIMARY:
+        case Collator.SECONDARY:
+        case Collator.TERTIARY:
+        case Collator.QUATERNARY:
+        case Collator.IDENTICAL:
+            options = noStrength | (value << STRENGTH_SHIFT);
+            break;
+        case AttributeValue.DEFAULT_:
+            options = noStrength | (defaultOptions & STRENGTH_MASK);
+            break;
+        default:
+            throw new IllegalArgumentException("illegal strength value " + value);  // TODO: review message text
+        }
+    }
 
     static int getStrength(int options) {
         return options >> STRENGTH_SHIFT;
@@ -118,32 +160,93 @@ final class CollationSettings extends SharedObject {
     }
 
     /** Sets the options bit for an on/off attribute. */
-    void setFlag(int bit, UColAttributeValue value,
-                 int defaultOptions, UErrorCode &errorCode);
-
-    UColAttributeValue getFlag(int bit) {
-        return ((options & bit) != 0) ? UCOL_ON : UCOL_OFF;
+    void setFlag(int bit, int value, int defaultOptions) {
+        switch(value) {
+        case AttributeValue.ON_:
+            options |= bit;
+            break;
+        case AttributeValue.OFF_:
+            options &= ~bit;
+            break;
+        case AttributeValue.DEFAULT_:
+            options = (options & ~bit) | (defaultOptions & bit);
+            break;
+        default:
+            throw new IllegalArgumentException("illegal boolean value " + value);  // TODO: review message text
+        }
     }
 
-    void setCaseFirst(UColAttributeValue value, int defaultOptions, UErrorCode &errorCode);
+    // TODO: return boolean?
+    int getFlag(int bit) {
+        return ((options & bit) != 0) ? AttributeValue.ON_ : AttributeValue.OFF_;
+    }
 
-    UColAttributeValue getCaseFirst() {
+    void setCaseFirst(int value, int defaultOptions) {
+        int noCaseFirst = options & ~CASE_FIRST_AND_UPPER_MASK;
+        switch(value) {
+        case AttributeValue.OFF_:
+            options = noCaseFirst;
+            break;
+        case AttributeValue.LOWER_FIRST_:
+            options = noCaseFirst | CASE_FIRST;
+            break;
+        case AttributeValue.UPPER_FIRST_:
+            options = noCaseFirst | CASE_FIRST_AND_UPPER_MASK;
+            break;
+        case AttributeValue.DEFAULT_:
+            options = noCaseFirst | (defaultOptions & CASE_FIRST_AND_UPPER_MASK);
+            break;
+        default:
+            throw new IllegalArgumentException("illegal caseFirst value " + value);  // TODO: review message text
+        }
+    }
+
+    int getCaseFirst() {
         int option = options & CASE_FIRST_AND_UPPER_MASK;
-        return (option == 0) ? UCOL_OFF :
-                (option == CASE_FIRST) ? UCOL_LOWER_FIRST : UCOL_UPPER_FIRST;
+        return (option == 0) ? AttributeValue.OFF_ :
+                (option == CASE_FIRST) ? AttributeValue.LOWER_FIRST_ : AttributeValue.UPPER_FIRST_;
     }
 
-    void setAlternateHandling(UColAttributeValue value,
-                              int defaultOptions, UErrorCode &errorCode);
-
-    UColAttributeValue getAlternateHandling() {
-        return ((options & ALTERNATE_MASK) == 0) ? UCOL_NON_IGNORABLE : UCOL_SHIFTED;
+    void setAlternateHandling(int value, int defaultOptions) {
+        int noAlternate = options & ~ALTERNATE_MASK;
+        switch(value) {
+        case AttributeValue.NON_IGNORABLE_:
+            options = noAlternate;
+            break;
+        case AttributeValue.SHIFTED_:
+            options = noAlternate | SHIFTED;
+            break;
+        case AttributeValue.DEFAULT_:
+            options = noAlternate | (defaultOptions & ALTERNATE_MASK);
+            break;
+        default:
+            throw new IllegalArgumentException("illegal alternate-handling value " + value);  // TODO: review message text
+        }
     }
 
-    void setMaxVariable(int value, int defaultOptions, UErrorCode &errorCode);
+    int getAlternateHandling() {
+        return ((options & ALTERNATE_MASK) == 0) ? AttributeValue.NON_IGNORABLE_ : AttributeValue.SHIFTED_;
+    }
 
-    MaxVariable getMaxVariable() {
-        return (MaxVariable)((options & MAX_VARIABLE_MASK) >> MAX_VARIABLE_SHIFT);
+    void setMaxVariable(int value, int defaultOptions) {
+        int noMax = options & ~MAX_VARIABLE_MASK;
+        switch(value) {
+        case MAX_VAR_SPACE:
+        case MAX_VAR_PUNCT:
+        case MAX_VAR_SYMBOL:
+        case MAX_VAR_CURRENCY:
+            options = noMax | (value << MAX_VARIABLE_SHIFT);
+            break;
+        case AttributeValue.DEFAULT_:
+            options = noMax | (defaultOptions & MAX_VARIABLE_MASK);
+            break;
+        default:
+            throw new IllegalArgumentException("illegal maxVariable value " + value);  // TODO: review message text
+        }
+    }
+
+    int getMaxVariable() {
+        return (options & MAX_VARIABLE_MASK) >> MAX_VARIABLE_SHIFT;
     }
 
     /**
@@ -177,234 +280,22 @@ final class CollationSettings extends SharedObject {
     }
 
     /** CHECK_FCD etc. */
-    int options;
+    int options = (AttributeValue.DEFAULT_STRENGTH_ << STRENGTH_SHIFT) |
+            (MAX_VAR_PUNCT << MAX_VARIABLE_SHIFT);
     /** Variable-top primary weight. */
     long variableTop;
     /** 256-byte table for reordering permutation of primary lead bytes; null if no reordering. */
     byte[] reorderTable;
-    /** Array of reorder codes; ignored if reorderCodesLength == 0. */
-    int[] reorderCodes;
-    /** Number of reorder codes; 0 if no reordering. */
-    int reorderCodesLength;
-    /**
-     * Capacity of reorderCodes.
-     * If 0, then the table and codes are aliases.
-     * Otherwise, this object owns the memory via the reorderCodes pointer;
-     * the table and the codes are in the same memory block, with the codes first.
-     */
-    int reorderCodesCapacity;
+    /** Array of reorder codes; ignored if length == 0. */
+    int[] reorderCodes = EMPTY_INT_ARRAY;
+    // Note: In C++, we keep a memory block around for the reorder codes and the permutation table,
+    // and modify them for new codes.
+    // In Java, we simply copy references and then never modify the array contents.
+    // The caller must abandon the arrays.
+    // Reorder codes from the public setter API must be cloned.
+    private static final int[] EMPTY_INT_ARRAY = new int[0];
 
     /** Options for CollationFastLatin. Negative if disabled. */
-    int fastLatinOptions;
-    char[] fastLatinPrimaries[0x180];
+    int fastLatinOptions = -1;
+    char[] fastLatinPrimaries;  // mutable contents
 }
-
-    CollationSettings.CollationSettings(const CollationSettings &other)
-            : SharedObject(other),
-              options(other.options), variableTop(other.variableTop),
-              reorderTable(null),
-              reorderCodes(null), reorderCodesLength(0), reorderCodesCapacity(0),
-              fastLatinOptions(other.fastLatinOptions) {
-        int length = other.reorderCodesLength;
-        if(length == 0) {
-            U_ASSERT(other.reorderTable == null);
-        } else {
-            U_ASSERT(other.reorderTable != null);
-            if(other.reorderCodesCapacity == 0) {
-                aliasReordering(other.reorderCodes, length, other.reorderTable);
-            } else {
-                setReordering(other.reorderCodes, length, other.reorderTable);
-            }
-        }
-        if(fastLatinOptions >= 0) {
-            uprv_memcpy(fastLatinPrimaries, other.fastLatinPrimaries, sizeof(fastLatinPrimaries));
-        }
-    }
-
-    CollationSettings.~CollationSettings() {
-        if(reorderCodesCapacity != 0) {
-            uprv_free(const_cast<int *>(reorderCodes));
-        }
-    }
-
-    boolean
-    CollationSettings.operator==(const CollationSettings &other) {
-        if(options != other.options) { return false; }
-        if((options & ALTERNATE_MASK) != 0 && variableTop != other.variableTop) { return false; }
-        if(reorderCodesLength != other.reorderCodesLength) { return false; }
-        for(int i = 0; i < reorderCodesLength; ++i) {
-            if(reorderCodes[i] != other.reorderCodes[i]) { return false; }
-        }
-        return true;
-    }
-
-    int
-    CollationSettings.hashCode() {
-        int h = options << 8;
-        if((options & ALTERNATE_MASK) != 0) { h ^= variableTop; }
-        h ^= reorderCodesLength;
-        for(int i = 0; i < reorderCodesLength; ++i) {
-            h ^= (reorderCodes[i] << i);
-        }
-        return h;
-    }
-
-    void
-    CollationSettings.resetReordering() {
-        // When we turn off reordering, we want to set a null permutation
-        // rather than a no-op permutation.
-        // Keep the memory via reorderCodes and its capacity.
-        reorderTable = null;
-        reorderCodesLength = 0;
-    }
-
-    void
-    CollationSettings.aliasReordering(const int *codes, int length, const uint8_t *table) {
-        if(length == 0) {
-            resetReordering();
-        } else {
-            // We need to release the memory before setting the alias pointer.
-            if(reorderCodesCapacity != 0) {
-                uprv_free(const_cast<int *>(reorderCodes));
-                reorderCodesCapacity = 0;
-            }
-            reorderTable = table;
-            reorderCodes = codes;
-            reorderCodesLength = length;
-        }
-    }
-
-    boolean
-    CollationSettings.setReordering(const int *codes, int length, const uint8_t table[256]) {
-        if(length == 0) {
-            resetReordering();
-        } else {
-            uint8_t *ownedTable;
-            int *ownedCodes;
-            if(length <= reorderCodesCapacity) {
-                ownedTable = const_cast<uint8_t *>(reorderTable);
-                ownedCodes = const_cast<int *>(reorderCodes);
-            } else {
-                // Allocate one memory block for the codes and the 16-aligned table.
-                int capacity = (length + 3) & ~3;  // round up to a multiple of 4 ints
-                uint8_t *bytes = (uint8_t *)uprv_malloc(256 + capacity * 4);
-                if(bytes == null) { return false; }
-                if(reorderCodesCapacity != 0) {
-                    uprv_free(const_cast<int *>(reorderCodes));
-                }
-                reorderTable = ownedTable = bytes + capacity * 4;
-                reorderCodes = ownedCodes = (int *)bytes;
-                reorderCodesCapacity = capacity;
-            }
-            uprv_memcpy(ownedTable, table, 256);
-            uprv_memcpy(ownedCodes, codes, length * 4);
-            reorderCodesLength = length;
-        }
-        return true;
-    }
-
-    void
-    CollationSettings.setStrength(int value, int defaultOptions, UErrorCode &errorCode) {
-        if(U_FAILURE) { return; }
-        int noStrength = options & ~STRENGTH_MASK;
-        switch(value) {
-        case UCOL_PRIMARY:
-        case UCOL_SECONDARY:
-        case UCOL_TERTIARY:
-        case UCOL_QUATERNARY:
-        case UCOL_IDENTICAL:
-            options = noStrength | (value << STRENGTH_SHIFT);
-            break;
-        case UCOL_DEFAULT:
-            options = noStrength | (defaultOptions & STRENGTH_MASK);
-            break;
-        default:
-            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-            break;
-        }
-    }
-
-    void
-    CollationSettings.setFlag(int bit, UColAttributeValue value,
-                              int defaultOptions, UErrorCode &errorCode) {
-        if(U_FAILURE) { return; }
-        switch(value) {
-        case UCOL_ON:
-            options |= bit;
-            break;
-        case UCOL_OFF:
-            options &= ~bit;
-            break;
-        case UCOL_DEFAULT:
-            options = (options & ~bit) | (defaultOptions & bit);
-            break;
-        default:
-            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-            break;
-        }
-    }
-
-    void
-    CollationSettings.setCaseFirst(UColAttributeValue value,
-                                    int defaultOptions, UErrorCode &errorCode) {
-        if(U_FAILURE) { return; }
-        int noCaseFirst = options & ~CASE_FIRST_AND_UPPER_MASK;
-        switch(value) {
-        case UCOL_OFF:
-            options = noCaseFirst;
-            break;
-        case UCOL_LOWER_FIRST:
-            options = noCaseFirst | CASE_FIRST;
-            break;
-        case UCOL_UPPER_FIRST:
-            options = noCaseFirst | CASE_FIRST_AND_UPPER_MASK;
-            break;
-        case UCOL_DEFAULT:
-            options = noCaseFirst | (defaultOptions & CASE_FIRST_AND_UPPER_MASK);
-            break;
-        default:
-            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-            break;
-        }
-    }
-
-    void
-    CollationSettings.setAlternateHandling(UColAttributeValue value,
-                                            int defaultOptions, UErrorCode &errorCode) {
-        if(U_FAILURE) { return; }
-        int noAlternate = options & ~ALTERNATE_MASK;
-        switch(value) {
-        case UCOL_NON_IGNORABLE:
-            options = noAlternate;
-            break;
-        case UCOL_SHIFTED:
-            options = noAlternate | SHIFTED;
-            break;
-        case UCOL_DEFAULT:
-            options = noAlternate | (defaultOptions & ALTERNATE_MASK);
-            break;
-        default:
-            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-            break;
-        }
-    }
-
-    void
-    CollationSettings.setMaxVariable(int value, int defaultOptions, UErrorCode &errorCode) {
-        if(U_FAILURE) { return; }
-        int noMax = options & ~MAX_VARIABLE_MASK;
-        switch(value) {
-        case MAX_VAR_SPACE:
-        case MAX_VAR_PUNCT:
-        case MAX_VAR_SYMBOL:
-        case MAX_VAR_CURRENCY:
-            options = noMax | (value << MAX_VARIABLE_SHIFT);
-            break;
-        case UCOL_DEFAULT:
-            options = noMax | (defaultOptions & MAX_VARIABLE_MASK);
-            break;
-        default:
-            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-            break;
-        }
-    }
