@@ -11,6 +11,12 @@ import java.util.List;
 
 /**
  * Compiled version of a template such as "{1} was born in {0}".
+ * <p>
+ * Using Template objects is both faster and safer than adhoc replacement 
+ * such as <code>pattern.replace("{0}", "Colorado").replace("{1} "Fred");</code>.
+ * They are faster because they are precompiled; they are safer because they
+ * account for curly braces escaped by apostrophe (').
+ * 
  * Placeholders are of the form \{[0-9]+\}. If a curly brace is preceded
  * by a single quote, it becomes a curly brace instead of the start of a
  * placeholder. Two single quotes resolve to one single quote. 
@@ -22,7 +28,7 @@ import java.util.List;
  * Template template = Template.compile("{1} '{born} in {0}");
  * 
  * // Output: "paul {born} in england"
- * System.out.println(template.evaluate("england", "paul").toString());
+ * System.out.println(template.evaluate("england", "paul"));
  * </pre>
  */
 public class Template {
@@ -173,6 +179,7 @@ public class Template {
          * Returns the offset of a particular placeholder in the evaluated
          * string. Returns -1 if the placeholder did not exist in the 
          * corresponding template.
+         * @throws IndexOutOfBoundsException if placeholderId is negative.
          */
         public int getOffset(int placeholderId) {
             if (placeholderId < 0) {
