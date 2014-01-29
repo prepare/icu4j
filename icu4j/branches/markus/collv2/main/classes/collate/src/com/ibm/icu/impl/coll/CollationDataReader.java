@@ -11,6 +11,22 @@
 
 package com.ibm.icu.impl.coll;
 
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+
+import com.ibm.icu.impl.ICUBinary;
+import com.ibm.icu.impl.ICUData;
+import com.ibm.icu.impl.ICUResourceBundle;
+import com.ibm.icu.impl.Trie2_16;
+import com.ibm.icu.impl.Trie2_32;
+import com.ibm.icu.impl.USerializedSet;
+import com.ibm.icu.text.Collator;
+import com.ibm.icu.text.UnicodeSet;
+import com.ibm.icu.util.VersionInfo;
+
 /**
  * Collation binary data reader.
  */
@@ -82,396 +98,390 @@ final class CollationDataReader /* all static */ {
     static final int IX_RESERVED18_OFFSET = 18;
     static final int IX_TOTAL_SIZE = 19;
 
-    private static int getIndex(int[] indexes, int i) {
-        return (i < length) ? indexes[i] : -1;
-    }
-
-    static void read(CollationTailoring base, const uint8_t *inBytes, int inLength,
+    static void read(CollationTailoring base, InputStream inBytes,
                      CollationTailoring tailoring) {
-        if(base != null) {
-            if(inBytes == null || (0 <= inLength && inLength < 24)) {
-                errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-                return;
+        try {
+            BufferedInputStream bis = new BufferedInputStream(inBytes);
+            tailoring.version = ICUBinary.readHeaderAndDataVersion(bis, DATA_FORMAT, IS_ACCEPTABLE);
+            if(base != null && base.getUCAVersion() != tailoring.getUCAVersion()) {
+                // TODO: which exception type, what message?
+                throw new RuntimeException("U_COLLATOR_VERSION_MISMATCH");
             }
-            const DataHeader *header = reinterpret_cast<const DataHeader *>(inBytes);
-            if(!(header.dataHeader.magic1 == 0xda && header.dataHeader.magic2 == 0x27 &&
-                    isAcceptable(tailoring.version, null, null, &header.info))) {
-                errorCode = U_INVALID_FORMAT_ERROR;
-                return;
+
+            DataInputStream ds = new DataInputStream(bis);
+            int indexesLength = ds.readInt();  // inIndexes[IX_INDEXES_LENGTH]
+            if(indexesLength < 2) {
+                // TODO: which exception type, what message?
+                throw new RuntimeException("Collation data: U_INVALID_FORMAT_ERROR, not enough indexes");
             }
-            if(base.getUCAVersion() != tailoring.getUCAVersion()) {
-                errorCode = U_COLLATOR_VERSION_MISMATCH;
-                return;
+            int[] inIndexes = new int[IX_TOTAL_SIZE + 1];
+            inIndexes[0] = indexesLength;
+            for(int i = 1; i < indexesLength && i < inIndexes.length; ++i) {
+                inIndexes[i] = ds.readInt();
             }
-            int headerLength = header.dataHeader.headerSize;
-            inBytes += headerLength;
-            if(inLength >= 0) {
-                inLength -= headerLength;
+            for(int i = indexesLength; i < inIndexes.length; ++i) {
+                inIndexes[i] = -1;
             }
-        }
-
-        if(inBytes == null || (0 <= inLength && inLength < 8)) {
-            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-            return;
-        }
-        const int *inIndexes = reinterpret_cast<const int *>(inBytes);
-        int indexesLength = inIndexes[IX_INDEXES_LENGTH];
-        if(indexesLength < 2 || (0 <= inLength && inLength < indexesLength * 4)) {
-            errorCode = U_INVALID_FORMAT_ERROR;  // Not enough indexes.
-            return;
-        }
-
-        // Assume that the tailoring data is in initial state,
-        // with null pointers and 0 lengths.
-
-        // Set pointers to non-empty data parts.
-        // Do this in order of their byte offsets. (Should help porting to Java.)
-
-        int index;  // one of the indexes[] slots
-        int offset;  // byte offset for the index part
-        int length;  // number of bytes in the index part
-
-        if(indexesLength > IX_TOTAL_SIZE) {
-            length = inIndexes[IX_TOTAL_SIZE];
-        } else if(indexesLength > IX_REORDER_CODES_OFFSET) {
-            length = inIndexes[indexesLength - 1];
-        } else {
-            length = 0;  // only indexes, and inLength was already checked for them
-        }
-        if(0 <= inLength && inLength < length) {
-            errorCode = U_INVALID_FORMAT_ERROR;
-            return;
-        }
-
-        CollationData baseData = base == null ? null : base.data;
-        const int *reorderCodes = null;
-        int reorderCodesLength = 0;
-        index = IX_REORDER_CODES_OFFSET;
-        offset = getIndex(inIndexes, indexesLength, index);
-        length = getIndex(inIndexes, indexesLength, index + 1) - offset;
-        if(length >= 4) {
-            if(baseData == null) {
-                // We assume for collation settings that
-                // the base data does not have a reordering.
-                errorCode = U_INVALID_FORMAT_ERROR;
-                return;
+            if(indexesLength > inIndexes.length) {
+                ds.skipBytes((indexesLength - inIndexes.length) * 4);
             }
-            reorderCodes = reinterpret_cast<const int *>(inBytes + offset);
-            reorderCodesLength = length / 4;
-        }
 
-        // There should be a reorder table only if there are reorder codes.
-        // However, when there are reorder codes the reorder table may be omitted to reduce
-        // the data size.
-        const uint8_t *reorderTable = null;
-        index = IX_REORDER_TABLE_OFFSET;
-        offset = getIndex(inIndexes, indexesLength, index);
-        length = getIndex(inIndexes, indexesLength, index + 1) - offset;
-        if(length >= 256) {
-            if(reorderCodesLength == 0) {
-                errorCode = U_INVALID_FORMAT_ERROR;  // Reordering table without reordering codes.
-                return;
-            }
-            reorderTable = inBytes + offset;
-        } else {
-            // If we have reorder codes, then build the reorderTable at the end,
-            // when the CollationData is otherwise complete.
-        }
+            // Assume that the tailoring data is in initial state,
+            // with null pointers and 0 lengths.
+    
+            // Set pointers to non-empty data parts.
+            // Do this in order of their byte offsets. (Should help porting to Java.)
+    
+            int index;  // one of the indexes[] slots
+            int offset;  // byte offset for the index part
+            int length;  // number of bytes in the index part
 
-        if(baseData != null && baseData.numericPrimary != (inIndexes[IX_OPTIONS] & 0xff000000L)) {
-            errorCode = U_INVALID_FORMAT_ERROR;
-            return;
-        }
-        CollationData *data = null;  // Remains null if there are no mappings.
-
-        index = IX_TRIE_OFFSET;
-        offset = getIndex(inIndexes, indexesLength, index);
-        length = getIndex(inIndexes, indexesLength, index + 1) - offset;
-        if(length >= 8) {
-            if(!tailoring.ensureOwnedData) { return; }
-            data = tailoring.ownedData;
-            data.base = baseData;
-            data.numericPrimary = inIndexes[IX_OPTIONS] & 0xff000000L;
-            data.trie = tailoring.trie = utrie2_openFromSerialized(
-                UTRIE2_32_VALUE_BITS, inBytes + offset, length, null,
-                &errorCode);
-            if(U_FAILURE) { return; }
-        } else if(baseData != null) {
-            // Use the base data. Only the settings are tailored.
-            tailoring.data = baseData;
-        } else {
-            errorCode = U_INVALID_FORMAT_ERROR;  // No mappings.
-            return;
-        }
-
-        index = IX_CES_OFFSET;
-        offset = getIndex(inIndexes, indexesLength, index);
-        length = getIndex(inIndexes, indexesLength, index + 1) - offset;
-        if(length >= 8) {
-            if(data == null) {
-                errorCode = U_INVALID_FORMAT_ERROR;  // Tailored ces without tailored trie.
-                return;
-            }
-            data.ces = reinterpret_cast<const long *>(inBytes + offset);
-            data.cesLength = length / 8;
-        }
-
-        index = IX_CE32S_OFFSET;
-        offset = getIndex(inIndexes, indexesLength, index);
-        length = getIndex(inIndexes, indexesLength, index + 1) - offset;
-        if(length >= 4) {
-            if(data == null) {
-                errorCode = U_INVALID_FORMAT_ERROR;  // Tailored ce32s without tailored trie.
-                return;
-            }
-            data.ce32s = reinterpret_cast<const uint32_t *>(inBytes + offset);
-            data.ce32sLength = length / 4;
-        }
-
-        int jamoCE32sStart = getIndex(inIndexes, indexesLength, IX_JAMO_CE32S_START);
-        if(jamoCE32sStart >= 0) {
-            if(data == null || data.ce32s == null) {
-                errorCode = U_INVALID_FORMAT_ERROR;  // Index into non-existent ce32s[].
-                return;
-            }
-            data.jamoCE32s = data.ce32s + jamoCE32sStart;
-        } else if(data == null) {
-            // Nothing to do.
-        } else if(baseData != null) {
-            data.jamoCE32s = baseData.jamoCE32s;
-        } else {
-            errorCode = U_INVALID_FORMAT_ERROR;  // No Jamo CE32s for Hangul processing.
-            return;
-        }
-
-        index = IX_ROOT_ELEMENTS_OFFSET;
-        offset = getIndex(inIndexes, indexesLength, index);
-        length = getIndex(inIndexes, indexesLength, index + 1) - offset;
-        if(length >= 4) {
-            length /= 4;
-            if(data == null || length <= CollationRootElements.IX_SEC_TER_BOUNDARIES) {
-                errorCode = U_INVALID_FORMAT_ERROR;
-                return;
-            }
-            // TODO: read uint32_t rootElements into a new long[rootElementsLength]
-            data.rootElements = reinterpret_cast<const uint32_t *>(inBytes + offset);
-            data.rootElementsLength = length;
-            uint32_t commonSecTer = data.rootElements[CollationRootElements.IX_COMMON_SEC_AND_TER_CE];
-            if(commonSecTer != Collation.COMMON_SEC_AND_TER_CE) {
-                errorCode = U_INVALID_FORMAT_ERROR;
-                return;
-            }
-            long secTerBoundaries = data.rootElements[CollationRootElements.IX_SEC_TER_BOUNDARIES];
-            if((secTerBoundaries >> 24) < CollationKeys.SEC_COMMON_HIGH) {
-                // [fixed last secondary common byte] is too low,
-                // and secondary weights would collide with compressed common secondaries.
-                errorCode = U_INVALID_FORMAT_ERROR;
-                return;
-            }
-        }
-
-        index = IX_CONTEXTS_OFFSET;
-        offset = getIndex(inIndexes, indexesLength, index);
-        length = getIndex(inIndexes, indexesLength, index + 1) - offset;
-        if(length >= 2) {
-            if(data == null) {
-                errorCode = U_INVALID_FORMAT_ERROR;  // Tailored contexts without tailored trie.
-                return;
-            }
-            data.contexts = reinterpret_cast<const UChar *>(inBytes + offset);
-            data.contextsLength = length / 2;
-        }
-
-        index = IX_UNSAFE_BWD_OFFSET;
-        offset = getIndex(inIndexes, indexesLength, index);
-        length = getIndex(inIndexes, indexesLength, index + 1) - offset;
-        if(length >= 2) {
-            if(data == null) {
-                errorCode = U_INVALID_FORMAT_ERROR;
-                return;
-            }
-            if(baseData == null) {
-                // Create the unsafe-backward set for the root collator.
-                // Include all non-zero combining marks and trail surrogates.
-                // We do this at load time, rather than at build time,
-                // to simplify Unicode version bootstrapping:
-                // The root data builder only needs the new FractionalUCA.txt data,
-                // but it need not be built with a version of ICU already updated to
-                // the corresponding new Unicode Character Database.
-                //
-                // The following is an optimized version of
-                // new UnicodeSet("[[:^lccc=0:][\\udc00-\\udfff]]").
-                // It is faster and requires fewer code dependencies.
-                tailoring.unsafeBackwardSet = new UnicodeSet(0xdc00, 0xdfff);  // trail surrogates
-                if(tailoring.unsafeBackwardSet == null) {
-                    errorCode = U_MEMORY_ALLOCATION_ERROR;
-                    return;
+            CollationData baseData = base == null ? null : base.data;
+            int[] reorderCodes;
+            index = IX_REORDER_CODES_OFFSET;
+            offset = inIndexes[index];
+            length = inIndexes[index + 1] - offset;
+            if(length >= 4) {
+                if(baseData == null) {
+                    // We assume for collation settings that
+                    // the base data does not have a reordering.
+                    throw new RuntimeException("U_INVALID_FORMAT_ERROR");  // TODO: type & message?
                 }
-                data.nfcImpl.addLcccChars(*tailoring.unsafeBackwardSet);
+                reorderCodes = new int[length / 4];
+                for(int i = 0; i < length / 4; ++i) {
+                    reorderCodes[i] = ds.readInt();
+                }
+                length &= 3;
             } else {
-                // Clone the root collator's set contents.
-                tailoring.unsafeBackwardSet = static_cast<UnicodeSet *>(
-                    baseData.unsafeBackwardSet.cloneAsThawed());
-                if(tailoring.unsafeBackwardSet == null) {
-                    errorCode = U_MEMORY_ALLOCATION_ERROR;
+                reorderCodes = new int[0];
+            }
+            ds.skipBytes(length);
+
+            // There should be a reorder table only if there are reorder codes.
+            // However, when there are reorder codes the reorder table may be omitted to reduce
+            // the data size.
+            byte[] reorderTable = null;
+            index = IX_REORDER_TABLE_OFFSET;
+            offset = inIndexes[index];
+            length = inIndexes[index + 1] - offset;
+            if(length >= 256) {
+                if(reorderCodes.length == 0) {
+                    throw new RuntimeException("U_INVALID_FORMAT_ERROR");  // TODO: type & message?  // Reordering table without reordering codes.
+                }
+                reorderTable = new byte[256];
+                ds.readFully(reorderTable);
+                length -= 256;
+            } else {
+                // If we have reorder codes, then build the reorderTable at the end,
+                // when the CollationData is otherwise complete.
+            }
+            ds.skipBytes(length);
+
+            if(baseData != null && baseData.numericPrimary != (inIndexes[IX_OPTIONS] & 0xff000000L)) {
+                throw new RuntimeException("U_INVALID_FORMAT_ERROR");  // TODO: type & message?
+            }
+            CollationData data = null;  // Remains null if there are no mappings.
+
+            index = IX_TRIE_OFFSET;
+            offset = inIndexes[index];
+            length = inIndexes[index + 1] - offset;
+            if(length >= 8) {
+                tailoring.ensureOwnedData();
+                data = tailoring.ownedData;
+                data.base = baseData;
+                data.numericPrimary = inIndexes[IX_OPTIONS] & 0xff000000L;
+                data.trie = tailoring.trie = Trie2_32.createFromSerialized(ds);
+                int trieLength = data.trie.getSerializedLength();
+                if(trieLength > length) {
+                    throw new RuntimeException("U_INVALID_FORMAT_ERROR: not enough bytes for the trie");  // TODO: type & message?  // No mappings.
+                }
+                length -= trieLength;
+            } else if(baseData != null) {
+                // Use the base data. Only the settings are tailored.
+                tailoring.data = baseData;
+            } else {
+                throw new RuntimeException("U_INVALID_FORMAT_ERROR");  // TODO: type & message?  // No mappings.
+            }
+            ds.skipBytes(length);
+
+            index = IX_RESERVED8_OFFSET;
+            offset = inIndexes[index];
+            length = inIndexes[index + 1] - offset;
+            ds.skipBytes(length);
+
+            index = IX_CES_OFFSET;
+            offset = inIndexes[index];
+            length = inIndexes[index + 1] - offset;
+            if(length >= 8) {
+                if(data == null) {
+                    throw new RuntimeException("U_INVALID_FORMAT_ERROR");  // TODO: type & message?  // Tailored ces without tailored trie.
+                }
+                data.ces = new long[length / 8];
+                for(int i = 0; i < length / 8; ++i) {
+                    data.ces[i] = ds.readLong();
+                }
+                length &= 7;
+            }
+            ds.skipBytes(length);
+
+            index = IX_RESERVED10_OFFSET;
+            offset = inIndexes[index];
+            length = inIndexes[index + 1] - offset;
+            ds.skipBytes(length);
+
+            index = IX_CE32S_OFFSET;
+            offset = inIndexes[index];
+            length = inIndexes[index + 1] - offset;
+            if(length >= 4) {
+                if(data == null) {
+                    throw new RuntimeException("U_INVALID_FORMAT_ERROR");  // TODO: type & message?  // Tailored ce32s without tailored trie.
+                }
+                data.ce32s = new int[length / 4];
+                for(int i = 0; i < length / 4; ++i) {
+                    ds.readInt();
+                }
+                length &= 3;
+            }
+            ds.skipBytes(length);
+
+            int jamoCE32sStart = inIndexes[IX_JAMO_CE32S_START];
+            if(jamoCE32sStart >= 0) {
+                if(data == null || data.ce32s == null) {
+                    throw new RuntimeException("U_INVALID_FORMAT_ERROR");  // TODO: type & message?  // Index into non-existent ce32s[].
+                }
+                data.jamoCE32s = new int[CollationData.JAMO_CE32S_LENGTH];
+                System.arraycopy(data.ce32s, jamoCE32sStart, data.jamoCE32s, 0, CollationData.JAMO_CE32S_LENGTH);
+            } else if(data == null) {
+                // Nothing to do.
+            } else if(baseData != null) {
+                data.jamoCE32s = baseData.jamoCE32s;
+            } else {
+                throw new RuntimeException("U_INVALID_FORMAT_ERROR");  // TODO: type & message?  // No Jamo CE32s for Hangul processing.
+                return;
+            }
+
+            index = IX_ROOT_ELEMENTS_OFFSET;
+            offset = inIndexes[index];
+            length = inIndexes[index + 1] - offset;
+            if(length >= 4) {
+                int rootElementsLength = length / 4;
+                if(data == null || rootElementsLength <= CollationRootElements.IX_SEC_TER_BOUNDARIES) {
+                    throw new RuntimeException("U_INVALID_FORMAT_ERROR");  // TODO: type & message?
                     return;
                 }
-            }
-            // Add the ranges from the data file to the unsafe-backward set.
-            USerializedSet sset;
-            const char *unsafeData = reinterpret_cast<const char *>(inBytes + offset);
-            if(!uset_getSerializedSet(&sset, unsafeData, length / 2)) {
-                errorCode = U_INVALID_FORMAT_ERROR;
-                return;
-            }
-            int count = uset_getSerializedRangeCount(&sset);
-            for(int i = 0; i < count; ++i) {
-                int start, end;
-                uset_getSerializedRange(&sset, i, &start, &end);
-                tailoring.unsafeBackwardSet.add(start, end);
-            }
-            // Mark each lead surrogate as "unsafe"
-            // if any of its 1024 associated supplementary code points is "unsafe".
-            int c = 0x10000;
-            for(UChar lead = 0xd800; lead < 0xdc00; ++lead, c += 0x400) {
-                if(!tailoring.unsafeBackwardSet.containsNone(c, c + 0x3ff)) {
-                    tailoring.unsafeBackwardSet.add(lead);
+                data.rootElements = new long[rootElementsLength];
+                for(int i = 0; i < rootElementsLength; ++i) {
+                    data.rootElements[i] = ds.readInt() & 0xffffffffL;  // uint32_t -> long
                 }
+                long commonSecTer = data.rootElements[CollationRootElements.IX_COMMON_SEC_AND_TER_CE];
+                if(commonSecTer != Collation.COMMON_SEC_AND_TER_CE) {
+                    throw new RuntimeException("U_INVALID_FORMAT_ERROR");  // TODO: type & message?
+                }
+                long secTerBoundaries = data.rootElements[CollationRootElements.IX_SEC_TER_BOUNDARIES];
+                if((secTerBoundaries >> 24) < 0x45 /* TODO: CollationKeys.SEC_COMMON_HIGH */) {
+                    // [fixed last secondary common byte] is too low,
+                    // and secondary weights would collide with compressed common secondaries.
+                    throw new RuntimeException("U_INVALID_FORMAT_ERROR");  // TODO: type & message?
+                }
+                length &= 3;
             }
-            tailoring.unsafeBackwardSet.freeze();
-            data.unsafeBackwardSet = tailoring.unsafeBackwardSet;
-        } else if(data == null) {
-            // Nothing to do.
-        } else if(baseData != null) {
-            // No tailoring-specific data: Alias the root collator's set.
-            data.unsafeBackwardSet = baseData.unsafeBackwardSet;
-        } else {
-            errorCode = U_INVALID_FORMAT_ERROR;  // No unsafeBackwardSet.
-            return;
-        }
+            ds.skipBytes(length);
 
-        // If the fast Latin format version is different,
-        // or the version is set to 0 for "no fast Latin table",
-        // then just always use the normal string comparison path.
-        if(data != null) {
-            data.fastLatinTable = null;
-            data.fastLatinTableLength = 0;
-            if(((inIndexes[IX_OPTIONS] >> 16) & 0xff) == CollationFastLatin.VERSION) {
-                index = IX_FAST_LATIN_TABLE_OFFSET;
-                offset = getIndex(inIndexes, indexesLength, index);
-                length = getIndex(inIndexes, indexesLength, index + 1) - offset;
-                if(length > 0) {
-                    data.fastLatinTable = reinterpret_cast<const char *>(inBytes + offset);
-                    data.fastLatinTableLength = length / 2;
-                    if((data.fastLatinTable[0] >> 8) != CollationFastLatin.VERSION) {
-                        errorCode = U_INVALID_FORMAT_ERROR;  // header vs. table version mismatch
-                        return;
+            index = IX_CONTEXTS_OFFSET;
+            offset = inIndexes[index];
+            length = inIndexes[index + 1] - offset;
+            if(length >= 2) {
+                if(data == null) {
+                    throw new RuntimeException("U_INVALID_FORMAT_ERROR");  // TODO: type & message?  // Tailored contexts without tailored trie.
+                }
+                StringBuilder sb = new StringBuilder(length / 2);
+                for(int i = 0; i < length / 2; ++i) {
+                    sb.append(ds.readChar());
+                }
+                data.contexts = sb.toString();
+                length &= 1;
+            }
+            ds.skipBytes(length);
+
+            index = IX_UNSAFE_BWD_OFFSET;
+            offset = inIndexes[index];
+            length = inIndexes[index + 1] - offset;
+            if(length >= 2) {
+                if(data == null) {
+                    throw new RuntimeException("U_INVALID_FORMAT_ERROR");  // TODO: type & message?
+                }
+                if(baseData == null) {
+                    // Create the unsafe-backward set for the root collator.
+                    // Include all non-zero combining marks and trail surrogates.
+                    // We do this at load time, rather than at build time,
+                    // to simplify Unicode version bootstrapping:
+                    // The root data builder only needs the new FractionalUCA.txt data,
+                    // but it need not be built with a version of ICU already updated to
+                    // the corresponding new Unicode Character Database.
+                    //
+                    // The following is an optimized version of
+                    // new UnicodeSet("[[:^lccc=0:][\\udc00-\\udfff]]").
+                    // It is faster and requires fewer code dependencies.
+                    tailoring.unsafeBackwardSet = new UnicodeSet(0xdc00, 0xdfff);  // trail surrogates
+                    data.nfcImpl.addLcccChars(tailoring.unsafeBackwardSet);
+                } else {
+                    // Clone the root collator's set contents.
+                    tailoring.unsafeBackwardSet = baseData.unsafeBackwardSet.cloneAsThawed();
+                }
+                // Add the ranges from the data file to the unsafe-backward set.
+                USerializedSet sset = new USerializedSet();
+                char[] unsafeData = new char[length / 2];
+                for(int i = 0; i < length / 2; ++i) {
+                    unsafeData[i] = ds.readChar();
+                }
+                length &= 1;
+                sset.getSet(unsafeData, 0);
+                int count = sset.countRanges();
+                int[] range = new int[2];
+                for(int i = 0; i < count; ++i) {
+                    sset.getRange(i, range);
+                    tailoring.unsafeBackwardSet.add(range[0], range[1]);
+                }
+                // Mark each lead surrogate as "unsafe"
+                // if any of its 1024 associated supplementary code points is "unsafe".
+                int c = 0x10000;
+                for(int lead = 0xd800; lead < 0xdc00; ++lead, c += 0x400) {
+                    if(!tailoring.unsafeBackwardSet.containsNone(c, c + 0x3ff)) {
+                        tailoring.unsafeBackwardSet.add(lead);
                     }
-                } else if(baseData != null) {
-                    data.fastLatinTable = baseData.fastLatinTable;
-                    data.fastLatinTableLength = baseData.fastLatinTableLength;
+                }
+                tailoring.unsafeBackwardSet.freeze();
+                data.unsafeBackwardSet = tailoring.unsafeBackwardSet;
+            } else if(data == null) {
+                // Nothing to do.
+            } else if(baseData != null) {
+                // No tailoring-specific data: Alias the root collator's set.
+                data.unsafeBackwardSet = baseData.unsafeBackwardSet;
+            } else {
+                throw new RuntimeException("U_INVALID_FORMAT_ERROR");  // TODO: type & message?  // No unsafeBackwardSet.
+            }
+            ds.skipBytes(length);
+
+            // If the fast Latin format version is different,
+            // or the version is set to 0 for "no fast Latin table",
+            // then just always use the normal string comparison path.
+            index = IX_FAST_LATIN_TABLE_OFFSET;
+            offset = inIndexes[index];
+            length = inIndexes[index + 1] - offset;
+            if(data != null) {
+                data.fastLatinTable = null;
+                if(((inIndexes[IX_OPTIONS] >> 16) & 0xff) == CollationFastLatin.VERSION) {
+                    if(length > 0) {
+                        data.fastLatinTable = new char[length / 2];
+                        for(int i = 0; i < length / 2; ++i) {
+                            data.fastLatinTable[i] = ds.readChar();
+                        }
+                        length &= 1;
+                        if((data.fastLatinTable[0] >> 8) != CollationFastLatin.VERSION) {
+                            throw new RuntimeException("U_INVALID_FORMAT_ERROR");  // TODO: type & message?  // header vs. table version mismatch
+                        }
+                    } else if(baseData != null) {
+                        data.fastLatinTable = baseData.fastLatinTable;
+                    }
                 }
             }
-        }
+            ds.skipBytes(length);
 
-        index = IX_SCRIPTS_OFFSET;
-        offset = getIndex(inIndexes, indexesLength, index);
-        length = getIndex(inIndexes, indexesLength, index + 1) - offset;
-        if(length >= 2) {
-            if(data == null) {
-                errorCode = U_INVALID_FORMAT_ERROR;
+            index = IX_SCRIPTS_OFFSET;
+            offset = inIndexes[index];
+            length = inIndexes[index + 1] - offset;
+            if(length >= 2) {
+                if(data == null) {
+                    throw new RuntimeException("U_INVALID_FORMAT_ERROR");  // TODO: type & message?
+                    return;
+                }
+                data.scripts = new char[length / 2];
+                for(int i = 0; i < length / 2; ++i) {
+                    data.scripts[i] = ds.readChar();
+                }
+                length &= 1;
+            } else if(data == null) {
+                // Nothing to do.
+            } else if(baseData != null) {
+                data.scripts = baseData.scripts;
+            }
+            ds.skipBytes(length);
+
+            index = IX_COMPRESSIBLE_BYTES_OFFSET;
+            offset = inIndexes[index];
+            length = inIndexes[index + 1] - offset;
+            if(length >= 256) {
+                if(data == null) {
+                    throw new RuntimeException("U_INVALID_FORMAT_ERROR");  // TODO: type & message?
+                }
+                data.compressibleBytes = new boolean[256];
+                for(int i = 0; i < 256; ++i) {
+                    data.compressibleBytes[i] = ds.readBoolean();
+                }
+                length -= 256;
+            } else if(data == null) {
+                // Nothing to do.
+            } else if(baseData != null) {
+                data.compressibleBytes = baseData.compressibleBytes;
+            } else {
+                throw new RuntimeException("U_INVALID_FORMAT_ERROR");  // TODO: type & message?  // No compressibleBytes[].
+            }
+            ds.skipBytes(length);
+
+            index = IX_RESERVED18_OFFSET;
+            offset = inIndexes[index];
+            length = inIndexes[index + 1] - offset;
+            ds.skipBytes(length);
+
+            ds.close();
+
+            CollationSettings ts = tailoring.settings;
+            int options = inIndexes[IX_OPTIONS] & 0xffff;
+            char[] fastLatinPrimaries = new char[CollationFastLatin.LATIN_LIMIT];
+            int fastLatinOptions = CollationFastLatin.getOptions(
+                    tailoring.data, ts, fastLatinPrimaries);
+            if(options == ts.options && ts.variableTop != 0 &&
+                    Arrays.equals(reorderCodes, ts.reorderCodes) &&
+                    fastLatinOptions == ts.fastLatinOptions &&
+                    (fastLatinOptions < 0 ||
+                            Arrays.equals(fastLatinPrimaries, ts.fastLatinPrimaries))) {
                 return;
             }
-            data.scripts = reinterpret_cast<const char *>(inBytes + offset);
-            data.scriptsLength = length / 2;
-        } else if(data == null) {
-            // Nothing to do.
-        } else if(baseData != null) {
-            data.scripts = baseData.scripts;
-            data.scriptsLength = baseData.scriptsLength;
-        }
 
-        index = IX_COMPRESSIBLE_BYTES_OFFSET;
-        offset = getIndex(inIndexes, indexesLength, index);
-        length = getIndex(inIndexes, indexesLength, index + 1) - offset;
-        if(length >= 256) {
-            if(data == null) {
-                errorCode = U_INVALID_FORMAT_ERROR;
-                return;
+            // TODO: define SharedObject.Reference, change Tailoring.settings to that
+            CollationSettings settings = SharedObject.copyOnWrite(tailoring.settings);
+            settings.options = options;
+            // Set variableTop from options and scripts data.
+            settings.variableTop = tailoring.data.getLastPrimaryForGroup(
+                    Collator.ReorderCodes.FIRST + settings.getMaxVariable());
+            if(settings.variableTop == 0) {
+                throw new RuntimeException("U_INVALID_FORMAT_ERROR");  // TODO: type & message?
             }
-            data.compressibleBytes = reinterpret_cast<const boolean *>(inBytes + offset);
-        } else if(data == null) {
-            // Nothing to do.
-        } else if(baseData != null) {
-            data.compressibleBytes = baseData.compressibleBytes;
-        } else {
-            errorCode = U_INVALID_FORMAT_ERROR;  // No compressibleBytes[].
-            return;
-        }
 
-        const CollationSettings &ts = *tailoring.settings;
-        int options = inIndexes[IX_OPTIONS] & 0xffff;
-        char fastLatinPrimaries[CollationFastLatin.LATIN_LIMIT];
-        int fastLatinOptions = CollationFastLatin.getOptions(
-                tailoring.data, ts, fastLatinPrimaries, LENGTHOF(fastLatinPrimaries));
-        if(options == ts.options && ts.variableTop != 0 &&
-                reorderCodesLength == ts.reorderCodesLength &&
-                uprv_memcmp(reorderCodes, ts.reorderCodes, reorderCodesLength * 4) == 0 &&
-                fastLatinOptions == ts.fastLatinOptions &&
-                (fastLatinOptions < 0 ||
-                    uprv_memcmp(fastLatinPrimaries, ts.fastLatinPrimaries,
-                                sizeof(fastLatinPrimaries)) == 0)) {
-            return;
-        }
+            if(reorderCodes.length == 0 || reorderTable != null) {
+                settings.setReordering(reorderCodes, reorderTable);
+            } else {
+                byte[] table = new byte[256];
+                baseData.makeReorderTable(reorderCodes, reorderCodes.length, table);
+                settings.setReordering(reorderCodes, table);
+            }
 
-        CollationSettings *settings = SharedObject.copyOnWrite(tailoring.settings);
-        if(settings == null) {
-            errorCode = U_MEMORY_ALLOCATION_ERROR;
-            return;
+            settings.fastLatinOptions = CollationFastLatin.getOptions(
+                tailoring.data, settings,
+                settings.fastLatinPrimaries);
+        } catch(IOException e) {
+            throw new RuntimeException(e);
         }
-        settings.options = options;
-        // Set variableTop from options and scripts data.
-        settings.variableTop = tailoring.data.getLastPrimaryForGroup(
-                Collator.ReorderCodes.FIRST + settings.getMaxVariable());
-        if(settings.variableTop == 0) {
-            errorCode = U_INVALID_FORMAT_ERROR;
-            return;
-        }
-
-        if(reorderCodesLength == 0 || reorderTable != null) {
-            settings.setReordering(reorderCodes, reorderTable);
-        } else {
-            byte[] table = new byte[256];
-            baseData.makeReorderTable(reorderCodes, table);
-            settings.setReordering(reorderCodes, table);
-        }
-
-        settings.fastLatinOptions = CollationFastLatin.getOptions(
-            tailoring.data, settings,
-            settings.fastLatinPrimaries);
     }
 
-    static boolean U_CALLCONV
-    isAcceptable(void *context, const char *type, const char *name, const UDataInfo *pInfo) {
-        if(
-            pInfo.size >= 20 &&
-            pInfo.isBigEndian == U_IS_BIG_ENDIAN &&
-            pInfo.charsetFamily == U_CHARSET_FAMILY &&
-            pInfo.dataFormat[0] == 0x55 &&  // dataFormat="UCol"
-            pInfo.dataFormat[1] == 0x43 &&
-            pInfo.dataFormat[2] == 0x6f &&
-            pInfo.dataFormat[3] == 0x6c &&
-            pInfo.formatVersion[0] == 4
-        ) {
-            VersionInfo *version = static_cast<VersionInfo *>(context);
-            if(version != null) {
-                uprv_memcpy(version, pInfo.dataVersion, 4);
-            }
-            return true;
-        } else {
-            return false;
+    private static final class IsAcceptable implements ICUBinary.Authenticate {
+        // @Override when we switch to Java 6
+        public boolean isDataVersionAcceptable(byte version[]) {
+            return version[0] == 4;
         }
     }
+    private static final IsAcceptable IS_ACCEPTABLE = new IsAcceptable();
+    private static final byte DATA_FORMAT[] = { 0x55, 0x43, 0x6f, 0x6c  };  // "UCol"
 
     private CollationDataReader() {}  // no constructor
 }

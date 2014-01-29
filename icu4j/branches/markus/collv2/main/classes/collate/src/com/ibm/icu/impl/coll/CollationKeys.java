@@ -92,54 +92,51 @@ final class CollationKeys /* all methods are static */ {
                                            SortKeyByteSink &sink,
                                            Collation.Level minLevel, LevelCallback &callback,
                                            boolean preflight);
-private:
-    friend struct CollationDataReader;
-
-    CollationKeys();  // no instantiation
+    private CollationKeys() {}  // no instantiation
 
     // Secondary level: Compress up to 33 common weights as 05..25 or 25..45.
-    private static final uint32_t SEC_COMMON_LOW = Collation.COMMON_BYTE;
-    private static final uint32_t SEC_COMMON_MIDDLE = SEC_COMMON_LOW + 0x20;
-    private static final uint32_t SEC_COMMON_HIGH = SEC_COMMON_LOW + 0x40;
+    private static final int SEC_COMMON_LOW = Collation.COMMON_BYTE;
+    private static final int SEC_COMMON_MIDDLE = SEC_COMMON_LOW + 0x20;
+    static final int SEC_COMMON_HIGH = SEC_COMMON_LOW + 0x40;  // read by CollationDataReader
     private static final int SEC_COMMON_MAX_COUNT = 0x21;
 
     // Case level, lowerFirst: Compress up to 7 common weights as 1..7 or 7..13.
-    private static final uint32_t CASE_LOWER_FIRST_COMMON_LOW = 1;
-    private static final uint32_t CASE_LOWER_FIRST_COMMON_MIDDLE = 7;
-    private static final uint32_t CASE_LOWER_FIRST_COMMON_HIGH = 13;
+    private static final int CASE_LOWER_FIRST_COMMON_LOW = 1;
+    private static final int CASE_LOWER_FIRST_COMMON_MIDDLE = 7;
+    private static final int CASE_LOWER_FIRST_COMMON_HIGH = 13;
     private static final int CASE_LOWER_FIRST_COMMON_MAX_COUNT = 7;
 
     // Case level, upperFirst: Compress up to 13 common weights as 3..15.
-    private static final uint32_t CASE_UPPER_FIRST_COMMON_LOW = 3;
-    private static final uint32_t CASE_UPPER_FIRST_COMMON_HIGH = 15;
+    private static final int CASE_UPPER_FIRST_COMMON_LOW = 3;
+    private static final int CASE_UPPER_FIRST_COMMON_HIGH = 15;
     private static final int CASE_UPPER_FIRST_COMMON_MAX_COUNT = 13;
 
     // Tertiary level only (no case): Compress up to 97 common weights as 05..65 or 65..C5.
-    private static final uint32_t TER_ONLY_COMMON_LOW = Collation.COMMON_BYTE;
-    private static final uint32_t TER_ONLY_COMMON_MIDDLE = TER_ONLY_COMMON_LOW + 0x60;
-    private static final uint32_t TER_ONLY_COMMON_HIGH = TER_ONLY_COMMON_LOW + 0xc0;
+    private static final int TER_ONLY_COMMON_LOW = Collation.COMMON_BYTE;
+    private static final int TER_ONLY_COMMON_MIDDLE = TER_ONLY_COMMON_LOW + 0x60;
+    private static final int TER_ONLY_COMMON_HIGH = TER_ONLY_COMMON_LOW + 0xc0;
     private static final int TER_ONLY_COMMON_MAX_COUNT = 0x61;
 
     // Tertiary with case, lowerFirst: Compress up to 33 common weights as 05..25 or 25..45.
-    private static final uint32_t TER_LOWER_FIRST_COMMON_LOW = Collation.COMMON_BYTE;
-    private static final uint32_t TER_LOWER_FIRST_COMMON_MIDDLE = TER_LOWER_FIRST_COMMON_LOW + 0x20;
-    private static final uint32_t TER_LOWER_FIRST_COMMON_HIGH = TER_LOWER_FIRST_COMMON_LOW + 0x40;
+    private static final int TER_LOWER_FIRST_COMMON_LOW = Collation.COMMON_BYTE;
+    private static final int TER_LOWER_FIRST_COMMON_MIDDLE = TER_LOWER_FIRST_COMMON_LOW + 0x20;
+    private static final int TER_LOWER_FIRST_COMMON_HIGH = TER_LOWER_FIRST_COMMON_LOW + 0x40;
     private static final int TER_LOWER_FIRST_COMMON_MAX_COUNT = 0x21;
 
     // Tertiary with case, upperFirst: Compress up to 33 common weights as 85..A5 or A5..C5.
-    private static final uint32_t TER_UPPER_FIRST_COMMON_LOW = Collation.COMMON_BYTE + 0x80;
-    private static final uint32_t TER_UPPER_FIRST_COMMON_MIDDLE = TER_UPPER_FIRST_COMMON_LOW + 0x20;
-    private static final uint32_t TER_UPPER_FIRST_COMMON_HIGH = TER_UPPER_FIRST_COMMON_LOW + 0x40;
+    private static final int TER_UPPER_FIRST_COMMON_LOW = Collation.COMMON_BYTE + 0x80;
+    private static final int TER_UPPER_FIRST_COMMON_MIDDLE = TER_UPPER_FIRST_COMMON_LOW + 0x20;
+    private static final int TER_UPPER_FIRST_COMMON_HIGH = TER_UPPER_FIRST_COMMON_LOW + 0x40;
     private static final int TER_UPPER_FIRST_COMMON_MAX_COUNT = 0x21;
 
     // Quaternary level: Compress up to 113 common weights as 1C..8C or 8C..FC.
-    private static final uint32_t QUAT_COMMON_LOW = 0x1c;
-    private static final uint32_t QUAT_COMMON_MIDDLE = QUAT_COMMON_LOW + 0x70;
-    private static final uint32_t QUAT_COMMON_HIGH = QUAT_COMMON_LOW + 0xE0;
+    private static final int QUAT_COMMON_LOW = 0x1c;
+    private static final int QUAT_COMMON_MIDDLE = QUAT_COMMON_LOW + 0x70;
+    private static final int QUAT_COMMON_HIGH = QUAT_COMMON_LOW + 0xE0;
     private static final int QUAT_COMMON_MAX_COUNT = 0x71;
     // Primary weights shifted to quaternary level must be encoded with
     // a lead byte below the common-weight compression range.
-    private static final uint32_t QUAT_SHIFTED_LIMIT_BYTE = QUAT_COMMON_LOW - 1;  // 0x1b
+    private static final int QUAT_SHIFTED_LIMIT_BYTE = QUAT_COMMON_LOW - 1;  // 0x1b
 }
 
     SortKeyByteSink.~SortKeyByteSink() {}
@@ -220,10 +217,10 @@ private:
 
         uint8_t *data() { return buffer.getAlias(); }
 
-        void appendByte(uint32_t b);
-        void appendWeight16(uint32_t w);
-        void appendWeight32(uint32_t w);
-        void appendReverseWeight16(uint32_t w);
+        void appendByte(int b);
+        void appendWeight16(int w);
+        void appendWeight32(long w);
+        void appendReverseWeight16(int w);
 
         /** Appends all but the last byte to the sink. The last byte should be the 01 terminator. */
         void appendTo(ByteSink &sink) {
@@ -242,14 +239,14 @@ private:
         SortKeyLevel &operator=(const SortKeyLevel &other); // forbid copying of this class
     };
 
-    void SortKeyLevel.appendByte(uint32_t b) {
+    void SortKeyLevel.appendByte(int b) {
         if(len < buffer.getCapacity() || ensureCapacity(1)) {
             buffer[len++] = (uint8_t)b;
         }
     }
 
     void
-    SortKeyLevel.appendWeight16(uint32_t w) {
+    SortKeyLevel.appendWeight16(int w) {
         assert((w & 0xffff) != 0);
         uint8_t b0 = (uint8_t)(w >> 8);
         uint8_t b1 = (uint8_t)w;
@@ -263,7 +260,7 @@ private:
     }
 
     void
-    SortKeyLevel.appendWeight32(uint32_t w) {
+    SortKeyLevel.appendWeight32(long w) {
         assert(w != 0);
         uint8_t bytes[4] = { (uint8_t)(w >> 24), (uint8_t)(w >> 16), (uint8_t)(w >> 8), (uint8_t)w };
         int appendLength = (bytes[1] == 0) ? 1 : (bytes[2] == 0) ? 2 : (bytes[3] == 0) ? 3 : 4;
@@ -282,7 +279,7 @@ private:
     }
 
     void
-    SortKeyLevel.appendReverseWeight16(uint32_t w) {
+    SortKeyLevel.appendReverseWeight16(int w) {
         assert((w & 0xffff) != 0);
         uint8_t b0 = (uint8_t)(w >> 8);
         uint8_t b1 = (uint8_t)w;
@@ -324,7 +321,7 @@ private:
     * excluding the CASE_LEVEL which is independent of the strength,
     * and excluding IDENTICAL_LEVEL which this function does not write.
     */
-    private static final uint32_t levelMasks[UCOL_STRENGTH_LIMIT] = {
+    private static final int levelMasks[UCOL_STRENGTH_LIMIT] = {
         2,          // UCOL_PRIMARY . PRIMARY_LEVEL
         6,          // UCOL_SECONDARY . up to SECONDARY_LEVEL
         0x16,       // UCOL_TERTIARY . up to TERTIARY_LEVEL
@@ -342,11 +339,9 @@ private:
                                               SortKeyByteSink &sink,
                                               Collation.Level minLevel, LevelCallback &callback,
                                               boolean preflight) {
-        if(U_FAILURE) { return; }
-
         int options = settings.options;
         // Set of levels to process and write.
-        uint32_t levels = levelMasks[CollationSettings.getStrength(options)];
+        int levels = levelMasks[CollationSettings.getStrength(options)];
         if((options & CollationSettings.CASE_LEVEL) != 0) {
             levels |= Collation.CASE_LEVEL_FLAG;
         }
@@ -354,7 +349,7 @@ private:
         levels &= ~((1 << minLevel) - 1);
         if(levels == 0) { return; }
 
-        uint32_t variableTop;
+        long variableTop;
         if((options & CollationSettings.ALTERNATE_MASK) == 0) {
             variableTop = 0;
         } else {
@@ -363,20 +358,20 @@ private:
         }
         const uint8_t *reorderTable = settings.reorderTable;
 
-        uint32_t tertiaryMask = CollationSettings.getTertiaryMask(options);
+        int tertiaryMask = CollationSettings.getTertiaryMask(options);
 
         SortKeyLevel cases;
         SortKeyLevel secondaries;
         SortKeyLevel tertiaries;
         SortKeyLevel quaternaries;
 
-        uint32_t compressedP1 = 0;  // 0==no compression; otherwise reordered compressible lead byte
+        int compressedP1 = 0;  // 0==no compression; otherwise reordered compressible lead byte
         int commonCases = 0;
         int commonSecondaries = 0;
         int commonTertiaries = 0;
         int commonQuaternaries = 0;
 
-        uint32_t prevSecondary = 0;
+        int prevSecondary = 0;
         boolean anyMergeSeparators = false;
 
         for(;;) {

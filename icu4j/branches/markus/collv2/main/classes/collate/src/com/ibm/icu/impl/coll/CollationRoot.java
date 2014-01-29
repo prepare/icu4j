@@ -11,64 +11,34 @@
 
 package com.ibm.icu.impl.coll;
 
+import java.io.InputStream;
+
+import com.ibm.icu.impl.ICUData;
+import com.ibm.icu.impl.ICUResourceBundle;
+
 /**
  * Collation root provider.
  */
 final class CollationRoot {
-    static final CollationTailoring getRoot();
-    static final CollationData getData();
-    static final CollationSettings getSettings();
+    private static final CollationTailoring rootSingleton;
 
-    private static void load();
-}
-
-    private static final CollationTailoring *rootSingleton = null;
-    static UInitOnce initOnce = U_INITONCE_INITIALIZER;
-
-    static boolean U_CALLCONV uprv_collation_root_cleanup() {
-        rootSingleton.removeRef();
-        rootSingleton = null;
-        initOnce.reset();
-        return true;
-    }
-
-    void
-    CollationRoot.load() {
-        if(U_FAILURE) { return; }
-        LocalPointer<CollationTailoring> t(new CollationTailoring(null));
-        if(t.isNull() || t.isBogus()) {
-            errorCode = U_MEMORY_ALLOCATION_ERROR;
-            return;
-        }
-        t.memory = udata_openChoice(U_ICUDATA_NAME U_TREE_SEPARATOR_STRING "coll",
-                                    "icu", "ucadata",
-                                    CollationDataReader.isAcceptable, t.version, &errorCode);
-        if(U_FAILURE) { return; }
-        const uint8_t *inBytes = static_cast<const uint8_t *>(udata_getMemory(t.memory));
-        CollationDataReader.read(null, inBytes, udata_getLength(t.memory), *t);
-        if(U_FAILURE) { return; }
-        ucln_i18n_registerCleanup(UCLN_I18N_COLLATION_ROOT, uprv_collation_root_cleanup);
-        t.addRef();  // The rootSingleton takes ownership.
-        rootSingleton = t.orphan();
-    }
-
-    const CollationTailoring *
-    CollationRoot.getRoot() {
-        umtx_initOnce(initOnce, CollationRoot.load);
-        if(U_FAILURE) { return null; }
+    static final CollationTailoring getRoot() {
         return rootSingleton;
     }
-
-    CollationData 
-    CollationRoot.getData() {
-        const CollationTailoring *root = getRoot;
-        if(U_FAILURE) { return null; }
+    static final CollationData getData() {
+        CollationTailoring root = getRoot();
         return root.data;
     }
-
-    CollationSettings
-    CollationRoot.getSettings() {
-        const CollationTailoring *root = getRoot;
-        if(U_FAILURE) { return null; }
+    static final CollationSettings getSettings() {
+        CollationTailoring root = getRoot();
         return root.settings;
     }
+
+    static {  // Corresponds to C++ load() function.
+        CollationTailoring t = new CollationTailoring(null);
+        InputStream inBytes = ICUData.getRequiredStream(
+                ICUResourceBundle.ICU_BUNDLE + "/coll/ucadata.icu");
+        CollationDataReader.read(null, inBytes, t);
+        rootSingleton = t;
+    }
+}
