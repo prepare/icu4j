@@ -301,7 +301,7 @@ final class CollationData {
     private static final int[] EMPTY_INT_ARRAY = new int[0];
 
     /** @see jamoCE32s */
-    private static final int JAMO_CE32S_LENGTH = 19 + 21 + 27;
+    static final int JAMO_CE32S_LENGTH = 19 + 21 + 27;
 
     /** Main lookup trie. */
     Trie2_32 trie;
