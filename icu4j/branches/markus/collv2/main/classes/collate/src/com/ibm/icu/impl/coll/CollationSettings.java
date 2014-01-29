@@ -94,6 +94,8 @@ final class CollationSettings extends SharedObject {
     @Override
     public CollationSettings clone() {
         CollationSettings newSettings = (CollationSettings)super.clone();
+        // Note: The reorderTable and reorderCodes need not be cloned
+        // because, in Java, they only get replaced but not modified.
         newSettings.fastLatinPrimaries = fastLatinPrimaries.clone();
         return newSettings;
     }
@@ -297,5 +299,7 @@ final class CollationSettings extends SharedObject {
 
     /** Options for CollationFastLatin. Negative if disabled. */
     int fastLatinOptions = -1;
-    char[] fastLatinPrimaries;  // mutable contents
+    // fastLatinPrimaries.length must be equal to CollationFastLatin.LATIN_LIMIT,
+    // but we do not import CollationFastLatin to reduce circular dependencies.
+    char[] fastLatinPrimaries = new char[0x180];  // mutable contents
 }
