@@ -31,7 +31,7 @@ final class CollationRoot {
     }
     static final CollationSettings getSettings() {
         CollationTailoring root = getRoot();
-        return root.settings;
+        return root.settings.readOnly();
     }
 
     static {  // Corresponds to C++ load() function.

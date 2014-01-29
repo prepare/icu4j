@@ -162,15 +162,6 @@ public:
                     const RuleBasedCollator *base, 
                     UErrorCode &status);
 
-    @Override
-    protected void finalize() {
-        super.finalize();
-        if(settings != null) {
-            settings.removeRef();
-            settings = null;
-        }
-    }
-
     /**
      * Assignment operator.
      * @param other other RuleBasedCollator object to copy from.
@@ -194,7 +185,7 @@ public:
     @Override
     public RuleBasedCollator clone() {
         RuleBasedCollator c = super.clone();
-        settings.addRef();
+        c.settings = settings.clone();
         return c;
     }
 
@@ -422,13 +413,7 @@ public:
     void getRules(UColRuleOption delta, UnicodeString &buffer);
 
     private final CollationSettings getOwnedSettings() {
-        if(settings.getRefCount() > 1) {
-            CollationSettings ownedSettings = settings.clone();
-            settings.removeRef();
-            settings = ownedSettings;
-            ownedSettings.addRef();
-        }
-        return settings;
+        return settings.copyOnWrite();
     }
 
     /**
@@ -767,9 +752,9 @@ private:
     void setFastLatinOptions(CollationSettings &ownedSettings);
 
     CollationData data;
-    CollationSettings settings;  // reference-counted
-    const CollationTailoring *tailoring;  // reference-counted
-    Locale validLocale;
+    SharedObject.Reference<CollationSettings> settings;  // reference-counted
+    CollationTailoring tailoring;  // C++: reference-counted
+    ULocale validLocale;
     uint32_t explicitlySetAttributes;
 
     boolean actualLocaleIsSameAsValid;

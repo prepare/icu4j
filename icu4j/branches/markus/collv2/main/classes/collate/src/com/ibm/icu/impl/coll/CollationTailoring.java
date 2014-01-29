@@ -33,19 +33,9 @@ final class CollationTailoring {
         if(baseSettings != null) {
             assert(baseSettings.reorderCodes.length == 0);
             assert(baseSettings.reorderTable == null);
-            settings = baseSettings;
+            settings = new SharedObject.Reference<CollationSettings>(baseSettings);
         } else {
-            settings = new CollationSettings();
-        }
-        settings.addRef();
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        if(settings != null) {
-            settings.removeRef();
-            settings = null;
+            settings = new SharedObject.Reference<CollationSettings>(new CollationSettings());
         }
     }
 
@@ -78,7 +68,7 @@ final class CollationTailoring {
 
     // data for sorting etc.
     CollationData data;  // == base data or ownedData
-    CollationSettings settings;  // reference-counted
+    SharedObject.Reference<CollationSettings> settings;  // reference-counted
     String rules;
     // The locale is null (C++: bogus) when built from rules or constructed from a binary blob.
     // It can then be set by the service registration code which is thread-safe.
@@ -93,7 +83,6 @@ final class CollationTailoring {
 
     // owned objects
     CollationData ownedData;
-    Object builder;  // TODO: probably not necessary
     Trie2_32 trie;
     UnicodeSet unsafeBackwardSet;
     Map<Integer, Integer> maxExpansions;

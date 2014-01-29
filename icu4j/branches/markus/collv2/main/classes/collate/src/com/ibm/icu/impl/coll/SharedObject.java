@@ -28,7 +28,28 @@ import java.util.concurrent.atomic.AtomicInteger;
  *     public clone() { ... }
  * }
  *
+ * // Either use the nest class Reference (which costs an extra allocation),
+ * // or duplicate its code in the class that uses S
+ * // (which duplicates code and is more error-prone).
  * class U {
+ *     // For read-only access, use s.readOnly().
+ *     // For writable access, use S ownedS = s.copyOnWrite();
+ *     private SharedObject.Reference&lt;S&gt; s;
+ *     // Returns a writable version of s.
+ *     // If there is exactly one owner, then s itself is returned.
+ *     // If there are multiple owners, then s is replaced with a clone,
+ *     // and that is returned.
+ *     private S getOwnedS() {
+ *         return s.copyOnWrite();
+ *     }
+ *     public U clone() {
+ *         ...
+ *         c.s = s.clone();
+ *         ...
+ *     }
+ * }
+ *
+ * class V {
  *     // For read-only access, use s directly.
  *     // For writable access, use S ownedS = getOwnedS();
  *     private S s;
@@ -68,6 +89,68 @@ import java.util.concurrent.atomic.AtomicInteger;
  * or else adopting a different model.
  */
 class SharedObject implements Cloneable {
+    /**
+     * Similar to a smart pointer, basically a port of the static methods of C++ SharedObject.
+     */
+    public static final class Reference<T extends SharedObject> implements Cloneable {
+        private T ref;
+
+        public Reference(T r) {
+            ref = r;
+            if(r != null) {
+                r.addRef();
+            }
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public Reference<T> clone() {
+            Reference<T> c;
+            try {
+                c = (Reference<T>)super.clone();
+            } catch (CloneNotSupportedException e) {
+                // Should never happen.
+                throw new RuntimeException(e);
+            }
+            if(ref != null) {
+                ref.addRef();
+            }
+            return c;
+        }
+
+        public T readOnly() { return ref; }
+
+        /**
+         * Returns a writable version of the reference.
+         * If there is exactly one owner, then the reference itself is returned.
+         * If there are multiple owners, then the reference is replaced with a clone,
+         * and that is returned.
+         */
+        public T copyOnWrite() {
+            T r = ref;
+            if(r.getRefCount() <= 1) { return r; }
+            @SuppressWarnings("unchecked")
+            T r2 = (T)r.clone();
+            r.removeRef();
+            ref = r2;
+            r2.addRef();
+            return r2;
+        }
+
+        public void clear() {
+            if(ref != null) {
+                ref.removeRef();
+                ref = null;
+            }
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            super.finalize();
+            clear();
+        }
+    }
+
     /** Initializes refCount to 0. */
     public SharedObject() {}
 
