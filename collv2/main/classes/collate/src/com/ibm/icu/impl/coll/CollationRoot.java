@@ -11,7 +11,9 @@
 
 package com.ibm.icu.impl.coll;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.ICUData;
 import com.ibm.icu.impl.ICUResourceBundle;
@@ -36,9 +38,17 @@ final class CollationRoot {
 
     static {  // Corresponds to C++ load() function.
         CollationTailoring t = new CollationTailoring(null);
-        InputStream inBytes = ICUData.getRequiredStream(
-                ICUResourceBundle.ICU_BUNDLE + "/coll/ucadata.icu");
-        CollationDataReader.read(null, inBytes, t);
-        rootSingleton = t;
+        String path = ICUResourceBundle.ICU_BUNDLE + "/coll/ucadata.icu";
+        InputStream inBytes = ICUData.getRequiredStream(path);
+        try {
+            CollationDataReader.read(null, inBytes, t);
+            rootSingleton = t;
+        } catch(IOException e) {
+            MissingResourceException e2 = new MissingResourceException(
+                    "IOException while reading CLDR root data",
+                    "CollationRoot", path);
+            e2.initCause(e);
+            throw e2;
+        }
     }
 }
