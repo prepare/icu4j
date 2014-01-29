@@ -435,7 +435,7 @@ final class CollationDataReader /* all static */ {
 
             ds.close();
 
-            CollationSettings ts = tailoring.settings;
+            CollationSettings ts = tailoring.settings.readOnly();
             int options = inIndexes[IX_OPTIONS] & 0xffff;
             char[] fastLatinPrimaries = new char[CollationFastLatin.LATIN_LIMIT];
             int fastLatinOptions = CollationFastLatin.getOptions(
@@ -448,8 +448,7 @@ final class CollationDataReader /* all static */ {
                 return;
             }
 
-            // TODO: define SharedObject.Reference, change Tailoring.settings to that
-            CollationSettings settings = SharedObject.copyOnWrite(tailoring.settings);
+            CollationSettings settings = tailoring.settings.copyOnWrite();
             settings.options = options;
             // Set variableTop from options and scripts data.
             settings.variableTop = tailoring.data.getLastPrimaryForGroup(
