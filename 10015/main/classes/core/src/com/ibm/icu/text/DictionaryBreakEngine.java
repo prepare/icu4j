@@ -9,6 +9,9 @@ package com.ibm.icu.text;
 import java.text.CharacterIterator;
 import java.util.Stack;
 
+// TODO: This class is dead code.
+//       May want to be completed, to track closer to ICU C++ code.
+
 abstract class DictionaryBreakEngine implements LanguageBreakEngine {
     protected UnicodeSet fSet = new UnicodeSet();
     private final int fTypes;

@@ -25,6 +25,7 @@ import java.util.Stack;
 
 import com.ibm.icu.impl.Assert;
 import com.ibm.icu.impl.CharTrie;
+import com.ibm.icu.impl.CharacterIteration;
 import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
@@ -927,16 +928,31 @@ public class RuleBasedBreakIterator extends BreakIterator {
                                         ICUDebug.value(RBBI_DEBUG_ARG) : null;
     
     /**
-     * Finds an appropriate LanguageBreakEngine for this character and 
+     * Finds an appropriate LanguageBreakEngine for this dictionary segment and 
      * break type.
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    private LanguageBreakEngine getEngineFor(int c) { 
-        if (c == DONE32 || !fUseDictionary) {
-            return null;
-        }
+    private LanguageBreakEngine getEngineFor(CharacterIterator cIter, int startPos, int limit) { 
+        // Scan characters in the segment, skipping over any that do not have the
+        // dictionary bit set in their rule data.
+        // handleNext() claimed that there was at least one dictionary char present,
+        //   or we wouldn't be here.
+        int c;
+        cIter.setIndex(startPos);
+        short category;
+        do {
+            c = CharacterIteration.current32(cIter);
+            assert cIter.getIndex() < limit;
+            CharacterIteration.next32(cIter);
+            if (c == DONE32 || !fUseDictionary) {
+                return null;
+            }
+            category = (short)fRData.fTrie.getCodePointValue(c);
+        } while ((category & 0x4000) == 0);
 
+        // We have a dictionary character.
+        // Does an already instantiated break engine handle it?
         for (LanguageBreakEngine candidate : fBreakEngines) {
             if (candidate.handles(c, fBreakType)) {
                 return candidate;
@@ -953,6 +969,9 @@ public class RuleBasedBreakIterator extends BreakIterator {
                 break;
             case UScript.LAO:
                 eng = new LaoBreakEngine();
+                break;
+            case UScript.KHMER:
+                eng = new KhmerBreakEngine();
                 break;
             case UScript.KATAKANA:
             case UScript.HIRAGANA:
@@ -1010,8 +1029,8 @@ public class RuleBasedBreakIterator extends BreakIterator {
             // divideUpDictionaryRange() to regenerate the cached break positions
             // for the new range.
             if (fDictionaryCharCount > 1 && result - startPos > 1) {
+                LanguageBreakEngine e = getEngineFor(fText, startPos, result);
                 fText.setIndex(startPos);
-                LanguageBreakEngine e = getEngineFor(current32(fText));
                 if (e != null) {
                     // we have an engine! use it to produce breaks
                     Stack<Integer> breaks = new Stack<Integer>();

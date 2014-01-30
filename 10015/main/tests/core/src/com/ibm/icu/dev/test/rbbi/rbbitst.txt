@@ -33,14 +33,8 @@
 
 
 #   Temp debugging tests 
-#\u0E1E\u0E38\u0E17\u0E18•\u0E28\u0E31\u0E01\u0E23\u0E32\u0E0A •\
 <line>
-#<data>•\u0E1B\u0E35•\
-#<data>•abc •พ\u0e38ทธ•ศ\u0e31กร\u0e32ช •</data>
-<data>•\u0E1E\u0E38\u0E17\u0E18•\u0E28\u0E31\u0E01\u0E23\u0E32\u0E0A •</data>
-
-<char>
-<data>•\U00010020•\U00010000\N{COMBINING MACRON}•</data>
+<data>•(\u0E01\u0E23\u0E38\u0E07\u0E40\u0E17\u0E1e\u0E2F•\u0E2B\u0E23\u0E37\u0E2D•</data>
 
 ########################################################################################
 #

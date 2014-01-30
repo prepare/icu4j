@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.text.CharacterIterator;
 import java.util.Stack;
 
+import com.ibm.icu.impl.CharacterIteration;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
 import com.ibm.icu.lang.UScript;
@@ -152,22 +153,37 @@ class ThaiBreakEngine implements LanguageBreakEngine {
         return false;
     }
 
-    public int findBreaks(CharacterIterator fIter, int rangeStart, int rangeEnd, boolean reverse, int breakType,
+    public int findBreaks(CharacterIterator fIter, int startPos, int endPos, boolean reverse, int breakType,
             Stack<Integer> foundBreaks) {
+        // Find the span of characters included in the set.
+        //   [From C++ DictionaryBreakEngine::findBreaks()]
+        int c = CharacterIteration.current32(fIter);
+        
+        for (c = CharacterIteration.current32(fIter); 
+                !fThaiWordSet.contains(c);
+                c = CharacterIteration.next32(fIter)) {
+        }
+        int rangeStart = fIter.getIndex();
+        
+        for (c = CharacterIteration.current32(fIter); 
+                c != CharacterIteration.DONE32 && fThaiWordSet.contains(c);
+                c = CharacterIteration.next32(fIter)) {
+        }            
+        int rangeEnd = fIter.getIndex();
+
         if ((rangeEnd - rangeStart) < THAI_MIN_WORD) {
             return 0;  // Not enough characters for word
         }
         int wordsFound = 0;
         int wordLength;
-        int current;
         PossibleWord words[] = new PossibleWord[THAI_LOOKAHEAD];
         for (int i = 0; i < THAI_LOOKAHEAD; i++) {
             words[i] = new PossibleWord();
         }
+        
         int uc;
-
         fIter.setIndex(rangeStart);
-
+        int current;
         while ((current = fIter.getIndex()) < rangeEnd) {
             wordLength = 0;
 
