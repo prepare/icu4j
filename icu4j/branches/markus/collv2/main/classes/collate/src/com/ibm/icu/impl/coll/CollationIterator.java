@@ -22,7 +22,7 @@ import com.ibm.icu.util.CharsTrie;
  * When a method returns a code point value, it must be in 0..10FFFF,
  * except it can be negative as a sentinel value.
  */
-abstract class CollationIterator implements Cloneable {
+public abstract class CollationIterator implements Cloneable {
     // TODO: There must be a Java class for a growable array of ints without auto-boxing to Integer?!
     public static final class UVector32 {
         public UVector32() {}
@@ -187,11 +187,31 @@ abstract class CollationIterator implements Cloneable {
         private CharsTrie.State state = new CharsTrie.State();
     };
 
-    CollationIterator(CollationData d, boolean numeric) {
-        this.trie = d.trie;
-        this.data = d;
-        this.numCpFwd = -1;
-        this.isNumeric = numeric;
+    /**
+     * Partially constructs the iterator.
+     * In Java, we cache partially constructed iterators
+     * and finish their setup when starting to work on text
+     * (via reset(boolean) and the setText(numeric, ...) methods of subclasses).
+     * This avoids memory allocations for iterators that remain unused.
+     *
+     * <p>In C++, there is only one constructor, and iterators are
+     * stack-allocated as needed.
+     */
+    public CollationIterator(CollationData d) {
+        trie = d.trie;
+        data = d;
+        numCpFwd = -1;
+        isNumeric = false;
+        ceBuffer = null;
+    }
+
+    // TODO: needed in test code, or remove?
+    public CollationIterator(CollationData d, boolean numeric) {
+        trie = d.trie;
+        data = d;
+        numCpFwd = -1;
+        isNumeric = numeric;
+        ceBuffer = new CEBuffer();
     }
 
     @Override
@@ -382,6 +402,20 @@ abstract class CollationIterator implements Cloneable {
     protected final void reset() {
         cesIndex = ceBuffer.length = 0;
         if(skipped != null) { skipped.clear(); }
+    }
+    /**
+     * Resets the state as well as the numeric setting,
+     * and completes the initialization.
+     * Only exists in Java where we reset cached CollationIterator instances
+     * rather than stack-allocating temporary ones.
+     * (See also the constructor comments.)
+     */
+    protected final void reset(boolean numeric) {
+        reset();
+        isNumeric = numeric;
+        if(ceBuffer == null) {
+            ceBuffer = new CEBuffer();
+        }
     }
 
     /**
@@ -1111,7 +1145,7 @@ abstract class CollationIterator implements Cloneable {
         ceBuffer.append(Collation.makeCE(primary));
     }
 
-    private final CEBuffer ceBuffer = new CEBuffer();
+    private CEBuffer ceBuffer;
     private int cesIndex;
 
     private SkippedState skipped;

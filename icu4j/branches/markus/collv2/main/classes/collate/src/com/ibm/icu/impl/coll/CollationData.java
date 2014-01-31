@@ -24,7 +24,7 @@ import com.ibm.icu.text.UnicodeSet;
  *
  * Includes data for the collation base (root/default), aliased if this is not the base.
  */
-final class CollationData {
+public final class CollationData {
     CollationData(Normalizer2Impl nfc) {
         nfcImpl = nfc;
     }
@@ -42,7 +42,7 @@ final class CollationData {
                 Collation.hasCE32Tag(getCE32(c), Collation.DIGIT_TAG);
     }
 
-    boolean isUnsafeBackward(int c, boolean numeric) {
+    public boolean isUnsafeBackward(int c, boolean numeric) {
         return unsafeBackwardSet.contains(c) || (numeric && isDigit(c));
     }
 
@@ -323,7 +323,7 @@ final class CollationData {
      * For fast handling of HANGUL_TAG.
      */
     int[] jamoCE32s = new int[JAMO_CE32S_LENGTH];
-    Normalizer2Impl nfcImpl;
+    public Normalizer2Impl nfcImpl;
     /** The single-byte primary weight (xx000000) for numeric collation. */
     long numericPrimary = 0x12000000;
 
@@ -339,7 +339,13 @@ final class CollationData {
      * Fast Latin table for common-Latin-text string comparisons.
      * Data structure see class CollationFastLatin.
      */
-    char[] fastLatinTable;
+    public char[] fastLatinTable;
+    /**
+     * Header portion of the fastLatinTable.
+     * In C++, these are one array, and the header is skipped for mapping characters.
+     * In Java, two arrays work better.
+     */
+    char[] fastLatinTableHeader;
 
     /**
      * Data for scripts and reordering groups.

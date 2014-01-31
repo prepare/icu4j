@@ -16,9 +16,16 @@ package com.ibm.icu.impl.coll;
  * Handles normalized UTF-16 text, with length or NUL-terminated.
  * Unnormalized text is handled by a subclass.
  */
-class UTF16CollationIterator extends CollationIterator {
-    UTF16CollationIterator(CollationData d, boolean numeric,
-                           CharSequence s, int p) {
+public class UTF16CollationIterator extends CollationIterator {
+    /**
+     * Partial constructor, see {@link CollationIterator#CollationIterator(CollationData)}.
+     */
+    public UTF16CollationIterator(CollationData d) {
+        super(d);
+    }
+
+    // TODO: needed in test code, or remove?
+    public UTF16CollationIterator(CollationData d, boolean numeric, CharSequence s, int p) {
         super(d, numeric);
         seq = s;
         start = 0;
@@ -52,10 +59,11 @@ class UTF16CollationIterator extends CollationIterator {
         return pos - start;
     }
 
-    final void setText(CharSequence s) {
-        reset();
+    public void setText(boolean numeric, CharSequence s, int p) {
+        reset(numeric);
         seq = s;
-        start = pos = 0;
+        start = 0;
+        pos = p;
         limit = s.length();
     }
 

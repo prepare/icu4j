@@ -369,18 +369,28 @@ final class CollationDataReader /* all static */ {
         length = inIndexes[index + 1] - offset;
         if(data != null) {
             data.fastLatinTable = null;
+            data.fastLatinTableHeader = null;
             if(((inIndexes[IX_OPTIONS] >> 16) & 0xff) == CollationFastLatin.VERSION) {
-                if(length > 0) {
-                    data.fastLatinTable = new char[length / 2];
-                    for(int i = 0; i < length / 2; ++i) {
+                if(length >= 2) {
+                    char header0 = ds.readChar();
+                    int headerLength = header0 & 0xff;
+                    data.fastLatinTableHeader = new char[headerLength];
+                    data.fastLatinTableHeader[0] = header0;
+                    for(int i = 1; i < headerLength; ++i) {
+                        data.fastLatinTableHeader[i] = ds.readChar();
+                    }
+                    int tableLength = length / 2 - headerLength;
+                    data.fastLatinTable = new char[tableLength];
+                    for(int i = 0; i < tableLength; ++i) {
                         data.fastLatinTable[i] = ds.readChar();
                     }
                     length &= 1;
-                    if((data.fastLatinTable[0] >> 8) != CollationFastLatin.VERSION) {
+                    if((header0 >> 8) != CollationFastLatin.VERSION) {
                         throw new RuntimeException("Fast-Latin table version differs from version in data header");
                     }
                 } else if(baseData != null) {
                     data.fastLatinTable = baseData.fastLatinTable;
+                    data.fastLatinTableHeader = baseData.fastLatinTableHeader;
                 }
             }
         }

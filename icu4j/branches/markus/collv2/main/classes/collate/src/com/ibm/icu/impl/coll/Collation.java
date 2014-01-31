@@ -17,11 +17,11 @@ package com.ibm.icu.impl.coll;
  * Data structures except for expansion tables store 32-bit CEs which are
  * either specials (see tags below) or are compact forms of 64-bit CEs.
  */
-final class Collation {
+public final class Collation {
     /** UChar32 U_SENTINEL.
      * TODO: Create a common, public constant?
      */
-    static final int SENTINEL_CP = -1;
+    public static final int SENTINEL_CP = -1;
 
     // Special sort key bytes for all levels.
     static final int TERMINATOR_BYTE = 0;

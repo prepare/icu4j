@@ -1,7 +1,7 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2012, International Business Machines Corporation and    *
-* others. All Rights Reserved.                                                *
+* Copyright (C) 1996-2014, International Business Machines Corporation and
+* others. All Rights Reserved.
 *******************************************************************************
 */
 package com.ibm.icu.text;
@@ -1021,11 +1021,22 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
      * @return Returns an integer value. Value is less than zero if source is
      *         less than target, value is zero if source and target are equal,
      *         value is greater than zero if source is greater than target.
-     * @throws ClassCastException thrown if either arguments cannot be cast to String.
+     * @throws ClassCastException thrown if either arguments cannot be cast to CharSequence.
      * @stable ICU 4.2
      */
     public int compare(Object source, Object target) {
-        return compare((String)source, (String)target);
+        return doCompare((CharSequence)source, (CharSequence)target);
+    }
+
+    /**
+     * Compares two CharSequences.
+     * The base class just calls compare(left.toString(), right.toString()).
+     * Subclasses should instead implement this method and have the String API call this method.
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    protected int doCompare(CharSequence left, CharSequence right) {
+        return compare(left.toString(), right.toString());
     }
 
     /**
