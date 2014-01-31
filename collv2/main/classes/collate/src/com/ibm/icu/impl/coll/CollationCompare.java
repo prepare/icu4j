@@ -13,15 +13,15 @@ package com.ibm.icu.impl.coll;
 
 import com.ibm.icu.text.Collator;
 
-final class CollationCompare /* all static */{
-
+public final class CollationCompare /* all static */ {
     // TODO: ICU4C API returns UCollationResult defined as enum.
     // ICU4J uses int - should we define these somewhere?
     private static final int UCOL_EQUAL = 0;
     private static final int UCOL_GREATER = 1;
     private static final int UCOL_LESS = -1;
 
-    public static int compareUpToQuaternary(CollationIterator left, CollationIterator right, CollationSettings settings) {
+    public static int compareUpToQuaternary(CollationIterator left, CollationIterator right,
+            CollationSettings settings) {
         int options = settings.options;
         long variableTop;
         if ((options & CollationSettings.ALTERNATE_MASK) == 0) {

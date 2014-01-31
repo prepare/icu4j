@@ -21,10 +21,14 @@ import com.ibm.icu.impl.ICUResourceBundle;
 /**
  * Collation root provider.
  */
-final class CollationRoot {
+public final class CollationRoot {
     private static final CollationTailoring rootSingleton;
+    private static final RuntimeException exception;
 
-    static final CollationTailoring getRoot() {
+    public static final CollationTailoring getRoot() {
+        if(exception != null) {
+            throw exception;
+        }
         return rootSingleton;
     }
     static final CollationData getData() {
@@ -40,15 +44,19 @@ final class CollationRoot {
         CollationTailoring t = new CollationTailoring(null);
         String path = ICUResourceBundle.ICU_BUNDLE + "/coll/ucadata.icu";
         InputStream inBytes = ICUData.getRequiredStream(path);
+        RuntimeException e2 = null;
         try {
             CollationDataReader.read(null, inBytes, t);
-            rootSingleton = t;
         } catch(IOException e) {
-            MissingResourceException e2 = new MissingResourceException(
+            t = null;
+            e2 = new MissingResourceException(
                     "IOException while reading CLDR root data",
                     "CollationRoot", path);
-            e2.initCause(e);
-            throw e2;
+        } catch(RuntimeException e) {
+            t = null;
+            e2 = e;
         }
+        rootSingleton = t;
+        exception = e2;
     }
 }

@@ -88,7 +88,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * TODO: Consider making this more widely available inside ICU,
  * or else adopting a different model.
  */
-class SharedObject implements Cloneable {
+public class SharedObject implements Cloneable {
     /**
      * Similar to a smart pointer, basically a port of the static methods of C++ SharedObject.
      */

@@ -16,13 +16,21 @@ import com.ibm.icu.impl.Normalizer2Impl;
 /**
  * Incrementally checks the input text for FCD and normalizes where necessary.
  */
-final class FCDUTF16CollationIterator extends UTF16CollationIterator {
-    FCDUTF16CollationIterator(CollationData data, boolean numeric,
-                              CharSequence s, int p) {
+public final class FCDUTF16CollationIterator extends UTF16CollationIterator {
+    /**
+     * Partial constructor, see {@link CollationIterator#CollationIterator(CollationData)}.
+     */
+    public FCDUTF16CollationIterator(CollationData d) {
+        super(d);
+        nfcImpl = d.nfcImpl;
+    }
+
+    // TODO: needed in test code, or remove?
+    public FCDUTF16CollationIterator(CollationData data, boolean numeric, CharSequence s, int p) {
         super(data, numeric, s, p);
         rawSeq = s;
         segmentStart = p;
-        rawLimit = rawSeq.length();
+        rawLimit = s.length();
         nfcImpl = data.nfcImpl;
         checkDir = 1;
     }
@@ -81,6 +89,15 @@ final class FCDUTF16CollationIterator extends UTF16CollationIterator {
         } else {
             return segmentLimit - rawStart;
         }
+    }
+
+    @Override
+    public void setText(boolean numeric, CharSequence s, int p) {
+        super.setText(numeric, s, p);
+        rawSeq = s;
+        segmentStart = p;
+        rawLimit = limit = s.length();
+        checkDir = 1;
     }
 
     @Override
@@ -359,6 +376,9 @@ final class FCDUTF16CollationIterator extends UTF16CollationIterator {
     }
 
     private void normalize(int from, int to) {
+        if(normalized == null) {
+            normalized = new StringBuilder();
+        }
         // NFD without argument checking.
         nfcImpl.decompose(rawSeq, from, to, normalized, to - from);
         // Switch collation processing into the FCD buffer
@@ -401,7 +421,7 @@ final class FCDUTF16CollationIterator extends UTF16CollationIterator {
     private int segmentLimit;
     private int rawLimit;
 
-    private Normalizer2Impl nfcImpl;
+    private final Normalizer2Impl nfcImpl;
     private StringBuilder normalized;
     // Direction of incremental FCD check. See comments before rawStart.
     private int checkDir;

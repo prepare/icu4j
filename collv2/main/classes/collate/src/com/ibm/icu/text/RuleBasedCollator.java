@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 1996-2013, International Business Machines Corporation and
+ * Copyright (C) 1996-2014, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -25,10 +25,21 @@ import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.ImplicitCEGenerator;
 import com.ibm.icu.impl.IntTrie;
+import com.ibm.icu.impl.Normalizer2Impl;
 import com.ibm.icu.impl.StringUCharacterIterator;
 import com.ibm.icu.impl.Trie;
 import com.ibm.icu.impl.TrieIterator;
-import com.ibm.icu.impl.Utility;
+import com.ibm.icu.impl.Normalizer2Impl.ReorderingBuffer;
+import com.ibm.icu.impl.coll.Collation;
+import com.ibm.icu.impl.coll.CollationCompare;
+import com.ibm.icu.impl.coll.CollationData;
+import com.ibm.icu.impl.coll.CollationFastLatin;
+import com.ibm.icu.impl.coll.CollationRoot;
+import com.ibm.icu.impl.coll.CollationSettings;
+import com.ibm.icu.impl.coll.CollationTailoring;
+import com.ibm.icu.impl.coll.FCDUTF16CollationIterator;
+import com.ibm.icu.impl.coll.SharedObject;
+import com.ibm.icu.impl.coll.UTF16CollationIterator;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UScript;
 import com.ibm.icu.util.Output;
@@ -191,6 +202,12 @@ import com.ibm.icu.util.VersionInfo;
  * @stable ICU 2.8
  */
 public final class RuleBasedCollator extends Collator {
+    // TODO: ICU4C API returns UCollationResult defined as enum.
+    // ICU4J uses int - should we define these somewhere?
+    private static final int UCOL_EQUAL = 0;
+    private static final int UCOL_GREATER = 1;
+    private static final int UCOL_LESS = -1;
+
     // public constructors ---------------------------------------------------
 
     /**
@@ -239,9 +256,9 @@ public final class RuleBasedCollator extends Collator {
     private Object clone(boolean frozen) throws CloneNotSupportedException {
         //TODO: once buffer and threading issue is resolved have frozen clone just return itself
         RuleBasedCollator result = (RuleBasedCollator) super.clone();
+        result.settings = settings.clone();
         if (latinOneCEs_ != null) {
             result.m_reallocLatinOneCEs_ = true;
-            result.m_ContInfo_ = new ContractionInfo();
         }
 
         // since all collation data in the RuleBasedCollator do not change
@@ -303,6 +320,9 @@ public final class RuleBasedCollator extends Collator {
     public Collator freeze() {
         if (!isFrozen()) {
             frozenLock = new ReentrantLock();
+            if (collationBuffer == null) {
+                collationBuffer = new CollationBuffer(data);
+            }
         }
         return this;
     }
@@ -1423,32 +1443,242 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public int compare(String source, String target) {
-        if (source.equals(target)) {
-            return 0;
+        return doCompare(source, target);
+    }
+
+    /**
+    * Abstract iterator for identical-level string comparisons.
+    * Returns FCD code points and handles temporary switching to NFD.
+    *
+    * <p>As with CollationIterator,
+    * Java NFDIterator instances are partially constructed and cached,
+    * and completed when reset for use.
+    * C++ NFDIterator instances are stack-allocated.
+    */
+    private static abstract class NFDIterator {
+        /**
+         * Partial constructor, must call reset().
+         */
+        NFDIterator() {}
+        final void reset() {
+            index = -1;
         }
+
+        /**
+         * Returns the next code point from the internal normalization buffer,
+         * or else the next text code point.
+         * Returns -1 at the end of the text.
+         */
+        final int nextCodePoint() {
+            if(index >= 0) {
+                if(index == decomp.length()) {
+                    index = -1;
+                } else {
+                    int c = Character.codePointAt(decomp, index);
+                    index += Character.charCount(c);
+                    return c;
+                }
+            }
+            return nextRawCodePoint();
+        }
+        /**
+         * @param nfcImpl
+         * @param c the last code point returned by nextCodePoint() or nextDecomposedCodePoint()
+         * @return the first code point in c's decomposition,
+         *         or c itself if it was decomposed already or if it does not decompose
+         */
+        final int nextDecomposedCodePoint(Normalizer2Impl nfcImpl, int c) {
+            if(index >= 0) { return c; }
+            decomp = nfcImpl.getDecomposition(c);
+            if(decomp == null) { return c; }
+            c = Character.codePointAt(decomp, 0);
+            index = Character.charCount(c);
+            return c;
+        }
+
+        /**
+         * Returns the next text code point in FCD order.
+         * Returns -1 at the end of the text.
+         */
+        protected abstract int nextRawCodePoint();
+
+        private String decomp;
+        private int index;
+    }
+
+    private static class UTF16NFDIterator extends NFDIterator {
+        UTF16NFDIterator() {}
+        void setText(CharSequence seq, int start) {
+            reset();
+            s = seq;
+            pos = start;
+        }
+
+        @Override
+        protected int nextRawCodePoint() {
+            if(pos == s.length()) { return Collation.SENTINEL_CP; }
+            int c = Character.codePointAt(s, pos);
+            pos += Character.charCount(c);
+            return c;
+        }
+
+        protected CharSequence s;
+        protected int pos;
+    }
+
+    private static final class FCDUTF16NFDIterator extends UTF16NFDIterator {
+        FCDUTF16NFDIterator() {}
+        void setText(Normalizer2Impl nfcImpl, CharSequence seq, int start) {
+            reset();
+            int spanLimit = nfcImpl.makeFCD(seq, start, seq.length(), null);
+            if(spanLimit == seq.length()) {
+                s = seq;
+                pos = start;
+            } else {
+                if(str == null) {
+                    str = new StringBuilder();
+                } else {
+                    str.setLength(0);
+                }
+                str.append(seq, start, spanLimit);
+                ReorderingBuffer buffer = new ReorderingBuffer(nfcImpl, str, seq.length() - start);
+                nfcImpl.makeFCD(seq, spanLimit, seq.length(), buffer);
+                s = str;
+                pos = 0;
+            }
+        }
+
+        private StringBuilder str;
+    }
+
+    private static final int compareNFDIter(Normalizer2Impl nfcImpl, NFDIterator left, NFDIterator right) {
+        for(;;) {
+            // Fetch the next FCD code point from each string.
+            int leftCp = left.nextCodePoint();
+            int rightCp = right.nextCodePoint();
+            if(leftCp == rightCp) {
+                if(leftCp < 0) { break; }
+                continue;
+            }
+            // If they are different, then decompose each and compare again.
+            if(leftCp < 0) {
+                leftCp = -2;  // end of string
+            } else if(leftCp == 0xfffe) {
+                leftCp = -1;  // U+FFFE: merge separator
+            } else {
+                leftCp = left.nextDecomposedCodePoint(nfcImpl, leftCp);
+            }
+            if(rightCp < 0) {
+                rightCp = -2;  // end of string
+            } else if(rightCp == 0xfffe) {
+                rightCp = -1;  // U+FFFE: merge separator
+            } else {
+                rightCp = right.nextDecomposedCodePoint(nfcImpl, rightCp);
+            }
+            if(leftCp < rightCp) { return UCOL_LESS; }
+            if(leftCp > rightCp) { return UCOL_GREATER; }
+        }
+        return UCOL_EQUAL;
+    }
+
+    /**
+     * Compares two CharSequences.
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    @Override
+    protected int doCompare(CharSequence left, CharSequence right) {
+        if(left == right) {
+            return UCOL_EQUAL;
+        }
+
+        // Identical-prefix test.
+        int equalPrefixLength = 0;
+        for(;;) {
+            if(equalPrefixLength == left.length()) {
+                if(equalPrefixLength == right.length()) { return UCOL_EQUAL; }
+                break;
+            } else if(equalPrefixLength == right.length() ||
+                      left.charAt(equalPrefixLength) != right.charAt(equalPrefixLength)) {
+                break;
+            }
+            ++equalPrefixLength;
+        }
+
+        CollationSettings roSettings = settings.readOnly();
+        boolean numeric = roSettings.isNumeric();
+        if(equalPrefixLength > 0) {
+            if((equalPrefixLength != left.length() &&
+                        data.isUnsafeBackward(left.charAt(equalPrefixLength), numeric)) ||
+                    (equalPrefixLength != right.length() &&
+                        data.isUnsafeBackward(right.charAt(equalPrefixLength), numeric))) {
+                // Identical prefix: Back up to the start of a contraction or reordering sequence.
+                while(--equalPrefixLength > 0 &&
+                        data.isUnsafeBackward(left.charAt(equalPrefixLength), numeric)) {}
+            }
+            // Notes:
+            // - A longer string can compare equal to a prefix of it if only ignorables follow.
+            // - With a backward level, a longer string can compare less-than a prefix of it.
+
+            // Pass the actual start of each string into the CollationIterators,
+            // plus the equalPrefixLength position,
+            // so that prefix matches back into the equal prefix work.
+        }
+
+        int result;
+        int fastLatinOptions = roSettings.fastLatinOptions;
+        if(fastLatinOptions >= 0 &&
+                (equalPrefixLength == left.length() ||
+                    left.charAt(equalPrefixLength) <= CollationFastLatin.LATIN_MAX) &&
+                (equalPrefixLength == right.length() ||
+                    right.charAt(equalPrefixLength) <= CollationFastLatin.LATIN_MAX)) {
+            result = CollationFastLatin.compareUTF16(data.fastLatinTable,
+                                                      roSettings.fastLatinPrimaries,
+                                                      fastLatinOptions,
+                                                      left, right, equalPrefixLength);
+        } else {
+            result = CollationFastLatin.BAIL_OUT_RESULT;
+        }
+
+        if(result == CollationFastLatin.BAIL_OUT_RESULT) {
+            CollationBuffer buffer = null;
+            try {
+                buffer = getCollationBuffer();
+                if(roSettings.dontCheckFCD()) {
+                    buffer.leftUTF16Iter.setText(numeric, left, equalPrefixLength);
+                    buffer.rightUTF16Iter.setText(numeric, right, equalPrefixLength);
+                    result = CollationCompare.compareUpToQuaternary(
+                            buffer.leftUTF16Iter, buffer.rightUTF16Iter, roSettings);
+                } else {
+                    buffer.leftFCDUTF16Iter.setText(numeric, left, equalPrefixLength);
+                    buffer.rightFCDUTF16Iter.setText(numeric, right, equalPrefixLength);
+                    result = CollationCompare.compareUpToQuaternary(
+                            buffer.leftFCDUTF16Iter, buffer.rightFCDUTF16Iter, roSettings);
+                }
+            } finally {
+                releaseCollationBuffer(buffer);
+            }
+        }
+        if(result != UCOL_EQUAL || roSettings.getStrength() < Collator.IDENTICAL) {
+            return result;
+        }
+
         CollationBuffer buffer = null;
         try {
             buffer = getCollationBuffer();
-            return compare(source, target, buffer);
+            // Compare identical level.
+            Normalizer2Impl nfcImpl = data.nfcImpl;
+            if(roSettings.dontCheckFCD()) {
+                buffer.leftUTF16NFDIter.setText(left, equalPrefixLength);
+                buffer.rightUTF16NFDIter.setText(right, equalPrefixLength);
+                return compareNFDIter(nfcImpl, buffer.leftUTF16NFDIter, buffer.rightUTF16NFDIter);
+            } else {
+                buffer.leftFCDUTF16NFDIter.setText(nfcImpl, left, equalPrefixLength);
+                buffer.rightFCDUTF16NFDIter.setText(nfcImpl, right, equalPrefixLength);
+                return compareNFDIter(nfcImpl, buffer.leftFCDUTF16NFDIter, buffer.rightFCDUTF16NFDIter);
+            }
         } finally {
             releaseCollationBuffer(buffer);
-        }
-    }
-
-    private int compare(String source, String target, CollationBuffer buffer) {
-        // Find the length of any leading portion that is equal
-        int offset = getFirstUnmatchedOffset(source, target);
-        // return compareRegular(source, target, offset);
-        if (latinOneUse_) {
-            if ((offset < source.length() && source.charAt(offset) > ENDOFLATINONERANGE_)
-                    || (offset < target.length() && target.charAt(offset) > ENDOFLATINONERANGE_)) {
-                // source or target start with non-latin-1
-                return compareRegular(source, target, offset, buffer);
-            } else {
-                return compareUseLatin1(source, target, offset, buffer);
-            }
-        } else {
-            return compareRegular(source, target, offset, buffer);
         }
     }
 
@@ -2058,7 +2288,12 @@ public final class RuleBasedCollator extends Collator {
      * </p>
      */
     RuleBasedCollator() {
+        // TODO: delete checkUCA()
         checkUCA();
+        // TODO: rewrite the following temporary hack
+        tailoring = CollationRoot.getRoot();
+        data = tailoring.data;
+        settings = tailoring.settings.clone();
     }
 
     /**
@@ -2349,10 +2584,6 @@ public final class RuleBasedCollator extends Collator {
     private static final int CE_REMOVE_CASE_ = 0x3F;
     private static final int CE_KEEP_CASE_ = 0xFF;
     /**
-     * Case strength mask
-     */
-    private static final int CE_CASE_MASK_3_ = 0xFF;
-    /**
      * Sortkey size factor. Values can be changed.
      */
     private static final double PROPORTION_2_ = 0.5;
@@ -2437,11 +2668,6 @@ public final class RuleBasedCollator extends Collator {
     private static final byte SORT_CASE_BYTE_START_ = (byte) 0x80;
     private static final byte SORT_CASE_SHIFT_START_ = (byte) 7;
 
-    /**
-     * CE buffer size
-     */
-    private static final int CE_BUFFER_SIZE_ = 512;
-
     // variables for Latin-1 processing
     boolean latinOneUse_ = false;
     boolean latinOneRegenTable_ = false;
@@ -2450,14 +2676,36 @@ public final class RuleBasedCollator extends Collator {
     int latinOneTableLen_ = 0;
     int latinOneCEs_[] = null;
 
+    // TODO: make class CollationBuffer a static nested class
     private final class CollationBuffer {
+        private CollationBuffer(CollationData data) {
+            leftUTF16Iter = new UTF16CollationIterator(data);
+            rightUTF16Iter = new UTF16CollationIterator(data);
+            leftFCDUTF16Iter = new FCDUTF16CollationIterator(data);
+            rightFCDUTF16Iter = new FCDUTF16CollationIterator(data);
+            leftUTF16NFDIter = new UTF16NFDIterator();
+            rightUTF16NFDIter = new UTF16NFDIterator();
+            leftFCDUTF16NFDIter = new FCDUTF16NFDIterator();
+            rightFCDUTF16NFDIter = new FCDUTF16NFDIterator();
+            initBuffers();
+        }
+
+        UTF16CollationIterator leftUTF16Iter;
+        UTF16CollationIterator rightUTF16Iter;
+        FCDUTF16CollationIterator leftFCDUTF16Iter;
+        FCDUTF16CollationIterator rightFCDUTF16Iter;
+
+        UTF16NFDIterator leftUTF16NFDIter;
+        UTF16NFDIterator rightUTF16NFDIter;
+        FCDUTF16NFDIterator leftFCDUTF16NFDIter;
+        FCDUTF16NFDIterator rightFCDUTF16NFDIter;
+
+        // TODO: delete everything below
         /**
          * Bunch of utility iterators
          */
         protected StringUCharacterIterator m_srcUtilIter_;
         protected CollationElementIterator m_srcUtilColEIter_;
-        protected StringUCharacterIterator m_tgtUtilIter_;
-        protected CollationElementIterator m_tgtUtilColEIter_;
 
         /**
          * Utility comparison flags
@@ -2499,39 +2747,17 @@ public final class RuleBasedCollator extends Collator {
         protected int m_utilFrenchEnd_;
 
         /**
-         * Preparing the CE buffers. will be filled during the primary phase
-         */
-        protected int m_srcUtilCEBuffer_[];
-        protected int m_tgtUtilCEBuffer_[];
-        protected int m_srcUtilCEBufferSize_;
-        protected int m_tgtUtilCEBufferSize_;
-
-        protected int m_srcUtilContOffset_;
-        protected int m_tgtUtilContOffset_;
-
-        protected int m_srcUtilOffset_;
-        protected int m_tgtUtilOffset_;
-
-        private CollationBuffer() {
-            initBuffers();
-        }
-
-        /**
          * Initializes utility iterators and byte buffer used by compare
          */
         protected final void initBuffers() {
             resetBuffers();
             m_srcUtilIter_ = new StringUCharacterIterator();
             m_srcUtilColEIter_ = new CollationElementIterator(m_srcUtilIter_, RuleBasedCollator.this);
-            m_tgtUtilIter_ = new StringUCharacterIterator();
-            m_tgtUtilColEIter_ = new CollationElementIterator(m_tgtUtilIter_, RuleBasedCollator.this);
             m_utilBytes0_ = new byte[SORT_BUFFER_INIT_SIZE_CASE_]; // case
             m_utilBytes1_ = new byte[SORT_BUFFER_INIT_SIZE_1_]; // primary
             m_utilBytes2_ = new byte[SORT_BUFFER_INIT_SIZE_2_]; // secondary
             m_utilBytes3_ = new byte[SORT_BUFFER_INIT_SIZE_3_]; // tertiary
             m_utilBytes4_ = new byte[SORT_BUFFER_INIT_SIZE_4_]; // Quaternary
-            m_srcUtilCEBuffer_ = new int[CE_BUFFER_SIZE_];
-            m_tgtUtilCEBuffer_ = new int[CE_BUFFER_SIZE_];
         }
 
         protected final void resetBuffers() {
@@ -2555,12 +2781,6 @@ public final class RuleBasedCollator extends Collator {
 
             m_utilFrenchStart_ = 0;
             m_utilFrenchEnd_ = 0;
-
-            m_srcUtilContOffset_ = 0;
-            m_tgtUtilContOffset_ = 0;
-
-            m_srcUtilOffset_ = 0;
-            m_tgtUtilOffset_ = 0;            
         }
     }
 
@@ -2573,83 +2793,6 @@ public final class RuleBasedCollator extends Collator {
         m_rules_ = rules;
         init();
         buildPermutationTable();
-    }
-
-    private final int compareRegular(String source, String target, int offset, CollationBuffer buffer) {
-        buffer.resetBuffers();
-        
-        int strength = getStrength();
-        // setting up the collator parameters
-        buffer.m_utilCompare0_ = m_isCaseLevel_;
-        // m_utilCompare1_ = true;
-        buffer.m_utilCompare2_ = strength >= SECONDARY;
-        buffer.m_utilCompare3_ = strength >= TERTIARY;
-        buffer.m_utilCompare4_ = strength >= QUATERNARY;
-        buffer.m_utilCompare5_ = strength == IDENTICAL;
-        boolean doFrench = m_isFrenchCollation_ && buffer.m_utilCompare2_;
-        boolean doShift4 = m_isAlternateHandlingShifted_ && buffer.m_utilCompare4_;
-        boolean doHiragana4 = m_isHiragana4_ && buffer.m_utilCompare4_;
-
-        if (doHiragana4 && doShift4) {
-            String sourcesub = source.substring(offset);
-            String targetsub = target.substring(offset);
-            return compareBySortKeys(sourcesub, targetsub, buffer);
-        }
-
-        // This is the lowest primary value that will not be ignored if shifted
-        int lowestpvalue = m_isAlternateHandlingShifted_ ? m_variableTopValue_ << 16 : 0;
-        buffer.m_srcUtilCEBufferSize_ = 0;
-        buffer.m_tgtUtilCEBufferSize_ = 0;
-        int result = doPrimaryCompare(doHiragana4, lowestpvalue, source, target, offset, buffer);
-        if (buffer.m_srcUtilCEBufferSize_ == -1 && buffer.m_tgtUtilCEBufferSize_ == -1) {
-            // since the cebuffer is cleared when we have determined that
-            // either source is greater than target or vice versa, the return
-            // result is the comparison result and not the hiragana result
-            return result;
-        }
-
-        int hiraganaresult = result;
-
-        if (buffer.m_utilCompare2_) {
-            result = doSecondaryCompare(doFrench, buffer);
-            if (result != 0) {
-                return result;
-            }
-        }
-        // doing the case bit
-        if (buffer.m_utilCompare0_) {
-            result = doCaseCompare(buffer);
-            if (result != 0) {
-                return result;
-            }
-        }
-        // Tertiary level
-        if (buffer.m_utilCompare3_) {
-            result = doTertiaryCompare(buffer);
-            if (result != 0) {
-                return result;
-            }
-        }
-
-        if (doShift4) { // checkQuad
-            result = doQuaternaryCompare(lowestpvalue, buffer);
-            if (result != 0) {
-                return result;
-            }
-        } else if (doHiragana4 && hiraganaresult != 0) {
-            // If we're fine on quaternaries, we might be different
-            // on Hiragana. This, however, might fail us in shifted.
-            return hiraganaresult;
-        }
-
-        // For IDENTICAL comparisons, we use a bitwise character comparison
-        // as a tiebreaker if all else is equal.
-        // Getting here should be quite rare - strings are not identical -
-        // that is checked first, but compared == through all other checks.
-        if (buffer.m_utilCompare5_) {
-            return doIdenticalCompare(source, target, offset, true);
-        }
-        return 0;
     }
 
     // Is this primary weight compressible?
@@ -3206,20 +3349,6 @@ public final class RuleBasedCollator extends Collator {
     }
 
     /**
-     * Increase buffer size
-     * 
-     * @param buffer array of ints
-     * @param size of the byte array
-     * @param incrementsize size to increase
-     * @return the new buffer
-     */
-    private static final int[] increase(int buffer[], int size, int incrementsize) {
-        int result[] = new int[buffer.length + incrementsize];
-        System.arraycopy(buffer, 0, result, 0, size);
-        return result;
-    }
-
-    /**
      * Compacts the case bytes and stores them into the primary array
      * 
      * @param buffer collation buffer temporary state
@@ -3309,64 +3438,6 @@ public final class RuleBasedCollator extends Collator {
     }
 
     /**
-     * Gets the offset of the first unmatched characters in source and target. This method returns the offset of the
-     * start of a contraction or a combining sequence, if the first difference is in the middle of such a sequence.
-     * 
-     * @param source
-     *            string
-     * @param target
-     *            string
-     * @return offset of the first unmatched characters in source and target.
-     */
-    private final int getFirstUnmatchedOffset(String source, String target) {
-        int result = 0;
-        int slength = source.length();
-        int tlength = target.length();
-        int minlength = slength;
-        if (minlength > tlength) {
-            minlength = tlength;
-        }
-        while (result < minlength && source.charAt(result) == target.charAt(result)) {
-            result++;
-        }
-        if (result > 0) {
-            // There is an identical portion at the beginning of the two
-            // strings. If the identical portion ends within a contraction or a
-            // combining character sequence, back up to the start of that
-            // sequence.
-            char schar = 0;
-            char tchar = 0;
-            if (result < minlength) {
-                schar = source.charAt(result); // first differing chars
-                tchar = target.charAt(result);
-            } else {
-                schar = source.charAt(minlength - 1);
-                if (isUnsafe(schar)) {
-                    tchar = schar;
-                } else if (slength == tlength) {
-                    return result;
-                } else if (slength < tlength) {
-                    tchar = target.charAt(result);
-                } else {
-                    schar = source.charAt(result);
-                }
-            }
-            if (isUnsafe(schar) || isUnsafe(tchar)) {
-                // We are stopped in the middle of a contraction or combining
-                // sequence.
-                // Look backwards for the part of the string for the start of
-                // the sequence
-                // It doesn't matter which string we scan, since they are the
-                // same in this region.
-                do {
-                    result--;
-                } while (result > 0 && isUnsafe(source.charAt(result)));
-            }
-        }
-        return result;
-    }
-
-    /**
      * Appending an byte to an array of bytes and increases it if we run out of space
      * 
      * @param array
@@ -3385,638 +3456,6 @@ public final class RuleBasedCollator extends Collator {
             array[appendindex] = value;
         }
         return array;
-    }
-
-    /**
-     * This is a trick string compare function that goes in and uses sortkeys to compare. It is used when compare gets
-     * in trouble and needs to bail out.
-     * 
-     * @param source text string
-     * @param target text string
-     * @param buffer collation buffer temporary state
-     */
-    private final int compareBySortKeys(String source, String target, CollationBuffer buffer)
-    {
-        buffer.m_utilRawCollationKey_ = getRawCollationKey(source, buffer.m_utilRawCollationKey_);
-        // this method is very seldom called
-        RawCollationKey targetkey = getRawCollationKey(target, null);
-        return buffer.m_utilRawCollationKey_.compareTo(targetkey);
-    }
-
-    /**
-     * Performs the primary comparisons, and fills up the CE buffer at the same time. The return value toggles between
-     * the comparison result and the hiragana result. If either the source is greater than target or vice versa, the
-     * return result is the comparison result, ie 1 or -1, furthermore the cebuffers will be cleared when that happens.
-     * If the primary comparisons are equal, we'll have to continue with secondary comparison. In this case the cebuffer
-     * will not be cleared and the return result will be the hiragana result.
-     * 
-     * @param doHiragana4 flag indicator that Hiragana Quaternary has to be observed
-     * @param lowestpvalue the lowest primary value that will not be ignored if alternate handling is shifted
-     * @param source text string
-     * @param target text string
-     * @param textoffset offset in text to start the comparison
-     * @param buffer collation buffer temporary state
-     * @return comparion result if a primary difference is found, otherwise hiragana result
-     */
-    private final int doPrimaryCompare(boolean doHiragana4, int lowestpvalue, String source, String target,
-            int textoffset, CollationBuffer buffer)
-
-    {
-        // Preparing the context objects for iterating over strings
-        buffer.m_srcUtilIter_.setText(source);
-        buffer.m_srcUtilColEIter_.setText(buffer.m_srcUtilIter_, textoffset);
-        buffer.m_tgtUtilIter_.setText(target);
-        buffer.m_tgtUtilColEIter_.setText(buffer.m_tgtUtilIter_, textoffset);
-
-        // Non shifted primary processing is quite simple
-        if (!m_isAlternateHandlingShifted_) {
-            int hiraganaresult = 0;
-            while (true) {
-                int sorder = 0;
-                int sPrimary;
-                // We fetch CEs until we hit a non ignorable primary or end.
-                do {
-                    sorder = buffer.m_srcUtilColEIter_.next();
-                    buffer.m_srcUtilCEBuffer_ = append(buffer.m_srcUtilCEBuffer_, buffer.m_srcUtilCEBufferSize_, sorder);
-                    buffer.m_srcUtilCEBufferSize_++;
-                    sPrimary = sorder & CE_PRIMARY_MASK_;
-                } while (sPrimary == CollationElementIterator.IGNORABLE);
-
-                int torder = 0;
-                int tPrimary;
-                do {
-                    torder = buffer.m_tgtUtilColEIter_.next();
-                    buffer.m_tgtUtilCEBuffer_ = append(buffer.m_tgtUtilCEBuffer_, buffer.m_tgtUtilCEBufferSize_, torder);
-                    buffer.m_tgtUtilCEBufferSize_++;
-                    tPrimary = torder & CE_PRIMARY_MASK_;
-                } while (tPrimary == CollationElementIterator.IGNORABLE);
-
-                // if both primaries are the same
-                if (sPrimary == tPrimary) {
-                    // and there are no more CEs, we advance to the next level
-                    // see if we are at the end of either string
-                    if (buffer.m_srcUtilCEBuffer_[buffer.m_srcUtilCEBufferSize_ - 1] == CollationElementIterator.NULLORDER) {
-                        if (buffer.m_tgtUtilCEBuffer_[buffer.m_tgtUtilCEBufferSize_ - 1] != CollationElementIterator.NULLORDER) {
-                            return -1;
-                        }
-                        break;
-                    } else if (buffer.m_tgtUtilCEBuffer_[buffer.m_tgtUtilCEBufferSize_ - 1] == CollationElementIterator.NULLORDER) {
-                        return 1;
-                    }
-                    if (doHiragana4 && hiraganaresult == 0
-                            && buffer.m_srcUtilColEIter_.m_isCodePointHiragana_ != buffer.m_tgtUtilColEIter_.m_isCodePointHiragana_) {
-                        if (buffer.m_srcUtilColEIter_.m_isCodePointHiragana_) {
-                            hiraganaresult = -1;
-                        } else {
-                            hiraganaresult = 1;
-                        }
-                    }
-                } else {
-                    if (!isContinuation(sorder) && m_leadBytePermutationTable_ != null) {
-                        sPrimary = (m_leadBytePermutationTable_[sPrimary >>> 24] << 24) | (sPrimary & 0x00FFFFFF);
-                        tPrimary = (m_leadBytePermutationTable_[tPrimary >>> 24] << 24) | (tPrimary & 0x00FFFFFF);
-                    }
-                    // if two primaries are different, we are done
-                    return endPrimaryCompare(sPrimary, tPrimary, buffer);
-                }
-            }
-            // no primary difference... do the rest from the buffers
-            return hiraganaresult;
-        } else { // shifted - do a slightly more complicated processing :)
-            while (true) {
-                int sorder = getPrimaryShiftedCompareCE(buffer.m_srcUtilColEIter_, lowestpvalue, true, buffer);
-                int torder = getPrimaryShiftedCompareCE(buffer.m_tgtUtilColEIter_, lowestpvalue, false, buffer);
-                if (sorder == torder) {
-                    if (buffer.m_srcUtilCEBuffer_[buffer.m_srcUtilCEBufferSize_ - 1] == CollationElementIterator.NULLORDER) {
-                        break;
-                    } else {
-                        continue;
-                    }
-                } else {
-                    return endPrimaryCompare(sorder, torder, buffer);
-                }
-            } // no primary difference... do the rest from the buffers
-        }
-        return 0;
-    }
-
-    /**
-     * This is used only for primary strength when we know that sorder is already different from torder. Compares sorder
-     * and torder, returns -1 if sorder is less than torder. Clears the cebuffer at the same time.
-     * 
-     * @param sorder source strength order
-     * @param torder target strength order
-     * @param buffer collation buffer temporary state
-     * @return the comparison result of sorder and torder
-     */
-    private static final int endPrimaryCompare(int sorder, int torder, CollationBuffer buffer) {
-        // if we reach here, the ce offset accessed is the last ce
-        // appended to the buffer
-        boolean isSourceNullOrder = (buffer.m_srcUtilCEBuffer_[buffer.m_srcUtilCEBufferSize_ - 1] == CollationElementIterator.NULLORDER);
-        boolean isTargetNullOrder = (buffer.m_tgtUtilCEBuffer_[buffer.m_tgtUtilCEBufferSize_ - 1] == CollationElementIterator.NULLORDER);
-        buffer.m_srcUtilCEBufferSize_ = -1;
-        buffer.m_tgtUtilCEBufferSize_ = -1;
-        if (isSourceNullOrder) {
-            return -1;
-        }
-        if (isTargetNullOrder) {
-            return 1;
-        }
-        // getting rid of the sign
-        sorder >>>= CE_PRIMARY_SHIFT_;
-                    torder >>>= CE_PRIMARY_SHIFT_;
-                    if (sorder < torder) {
-                        return -1;
-                    }
-                    return 1;
-    }
-
-    /**
-     * Calculates the next primary shifted value and fills up cebuffer with the next non-ignorable ce.
-     * 
-     * @param coleiter collation element iterator
-     * @param doHiragana4 flag indicator if hiragana quaternary is to be handled
-     * @param lowestpvalue lowest primary shifted value that will not be ignored
-     * @param buffer collation buffer temporary state
-     * @return result next modified ce
-     */
-    private static final int getPrimaryShiftedCompareCE(CollationElementIterator coleiter, int lowestpvalue, boolean isSrc, CollationBuffer buffer)
-    {
-        boolean shifted = false;
-        int result = CollationElementIterator.IGNORABLE;
-        int cebuffer[] = buffer.m_srcUtilCEBuffer_;
-        int cebuffersize = buffer.m_srcUtilCEBufferSize_;
-        if (!isSrc) {
-            cebuffer = buffer.m_tgtUtilCEBuffer_;
-            cebuffersize = buffer.m_tgtUtilCEBufferSize_;
-        }
-        while (true) {
-            result = coleiter.next();
-            if (result == CollationElementIterator.NULLORDER) {
-                cebuffer = append(cebuffer, cebuffersize, result);
-                cebuffersize++;
-                break;
-            } else if (result == CollationElementIterator.IGNORABLE
-                    || (shifted && (result & CE_PRIMARY_MASK_) == CollationElementIterator.IGNORABLE)) {
-                // UCA amendment - ignore ignorables that follow shifted code
-                // points
-                continue;
-            } else if (isContinuation(result)) {
-                if ((result & CE_PRIMARY_MASK_) != CollationElementIterator.IGNORABLE) {
-                    // There is primary value
-                    if (shifted) {
-                        result = (result & CE_PRIMARY_MASK_) | CE_CONTINUATION_MARKER_;
-                        // preserve interesting continuation
-                        cebuffer = append(cebuffer, cebuffersize, result);
-                        cebuffersize++;
-                        continue;
-                    } else {
-                        cebuffer = append(cebuffer, cebuffersize, result);
-                        cebuffersize++;
-                        break;
-                    }
-                } else { // Just lower level values
-                    if (!shifted) {
-                        cebuffer = append(cebuffer, cebuffersize, result);
-                        cebuffersize++;
-                    }
-                }
-            } else { // regular
-                if (Utility.compareUnsigned(result & CE_PRIMARY_MASK_, lowestpvalue) > 0) {
-                    cebuffer = append(cebuffer, cebuffersize, result);
-                    cebuffersize++;
-                    break;
-                } else {
-                    if ((result & CE_PRIMARY_MASK_) != 0) {
-                        shifted = true;
-                        result &= CE_PRIMARY_MASK_;
-                        cebuffer = append(cebuffer, cebuffersize, result);
-                        cebuffersize++;
-                        continue;
-                    } else {
-                        cebuffer = append(cebuffer, cebuffersize, result);
-                        cebuffersize++;
-                        shifted = false;
-                        continue;
-                    }
-                }
-            }
-        }
-        if (isSrc) {
-            buffer.m_srcUtilCEBuffer_ = cebuffer;
-            buffer.m_srcUtilCEBufferSize_ = cebuffersize;
-        } else {
-            buffer.m_tgtUtilCEBuffer_ = cebuffer;
-            buffer.m_tgtUtilCEBufferSize_ = cebuffersize;
-        }
-        result &= CE_PRIMARY_MASK_;
-        return result;
-    }
-
-    /**
-     * Appending an int to an array of ints and increases it if we run out of space
-     * 
-     * @param array
-     *            of int arrays
-     * @param appendindex
-     *            index at which value will be appended
-     * @param value
-     *            to append
-     * @return array if size is not increased, otherwise a new array will be returned
-     */
-    private static final int[] append(int array[], int appendindex, int value) {
-        if (appendindex + 1 >= array.length) {
-            array = increase(array, appendindex, CE_BUFFER_SIZE_);
-        }
-        array[appendindex] = value;
-        return array;
-    }
-
-    /**
-     * Does secondary strength comparison based on the collected ces.
-     * 
-     * @param doFrench flag indicates if French ordering is to be done
-     * @param buffer collation buffer temporary state
-     * @return the secondary strength comparison result
-     */
-    private static final int doSecondaryCompare(boolean doFrench, CollationBuffer buffer) {
-        // now, we're gonna reexamine collected CEs
-        if (!doFrench) { // normal
-            int soffset = 0;
-            int toffset = 0;
-            while (true) {
-                int sorder = CollationElementIterator.IGNORABLE;
-                while (sorder == CollationElementIterator.IGNORABLE) {
-                    sorder = buffer.m_srcUtilCEBuffer_[soffset++] & CE_SECONDARY_MASK_;
-                }
-                int torder = CollationElementIterator.IGNORABLE;
-                while (torder == CollationElementIterator.IGNORABLE) {
-                    torder = buffer.m_tgtUtilCEBuffer_[toffset++] & CE_SECONDARY_MASK_;
-                }
-
-                if (sorder == torder) {
-                    if (buffer.m_srcUtilCEBuffer_[soffset - 1] == CollationElementIterator.NULLORDER) {
-                        if (buffer.m_tgtUtilCEBuffer_[toffset - 1] != CollationElementIterator.NULLORDER) {
-                            return -1;
-                        }
-                        break;
-                    } else if (buffer.m_tgtUtilCEBuffer_[toffset - 1] == CollationElementIterator.NULLORDER) {
-                        return 1;
-                    }
-                } else {
-                    if (buffer.m_srcUtilCEBuffer_[soffset - 1] == CollationElementIterator.NULLORDER) {
-                        return -1;
-                    }
-                    if (buffer.m_tgtUtilCEBuffer_[toffset - 1] == CollationElementIterator.NULLORDER) {
-                        return 1;
-                    }
-                    return (sorder < torder) ? -1 : 1;
-                }
-            }
-        } else { // do the French
-            buffer.m_srcUtilContOffset_ = 0;
-            buffer.m_tgtUtilContOffset_ = 0;
-            buffer.m_srcUtilOffset_ = buffer.m_srcUtilCEBufferSize_ - 2;
-            buffer.m_tgtUtilOffset_ = buffer.m_tgtUtilCEBufferSize_ - 2;
-            while (true) {
-                int sorder = getSecondaryFrenchCE(true, buffer);
-                int torder = getSecondaryFrenchCE(false, buffer);
-                if (sorder == torder) {
-                    if ((buffer.m_srcUtilOffset_ < 0 && buffer.m_tgtUtilOffset_ < 0)
-                            || (buffer.m_srcUtilOffset_ >= 0 && buffer.m_srcUtilCEBuffer_[buffer.m_srcUtilOffset_] == CollationElementIterator.NULLORDER)) {
-                        break;
-                    }
-                } else {
-                    return (sorder < torder) ? -1 : 1;
-                }
-            }
-        }
-        return 0;
-    }
-
-    /**
-     * Calculates the next secondary french CE.
-     * 
-     * @param isSrc flag indicator if we are calculating the src ces
-     * @param buffer collation buffer temporary state
-     * @return result next modified ce
-     */
-    private static final int getSecondaryFrenchCE(boolean isSrc, CollationBuffer buffer) {
-        int result = CollationElementIterator.IGNORABLE;
-        int offset = buffer.m_srcUtilOffset_;
-        int continuationoffset = buffer.m_srcUtilContOffset_;
-        int cebuffer[] = buffer.m_srcUtilCEBuffer_;
-        if (!isSrc) {
-            offset = buffer.m_tgtUtilOffset_;
-            continuationoffset = buffer.m_tgtUtilContOffset_;
-            cebuffer = buffer.m_tgtUtilCEBuffer_;
-        }
-
-        while (result == CollationElementIterator.IGNORABLE && offset >= 0) {
-            if (continuationoffset == 0) {
-                result = cebuffer[offset];
-                while (isContinuation(cebuffer[offset--])) {
-                }
-                // after this, sorder is at the start of continuation,
-                // and offset points before that
-                if (isContinuation(cebuffer[offset + 1])) {
-                    // save offset for later
-                    continuationoffset = offset;
-                    offset += 2;
-                }
-            } else {
-                result = cebuffer[offset++];
-                if (!isContinuation(result)) {
-                    // we have finished with this continuation
-                    offset = continuationoffset;
-                    // reset the pointer to before continuation
-                    continuationoffset = 0;
-                    continue;
-                }
-            }
-            result &= CE_SECONDARY_MASK_; // remove continuation bit
-        }
-        if (isSrc) {
-            buffer.m_srcUtilOffset_ = offset;
-            buffer.m_srcUtilContOffset_ = continuationoffset;
-        } else {
-            buffer.m_tgtUtilOffset_ = offset;
-            buffer.m_tgtUtilContOffset_ = continuationoffset;
-        }
-        return result;
-    }
-
-    /**
-     * Does case strength comparison based on the collected ces.
-     * 
-     * @param buffer collation buffer temporary state
-     * @return the case strength comparison result
-     */
-    private final int doCaseCompare(CollationBuffer buffer) {
-        int soffset = 0;
-        int toffset = 0;
-        while (true) {
-            int sorder = CollationElementIterator.IGNORABLE;
-            int torder = CollationElementIterator.IGNORABLE;
-            while ((sorder & CE_REMOVE_CASE_) == CollationElementIterator.IGNORABLE) {
-                sorder = buffer.m_srcUtilCEBuffer_[soffset++];
-                if (!isContinuation(sorder) && ((sorder & CE_PRIMARY_MASK_) != 0 || buffer.m_utilCompare2_ == true)) {
-                    // primary ignorables should not be considered on the case level when the strength is primary
-                    // otherwise, the CEs stop being well-formed
-                    sorder &= CE_CASE_MASK_3_;
-                    sorder ^= m_caseSwitch_;
-                } else {
-                    sorder = CollationElementIterator.IGNORABLE;
-                }
-            }
-
-            while ((torder & CE_REMOVE_CASE_) == CollationElementIterator.IGNORABLE) {
-                torder = buffer.m_tgtUtilCEBuffer_[toffset++];
-                if (!isContinuation(torder) && ((torder & CE_PRIMARY_MASK_) != 0 || buffer.m_utilCompare2_ == true)) {
-                    // primary ignorables should not be considered on the case level when the strength is primary
-                    // otherwise, the CEs stop being well-formed
-                    torder &= CE_CASE_MASK_3_;
-                    torder ^= m_caseSwitch_;
-                } else {
-                    torder = CollationElementIterator.IGNORABLE;
-                }
-            }
-
-            sorder &= CE_CASE_BIT_MASK_;
-            torder &= CE_CASE_BIT_MASK_;
-            if (sorder == torder) {
-                // checking end of strings
-                if (buffer.m_srcUtilCEBuffer_[soffset - 1] == CollationElementIterator.NULLORDER) {
-                    if (buffer.m_tgtUtilCEBuffer_[toffset - 1] != CollationElementIterator.NULLORDER) {
-                        return -1;
-                    }
-                    break;
-                } else if (buffer.m_tgtUtilCEBuffer_[toffset - 1] == CollationElementIterator.NULLORDER) {
-                    return 1;
-                }
-            } else {
-                if (buffer.m_srcUtilCEBuffer_[soffset - 1] == CollationElementIterator.NULLORDER) {
-                    return -1;
-                }
-                if (buffer.m_tgtUtilCEBuffer_[soffset - 1] == CollationElementIterator.NULLORDER) {
-                    return 1;
-                }
-                return (sorder < torder) ? -1 : 1;
-            }
-        }
-        return 0;
-    }
-
-    /**
-     * Does tertiary strength comparison based on the collected ces.
-     * 
-     * @param buffer collation buffer temporary state
-     * @return the tertiary strength comparison result
-     */
-    private final int doTertiaryCompare(CollationBuffer buffer) {
-        int soffset = 0;
-        int toffset = 0;
-        while (true) {
-            int sorder = CollationElementIterator.IGNORABLE;
-            int torder = CollationElementIterator.IGNORABLE;
-            while ((sorder & CE_REMOVE_CASE_) == CollationElementIterator.IGNORABLE) {
-                sorder = buffer.m_srcUtilCEBuffer_[soffset++];
-                if (!isContinuation(sorder)) {
-                    sorder = (sorder & m_mask3_) ^ m_caseSwitch_;
-                } else {
-                    sorder = (sorder & m_mask3_) & CE_REMOVE_CASE_;
-                }
-            }
-
-            while ((torder & CE_REMOVE_CASE_) == CollationElementIterator.IGNORABLE) {
-                torder = buffer.m_tgtUtilCEBuffer_[toffset++];
-                if (!isContinuation(torder)) {
-                    torder = (torder & m_mask3_) ^ m_caseSwitch_;
-                } else {
-                    torder = (torder & m_mask3_) & CE_REMOVE_CASE_;
-                }
-            }
-
-            if (sorder == torder) {
-                if (buffer.m_srcUtilCEBuffer_[soffset - 1] == CollationElementIterator.NULLORDER) {
-                    if (buffer.m_tgtUtilCEBuffer_[toffset - 1] != CollationElementIterator.NULLORDER) {
-                        return -1;
-                    }
-                    break;
-                } else if (buffer.m_tgtUtilCEBuffer_[toffset - 1] == CollationElementIterator.NULLORDER) {
-                    return 1;
-                }
-            } else {
-                if (buffer.m_srcUtilCEBuffer_[soffset - 1] == CollationElementIterator.NULLORDER) {
-                    return -1;
-                }
-                if (buffer.m_tgtUtilCEBuffer_[toffset - 1] == CollationElementIterator.NULLORDER) {
-                    return 1;
-                }
-                return (sorder < torder) ? -1 : 1;
-            }
-        }
-        return 0;
-    }
-
-    /**
-     * Does quaternary strength comparison based on the collected ces.
-     * 
-     * @param lowestpvalue the lowest primary value that will not be ignored if alternate handling is shifted
-     * @param buffer collation buffer temporary state
-     * @return the quaternary strength comparison result
-     */
-    private final int doQuaternaryCompare(int lowestpvalue, CollationBuffer buffer) {
-        boolean sShifted = true;
-        boolean tShifted = true;
-        int soffset = 0;
-        int toffset = 0;
-        while (true) {
-            int sorder = CollationElementIterator.IGNORABLE;
-            int torder = CollationElementIterator.IGNORABLE;
-            while (sorder == CollationElementIterator.IGNORABLE || (isContinuation(sorder) && !sShifted)) {
-                sorder = buffer.m_srcUtilCEBuffer_[soffset++];
-                if (isContinuation(sorder)) {
-                    if (!sShifted) {
-                        continue;
-                    }
-                } else if (Utility.compareUnsigned(sorder, lowestpvalue) > 0
-                        || (sorder & CE_PRIMARY_MASK_) == CollationElementIterator.IGNORABLE) {
-                    // non continuation
-                    sorder = CE_PRIMARY_MASK_;
-                    sShifted = false;
-                } else {
-                    sShifted = true;
-                }
-            }
-            sorder >>>= CE_PRIMARY_SHIFT_;
-                    while (torder == CollationElementIterator.IGNORABLE || (isContinuation(torder) && !tShifted)) {
-                        torder = buffer.m_tgtUtilCEBuffer_[toffset++];
-                        if (isContinuation(torder)) {
-                            if (!tShifted) {
-                                continue;
-                            }
-                        } else if (Utility.compareUnsigned(torder, lowestpvalue) > 0
-                                || (torder & CE_PRIMARY_MASK_) == CollationElementIterator.IGNORABLE) {
-                            // non continuation
-                            torder = CE_PRIMARY_MASK_;
-                            tShifted = false;
-                        } else {
-                            tShifted = true;
-                        }
-                    }
-                    torder >>>= CE_PRIMARY_SHIFT_;
-
-                    if (sorder == torder) {
-                        if (buffer.m_srcUtilCEBuffer_[soffset - 1] == CollationElementIterator.NULLORDER) {
-                            if (buffer.m_tgtUtilCEBuffer_[toffset - 1] != CollationElementIterator.NULLORDER) {
-                                return -1;
-                            }
-                            break;
-                        } else if (buffer.m_tgtUtilCEBuffer_[toffset - 1] == CollationElementIterator.NULLORDER) {
-                            return 1;
-                        }
-                    } else {
-                        if (buffer.m_srcUtilCEBuffer_[soffset - 1] == CollationElementIterator.NULLORDER) {
-                            return -1;
-                        }
-                        if (buffer.m_tgtUtilCEBuffer_[toffset - 1] == CollationElementIterator.NULLORDER) {
-                            return 1;
-                        }
-                        return (sorder < torder) ? -1 : 1;
-                    }
-        }
-        return 0;
-    }
-
-    /**
-     * Internal function. Does byte level string compare. Used by strcoll if strength == identical and strings are
-     * otherwise equal. This is a rare case. Comparison must be done on NFD normalized strings. FCD is not good enough.
-     * 
-     * @param source
-     *            text
-     * @param target
-     *            text
-     * @param offset
-     *            of the first difference in the text strings
-     * @param normalize
-     *            flag indicating if we are to normalize the text before comparison
-     * @return 1 if source is greater than target, -1 less than and 0 if equals
-     */
-    private static final int doIdenticalCompare(String source, String target, int offset, boolean normalize)
-
-    {
-        if (normalize) {
-            if (Normalizer.quickCheck(source, Normalizer.NFD, 0) != Normalizer.YES) {
-                source = Normalizer.decompose(source, false);
-            }
-
-            if (Normalizer.quickCheck(target, Normalizer.NFD, 0) != Normalizer.YES) {
-                target = Normalizer.decompose(target, false);
-            }
-            offset = 0;
-        }
-
-        return doStringCompare(source, target, offset);
-    }
-
-    /**
-     * Compares string for their codepoint order. This comparison handles surrogate characters and place them after the
-     * all non surrogate characters.
-     * 
-     * @param source
-     *            text
-     * @param target
-     *            text
-     * @param offset
-     *            start offset for comparison
-     * @return 1 if source is greater than target, -1 less than and 0 if equals
-     */
-    private static final int doStringCompare(String source, String target, int offset) {
-        // compare identical prefixes - they do not need to be fixed up
-        char schar = 0;
-        char tchar = 0;
-        int slength = source.length();
-        int tlength = target.length();
-        int minlength = Math.min(slength, tlength);
-        while (offset < minlength) {
-            schar = source.charAt(offset);
-            tchar = target.charAt(offset++);
-            if (schar != tchar) {
-                break;
-            }
-        }
-
-        if (schar == tchar && offset == minlength) {
-            if (slength > minlength) {
-                return 1;
-            }
-            if (tlength > minlength) {
-                return -1;
-            }
-            return 0;
-        }
-
-        // if both values are in or above the surrogate range, Fix them up.
-        if (schar >= UTF16.LEAD_SURROGATE_MIN_VALUE && tchar >= UTF16.LEAD_SURROGATE_MIN_VALUE) {
-            schar = fixupUTF16(schar);
-            tchar = fixupUTF16(tchar);
-        }
-
-        // now c1 and c2 are in UTF-32-compatible order
-        return (schar < tchar) ? -1 : 1; // schar and tchar has to be different
-    }
-
-    /**
-     * Rotate surrogates to the top to get code point order
-     */
-    private static final char fixupUTF16(char ch) {
-        if (ch >= 0xe000) {
-            ch -= 0x800;
-        } else {
-            ch += 0x2000;
-        }
-        return ch;
     }
 
     private static final int UCOL_REORDER_CODE_IGNORE = ReorderCodes.LIMIT + 1;
@@ -4330,9 +3769,6 @@ public final class RuleBasedCollator extends Collator {
         } else {
             Arrays.fill(latinOneCEs_, 0);
         }
-        if (m_ContInfo_ == null) {
-            m_ContInfo_ = new ContractionInfo();
-        }
         char ch = 0;
         // StringBuffer sCh = new StringBuffer();
         // CollationElementIterator it = getCollationElementIterator(sCh.toString());
@@ -4472,357 +3908,6 @@ public final class RuleBasedCollator extends Collator {
         return true;
     }
 
-    private static class ContractionInfo {
-        int index;
-    }
-
-    ContractionInfo m_ContInfo_;
-
-    private int getLatinOneContraction(int strength, int CE, String s) {
-        // int strength, int CE, String s, Integer ind) {
-        int len = s.length();
-        // const UChar *UCharOffset = (UChar *)coll->image+getContractOffset(CE&0xFFF);
-        int UCharOffset = (CE & 0xFFF) - m_contractionOffset_;
-        int offset = 1;
-        int latinOneOffset = (CE & 0x00FFF000) >>> 12;
-                                    char schar = 0, tchar = 0;
-
-                                    for (;;) {
-                                        /*
-                                         * if(len == -1) { if(s[*index] == 0) { // end of string
-                                         * return(coll->latinOneCEs[strength*coll->latinOneTableLen+latinOneOffset]); } else { schar = s[*index]; }
-                                         * } else {
-                                         */
-                                        if (m_ContInfo_.index == len) {
-                                            return (latinOneCEs_[strength * latinOneTableLen_ + latinOneOffset]);
-                                        } else {
-                                            schar = s.charAt(m_ContInfo_.index);
-                                        }
-                                        // }
-
-                                        while (schar > (tchar = m_contractionIndex_[UCharOffset + offset]/** (UCharOffset+offset) */
-                                        )) { /* since the contraction codepoints should be ordered, we skip all that are smaller */
-                                            offset++;
-                                        }
-
-                                        if (schar == tchar) {
-                                            m_ContInfo_.index++;
-                                            return (latinOneCEs_[strength * latinOneTableLen_ + latinOneOffset + offset]);
-                                        } else {
-                                            if (schar > ENDOFLATINONERANGE_ /* & 0xFF00 */) {
-                                                return BAIL_OUT_CE_;
-                                            }
-                                            // skip completely ignorables
-                                            int isZeroCE = m_trie_.getLeadValue(schar); // UTRIE_GET32_FROM_LEAD(coll->mapping, schar);
-                                            if (isZeroCE == 0) { // we have to ignore completely ignorables
-                                                m_ContInfo_.index++;
-                                                continue;
-                                            }
-
-                                            return (latinOneCEs_[strength * latinOneTableLen_ + latinOneOffset]);
-                                        }
-                                    }
-    }
-
-    /**
-     * This is a fast strcoll, geared towards text in Latin-1. It supports contractions of size two, French secondaries
-     * and case switching. You can use it with strengths primary to tertiary. It does not support shifted and case
-     * level. It relies on the table build by setupLatin1Table. If it doesn't understand something, it will go to the
-     * regular strcoll.
-     * @param buffer collation buffer temporary state
-     */
-    private final int compareUseLatin1(String source, String target, int startOffset, CollationBuffer buffer) {
-        int sLen = source.length();
-        int tLen = target.length();
-
-        int strength = getStrength();
-
-        int sIndex = startOffset, tIndex = startOffset;
-        char sChar = 0, tChar = 0;
-        int sOrder = 0, tOrder = 0;
-
-        boolean endOfSource = false;
-
-        // uint32_t *elements = coll->latinOneCEs;
-
-        boolean haveContractions = false; // if we have contractions in our string
-        // we cannot do French secondary
-
-        int offset = latinOneTableLen_;
-
-        // Do the primary level
-        primLoop: 
-            for (;;) {
-                while (sOrder == 0) { // this loop skips primary ignorables
-                    // sOrder=getNextlatinOneCE(source);
-                    if (sIndex == sLen) {
-                        endOfSource = true;
-                        break;
-                    }
-                    sChar = source.charAt(sIndex++); // [sIndex++];
-                    // }
-                    if (sChar > ENDOFLATINONERANGE_) { // if we encounter non-latin-1, we bail out
-                        // fprintf(stderr, "R");
-                        return compareRegular(source, target, startOffset, buffer);
-                    }
-                    sOrder = latinOneCEs_[sChar];
-                    if (isSpecial(sOrder)) { // if we got a special
-                        // specials can basically be either contractions or bail-out signs. If we get anything
-                        // else, we'll bail out anywasy
-                        if (getTag(sOrder) == CollationElementIterator.CE_CONTRACTION_TAG_) {
-                            m_ContInfo_.index = sIndex;
-                            sOrder = getLatinOneContraction(0, sOrder, source);
-                            sIndex = m_ContInfo_.index;
-                            haveContractions = true; // if there are contractions, we cannot do French secondary
-                            // However, if there are contractions in the table, but we always use just one char,
-                            // we might be able to do French. This should be checked out.
-                        }
-                        if (isSpecial(sOrder) /* == UCOL_BAIL_OUT_CE */) {
-                            // fprintf(stderr, "S");
-                            return compareRegular(source, target, startOffset, buffer);
-                        }
-                    }
-                }
-
-                while (tOrder == 0) { // this loop skips primary ignorables
-                    // tOrder=getNextlatinOneCE(target);
-                    if (tIndex == tLen) {
-                        if (endOfSource) {
-                            break primLoop;
-                        } else {
-                            return 1;
-                        }
-                    }
-                    tChar = target.charAt(tIndex++); // [tIndex++];
-                    if (tChar > ENDOFLATINONERANGE_) { // if we encounter non-latin-1, we bail out
-                        // fprintf(stderr, "R");
-                        return compareRegular(source, target, startOffset, buffer);
-                    }
-                    tOrder = latinOneCEs_[tChar];
-                    if (isSpecial(tOrder)) {
-                        // Handling specials, see the comments for source
-                        if (getTag(tOrder) == CollationElementIterator.CE_CONTRACTION_TAG_) {
-                            m_ContInfo_.index = tIndex;
-                            tOrder = getLatinOneContraction(0, tOrder, target);
-                            tIndex = m_ContInfo_.index;
-                            haveContractions = true;
-                        }
-                        if (isSpecial(tOrder)/* == UCOL_BAIL_OUT_CE */) {
-                            // fprintf(stderr, "S");
-                            return compareRegular(source, target, startOffset, buffer);
-                        }
-                    }
-                }
-                if (endOfSource) { // source is finished, but target is not, say the result.
-                    return -1;
-                }
-
-                if (sOrder == tOrder) { // if we have same CEs, we continue the loop
-                    sOrder = 0;
-                    tOrder = 0;
-                    continue;
-                } else {
-                    // compare current top bytes
-                    if (((sOrder ^ tOrder) & 0xFF000000) != 0) {
-                        // top bytes differ, return difference
-                        if (sOrder >>> 8 < tOrder >>> 8) {
-                            return -1;
-                        } else {
-                            return 1;
-                        }
-                        // instead of return (int32_t)(sOrder>>24)-(int32_t)(tOrder>>24);
-                        // since we must return enum value
-                    }
-
-                    // top bytes match, continue with following bytes
-                    sOrder <<= 8;
-                    tOrder <<= 8;
-                }
-            }
-
-        // after primary loop, we definitely know the sizes of strings,
-        // so we set it and use simpler loop for secondaries and tertiaries
-        // sLen = sIndex; tLen = tIndex;
-        if (strength >= SECONDARY) {
-            // adjust the table beggining
-            // latinOneCEs_ += coll->latinOneTableLen;
-            endOfSource = false;
-
-            if (!m_isFrenchCollation_) { // non French
-                // This loop is a simplified copy of primary loop
-                // at this point we know that whole strings are latin-1, so we don't
-                // check for that. We also know that we only have contractions as
-                // specials.
-                // sIndex = 0; tIndex = 0;
-                sIndex = startOffset;
-                tIndex = startOffset;
-                secLoop: for (;;) {
-                    while (sOrder == 0) {
-                        if (sIndex == sLen) {
-                            endOfSource = true;
-                            break;
-                        }
-                        sChar = source.charAt(sIndex++); // [sIndex++];
-                        sOrder = latinOneCEs_[offset + sChar];
-                        if (isSpecial(sOrder)) {
-                            m_ContInfo_.index = sIndex;
-                            sOrder = getLatinOneContraction(1, sOrder, source);
-                            sIndex = m_ContInfo_.index;
-                        }
-                    }
-
-                    while (tOrder == 0) {
-                        if (tIndex == tLen) {
-                            if (endOfSource) {
-                                break secLoop;
-                            } else {
-                                return 1;
-                            }
-                        }
-                        tChar = target.charAt(tIndex++); // [tIndex++];
-                        tOrder = latinOneCEs_[offset + tChar];
-                        if (isSpecial(tOrder)) {
-                            m_ContInfo_.index = tIndex;
-                            tOrder = getLatinOneContraction(1, tOrder, target);
-                            tIndex = m_ContInfo_.index;
-                        }
-                    }
-                    if (endOfSource) {
-                        return -1;
-                    }
-
-                    if (sOrder == tOrder) {
-                        sOrder = 0;
-                        tOrder = 0;
-                        continue;
-                    } else {
-                        // see primary loop for comments on this
-                        if (((sOrder ^ tOrder) & 0xFF000000) != 0) {
-                            if (sOrder >>> 8 < tOrder >>> 8) {
-                                return -1;
-                            } else {
-                                return 1;
-                            }
-                        }
-                        sOrder <<= 8;
-                        tOrder <<= 8;
-                    }
-                }
-            } else { // French
-                if (haveContractions) { // if we have contractions, we have to bail out
-                    // since we don't really know how to handle them here
-                    return compareRegular(source, target, startOffset, buffer);
-                }
-                // For French, we go backwards
-                sIndex = sLen;
-                tIndex = tLen;
-                secFLoop: for (;;) {
-                    while (sOrder == 0) {
-                        if (sIndex == startOffset) {
-                            endOfSource = true;
-                            break;
-                        }
-                        sChar = source.charAt(--sIndex); // [--sIndex];
-                        sOrder = latinOneCEs_[offset + sChar];
-                        // don't even look for contractions
-                    }
-
-                    while (tOrder == 0) {
-                        if (tIndex == startOffset) {
-                            if (endOfSource) {
-                                break secFLoop;
-                            } else {
-                                return 1;
-                            }
-                        }
-                        tChar = target.charAt(--tIndex); // [--tIndex];
-                        tOrder = latinOneCEs_[offset + tChar];
-                        // don't even look for contractions
-                    }
-                    if (endOfSource) {
-                        return -1;
-                    }
-
-                    if (sOrder == tOrder) {
-                        sOrder = 0;
-                        tOrder = 0;
-                        continue;
-                    } else {
-                        // see the primary loop for comments
-                        if (((sOrder ^ tOrder) & 0xFF000000) != 0) {
-                            if (sOrder >>> 8 < tOrder >>> 8) {
-                                return -1;
-                            } else {
-                                return 1;
-                            }
-                        }
-                        sOrder <<= 8;
-                        tOrder <<= 8;
-                    }
-                }
-            }
-        }
-
-        if (strength >= TERTIARY) {
-            // tertiary loop is the same as secondary (except no French)
-            offset += latinOneTableLen_;
-            // sIndex = 0; tIndex = 0;
-            sIndex = startOffset;
-            tIndex = startOffset;
-            endOfSource = false;
-            for (;;) {
-                while (sOrder == 0) {
-                    if (sIndex == sLen) {
-                        endOfSource = true;
-                        break;
-                    }
-                    sChar = source.charAt(sIndex++); // [sIndex++];
-                    sOrder = latinOneCEs_[offset + sChar];
-                    if (isSpecial(sOrder)) {
-                        m_ContInfo_.index = sIndex;
-                        sOrder = getLatinOneContraction(2, sOrder, source);
-                        sIndex = m_ContInfo_.index;
-                    }
-                }
-                while (tOrder == 0) {
-                    if (tIndex == tLen) {
-                        if (endOfSource) {
-                            return 0; // if both strings are at the end, they are equal
-                        } else {
-                            return 1;
-                        }
-                    }
-                    tChar = target.charAt(tIndex++); // [tIndex++];
-                    tOrder = latinOneCEs_[offset + tChar];
-                    if (isSpecial(tOrder)) {
-                        m_ContInfo_.index = tIndex;
-                        tOrder = getLatinOneContraction(2, tOrder, target);
-                        tIndex = m_ContInfo_.index;
-                    }
-                }
-                if (endOfSource) {
-                    return -1;
-                }
-                if (sOrder == tOrder) {
-                    sOrder = 0;
-                    tOrder = 0;
-                    continue;
-                } else {
-                    if (((sOrder ^ tOrder) & 0xff000000) != 0) {
-                        if (sOrder >>> 8 < tOrder >>> 8) {
-                            return -1;
-                        } else {
-                            return 1;
-                        }
-                    }
-                    sOrder <<= 8;
-                    tOrder <<= 8;
-                }
-            }
-        }
-        return 0;
-    }
-
     /**
      * Get the version of this collator object.
      * 
@@ -4871,9 +3956,9 @@ public final class RuleBasedCollator extends Collator {
     private final CollationBuffer getCollationBuffer() {
         if (isFrozen()) {
             frozenLock.lock();
-        }
-        if (collationBuffer == null) {
-            collationBuffer = new CollationBuffer();
+            collationBuffer.resetBuffers();
+        } else if (collationBuffer == null) {
+            collationBuffer = new CollationBuffer(data);
         } else {
             collationBuffer.resetBuffers();
         }
@@ -4885,4 +3970,12 @@ public final class RuleBasedCollator extends Collator {
             frozenLock.unlock();
         }
     }
+
+    CollationData data;
+    SharedObject.Reference<CollationSettings> settings;  // reference-counted
+    CollationTailoring tailoring;  // C++: reference-counted
+    ULocale validLocale;
+    int explicitlySetAttributes;  // TODO: EnumSet??
+
+    boolean actualLocaleIsSameAsValid;
 }

@@ -20,7 +20,7 @@ import com.ibm.icu.text.RuleBasedCollator.AttributeValue;
  * Collation settings/options/attributes.
  * These are the values that can be changed via API.
  */
-final class CollationSettings extends SharedObject {
+public final class CollationSettings extends SharedObject {
     /**
      * Options bit 0: Perform the FCD check on the input text and deliver normalized text.
      */
@@ -157,7 +157,7 @@ final class CollationSettings extends SharedObject {
         return options >> STRENGTH_SHIFT;
     }
 
-    int getStrength() {
+    public int getStrength() {
         return getStrength(options);
     }
 
@@ -269,7 +269,7 @@ final class CollationSettings extends SharedObject {
         return (options & (CASE_LEVEL | CASE_FIRST_AND_UPPER_MASK)) == CASE_FIRST_AND_UPPER_MASK;
     }
 
-    boolean dontCheckFCD() {
+    public boolean dontCheckFCD() {
         return (options & CHECK_FCD) == 0;
     }
 
@@ -277,7 +277,7 @@ final class CollationSettings extends SharedObject {
         return (options & BACKWARD_SECONDARY) != 0;
     }
 
-    boolean isNumeric() {
+    public boolean isNumeric() {
         return (options & NUMERIC) != 0;
     }
 
@@ -298,8 +298,8 @@ final class CollationSettings extends SharedObject {
     private static final int[] EMPTY_INT_ARRAY = new int[0];
 
     /** Options for CollationFastLatin. Negative if disabled. */
-    int fastLatinOptions = -1;
+    public int fastLatinOptions = -1;
     // fastLatinPrimaries.length must be equal to CollationFastLatin.LATIN_LIMIT,
     // but we do not import CollationFastLatin to reduce circular dependencies.
-    char[] fastLatinPrimaries = new char[0x180];  // mutable contents
+    public char[] fastLatinPrimaries = new char[0x180];  // mutable contents
 }
