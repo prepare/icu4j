@@ -29,6 +29,121 @@ import com.ibm.icu.util.UResourceBundle;
 */
 final class CollationRuleParser
 {
+    // package private inner interfaces --------------------------------------
+
+    /**
+     * Attribute values to be used when setting the Collator options
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    static interface AttributeValue {
+        /**
+         * Primary collation strength
+         */
+        static final int PRIMARY_ = Collator.PRIMARY;
+        /**
+         * Secondary collation strength
+         */
+        static final int SECONDARY_ = Collator.SECONDARY;
+        /**
+         * Tertiary collation strength
+         */
+        static final int TERTIARY_ = Collator.TERTIARY;
+        /**
+         * Quaternary collation strength
+         */
+        static final int QUATERNARY_ = 3;
+        /**
+         * Identical collation strength
+         */
+        static final int IDENTICAL_ = Collator.IDENTICAL;
+        /**
+         * Turn the feature off - works for FRENCH_COLLATION, CASE_LEVEL, HIRAGANA_QUATERNARY_MODE and
+         * DECOMPOSITION_MODE
+         */
+        static final int OFF_ = 16;
+        /**
+         * Turn the feature on - works for FRENCH_COLLATION, CASE_LEVEL, HIRAGANA_QUATERNARY_MODE and DECOMPOSITION_MODE
+         */
+        static final int ON_ = 17;
+        /**
+         * Valid for ALTERNATE_HANDLING. Alternate handling will be shifted
+         */
+        static final int SHIFTED_ = 20;
+        /**
+         * Valid for ALTERNATE_HANDLING. Alternate handling will be non ignorable
+         */
+        static final int NON_IGNORABLE_ = 21;
+        /**
+         * Valid for CASE_FIRST - lower case sorts before upper case
+         */
+        static final int LOWER_FIRST_ = 24;
+        /**
+         * Upper case sorts before lower case
+         */
+        static final int UPPER_FIRST_ = 25;
+    }
+
+    /**
+     * Attributes that collation service understands. All the attributes can take DEFAULT value, as well as the values
+     * specific to each one.
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    static interface Attribute {
+        /**
+         * Attribute for direction of secondary weights - used in French. Acceptable values are ON, which results in
+         * secondary weights being considered backwards and OFF which treats secondary weights in the order they appear.
+         */
+        static final int FRENCH_COLLATION_ = 0;
+        /**
+         * Attribute for handling variable elements. Acceptable values are NON_IGNORABLE (default) which treats all the
+         * codepoints with non-ignorable primary weights in the same way, and SHIFTED which causes codepoints with
+         * primary weights that are equal or below the variable top value to be ignored on primary level and moved to
+         * the quaternary level.
+         */
+        static final int ALTERNATE_HANDLING_ = 1;
+        /**
+         * Controls the ordering of upper and lower case letters. Acceptable values are OFF (default), which orders
+         * upper and lower case letters in accordance to their tertiary weights, UPPER_FIRST which forces upper case
+         * letters to sort before lower case letters, and LOWER_FIRST which does the opposite.
+         */
+        static final int CASE_FIRST_ = 2;
+        /**
+         * Controls whether an extra case level (positioned before the third level) is generated or not. Acceptable
+         * values are OFF (default), when case level is not generated, and ON which causes the case level to be
+         * generated. Contents of the case level are affected by the value of CASE_FIRST attribute. A simple way to
+         * ignore accent differences in a string is to set the strength to PRIMARY and enable case level.
+         */
+        static final int CASE_LEVEL_ = 3;
+        /**
+         * Controls whether the normalization check and necessary normalizations are performed. When set to OFF
+         * (default) no normalization check is performed. The correctness of the result is guaranteed only if the input
+         * data is in so-called FCD form (see users manual for more info). When set to ON, an incremental check is
+         * performed to see whether the input data is in the FCD form. If the data is not in the FCD form, incremental
+         * NFD normalization is performed.
+         */
+        static final int NORMALIZATION_MODE_ = 4;
+        /**
+         * The strength attribute. Can be either PRIMARY, SECONDARY, TERTIARY, QUATERNARY or IDENTICAL. The usual
+         * strength for most locales (except Japanese) is tertiary. Quaternary strength is useful when combined with
+         * shifted setting for alternate handling attribute and for JIS x 4061 collation, when it is used to distinguish
+         * between Katakana and Hiragana (this is achieved by setting the HIRAGANA_QUATERNARY mode to on. Otherwise,
+         * quaternary level is affected only by the number of non ignorable code points in the string. Identical
+         * strength is rarely useful, as it amounts to codepoints of the NFD form of the string.
+         */
+        static final int STRENGTH_ = 5;
+        /**
+         * When turned on, this attribute positions Hiragana before all non-ignorables on quaternary level. This is a
+         * sneaky way to produce JIS sort order.
+         */
+        static final int HIRAGANA_QUATERNARY_MODE_ = 6;
+        /**
+         * Attribute count
+         */
+        static final int LIMIT_ = 7;
+    }
+
     // public data members ---------------------------------------------------
 
     // package private constructors ------------------------------------------
@@ -584,43 +699,43 @@ final class CollationRuleParser
 
         RULES_OPTIONS_ = new TokenOption[20];
         String option[] = {"non-ignorable", "shifted"};
-        int value[] = {RuleBasedCollator.AttributeValue.NON_IGNORABLE_,
-                       RuleBasedCollator.AttributeValue.SHIFTED_};
+        int value[] = {AttributeValue.NON_IGNORABLE_,
+                       AttributeValue.SHIFTED_};
         RULES_OPTIONS_[0] = new TokenOption("alternate",
-                              RuleBasedCollator.Attribute.ALTERNATE_HANDLING_,
+                              Attribute.ALTERNATE_HANDLING_,
                               option, value);
         option = new String[1];
         option[0] = "2";
         value = new int[1];
-        value[0] = RuleBasedCollator.AttributeValue.ON_;
+        value[0] = AttributeValue.ON_;
         RULES_OPTIONS_[1] = new TokenOption("backwards",
-                                 RuleBasedCollator.Attribute.FRENCH_COLLATION_,
+                                 Attribute.FRENCH_COLLATION_,
                                  option, value);
         String offonoption[] = new String[2];
         offonoption[0] = "off";
         offonoption[1] = "on";
         int offonvalue[] = new int[2];
-        offonvalue[0] = RuleBasedCollator.AttributeValue.OFF_;
-        offonvalue[1] = RuleBasedCollator.AttributeValue.ON_;
+        offonvalue[0] = AttributeValue.OFF_;
+        offonvalue[1] = AttributeValue.ON_;
         RULES_OPTIONS_[2] = new TokenOption("caseLevel",
-                                       RuleBasedCollator.Attribute.CASE_LEVEL_,
+                                       Attribute.CASE_LEVEL_,
                                        offonoption, offonvalue);
         option = new String[3];
         option[0] = "lower";
         option[1] = "upper";
         option[2] = "off";
         value = new int[3];
-        value[0] = RuleBasedCollator.AttributeValue.LOWER_FIRST_;
-        value[1] = RuleBasedCollator.AttributeValue.UPPER_FIRST_;
-        value[2] = RuleBasedCollator.AttributeValue.OFF_;
+        value[0] = AttributeValue.LOWER_FIRST_;
+        value[1] = AttributeValue.UPPER_FIRST_;
+        value[2] = AttributeValue.OFF_;
         RULES_OPTIONS_[3] = new TokenOption("caseFirst",
-                                       RuleBasedCollator.Attribute.CASE_FIRST_,
+                                       Attribute.CASE_FIRST_,
                                        option, value);
         RULES_OPTIONS_[4] = new TokenOption("normalization",
-                               RuleBasedCollator.Attribute.NORMALIZATION_MODE_,
+                               Attribute.NORMALIZATION_MODE_,
                                offonoption, offonvalue);
         RULES_OPTIONS_[5] = new TokenOption("hiraganaQ",
-                         RuleBasedCollator.Attribute.HIRAGANA_QUATERNARY_MODE_,
+                         Attribute.HIRAGANA_QUATERNARY_MODE_,
                          offonoption, offonvalue);
         option = new String[5];
         option[0] = "1";
@@ -629,33 +744,33 @@ final class CollationRuleParser
         option[3] = "4";
         option[4] = "I";
         value = new int[5];
-        value[0] = RuleBasedCollator.AttributeValue.PRIMARY_;
-        value[1] = RuleBasedCollator.AttributeValue.SECONDARY_;
-        value[2] = RuleBasedCollator.AttributeValue.TERTIARY_;
-        value[3] = RuleBasedCollator.AttributeValue.QUATERNARY_;
-        value[4] = RuleBasedCollator.AttributeValue.IDENTICAL_;
+        value[0] = AttributeValue.PRIMARY_;
+        value[1] = AttributeValue.SECONDARY_;
+        value[2] = AttributeValue.TERTIARY_;
+        value[3] = AttributeValue.QUATERNARY_;
+        value[4] = AttributeValue.IDENTICAL_;
         RULES_OPTIONS_[6] = new TokenOption("strength",
-                                         RuleBasedCollator.Attribute.STRENGTH_,
+                                         Attribute.STRENGTH_,
                                          option, value);
         RULES_OPTIONS_[7] = new TokenOption("variable top",
-                                  RuleBasedCollator.Attribute.LIMIT_,
+                                  Attribute.LIMIT_,
                                   null, null);
         RULES_OPTIONS_[8] = new TokenOption("rearrange",
-                                  RuleBasedCollator.Attribute.LIMIT_,
+                                  Attribute.LIMIT_,
                                   null, null);
         option = new String[3];
         option[0] = "1";
         option[1] = "2";
         option[2] = "3";
         value = new int[3];
-        value[0] = RuleBasedCollator.AttributeValue.PRIMARY_;
-        value[1] = RuleBasedCollator.AttributeValue.SECONDARY_;
-        value[2] = RuleBasedCollator.AttributeValue.TERTIARY_;
+        value[0] = AttributeValue.PRIMARY_;
+        value[1] = AttributeValue.SECONDARY_;
+        value[2] = AttributeValue.TERTIARY_;
         RULES_OPTIONS_[9] = new TokenOption("before",
-                                  RuleBasedCollator.Attribute.LIMIT_,
+                                  Attribute.LIMIT_,
                                   option, value);
         RULES_OPTIONS_[10] = new TokenOption("top",
-                                  RuleBasedCollator.Attribute.LIMIT_,
+                                  Attribute.LIMIT_,
                                   null, null);
         String firstlastoption[] = new String[7];
         firstlastoption[0] = "primary";
@@ -667,34 +782,34 @@ final class CollationRuleParser
         firstlastoption[6] = "trailing";
 
         int firstlastvalue[] = new int[7];
-        Arrays.fill(firstlastvalue, RuleBasedCollator.AttributeValue.PRIMARY_);
+        Arrays.fill(firstlastvalue, AttributeValue.PRIMARY_);
 
         RULES_OPTIONS_[11] = new TokenOption("first",
-                                  RuleBasedCollator.Attribute.LIMIT_,
+                                  Attribute.LIMIT_,
                                   firstlastoption, firstlastvalue);
         RULES_OPTIONS_[12] = new TokenOption("last",
-                                  RuleBasedCollator.Attribute.LIMIT_,
+                                  Attribute.LIMIT_,
                                   firstlastoption, firstlastvalue);
         RULES_OPTIONS_[13] = new TokenOption("optimize",
-                                  RuleBasedCollator.Attribute.LIMIT_,
+                                  Attribute.LIMIT_,
                                   null, null);
         RULES_OPTIONS_[14] = new TokenOption("suppressContractions",
-                                  RuleBasedCollator.Attribute.LIMIT_,
+                                  Attribute.LIMIT_,
                                   null, null);
         RULES_OPTIONS_[15] = new TokenOption("undefined",
-                                  RuleBasedCollator.Attribute.LIMIT_,
+                                  Attribute.LIMIT_,
                                   null, null);
         RULES_OPTIONS_[16] = new TokenOption("reorder",
-                                  RuleBasedCollator.Attribute.LIMIT_,
+                                  Attribute.LIMIT_,
                                   null, null);
         RULES_OPTIONS_[17] = new TokenOption("charsetname",
-                                  RuleBasedCollator.Attribute.LIMIT_,
+                                  Attribute.LIMIT_,
                                   null, null);
         RULES_OPTIONS_[18] = new TokenOption("charset",
-                                  RuleBasedCollator.Attribute.LIMIT_,
+                                  Attribute.LIMIT_,
                                   null, null);
         RULES_OPTIONS_[19] = new TokenOption("import",
-                                  RuleBasedCollator.Attribute.LIMIT_,
+                                  Attribute.LIMIT_,
                                   null, null);
     }
 
@@ -2194,33 +2309,33 @@ final class CollationRuleParser
     private void setOptions(OptionSet optionset, int attribute, int value)
     {
         switch (attribute) {
-            case RuleBasedCollator.Attribute.HIRAGANA_QUATERNARY_MODE_ :
+            case Attribute.HIRAGANA_QUATERNARY_MODE_ :
                 optionset.m_isHiragana4_
-                            = (value == RuleBasedCollator.AttributeValue.ON_);
+                            = (value == AttributeValue.ON_);
                 break;
-            case RuleBasedCollator.Attribute.FRENCH_COLLATION_ :
+            case Attribute.FRENCH_COLLATION_ :
                 optionset.m_isFrenchCollation_
-                             = (value == RuleBasedCollator.AttributeValue.ON_);
+                             = (value == AttributeValue.ON_);
                 break;
-            case RuleBasedCollator.Attribute.ALTERNATE_HANDLING_ :
+            case Attribute.ALTERNATE_HANDLING_ :
                 optionset.m_isAlternateHandlingShifted_
                              = (value
-                                == RuleBasedCollator.AttributeValue.SHIFTED_);
+                                == AttributeValue.SHIFTED_);
                 break;
-            case RuleBasedCollator.Attribute.CASE_FIRST_ :
+            case Attribute.CASE_FIRST_ :
                 optionset.m_caseFirst_ = value;
                 break;
-            case RuleBasedCollator.Attribute.CASE_LEVEL_ :
+            case Attribute.CASE_LEVEL_ :
                 optionset.m_isCaseLevel_
-                             = (value == RuleBasedCollator.AttributeValue.ON_);
+                             = (value == AttributeValue.ON_);
                 break;
-            case RuleBasedCollator.Attribute.NORMALIZATION_MODE_ :
-                if (value == RuleBasedCollator.AttributeValue.ON_) {
+            case Attribute.NORMALIZATION_MODE_ :
+                if (value == AttributeValue.ON_) {
                     value = Collator.CANONICAL_DECOMPOSITION;
                 }
                 optionset.m_decomposition_ = value;
                 break;
-            case RuleBasedCollator.Attribute.STRENGTH_ :
+            case Attribute.STRENGTH_ :
                 optionset.m_strength_ = value;
                 break;
             default :

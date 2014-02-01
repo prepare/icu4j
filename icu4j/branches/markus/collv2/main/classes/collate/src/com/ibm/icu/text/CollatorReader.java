@@ -287,20 +287,20 @@ final class CollatorReader {
         int readcount = 0;
         rbc.m_defaultVariableTopValue_ = m_dataInputStream_.readInt();
         readcount += 4;
-        rbc.m_defaultIsFrenchCollation_ = (m_dataInputStream_.readInt() == RuleBasedCollator.AttributeValue.ON_);
+        rbc.m_defaultIsFrenchCollation_ = (m_dataInputStream_.readInt() == CollationRuleParser.AttributeValue.ON_);
         readcount += 4;
-        rbc.m_defaultIsAlternateHandlingShifted_ = (m_dataInputStream_.readInt() == RuleBasedCollator.AttributeValue.SHIFTED_);
+        rbc.m_defaultIsAlternateHandlingShifted_ = (m_dataInputStream_.readInt() == CollationRuleParser.AttributeValue.SHIFTED_);
         readcount += 4;
         rbc.m_defaultCaseFirst_ = m_dataInputStream_.readInt();
         readcount += 4;
         // rbc.m_defaultIsCaseLevel_ = (m_dataInputStream_.readInt()
-        // == RuleBasedCollator.AttributeValue.ON_);
+        // == CollationRuleParser.AttributeValue.ON_);
         int defaultIsCaseLevel = m_dataInputStream_.readInt();
-        rbc.m_defaultIsCaseLevel_ = (defaultIsCaseLevel == RuleBasedCollator.AttributeValue.ON_);
+        rbc.m_defaultIsCaseLevel_ = (defaultIsCaseLevel == CollationRuleParser.AttributeValue.ON_);
         readcount += 4;
         int value = m_dataInputStream_.readInt();
         readcount += 4;
-        if (value == RuleBasedCollator.AttributeValue.ON_) {
+        if (value == CollationRuleParser.AttributeValue.ON_) {
             value = Collator.CANONICAL_DECOMPOSITION;
         } else {
             value = Collator.NO_DECOMPOSITION;
@@ -308,9 +308,9 @@ final class CollatorReader {
         rbc.m_defaultDecomposition_ = value;
         rbc.m_defaultStrength_ = m_dataInputStream_.readInt();
         readcount += 4;
-        rbc.m_defaultIsHiragana4_ = (m_dataInputStream_.readInt() == RuleBasedCollator.AttributeValue.ON_);
+        rbc.m_defaultIsHiragana4_ = (m_dataInputStream_.readInt() == CollationRuleParser.AttributeValue.ON_);
         readcount += 4;
-        rbc.m_defaultIsNumericCollation_ = (m_dataInputStream_.readInt() == RuleBasedCollator.AttributeValue.ON_);
+        rbc.m_defaultIsNumericCollation_ = (m_dataInputStream_.readInt() == CollationRuleParser.AttributeValue.ON_);
         readcount += 4;
         m_dataInputStream_.skip(60); // reserved for future use
         readcount += 60;

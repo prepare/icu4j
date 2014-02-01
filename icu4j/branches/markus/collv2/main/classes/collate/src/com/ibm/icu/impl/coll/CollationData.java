@@ -125,7 +125,7 @@ public final class CollationData {
      *         (not an actual root collator primary weight),
      *         or 0 if the script is unknown
      */
-    long getLastPrimaryForGroup(int script) {
+    public long getLastPrimaryForGroup(int script) {
         int index = findScript(script);
         if(index < 0) {
             return 0;

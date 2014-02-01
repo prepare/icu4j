@@ -63,7 +63,7 @@ import com.ibm.icu.util.VersionInfo;
  * <p>
  * Create a RuleBasedCollator from a locale by calling the getInstance(Locale) factory method in the base class
  * Collator. Collator.getInstance(Locale) creates a RuleBasedCollator object based on the collation rules defined by the
- * argument locale. If a customized collation ordering ar attributes is required, use the RuleBasedCollator(String)
+ * argument locale. If a customized collation ordering or attributes is required, use the RuleBasedCollator(String)
  * constructor with the appropriate rules. The customized RuleBasedCollator will base its ordering on UCA, while
  * re-adjusting the attributes and orders of the characters in the specified rule accordingly.
  * </p>
@@ -243,30 +243,12 @@ public final class RuleBasedCollator extends Collator {
      * @return a new instance of this RuleBasedCollator object
      * @stable ICU 2.8
      */
+    @Override
     public Object clone() throws CloneNotSupportedException {
-        return clone(isFrozen());
-    }
-
-    /**
-     * Clones the RuleBasedCollator
-     * 
-     * @param frozen should the clone be frozen or not
-     * @return a new instance of this RuleBasedCollator object
-     */
-    private Object clone(boolean frozen) throws CloneNotSupportedException {
-        //TODO: once buffer and threading issue is resolved have frozen clone just return itself
-        RuleBasedCollator result = (RuleBasedCollator) super.clone();
-        result.settings = settings.clone();
-        if (latinOneCEs_ != null) {
-            result.m_reallocLatinOneCEs_ = true;
+        if (isFrozen()) {
+            return this;
         }
-
-        // since all collation data in the RuleBasedCollator do not change
-        // we can safely assign the result.fields to this collator 
-        // except in cases where we can't
-        result.collationBuffer = null;
-        result.frozenLock = frozen ? new ReentrantLock() : null;
-        return result;
+        return cloneAsThawed();
     }
 
     /**
@@ -308,6 +290,7 @@ public final class RuleBasedCollator extends Collator {
      * Determines whether the object has been frozen or not.
      * @stable ICU 4.8
      */
+    @Override
     public boolean isFrozen() {
         return frozenLock != null;
     }
@@ -317,6 +300,7 @@ public final class RuleBasedCollator extends Collator {
      * @return the collator itself.
      * @stable ICU 4.8
      */
+    @Override
     public Collator freeze() {
         if (!isFrozen()) {
             frozenLock = new ReentrantLock();
@@ -331,17 +315,38 @@ public final class RuleBasedCollator extends Collator {
      * Provides for the clone operation. Any clone is initially unfrozen.
      * @stable ICU 4.8
      */
+    @Override
     public RuleBasedCollator cloneAsThawed() {
-        RuleBasedCollator clone = null;
         try {
-            clone = (RuleBasedCollator) clone(false);
+            RuleBasedCollator result = (RuleBasedCollator) super.clone();
+            // since all collation data in the RuleBasedCollator do not change
+            // we can safely assign the result.fields to this collator 
+            // except in cases where we can't
+            result.settings = settings.clone();
+            result.collationBuffer = null;
+            result.frozenLock = null;
+            return result;
         } catch (CloneNotSupportedException e) {
             // Clone is implemented
+            return null;
         }
-        return clone;
     }
 
     // public setters --------------------------------------------------------
+
+    private void checkNotFrozen() {
+        if (isFrozen()) {
+            throw new UnsupportedOperationException("Attempt to modify frozen RuleBasedCollator");
+        }
+    }
+
+    private final CollationSettings getOwnedSettings() {
+        return settings.copyOnWrite();
+    }
+
+    private final CollationSettings getDefaultSettings() {
+        return tailoring.settings.readOnly();
+    }
 
     /**
      * Sets the Hiragana Quaternary mode to be on or off. When the Hiragana Quaternary mode is turned on, the collator
@@ -360,9 +365,7 @@ public final class RuleBasedCollator extends Collator {
      * @deprecated ICU 50 Implementation detail, cannot be set via API, might be removed from implementation.
      */
     public void setHiraganaQuaternary(boolean flag) {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify frozen object");
-        }
+        checkNotFrozen();
     }
 
     /**
@@ -379,9 +382,7 @@ public final class RuleBasedCollator extends Collator {
      * @deprecated ICU 50 Implementation detail, cannot be set via API, might be removed from implementation.
      */
     public void setHiraganaQuaternaryDefault() {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify frozen object");
-        }
+        checkNotFrozen();
     }
 
     /**
@@ -399,22 +400,11 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public void setUpperCaseFirst(boolean upperfirst) {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify frozen object");
-        }
-
-        if (upperfirst) {
-            if (m_caseFirst_ != AttributeValue.UPPER_FIRST_) {
-                latinOneRegenTable_ = true;
-            }
-            m_caseFirst_ = AttributeValue.UPPER_FIRST_;
-        } else {
-            if (m_caseFirst_ != AttributeValue.OFF_) {
-                latinOneRegenTable_ = true;
-            }
-            m_caseFirst_ = AttributeValue.OFF_;
-        }
-        updateInternalState();
+        checkNotFrozen();
+        if (upperfirst == isUpperCaseFirst()) { return; }
+        CollationSettings ownedSettings = getOwnedSettings();
+        ownedSettings.setCaseFirst(upperfirst ? CollationSettings.CASE_FIRST_AND_UPPER_MASK : 0);
+        setFastLatinOptions(ownedSettings);
     }
 
     /**
@@ -432,22 +422,11 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public void setLowerCaseFirst(boolean lowerfirst) {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify frozen object");
-        }
-
-        if (lowerfirst) {
-            if (m_caseFirst_ != AttributeValue.LOWER_FIRST_) {
-                latinOneRegenTable_ = true;
-            }
-            m_caseFirst_ = AttributeValue.LOWER_FIRST_;
-        } else {
-            if (m_caseFirst_ != AttributeValue.OFF_) {
-                latinOneRegenTable_ = true;
-            }
-            m_caseFirst_ = AttributeValue.OFF_;
-        }
-        updateInternalState();
+        checkNotFrozen();
+        if (lowerfirst == isLowerCaseFirst()) { return; }
+        CollationSettings ownedSettings = getOwnedSettings();
+        ownedSettings.setCaseFirst(lowerfirst ? CollationSettings.CASE_FIRST : 0);
+        setFastLatinOptions(ownedSettings);
     }
 
     /**
@@ -461,15 +440,12 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public final void setCaseFirstDefault() {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify frozen object");
-        }
-
-        if (m_caseFirst_ != m_defaultCaseFirst_) {
-            latinOneRegenTable_ = true;
-        }
-        m_caseFirst_ = m_defaultCaseFirst_;
-        updateInternalState();
+        checkNotFrozen();
+        CollationSettings defaultSettings = getDefaultSettings();
+        if(settings.readOnly() == defaultSettings) { return; }
+        CollationSettings ownedSettings = getOwnedSettings();
+        ownedSettings.setCaseFirstDefault(defaultSettings.options);
+        setFastLatinOptions(ownedSettings);
     }
 
     /**
@@ -481,12 +457,12 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public void setAlternateHandlingDefault() {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify frozen object");
-        }
-
-        m_isAlternateHandlingShifted_ = m_defaultIsAlternateHandlingShifted_;
-        updateInternalState();
+        checkNotFrozen();
+        CollationSettings defaultSettings = getDefaultSettings();
+        if(settings.readOnly() == defaultSettings) { return; }
+        CollationSettings ownedSettings = getOwnedSettings();
+        ownedSettings.setAlternateHandlingDefault(defaultSettings.options);
+        setFastLatinOptions(ownedSettings);
     }
 
     /**
@@ -498,12 +474,12 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public void setCaseLevelDefault() {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify frozen object");
-        }
-
-        m_isCaseLevel_ = m_defaultIsCaseLevel_;
-        updateInternalState();
+        checkNotFrozen();
+        CollationSettings defaultSettings = getDefaultSettings();
+        if(settings.readOnly() == defaultSettings) { return; }
+        CollationSettings ownedSettings = getOwnedSettings();
+        ownedSettings.setFlagDefault(CollationSettings.CASE_LEVEL, defaultSettings.options);
+        setFastLatinOptions(ownedSettings);
     }
 
     /**
@@ -515,12 +491,12 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public void setDecompositionDefault() {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify frozen object");
-        }
-
-        setDecomposition(m_defaultDecomposition_);
-        updateInternalState();
+        checkNotFrozen();
+        CollationSettings defaultSettings = getDefaultSettings();
+        if(settings.readOnly() == defaultSettings) { return; }
+        CollationSettings ownedSettings = getOwnedSettings();
+        ownedSettings.setFlagDefault(CollationSettings.CHECK_FCD, defaultSettings.options);
+        setFastLatinOptions(ownedSettings);
     }
 
     /**
@@ -532,15 +508,12 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public void setFrenchCollationDefault() {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify frozen object");
-        }
-
-        if (m_isFrenchCollation_ != m_defaultIsFrenchCollation_) {
-            latinOneRegenTable_ = true;
-        }
-        m_isFrenchCollation_ = m_defaultIsFrenchCollation_;
-        updateInternalState();
+        checkNotFrozen();
+        CollationSettings defaultSettings = getDefaultSettings();
+        if(settings.readOnly() == defaultSettings) { return; }
+        CollationSettings ownedSettings = getOwnedSettings();
+        ownedSettings.setFlagDefault(CollationSettings.BACKWARD_SECONDARY, defaultSettings.options);
+        setFastLatinOptions(ownedSettings);
     }
 
     /**
@@ -552,8 +525,12 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public void setStrengthDefault() {
-        setStrength(m_defaultStrength_);
-        updateInternalState();
+        checkNotFrozen();
+        CollationSettings defaultSettings = getDefaultSettings();
+        if(settings.readOnly() == defaultSettings) { return; }
+        CollationSettings ownedSettings = getOwnedSettings();
+        ownedSettings.setStrengthDefault(defaultSettings.options);
+        setFastLatinOptions(ownedSettings);
     }
 
     /**
@@ -566,12 +543,12 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public void setNumericCollationDefault() {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify frozen object");
-        }
-
-        setNumericCollation(m_defaultIsNumericCollation_);
-        updateInternalState();
+        checkNotFrozen();
+        CollationSettings defaultSettings = getDefaultSettings();
+        if(settings.readOnly() == defaultSettings) { return; }
+        CollationSettings ownedSettings = getOwnedSettings();
+        ownedSettings.setFlagDefault(CollationSettings.NUMERIC, defaultSettings.options);
+        setFastLatinOptions(ownedSettings);
     }
 
     /**
@@ -587,15 +564,11 @@ public final class RuleBasedCollator extends Collator {
      * @see #setFrenchCollationDefault
      */
     public void setFrenchCollation(boolean flag) {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify frozen object");
-        }
-
-        if (m_isFrenchCollation_ != flag) {
-            latinOneRegenTable_ = true;
-        }
-        m_isFrenchCollation_ = flag;
-        updateInternalState();
+        checkNotFrozen();
+        if(flag == isFrenchCollation()) { return; }
+        CollationSettings ownedSettings = getOwnedSettings();
+        ownedSettings.setFlag(CollationSettings.BACKWARD_SECONDARY, flag);
+        setFastLatinOptions(ownedSettings);
     }
 
     /**
@@ -614,12 +587,11 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public void setAlternateHandlingShifted(boolean shifted) {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify frozen object");
-        }
-
-        m_isAlternateHandlingShifted_ = shifted;
-        updateInternalState();
+        checkNotFrozen();
+        if(shifted == isAlternateHandlingShifted()) { return; }
+        CollationSettings ownedSettings = getOwnedSettings();
+        ownedSettings.setAlternateHandlingShifted(shifted);
+        setFastLatinOptions(ownedSettings);
     }
 
     /**
@@ -643,22 +615,69 @@ public final class RuleBasedCollator extends Collator {
      * @see #isCaseLevel
      */
     public void setCaseLevel(boolean flag) {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify frozen object");
-        }
-
-        m_isCaseLevel_ = flag;
-        updateInternalState();
+        checkNotFrozen();
+        if(flag == isCaseLevel()) { return; }
+        CollationSettings ownedSettings = getOwnedSettings();
+        ownedSettings.setFlag(CollationSettings.CASE_LEVEL, flag);
+        setFastLatinOptions(ownedSettings);
     }
 
     /**
-     * <p>
-     * Sets this Collator's strength property. The strength property determines the minimum level of difference
+     * Sets the decomposition mode of this Collator.  Setting this
+     * decomposition attribute with CANONICAL_DECOMPOSITION allows the
+     * Collator to handle un-normalized text properly, producing the
+     * same results as if the text were normalized. If
+     * NO_DECOMPOSITION is set, it is the user's responsibility to
+     * insure that all text is already in the appropriate form before
+     * a comparison or before getting a CollationKey. Adjusting
+     * decomposition mode allows the user to select between faster and
+     * more complete collation behavior.</p>
+     *
+     * <p>Since a great many of the world's languages do not require
+     * text normalization, most locales set NO_DECOMPOSITION as the
+     * default decomposition mode.</p>
+     *
+     * The default decompositon mode for the Collator is
+     * NO_DECOMPOSITON, unless specified otherwise by the locale used
+     * to create the Collator.</p>
+     *
+     * <p>See getDecomposition for a description of decomposition
+     * mode.</p>
+     *
+     * @param decomposition the new decomposition mode
+     * @see #getDecomposition
+     * @see #NO_DECOMPOSITION
+     * @see #CANONICAL_DECOMPOSITION
+     * @throws IllegalArgumentException If the given value is not a valid
+     *            decomposition mode.
+     * @stable ICU 2.8
+     */
+    @Override
+    public void setDecomposition(int decomposition)
+    {
+        checkNotFrozen();
+        boolean flag;
+        switch(decomposition) {
+        case NO_DECOMPOSITION:
+            flag = false;
+            break;
+        case CANONICAL_DECOMPOSITION:
+            flag = true;
+            break;
+        default:
+            throw new IllegalArgumentException("Wrong decomposition mode.");
+        }
+        if(flag == settings.readOnly().getFlag(CollationSettings.CHECK_FCD)) { return; }
+        CollationSettings ownedSettings = getOwnedSettings();
+        ownedSettings.setFlag(CollationSettings.CHECK_FCD, flag);
+        setFastLatinOptions(ownedSettings);
+    }
+
+    /**
+     * Sets this Collator's strength attribute. The strength attribute determines the minimum level of difference
      * considered significant during comparison.
-     * </p>
-     * <p>
-     * See the Collator class description for an example of use.
-     * </p>
+     *
+     * <p>See the Collator class description for an example of use.
      * 
      * @param newStrength
      *            the new strength value.
@@ -673,9 +692,73 @@ public final class RuleBasedCollator extends Collator {
      *                If the new strength value is not one of PRIMARY, SECONDARY, TERTIARY, QUATERNARY or IDENTICAL.
      * @stable ICU 2.8
      */
+    @Override
     public void setStrength(int newStrength) {
-        super.setStrength(newStrength);
-        updateInternalState();
+        checkNotFrozen();
+        if(newStrength == getStrength()) { return; }
+        CollationSettings ownedSettings = getOwnedSettings();
+        ownedSettings.setStrength(newStrength);
+        setFastLatinOptions(ownedSettings);
+    }
+
+    /**
+     * Sets the variable top to the top of the specified reordering group.
+     * The variable top determines the highest-sorting character
+     * which is affected by the alternate handling behavior.
+     * If that attribute is set to NON_IGNORABLE, then the variable top has no effect.
+     * @param group one of Collator.ReorderCodes.SPACE, Collator.ReorderCodes.PUNCTUATION,
+     *              Collator.ReorderCodes.SYMBOL, Collator.ReorderCodes.CURRENCY;
+     *              or Collator.ReorderCodes.DEFAULT to restore the default max variable group
+     * @return this
+     * @see #getMaxVariable
+     * @draft ICU 53
+     * @provisional This API might change or be removed in a future release.
+     */
+    @Override
+    public RuleBasedCollator setMaxVariable(int group) {
+        // Convert the reorder code into a MaxVariable number, or UCOL_DEFAULT=-1.
+        int value;
+        if(group == Collator.ReorderCodes.DEFAULT) {
+            value = -1;  // UCOL_DEFAULT
+        } else if(Collator.ReorderCodes.FIRST <= group && group <= Collator.ReorderCodes.CURRENCY) {
+            value = group - Collator.ReorderCodes.FIRST;
+        } else {
+            throw new IllegalArgumentException("illegal max variable group " + group);
+        }
+        int oldValue = settings.readOnly().getMaxVariable();
+        if(value == oldValue) {
+            return this;
+        }
+        CollationSettings defaultSettings = getDefaultSettings();
+        if(settings.readOnly() == defaultSettings) {
+            if(value < 0) {  // UCOL_DEFAULT
+                return this;
+            }
+        }
+        CollationSettings ownedSettings = getOwnedSettings();
+
+        if(group == Collator.ReorderCodes.DEFAULT) {
+            group = Collator.ReorderCodes.FIRST + defaultSettings.getMaxVariable();
+        }
+        long varTop = data.getLastPrimaryForGroup(group);
+        assert(varTop != 0);
+        ownedSettings.setMaxVariable(value, defaultSettings.options);
+        ownedSettings.variableTop = varTop;
+        setFastLatinOptions(ownedSettings);
+        return this;
+    }
+
+    /**
+     * Returns the maximum reordering group whose characters are affected by
+     * the alternate handling behavior.
+     * @return the maximum variable reordering group.
+     * @see #setMaxVariable
+     * @draft ICU 53
+     * @provisional This API might change or be removed in a future release.
+     */
+    @Override
+    public int getMaxVariable() {
+        return Collator.ReorderCodes.FIRST + settings.readOnly().getMaxVariable();
     }
 
     /**
@@ -702,11 +785,9 @@ public final class RuleBasedCollator extends Collator {
      * @see RuleBasedCollator#setAlternateHandlingShifted
      * @stable ICU 2.6
      */
+    @Override
     public int setVariableTop(String varTop) {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify frozen object");
-        }
-
+        checkNotFrozen();
         if (varTop == null || varTop.length() == 0) {
             throw new IllegalArgumentException("Variable top argument string can not be null or zero in length.");
         }
@@ -756,11 +837,9 @@ public final class RuleBasedCollator extends Collator {
      * @see #setVariableTop(String)
      * @stable ICU 2.6
      */
+    @Override
     public void setVariableTop(int varTop) {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify frozen object");
-        }
-
+        checkNotFrozen();
         m_variableTopValue_ = (varTop & CE_PRIMARY_MASK_) >> 16;
     }
 
@@ -775,13 +854,12 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public void setNumericCollation(boolean flag) {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify frozen object");
-        }
-
+        checkNotFrozen();
         // sort substrings of digits as numbers
-        m_isNumericCollation_ = flag;
-        updateInternalState();
+        if(flag == getNumericCollation()) { return; }
+        CollationSettings ownedSettings = getOwnedSettings();
+        ownedSettings.setFlag(CollationSettings.NUMERIC, flag);
+        setFastLatinOptions(ownedSettings);
     }
 
     /** 
@@ -813,17 +891,20 @@ public final class RuleBasedCollator extends Collator {
      * @see #getEquivalentReorderCodes
      * @stable ICU 4.8
      */ 
+    @Override
     public void setReorderCodes(int... order) {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify frozen object");
-        }
-
+        checkNotFrozen();
         if (order != null && order.length > 0) {
             m_reorderCodes_ = order.clone();
         } else {
             m_reorderCodes_ = null;
         }
         buildPermutationTable();
+    }
+
+    private void setFastLatinOptions(CollationSettings ownedSettings) {
+        ownedSettings.fastLatinOptions = CollationFastLatin.getOptions(
+                data, ownedSettings, ownedSettings.fastLatinPrimaries);
     }
 
     // public getters --------------------------------------------------------
@@ -872,6 +953,7 @@ public final class RuleBasedCollator extends Collator {
      *         than in the UCA.
      * @stable ICU 2.4
      */
+    @Override
     public UnicodeSet getTailoredSet() {
         try {
             CollationRuleParser src = new CollationRuleParser(getRules());
@@ -1059,6 +1141,7 @@ public final class RuleBasedCollator extends Collator {
      * @see #getRawCollationKey
      * @stable ICU 2.8
      */
+    @Override
     public CollationKey getCollationKey(String source) {
         if (source == null) {
             return null;
@@ -1091,6 +1174,7 @@ public final class RuleBasedCollator extends Collator {
      * @see RawCollationKey
      * @stable ICU 2.8
      */
+    @Override
     public RawCollationKey getRawCollationKey(String source, RawCollationKey key) {
         if (source == null) {
             return null;
@@ -1147,6 +1231,47 @@ public final class RuleBasedCollator extends Collator {
     }
 
     /**
+     * Returns this Collator's strength attribute. The strength attribute
+     * determines the minimum level of difference considered significant.
+     *
+     * <p>{@icunote} This can return QUATERNARY strength, which is not supported by the
+     * JDK version.
+     *
+     * <p>See the Collator class description for more details.
+     *
+     * @return this Collator's current strength attribute.
+     * @see #setStrength
+     * @see #PRIMARY
+     * @see #SECONDARY
+     * @see #TERTIARY
+     * @see #QUATERNARY
+     * @see #IDENTICAL
+     * @stable ICU 2.8
+     */
+    @Override
+    public int getStrength() {
+        return settings.readOnly().getStrength();
+    }
+
+    /**
+     * Returns the decomposition mode of this Collator. The decomposition mode
+     * determines how Unicode composed characters are handled.
+     *
+     * <p>See the Collator class description for more details.
+     *
+     * @return the decomposition mode
+     * @see #setDecomposition
+     * @see #NO_DECOMPOSITION
+     * @see #CANONICAL_DECOMPOSITION
+     * @stable ICU 2.8
+     */
+    @Override
+    public int getDecomposition() {
+        return (settings.readOnly().options & CollationSettings.CHECK_FCD) != 0 ?
+                CANONICAL_DECOMPOSITION : NO_DECOMPOSITION;
+    }
+
+    /**
      * Return true if an uppercase character is sorted before the corresponding lowercase character. See
      * setCaseFirst(boolean) for details.
      * 
@@ -1158,7 +1283,7 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public boolean isUpperCaseFirst() {
-        return (m_caseFirst_ == AttributeValue.UPPER_FIRST_);
+        return (settings.readOnly().getCaseFirst() == CollationSettings.CASE_FIRST_AND_UPPER_MASK);
     }
 
     /**
@@ -1173,7 +1298,7 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public boolean isLowerCaseFirst() {
-        return (m_caseFirst_ == AttributeValue.LOWER_FIRST_);
+        return (settings.readOnly().getCaseFirst() == CollationSettings.CASE_FIRST);
     }
 
     /**
@@ -1188,7 +1313,7 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public boolean isAlternateHandlingShifted() {
-        return m_isAlternateHandlingShifted_;
+        return settings.readOnly().getAlternateHandling();
     }
 
     /**
@@ -1201,7 +1326,7 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public boolean isCaseLevel() {
-        return m_isCaseLevel_;
+        return (settings.readOnly().options & CollationSettings.CASE_LEVEL) != 0;
     }
 
     /**
@@ -1213,7 +1338,7 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public boolean isFrenchCollation() {
-        return m_isFrenchCollation_;
+        return (settings.readOnly().options & CollationSettings.BACKWARD_SECONDARY) != 0;
     }
 
     /**
@@ -1230,7 +1355,7 @@ public final class RuleBasedCollator extends Collator {
      * @deprecated ICU 50 Implementation detail, cannot be set via API, might be removed from implementation.
      */
     public boolean isHiraganaQuaternary() {
-        return m_isHiragana4_;
+        return false;  // TODO: change docs to say always returns false?
     }
 
     /**
@@ -1240,6 +1365,7 @@ public final class RuleBasedCollator extends Collator {
      * @see #setVariableTop
      * @stable ICU 2.6
      */
+    @Override
     public int getVariableTop() {
         return m_variableTopValue_ << 16;
     }
@@ -1254,7 +1380,7 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public boolean getNumericCollation() {
-        return m_isNumericCollation_;
+        return (settings.readOnly().options & CollationSettings.NUMERIC) != 0;
     }
 
     /**  
@@ -1266,6 +1392,7 @@ public final class RuleBasedCollator extends Collator {
      * @see #getEquivalentReorderCodes
      * @stable ICU 4.8
      */ 
+    @Override
     public int[] getReorderCodes() {
         if (m_reorderCodes_ != null) {
             return m_reorderCodes_.clone();
@@ -1312,6 +1439,7 @@ public final class RuleBasedCollator extends Collator {
      * @return true if this RuleBasedCollator has exactly the same collation behaviour as obj, false otherwise.
      * @stable ICU 2.8
      */
+    @Override
     public boolean equals(Object obj) {
         if (obj == null) {
             return false; // super does class check
@@ -1407,6 +1535,7 @@ public final class RuleBasedCollator extends Collator {
      * @return the unique hash code for this Collator
      * @stable ICU 2.8
      */
+    @Override
     public int hashCode() {
         String rules = getRules();
         if (rules == null) {
@@ -1442,6 +1571,7 @@ public final class RuleBasedCollator extends Collator {
      * @see #getCollationKey
      * @stable ICU 2.8
      */
+    @Override
     public int compare(String source, String target) {
         return doCompare(source, target);
     }
@@ -1680,142 +1810,6 @@ public final class RuleBasedCollator extends Collator {
         } finally {
             releaseCollationBuffer(buffer);
         }
-    }
-
-    // package private inner interfaces --------------------------------------
-
-    /**
-     * Attribute values to be used when setting the Collator options
-     * @internal TODO: move to impl.coll?
-     * @deprecated This API is ICU internal only.
-     */
-    public static interface AttributeValue {
-        /**
-         * Indicates that the default attribute value will be used. See individual attribute for details on its default
-         * value.
-         */
-        static final int DEFAULT_ = -1;
-        /**
-         * Primary collation strength
-         */
-        static final int PRIMARY_ = Collator.PRIMARY;
-        /**
-         * Secondary collation strength
-         */
-        static final int SECONDARY_ = Collator.SECONDARY;
-        /**
-         * Tertiary collation strength
-         */
-        static final int TERTIARY_ = Collator.TERTIARY;
-        /**
-         * Default collation strength
-         */
-        static final int DEFAULT_STRENGTH_ = Collator.TERTIARY;
-        /**
-         * Internal use for strength checks in Collation elements
-         */
-        static final int CE_STRENGTH_LIMIT_ = Collator.TERTIARY + 1;
-        /**
-         * Quaternary collation strength
-         */
-        static final int QUATERNARY_ = 3;
-        /**
-         * Identical collation strength
-         */
-        static final int IDENTICAL_ = Collator.IDENTICAL;
-        /**
-         * Internal use for strength checks
-         */
-        static final int STRENGTH_LIMIT_ = Collator.IDENTICAL + 1;
-        /**
-         * Turn the feature off - works for FRENCH_COLLATION, CASE_LEVEL, HIRAGANA_QUATERNARY_MODE and
-         * DECOMPOSITION_MODE
-         */
-        static final int OFF_ = 16;
-        /**
-         * Turn the feature on - works for FRENCH_COLLATION, CASE_LEVEL, HIRAGANA_QUATERNARY_MODE and DECOMPOSITION_MODE
-         */
-        static final int ON_ = 17;
-        /**
-         * Valid for ALTERNATE_HANDLING. Alternate handling will be shifted
-         */
-        static final int SHIFTED_ = 20;
-        /**
-         * Valid for ALTERNATE_HANDLING. Alternate handling will be non ignorable
-         */
-        static final int NON_IGNORABLE_ = 21;
-        /**
-         * Valid for CASE_FIRST - lower case sorts before upper case
-         */
-        static final int LOWER_FIRST_ = 24;
-        /**
-         * Upper case sorts before lower case
-         */
-        static final int UPPER_FIRST_ = 25;
-        /**
-         * Number of attribute values
-         */
-        static final int LIMIT_ = 29;
-    }
-
-    /**
-     * Attributes that collation service understands. All the attributes can take DEFAULT value, as well as the values
-     * specific to each one.
-     * @internal TODO: move to impl.coll?
-     * @deprecated This API is ICU internal only.
-     */
-    public static interface Attribute {
-        /**
-         * Attribute for direction of secondary weights - used in French. Acceptable values are ON, which results in
-         * secondary weights being considered backwards and OFF which treats secondary weights in the order they appear.
-         */
-        static final int FRENCH_COLLATION_ = 0;
-        /**
-         * Attribute for handling variable elements. Acceptable values are NON_IGNORABLE (default) which treats all the
-         * codepoints with non-ignorable primary weights in the same way, and SHIFTED which causes codepoints with
-         * primary weights that are equal or below the variable top value to be ignored on primary level and moved to
-         * the quaternary level.
-         */
-        static final int ALTERNATE_HANDLING_ = 1;
-        /**
-         * Controls the ordering of upper and lower case letters. Acceptable values are OFF (default), which orders
-         * upper and lower case letters in accordance to their tertiary weights, UPPER_FIRST which forces upper case
-         * letters to sort before lower case letters, and LOWER_FIRST which does the opposite.
-         */
-        static final int CASE_FIRST_ = 2;
-        /**
-         * Controls whether an extra case level (positioned before the third level) is generated or not. Acceptable
-         * values are OFF (default), when case level is not generated, and ON which causes the case level to be
-         * generated. Contents of the case level are affected by the value of CASE_FIRST attribute. A simple way to
-         * ignore accent differences in a string is to set the strength to PRIMARY and enable case level.
-         */
-        static final int CASE_LEVEL_ = 3;
-        /**
-         * Controls whether the normalization check and necessary normalizations are performed. When set to OFF
-         * (default) no normalization check is performed. The correctness of the result is guaranteed only if the input
-         * data is in so-called FCD form (see users manual for more info). When set to ON, an incremental check is
-         * performed to see whether the input data is in the FCD form. If the data is not in the FCD form, incremental
-         * NFD normalization is performed.
-         */
-        static final int NORMALIZATION_MODE_ = 4;
-        /**
-         * The strength attribute. Can be either PRIMARY, SECONDARY, TERTIARY, QUATERNARY or IDENTICAL. The usual
-         * strength for most locales (except Japanese) is tertiary. Quaternary strength is useful when combined with
-         * shifted setting for alternate handling attribute and for JIS x 4061 collation, when it is used to distinguish
-         * between Katakana and Hiragana (this is achieved by setting the HIRAGANA_QUATERNARY mode to on. Otherwise,
-         * quaternary level is affected only by the number of non ignorable code points in the string. Identical
-         * strength is rarely useful, as it amounts to codepoints of the NFD form of the string.
-         */
-        static final int STRENGTH_ = 5;
-        /**
-         * When turned on, this attribute positions Hiragana before all non-ignorables on quaternary level. This is a
-         * sneaky way to produce JIS sort order.
-         */
-        static final int HIRAGANA_QUATERNARY_MODE_ = 6;
-        /**
-         * Attribute count
-         */
-        static final int LIMIT_ = 7;
     }
 
     /**
@@ -2399,8 +2393,6 @@ public final class RuleBasedCollator extends Collator {
      * Sets this collator to use the all options and tables in UCA.
      */
     final void setWithUCAData() {
-        latinOneFailed_ = true;
-
         m_addition3_ = UCA_.m_addition3_;
         m_bottom3_ = UCA_.m_bottom3_;
         m_bottomCount3_ = UCA_.m_bottomCount3_;
@@ -2435,7 +2427,6 @@ public final class RuleBasedCollator extends Collator {
         m_variableTopValue_ = UCA_.m_variableTopValue_;
         m_isNumericCollation_ = UCA_.m_isNumericCollation_;
         setWithUCATables();
-        latinOneFailed_ = false;
     }
 
     /**
@@ -2574,20 +2565,9 @@ public final class RuleBasedCollator extends Collator {
      */
     private byte[] m_leadBytePermutationTable_;
     /**
-     * Case first constants
-     */
-    private static final int CASE_SWITCH_ = 0xC0;
-    private static final int NO_CASE_SWITCH_ = 0;
-    /**
-     * Case level constants
-     */
-    private static final int CE_REMOVE_CASE_ = 0x3F;
-    private static final int CE_KEEP_CASE_ = 0xFF;
-    /**
      * Sortkey size factor. Values can be changed.
      */
     private static final double PROPORTION_2_ = 0.5;
-    private static final double PROPORTION_3_ = 0.667;
 
     // These values come from the UCA ----------------------------------------
 
@@ -2606,14 +2586,7 @@ public final class RuleBasedCollator extends Collator {
 
     private static final byte BYTE_UNSHIFTED_MAX_ = (byte) 0xFF;
     private static final int TOTAL_2_ = COMMON_TOP_2_ - COMMON_BOTTOM_2_ - 1;
-    private static final int FLAG_BIT_MASK_CASE_SWITCH_OFF_ = 0x80;
-    private static final int FLAG_BIT_MASK_CASE_SWITCH_ON_ = 0x40;
-    private static final int COMMON_TOP_CASE_SWITCH_OFF_3_ = 0x85;
-    private static final int COMMON_TOP_CASE_SWITCH_LOWER_3_ = 0x45;
-    private static final int COMMON_TOP_CASE_SWITCH_UPPER_3_ = 0xC5;
     private static final int COMMON_BOTTOM_3_ = 0x05;
-    private static final int COMMON_BOTTOM_CASE_SWITCH_UPPER_3_ = 0x86;
-    private static final int COMMON_BOTTOM_CASE_SWITCH_LOWER_3_ = COMMON_BOTTOM_3_;
     private static final int TOP_COUNT_2_ = (int) (PROPORTION_2_ * TOTAL_2_);
     private static final int BOTTOM_COUNT_2_ = TOTAL_2_ - TOP_COUNT_2_;
     private static final int COMMON_2_ = COMMON_BOTTOM_2_;
@@ -2667,14 +2640,6 @@ public final class RuleBasedCollator extends Collator {
 
     private static final byte SORT_CASE_BYTE_START_ = (byte) 0x80;
     private static final byte SORT_CASE_SHIFT_START_ = (byte) 7;
-
-    // variables for Latin-1 processing
-    boolean latinOneUse_ = false;
-    boolean latinOneRegenTable_ = false;
-    boolean latinOneFailed_ = false;
-
-    int latinOneTableLen_ = 0;
-    int latinOneCEs_[] = null;
 
     // TODO: make class CollationBuffer a static nested class
     private final class CollationBuffer {
@@ -3015,28 +2980,6 @@ public final class RuleBasedCollator extends Collator {
     private final int doCaseBytes(int tertiary, boolean notIsContinuation, int caseshift, CollationBuffer buffer) {
         caseshift = doCaseShift(caseshift, buffer);
 
-        if (notIsContinuation && tertiary != 0) {
-            byte casebits = (byte) (tertiary & 0xC0);
-            if (m_caseFirst_ == AttributeValue.UPPER_FIRST_) {
-                if (casebits == 0) {
-                    buffer.m_utilBytes0_[buffer.m_utilBytesCount0_ - 1] |= (1 << (--caseshift));
-                } else {
-                    // second bit
-                    caseshift = doCaseShift(caseshift - 1, buffer);
-                    buffer.m_utilBytes0_[buffer.m_utilBytesCount0_ - 1] |= ((casebits >> 6) & 1) << (--caseshift);
-                }
-            } else {
-                if (casebits != 0) {
-                    buffer.m_utilBytes0_[buffer.m_utilBytesCount0_ - 1] |= 1 << (--caseshift);
-                    // second bit
-                    caseshift = doCaseShift(caseshift, buffer);
-                    buffer.m_utilBytes0_[buffer.m_utilBytesCount0_ - 1] |= ((casebits >> 7) & 1) << (--caseshift);
-                } else {
-                    caseshift--;
-                }
-            }
-        }
-
         return caseshift;
     }
 
@@ -3132,9 +3075,9 @@ public final class RuleBasedCollator extends Collator {
             int bottomCount4, CollationBuffer buffer)
 
     {
-        int backupDecomposition = getDecomposition();
+        // TODO int backupDecomposition = getDecomposition();
         // TODO- hack fix around frozen state - stop self-modification
-        internalSetDecomposition(NO_DECOMPOSITION); // have to revert to backup later
+        // TODO internalSetDecomposition(NO_DECOMPOSITION); // have to revert to backup later
         buffer.m_srcUtilIter_.setText(source);
         buffer.m_srcUtilColEIter_.setText(buffer.m_srcUtilIter_);
         buffer.m_utilFrenchStart_ = -1;
@@ -3207,7 +3150,7 @@ public final class RuleBasedCollator extends Collator {
             }
         }
         // TODO - hack fix around frozen state - stop self-modification
-        internalSetDecomposition(backupDecomposition); // reverts to original
+        // TODO internalSetDecomposition(backupDecomposition); // reverts to original
         if (buffer.m_utilFrenchStart_ != -1) {
             // one last round of checks
             reverseBuffer(buffer.m_utilBytes2_, buffer.m_utilFrenchStart_, buffer.m_utilFrenchEnd_);
@@ -3580,73 +3523,6 @@ public final class RuleBasedCollator extends Collator {
                 newLeadByteUsed[reorderCode] = true;
             }
         } 
-
-        // for (int i = 0; i < 256; i++){
-        // System.out.println(Integer.toString(i, 16) + " -> " + Integer.toString(m_scriptReorderTable_[i], 16));
-        // }
-        latinOneRegenTable_ = true;
-        updateInternalState();
-    }
-
-    /**
-     * Resets the internal case data members and compression values.
-     */
-    private void updateInternalState() {
-        if (m_caseFirst_ == AttributeValue.UPPER_FIRST_) {
-            m_caseSwitch_ = CASE_SWITCH_;
-        } else {
-            m_caseSwitch_ = NO_CASE_SWITCH_;
-        }
-
-        if (m_isCaseLevel_ || m_caseFirst_ == AttributeValue.OFF_) {
-            m_mask3_ = CE_REMOVE_CASE_;
-            m_common3_ = COMMON_NORMAL_3_;
-            m_addition3_ = FLAG_BIT_MASK_CASE_SWITCH_OFF_;
-            m_top3_ = COMMON_TOP_CASE_SWITCH_OFF_3_;
-            m_bottom3_ = COMMON_BOTTOM_3_;
-        } else {
-            m_mask3_ = CE_KEEP_CASE_;
-            m_addition3_ = FLAG_BIT_MASK_CASE_SWITCH_ON_;
-            if (m_caseFirst_ == AttributeValue.UPPER_FIRST_) {
-                m_common3_ = COMMON_UPPER_FIRST_3_;
-                m_top3_ = COMMON_TOP_CASE_SWITCH_UPPER_3_;
-                m_bottom3_ = COMMON_BOTTOM_CASE_SWITCH_UPPER_3_;
-            } else {
-                m_common3_ = COMMON_NORMAL_3_;
-                m_top3_ = COMMON_TOP_CASE_SWITCH_LOWER_3_;
-                m_bottom3_ = COMMON_BOTTOM_CASE_SWITCH_LOWER_3_;
-            }
-        }
-
-        // Set the compression values
-        int total3 = m_top3_ - m_bottom3_ - 1;
-        // we multilply double with int, but need only int
-        m_topCount3_ = (int) (PROPORTION_3_ * total3);
-        m_bottomCount3_ = total3 - m_topCount3_;
-
-        if (!m_isCaseLevel_ && getStrength() == AttributeValue.TERTIARY_ && !m_isFrenchCollation_
-                && !m_isAlternateHandlingShifted_) {
-            m_isSimple3_ = true;
-        } else {
-            m_isSimple3_ = false;
-        }
-        if (!m_isCaseLevel_ && getStrength() <= AttributeValue.TERTIARY_ && !m_isNumericCollation_
-                && !m_isAlternateHandlingShifted_ && !latinOneFailed_) {
-            if (latinOneCEs_ == null || latinOneRegenTable_) {
-                if (setUpLatinOne()) { // if we succeed in building latin1 table, we'll use it
-                    latinOneUse_ = true;
-                } else {
-                    latinOneUse_ = false;
-                    latinOneFailed_ = true;
-                }
-                latinOneRegenTable_ = false;
-            } else { // latin1Table exists and it doesn't need to be regenerated, just use it
-                latinOneUse_ = true;
-            }
-        } else {
-            latinOneUse_ = false;
-        }
-
     }
 
     /**
@@ -3666,7 +3542,6 @@ public final class RuleBasedCollator extends Collator {
                 break;
             }
         }
-        latinOneFailed_ = true;
         setStrength(m_defaultStrength_);
         setDecomposition(m_defaultDecomposition_);
         m_variableTopValue_ = m_defaultVariableTopValue_;
@@ -3676,236 +3551,11 @@ public final class RuleBasedCollator extends Collator {
         m_caseFirst_ = m_defaultCaseFirst_;
         m_isHiragana4_ = m_defaultIsHiragana4_;
         m_isNumericCollation_ = m_defaultIsNumericCollation_;
-        latinOneFailed_ = false;
         if (m_defaultReorderCodes_ != null) {
             m_reorderCodes_ = m_defaultReorderCodes_.clone();
         } else {
             m_reorderCodes_ = null;
         }
-        updateInternalState();
-    }
-
-    // Consts for Latin-1 special processing
-    private static final int ENDOFLATINONERANGE_ = 0xFF;
-    private static final int LATINONETABLELEN_ = (ENDOFLATINONERANGE_ + 50);
-    private static final int BAIL_OUT_CE_ = 0xFF000000;
-
-    /**
-     * Generate latin-1 tables
-     */
-
-    private static class shiftValues {
-        int primShift = 24;
-        int secShift = 24;
-        int terShift = 24;
-    }
-
-    private final void addLatinOneEntry(char ch, int CE, shiftValues sh) {
-        int primary1 = 0, primary2 = 0, secondary = 0, tertiary = 0;
-        boolean continuation = isContinuation(CE);
-        boolean reverseSecondary = false;
-        if (!continuation) {
-            tertiary = ((CE & m_mask3_));
-            tertiary ^= m_caseSwitch_;
-            reverseSecondary = true;
-        } else {
-            tertiary = (byte) ((CE & CE_REMOVE_CONTINUATION_MASK_));
-            tertiary &= CE_REMOVE_CASE_;
-            reverseSecondary = false;
-        }
-
-        secondary = ((CE >>>= 8) & LAST_BYTE_MASK_);
-        primary2 = ((CE >>>= 8) & LAST_BYTE_MASK_);
-        primary1 = (CE >>> 8);
-
-        if (primary1 != 0) {
-            if (m_leadBytePermutationTable_ != null && !continuation) {
-                primary1 = m_leadBytePermutationTable_[primary1];
-            }
-            latinOneCEs_[ch] |= (primary1 << sh.primShift);
-            sh.primShift -= 8;
-        }
-        if (primary2 != 0) {
-            if (sh.primShift < 0) {
-                latinOneCEs_[ch] = BAIL_OUT_CE_;
-                latinOneCEs_[latinOneTableLen_ + ch] = BAIL_OUT_CE_;
-                latinOneCEs_[2 * latinOneTableLen_ + ch] = BAIL_OUT_CE_;
-                return;
-            }
-            latinOneCEs_[ch] |= (primary2 << sh.primShift);
-            sh.primShift -= 8;
-        }
-        if (secondary != 0) {
-            if (reverseSecondary && m_isFrenchCollation_) { // reverse secondary
-                latinOneCEs_[latinOneTableLen_ + ch] >>>= 8; // make space for secondary
-            latinOneCEs_[latinOneTableLen_ + ch] |= (secondary << 24);
-            } else { // normal case
-                latinOneCEs_[latinOneTableLen_ + ch] |= (secondary << sh.secShift);
-            }
-            sh.secShift -= 8;
-        }
-        if (tertiary != 0) {
-            latinOneCEs_[2 * latinOneTableLen_ + ch] |= (tertiary << sh.terShift);
-            sh.terShift -= 8;
-        }
-    }
-
-    private final void resizeLatinOneTable(int newSize) {
-        int newTable[] = new int[3 * newSize];
-        int sizeToCopy = ((newSize < latinOneTableLen_) ? newSize : latinOneTableLen_);
-        // uprv_memset(newTable, 0, newSize*sizeof(uint32_t)*3); // automatically cleared.
-        System.arraycopy(latinOneCEs_, 0, newTable, 0, sizeToCopy);
-        System.arraycopy(latinOneCEs_, latinOneTableLen_, newTable, newSize, sizeToCopy);
-        System.arraycopy(latinOneCEs_, 2 * latinOneTableLen_, newTable, 2 * newSize, sizeToCopy);
-        latinOneTableLen_ = newSize;
-        latinOneCEs_ = newTable;
-    }
-
-    private final boolean setUpLatinOne() {
-        if (latinOneCEs_ == null || m_reallocLatinOneCEs_) {
-            latinOneCEs_ = new int[3 * LATINONETABLELEN_];
-            latinOneTableLen_ = LATINONETABLELEN_;
-            m_reallocLatinOneCEs_ = false;
-        } else {
-            Arrays.fill(latinOneCEs_, 0);
-        }
-        char ch = 0;
-        // StringBuffer sCh = new StringBuffer();
-        // CollationElementIterator it = getCollationElementIterator(sCh.toString());
-        CollationElementIterator it = getCollationElementIterator("");
-
-        shiftValues s = new shiftValues();
-        int CE = 0;
-        char contractionOffset = ENDOFLATINONERANGE_ + 1;
-
-        for (ch = 0; ch <= ENDOFLATINONERANGE_; ch++) {
-            s.primShift = 24;
-            s.secShift = 24;
-            s.terShift = 24;
-            if (ch < 0x100) {
-                CE = m_trie_.getLatin1LinearValue(ch);
-            } else {
-                CE = m_trie_.getLeadValue(ch);
-                if (CE == CollationElementIterator.CE_NOT_FOUND_) {
-                    CE = UCA_.m_trie_.getLeadValue(ch);
-                }
-            }
-            if (!isSpecial(CE)) {
-                addLatinOneEntry(ch, CE, s);
-            } else {
-                switch (RuleBasedCollator.getTag(CE)) {
-                case CollationElementIterator.CE_EXPANSION_TAG_:
-                case CollationElementIterator.CE_DIGIT_TAG_:
-                    // sCh.delete(0, sCh.length());
-                    // sCh.append(ch);
-                    // it.setText(sCh.toString());
-                    it.setText(UCharacter.toString(ch));
-                    while ((CE = it.next()) != CollationElementIterator.NULLORDER) {
-                        if (s.primShift < 0 || s.secShift < 0 || s.terShift < 0) {
-                            latinOneCEs_[ch] = BAIL_OUT_CE_;
-                            latinOneCEs_[latinOneTableLen_ + ch] = BAIL_OUT_CE_;
-                            latinOneCEs_[2 * latinOneTableLen_ + ch] = BAIL_OUT_CE_;
-                            break;
-                        }
-                        addLatinOneEntry(ch, CE, s);
-                    }
-                    break;
-                case CollationElementIterator.CE_CONTRACTION_TAG_:
-                    // here is the trick
-                    // F2 is contraction. We do something very similar to contractions
-                    // but have two indices, one in the real contraction table and the
-                    // other to where we stuffed things. This hopes that we don't have
-                    // many contractions (this should work for latin-1 tables).
-                {
-                    if ((CE & 0x00FFF000) != 0) {
-                        latinOneFailed_ = true;
-                        return false;
-                    }
-
-                    int UCharOffset = (CE & 0xFFFFFF) - m_contractionOffset_; // getContractionOffset(CE)]
-
-                    CE |= (contractionOffset & 0xFFF) << 12; // insert the offset in latin-1 table
-
-                    latinOneCEs_[ch] = CE;
-                    latinOneCEs_[latinOneTableLen_ + ch] = CE;
-                    latinOneCEs_[2 * latinOneTableLen_ + ch] = CE;
-
-                    // We're going to jump into contraction table, pick the elements
-                    // and use them
-                    do {
-                        // CE = *(contractionCEs + (UCharOffset - contractionIndex));
-                        CE = m_contractionCE_[UCharOffset];
-                        if (isSpecial(CE) && getTag(CE) == CollationElementIterator.CE_EXPANSION_TAG_) {
-                            int i; /* general counter */
-                            // uint32_t *CEOffset = (uint32_t *)image+getExpansionOffset(CE); /* find the offset to
-                            // expansion table */
-                            int offset = ((CE & 0xFFFFF0) >> 4) - m_expansionOffset_; // it.getExpansionOffset(this,
-                            // CE);
-                            int size = CE & 0xF; // getExpansionCount(CE);
-                            // CE = *CEOffset++;
-                            if (size != 0) { /* if there are less than 16 elements in expansion, we don't terminate */
-                                for (i = 0; i < size; i++) {
-                                    if (s.primShift < 0 || s.secShift < 0 || s.terShift < 0) {
-                                        latinOneCEs_[contractionOffset] = BAIL_OUT_CE_;
-                                        latinOneCEs_[latinOneTableLen_ + contractionOffset] = BAIL_OUT_CE_;
-                                        latinOneCEs_[2 * latinOneTableLen_ + contractionOffset] = BAIL_OUT_CE_;
-                                        break;
-                                    }
-                                    addLatinOneEntry(contractionOffset, m_expansion_[offset + i], s);
-                                }
-                            } else { /* else, we do */
-                                while (m_expansion_[offset] != 0) {
-                                    if (s.primShift < 0 || s.secShift < 0 || s.terShift < 0) {
-                                        latinOneCEs_[contractionOffset] = BAIL_OUT_CE_;
-                                        latinOneCEs_[latinOneTableLen_ + contractionOffset] = BAIL_OUT_CE_;
-                                        latinOneCEs_[2 * latinOneTableLen_ + contractionOffset] = BAIL_OUT_CE_;
-                                        break;
-                                    }
-                                    addLatinOneEntry(contractionOffset, m_expansion_[offset++], s);
-                                }
-                            }
-                            contractionOffset++;
-                        } else if (!isSpecial(CE)) {
-                            addLatinOneEntry(contractionOffset++, CE, s);
-                        } else {
-                            latinOneCEs_[contractionOffset] = BAIL_OUT_CE_;
-                            latinOneCEs_[latinOneTableLen_ + contractionOffset] = BAIL_OUT_CE_;
-                            latinOneCEs_[2 * latinOneTableLen_ + contractionOffset] = BAIL_OUT_CE_;
-                            contractionOffset++;
-                        }
-                        UCharOffset++;
-                        s.primShift = 24;
-                        s.secShift = 24;
-                        s.terShift = 24;
-                        if (contractionOffset == latinOneTableLen_) { // we need to reallocate
-                            resizeLatinOneTable(2 * latinOneTableLen_);
-                        }
-                    } while (m_contractionIndex_[UCharOffset] != 0xFFFF);
-                }
-                break;
-                case CollationElementIterator.CE_SPEC_PROC_TAG_: {
-                    // 0xB7 is a precontext character defined in UCA5.1, a special
-                    // handle is implemeted in order to save LatinOne table for
-                    // most locales.
-                    if (ch == 0xb7) {
-                        addLatinOneEntry(ch, CE, s);
-                    } else {
-                        latinOneFailed_ = true;
-                        return false;
-                    }
-                }
-                break;
-                default:
-                    latinOneFailed_ = true;
-                    return false;
-                }
-            }
-        }
-        // compact table
-        if (contractionOffset < latinOneTableLen_) {
-            resizeLatinOneTable(contractionOffset);
-        }
-        return true;
     }
 
     /**
@@ -3914,6 +3564,7 @@ public final class RuleBasedCollator extends Collator {
      * @return the version object associated with this collator
      * @stable ICU 2.8
      */
+    @Override
     public VersionInfo getVersion() {
         /* RunTime version */
         int rtVersion = VersionInfo.UCOL_RUNTIME_VERSION.getMajor();
@@ -3945,11 +3596,10 @@ public final class RuleBasedCollator extends Collator {
      * @return the version object associated with this collator
      * @stable ICU 2.8
      */
+    @Override
     public VersionInfo getUCAVersion() {
         return UCA_.m_UCA_version_;
     }
-
-    private transient boolean m_reallocLatinOneCEs_;
 
     private CollationBuffer collationBuffer;
 
@@ -3971,11 +3621,27 @@ public final class RuleBasedCollator extends Collator {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    void setLocale(ULocale valid, ULocale actual) {
+        // This method is called
+        // by other protected functions that checks and makes sure that
+        // valid and actual are not null before passing
+        assert (valid == null) == (actual == null);
+        // Another check we could do is that the actual locale is at
+        // the same level or less specific than the valid locale.
+        // TODO: this.validLocale = valid;
+        // TODO: this.actualLocale = actual;
+    }
+
     CollationData data;
     SharedObject.Reference<CollationSettings> settings;  // reference-counted
     CollationTailoring tailoring;  // C++: reference-counted
     ULocale validLocale;
-    int explicitlySetAttributes;  // TODO: EnumSet??
+    // Note: No need in Java to track which attributes have been set explicitly.
+    // int or EnumSet  explicitlySetAttributes;
 
     boolean actualLocaleIsSameAsValid;
 }

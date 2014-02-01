@@ -14,7 +14,6 @@ package com.ibm.icu.impl.coll;
 import java.util.Arrays;
 
 import com.ibm.icu.text.Collator;
-import com.ibm.icu.text.RuleBasedCollator.AttributeValue;
 
 /**
  * Collation settings/options/attributes.
@@ -24,7 +23,7 @@ public final class CollationSettings extends SharedObject {
     /**
      * Options bit 0: Perform the FCD check on the input text and deliver normalized text.
      */
-    static final int CHECK_FCD = 1;
+    public static final int CHECK_FCD = 1;
     /**
      * Options bit 1: Numeric collation.
      * Also known as CODAN = COllate Digits As Numbers.
@@ -32,7 +31,7 @@ public final class CollationSettings extends SharedObject {
      * Treat digit sequences as numbers with CE sequences in numeric order,
      * rather than returning a normal CE for each digit.
      */
-    static final int NUMERIC = 2;
+    public static final int NUMERIC = 2;
     /**
      * "Shifted" alternate handling, see ALTERNATE_MASK.
      */
@@ -61,20 +60,20 @@ public final class CollationSettings extends SharedObject {
      * When CASE_FIRST is off, UPPER_FIRST must be off too, corresponding to
      * the tri-value UCOL_CASE_FIRST attribute: UCOL_OFF vs. UCOL_LOWER_FIRST vs. UCOL_UPPER_FIRST.
      */
-    static final int CASE_FIRST = 0x200;
+    public static final int CASE_FIRST = 0x200;
     /**
      * Options bit mask for caseFirst and upperFirst, before shifting.
      * Same value as caseFirst==upperFirst.
      */
-    static final int CASE_FIRST_AND_UPPER_MASK = CASE_FIRST | UPPER_FIRST;
+    public static final int CASE_FIRST_AND_UPPER_MASK = CASE_FIRST | UPPER_FIRST;
     /**
      * Options bit 10: Insert the case level between the secondary and tertiary levels.
      */
-    static final int CASE_LEVEL = 0x400;
+    public static final int CASE_LEVEL = 0x400;
     /**
      * Options bit 11: Compare secondary weights backwards. ("French secondary")
      */
-    static final int BACKWARD_SECONDARY = 0x800;
+    public static final int BACKWARD_SECONDARY = 0x800;
     /**
      * Options bits 15..12: The 4-bit strength value bit field is shifted by this value.
      * It is the top used bit field in the options. (No need to mask after shifting.)
@@ -134,8 +133,12 @@ public final class CollationSettings extends SharedObject {
         reorderCodes = codes;
     }
 
-    // TODO: Most setters probably need to be split into set() vs. setDefault() to match the Java Collator API.
-    void setStrength(int value, int defaultOptions) {
+    // In C++, we use enums for attributes and their values, with a special value for the default.
+    // Combined getter/setter methods handle many attributes.
+    // In Java, we have specific methods for getting, setting, and set-to-default,
+    // except that this class uses bits in its own bit set for simple values.
+
+    public void setStrength(int value) {
         int noStrength = options & ~STRENGTH_MASK;
         switch(value) {
         case Collator.PRIMARY:
@@ -145,12 +148,14 @@ public final class CollationSettings extends SharedObject {
         case Collator.IDENTICAL:
             options = noStrength | (value << STRENGTH_SHIFT);
             break;
-        case AttributeValue.DEFAULT_:
-            options = noStrength | (defaultOptions & STRENGTH_MASK);
-            break;
         default:
-            throw new IllegalArgumentException("illegal strength value " + value);  // TODO: review message text
+            throw new IllegalArgumentException("illegal strength value " + value);
         }
+    }
+
+    public void setStrengthDefault(int defaultOptions) {
+        int noStrength = options & ~STRENGTH_MASK;
+        options = noStrength | (defaultOptions & STRENGTH_MASK);
     }
 
     static int getStrength(int options) {
@@ -162,75 +167,56 @@ public final class CollationSettings extends SharedObject {
     }
 
     /** Sets the options bit for an on/off attribute. */
-    void setFlag(int bit, int value, int defaultOptions) {
-        switch(value) {
-        case AttributeValue.ON_:
+    public void setFlag(int bit, boolean value) {
+        if(value) {
             options |= bit;
-            break;
-        case AttributeValue.OFF_:
+        } else {
             options &= ~bit;
-            break;
-        case AttributeValue.DEFAULT_:
-            options = (options & ~bit) | (defaultOptions & bit);
-            break;
-        default:
-            throw new IllegalArgumentException("illegal boolean value " + value);  // TODO: review message text
         }
     }
 
-    // TODO: return boolean?
-    int getFlag(int bit) {
-        return ((options & bit) != 0) ? AttributeValue.ON_ : AttributeValue.OFF_;
+    public void setFlagDefault(int bit, int defaultOptions) {
+        options = (options & ~bit) | (defaultOptions & bit);
     }
 
-    void setCaseFirst(int value, int defaultOptions) {
+    public boolean getFlag(int bit) {
+        return (options & bit) != 0;
+    }
+
+    public void setCaseFirst(int value) {
+        assert value == 0 || value == CASE_FIRST || value == CASE_FIRST_AND_UPPER_MASK;
         int noCaseFirst = options & ~CASE_FIRST_AND_UPPER_MASK;
-        switch(value) {
-        case AttributeValue.OFF_:
-            options = noCaseFirst;
-            break;
-        case AttributeValue.LOWER_FIRST_:
-            options = noCaseFirst | CASE_FIRST;
-            break;
-        case AttributeValue.UPPER_FIRST_:
-            options = noCaseFirst | CASE_FIRST_AND_UPPER_MASK;
-            break;
-        case AttributeValue.DEFAULT_:
-            options = noCaseFirst | (defaultOptions & CASE_FIRST_AND_UPPER_MASK);
-            break;
-        default:
-            throw new IllegalArgumentException("illegal caseFirst value " + value);  // TODO: review message text
-        }
+        options = noCaseFirst | value;
     }
 
-    int getCaseFirst() {
-        int option = options & CASE_FIRST_AND_UPPER_MASK;
-        return (option == 0) ? AttributeValue.OFF_ :
-                (option == CASE_FIRST) ? AttributeValue.LOWER_FIRST_ : AttributeValue.UPPER_FIRST_;
+    public void setCaseFirstDefault(int defaultOptions) {
+        int noCaseFirst = options & ~CASE_FIRST_AND_UPPER_MASK;
+        options = noCaseFirst | (defaultOptions & CASE_FIRST_AND_UPPER_MASK);
     }
 
-    void setAlternateHandling(int value, int defaultOptions) {
+    public int getCaseFirst() {
+        return options & CASE_FIRST_AND_UPPER_MASK;
+    }
+
+    public void setAlternateHandlingShifted(boolean value) {
         int noAlternate = options & ~ALTERNATE_MASK;
-        switch(value) {
-        case AttributeValue.NON_IGNORABLE_:
-            options = noAlternate;
-            break;
-        case AttributeValue.SHIFTED_:
+        if(value) {
             options = noAlternate | SHIFTED;
-            break;
-        case AttributeValue.DEFAULT_:
-            options = noAlternate | (defaultOptions & ALTERNATE_MASK);
-            break;
-        default:
-            throw new IllegalArgumentException("illegal alternate-handling value " + value);  // TODO: review message text
+        } else {
+            options = noAlternate;
         }
     }
 
-    int getAlternateHandling() {
-        return ((options & ALTERNATE_MASK) == 0) ? AttributeValue.NON_IGNORABLE_ : AttributeValue.SHIFTED_;
+    public void setAlternateHandlingDefault(int defaultOptions) {
+        int noAlternate = options & ~ALTERNATE_MASK;
+        options = noAlternate | (defaultOptions & ALTERNATE_MASK);
     }
 
-    void setMaxVariable(int value, int defaultOptions) {
+    public boolean getAlternateHandling() {
+        return (options & ALTERNATE_MASK) != 0;
+    }
+
+    public void setMaxVariable(int value, int defaultOptions) {
         int noMax = options & ~MAX_VARIABLE_MASK;
         switch(value) {
         case MAX_VAR_SPACE:
@@ -239,15 +225,15 @@ public final class CollationSettings extends SharedObject {
         case MAX_VAR_CURRENCY:
             options = noMax | (value << MAX_VARIABLE_SHIFT);
             break;
-        case AttributeValue.DEFAULT_:
+        case -1:
             options = noMax | (defaultOptions & MAX_VARIABLE_MASK);
             break;
         default:
-            throw new IllegalArgumentException("illegal maxVariable value " + value);  // TODO: review message text
+            throw new IllegalArgumentException("illegal maxVariable value " + value);
         }
     }
 
-    int getMaxVariable() {
+    public int getMaxVariable() {
         return (options & MAX_VARIABLE_MASK) >> MAX_VARIABLE_SHIFT;
     }
 
@@ -282,10 +268,10 @@ public final class CollationSettings extends SharedObject {
     }
 
     /** CHECK_FCD etc. */
-    int options = (AttributeValue.DEFAULT_STRENGTH_ << STRENGTH_SHIFT) |
+    public int options = (Collator.TERTIARY << STRENGTH_SHIFT) |  // DEFAULT_STRENGTH
             (MAX_VAR_PUNCT << MAX_VARIABLE_SHIFT);
     /** Variable-top primary weight. */
-    long variableTop;
+    public long variableTop;
     /** 256-byte table for reordering permutation of primary lead bytes; null if no reordering. */
     byte[] reorderTable;
     /** Array of reorder codes; ignored if length == 0. */

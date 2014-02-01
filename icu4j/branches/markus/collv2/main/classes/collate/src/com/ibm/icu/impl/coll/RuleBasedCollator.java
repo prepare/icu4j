@@ -412,10 +412,6 @@ public:
      */
     void getRules(UColRuleOption delta, UnicodeString &buffer);
 
-    private final CollationSettings getOwnedSettings() {
-        return settings.copyOnWrite();
-    }
-
     /**
      * Universal attribute setter
      * @param attr attribute type
@@ -435,32 +431,6 @@ public:
      */
     virtual UColAttributeValue getAttribute(UColAttribute attr,
                                             UErrorCode &status);
-
-    /**
-     * Sets the variable top to the top of the specified reordering group.
-     * The variable top determines the highest-sorting character
-     * which is affected by UCOL_ALTERNATE_HANDLING.
-     * If that attribute is set to UCOL_NON_IGNORABLE, then the variable top has no effect.
-     * @param group one of Collator.ReorderCodes.SPACE, Collator.ReorderCodes.PUNCTUATION,
-     *              Collator.ReorderCodes.SYMBOL, Collator.ReorderCodes.CURRENCY;
-     *              or Collator.ReorderCodes.DEFAULT to restore the default max variable group
-     * @param errorCode Standard ICU error code. Its input value must
-     *                  pass the U_SUCCESS() test, or else the function returns
-     *                  immediately. Check for U_FAILURE() on output or use with
-     *                  function chaining. (See User Guide for details.)
-     * @return *this
-     * @see getMaxVariable
-     * @draft ICU 53
-     */
-    virtual Collator &setMaxVariable(UColReorderCode group);
-
-    /**
-     * Returns the maximum reordering group whose characters are affected by UCOL_ALTERNATE_HANDLING.
-     * @return the maximum variable reordering group.
-     * @see setMaxVariable
-     * @draft ICU 53
-     */
-    virtual UColReorderCode getMaxVariable();
 
     /**
      * Sets the variable top to the primary weight of the specified string.
@@ -1072,165 +1042,7 @@ private:
 
     void
     RuleBasedCollator.internalAddContractions(int c, UnicodeSet &set) {
-        if(U_FAILURE) { return; }
         ContractionsAndExpansions(&set, null, null, false).forCodePoint(data, c);
-    }
-
-    CollationSettings 
-    RuleBasedCollator.getDefaultSettings() {
-        return *tailoring.settings;
-    }
-
-    UColAttributeValue
-    RuleBasedCollator.getAttribute(UColAttribute attr) {
-        if(U_FAILURE) { return UCOL_DEFAULT; }
-        int option;
-        switch(attr) {
-        case UCOL_FRENCH_COLLATION:
-            option = CollationSettings.BACKWARD_SECONDARY;
-            break;
-        case UCOL_ALTERNATE_HANDLING:
-            return settings.getAlternateHandling();
-        case UCOL_CASE_FIRST:
-            return settings.getCaseFirst();
-        case UCOL_CASE_LEVEL:
-            option = CollationSettings.CASE_LEVEL;
-            break;
-        case UCOL_NORMALIZATION_MODE:
-            option = CollationSettings.CHECK_FCD;
-            break;
-        case UCOL_STRENGTH:
-            return (UColAttributeValue)settings.getStrength();
-        case UCOL_HIRAGANA_QUATERNARY_MODE:
-            // Deprecated attribute, unsettable.
-            return UCOL_OFF;
-        case UCOL_NUMERIC_COLLATION:
-            option = CollationSettings.NUMERIC;
-            break;
-        default:
-            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-            return UCOL_DEFAULT;
-        }
-        return ((settings.options & option) == 0) ? UCOL_OFF : UCOL_ON;
-    }
-
-    void
-    RuleBasedCollator.setAttribute(UColAttribute attr, UColAttributeValue value,
-                                    ) {
-        UColAttributeValue oldValue = getAttribute(attr);
-        if(U_FAILURE) { return; }
-        if(value == oldValue) {
-            setAttributeExplicitly(attr);
-            return;
-        }
-        CollationSettings defaultSettings = getDefaultSettings();
-        if(settings == &defaultSettings) {
-            if(value == UCOL_DEFAULT) {
-                setAttributeDefault(attr);
-                return;
-            }
-        }
-        CollationSettings ownedSettings = getOwnedSettings();
-        if(ownedSettings == null) {
-            errorCode = U_MEMORY_ALLOCATION_ERROR;
-            return;
-        }
-
-        switch(attr) {
-        case UCOL_FRENCH_COLLATION:
-            ownedSettings.setFlag(CollationSettings.BACKWARD_SECONDARY, value,
-                                  defaultSettings.options);
-            break;
-        case UCOL_ALTERNATE_HANDLING:
-            ownedSettings.setAlternateHandling(value, defaultSettings.options);
-            break;
-        case UCOL_CASE_FIRST:
-            ownedSettings.setCaseFirst(value, defaultSettings.options);
-            break;
-        case UCOL_CASE_LEVEL:
-            ownedSettings.setFlag(CollationSettings.CASE_LEVEL, value,
-                                  defaultSettings.options);
-            break;
-        case UCOL_NORMALIZATION_MODE:
-            ownedSettings.setFlag(CollationSettings.CHECK_FCD, value,
-                                  defaultSettings.options);
-            break;
-        case UCOL_STRENGTH:
-            ownedSettings.setStrength(value, defaultSettings.options);
-            break;
-        case UCOL_HIRAGANA_QUATERNARY_MODE:
-            // Deprecated attribute. Check for valid values but do not change anything.
-            if(value != UCOL_OFF && value != UCOL_ON && value != UCOL_DEFAULT) {
-                errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-            }
-            break;
-        case UCOL_NUMERIC_COLLATION:
-            ownedSettings.setFlag(CollationSettings.NUMERIC, value, defaultSettings.options);
-            break;
-        default:
-            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-            break;
-        }
-        if(U_FAILURE) { return; }
-        setFastLatinOptions(*ownedSettings);
-        if(value == UCOL_DEFAULT) {
-            setAttributeDefault(attr);
-        } else {
-            setAttributeExplicitly(attr);
-        }
-    }
-
-    Collator &
-    RuleBasedCollator.setMaxVariable(UColReorderCode group) {
-        if(U_FAILURE) { return *this; }
-        // Convert the reorder code into a MaxVariable number, or UCOL_DEFAULT=-1.
-        int value;
-        if(group == Collator.ReorderCodes.DEFAULT) {
-            value = UCOL_DEFAULT;
-        } else if(Collator.ReorderCodes.FIRST <= group && group <= Collator.ReorderCodes.CURRENCY) {
-            value = group - Collator.ReorderCodes.FIRST;
-        } else {
-            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-            return *this;
-        }
-        CollationSettings.MaxVariable oldValue = settings.getMaxVariable();
-        if(value == oldValue) {
-            setAttributeExplicitly(ATTR_VARIABLE_TOP);
-            return *this;
-        }
-        CollationSettings defaultSettings = getDefaultSettings();
-        if(settings == &defaultSettings) {
-            if(value == UCOL_DEFAULT) {
-                setAttributeDefault(ATTR_VARIABLE_TOP);
-                return *this;
-            }
-        }
-        CollationSettings ownedSettings = getOwnedSettings();
-        if(ownedSettings == null) {
-            errorCode = U_MEMORY_ALLOCATION_ERROR;
-            return *this;
-        }
-
-        if(group == Collator.ReorderCodes.DEFAULT) {
-            group = (UColReorderCode)(Collator.ReorderCodes.FIRST + defaultSettings.getMaxVariable());
-        }
-        uint32_t varTop = data.getLastPrimaryForGroup(group);
-        assert(varTop != 0);
-        ownedSettings.setMaxVariable(value, defaultSettings.options);
-        if(U_FAILURE) { return *this; }
-        ownedSettings.variableTop = varTop;
-        setFastLatinOptions(*ownedSettings);
-        if(value == UCOL_DEFAULT) {
-            setAttributeDefault(ATTR_VARIABLE_TOP);
-        } else {
-            setAttributeExplicitly(ATTR_VARIABLE_TOP);
-        }
-        return *this;
-    }
-
-    UColReorderCode
-    RuleBasedCollator.getMaxVariable() {
-        return (UColReorderCode)(Collator.ReorderCodes.FIRST + settings.getMaxVariable());
     }
 
     uint32_t
@@ -1351,13 +1163,6 @@ private:
             ownedSettings.setReordering(reorderCodes.clone(), reorderTable);
         }
         setFastLatinOptions(ownedSettings);
-    }
-
-    void
-    RuleBasedCollator.setFastLatinOptions(CollationSettings &ownedSettings) {
-        ownedSettings.fastLatinOptions = CollationFastLatin.getOptions(
-                data, ownedSettings,
-                ownedSettings.fastLatinPrimaries, LENGTHOF(ownedSettings.fastLatinPrimaries));
     }
 
     CollationKey &
