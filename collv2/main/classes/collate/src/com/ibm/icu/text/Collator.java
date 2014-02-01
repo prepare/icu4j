@@ -16,6 +16,8 @@ import java.util.Set;
 
 import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.impl.ICUResourceBundle;
+import com.ibm.icu.impl.coll.CollationData;
+import com.ibm.icu.impl.coll.CollationRoot;
 import com.ibm.icu.lang.UScript;
 import com.ibm.icu.util.Freezable;
 import com.ibm.icu.util.ULocale;
@@ -406,7 +408,7 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
      */ 
     public void setReorderCodes(int... order) 
     { 
-        throw new UnsupportedOperationException(); 
+        throw new UnsupportedOperationException("Needs to be implemented by the subclass."); 
     } 
 
     // public getters --------------------------------------------------------
@@ -1061,7 +1063,7 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
      * @draft ICU 53
      * @provisional This API might change or be removed in a future release.
      */
-    public RuleBasedCollator setMaxVariable(int group) {
+    public Collator setMaxVariable(int group) {
         throw new UnsupportedOperationException("Needs to be implemented by the subclass.");
     }
 
@@ -1080,46 +1082,52 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
     }
 
     /**
-     * {@icu} Variable top is a two byte primary value which causes all the codepoints
-     * with primary values that are less or equal than the variable top to be
-     * shifted when alternate handling is set to SHIFTED.
-     * </p>
-     * <p>
-     * Sets the variable top to a collation element value of a string supplied.
-     * </p>
+     * {@icu} Sets the variable top to the primary weight of the specified string.
+     *
+     * <p>Beginning with ICU 53, the variable top is pinned to
+     * the top of one of the supported reordering groups,
+     * and it must not be beyond the last of those groups.
+     * See {@link #setMaxVariable(int)}.
+     * 
      * @param varTop one or more (if contraction) characters to which the
      *               variable top should be set
-     * @return a int value containing the value of the variable top in upper 16
-     *         bits. Lower 16 bits are undefined.
-     * @throws IllegalArgumentException is thrown if varTop argument is not
-     *            a valid variable top element. A variable top element is
-     *            invalid when it is a contraction that does not exist in the
-     *            Collation order or when the PRIMARY strength collation
-     *            element for the variable top has more than two bytes
+     * @return variable top primary weight
+     * @exception IllegalArgumentException
+     *                is thrown if varTop argument is not a valid variable top element. A variable top element is
+     *                invalid when
+     *                <ul>
+     *                <li>it is a contraction that does not exist in the Collation order
+     *                <li>the variable top is beyond
+     *                    the last reordering group supported by setMaxVariable()
+     *                <li>when the varTop argument is null or zero in length.
+     *                </ul>
      * @see #getVariableTop
      * @see RuleBasedCollator#setAlternateHandlingShifted
-     * @stable ICU 2.6
+     * @deprecated ICU 53 Call {@link #setMaxVariable(int)} instead.
      */
     public abstract int setVariableTop(String varTop);
 
     /**
-     * {@icu} Returns the variable top value of a Collator.
-     * Lower 16 bits are undefined and should be ignored.
-     * @return the variable top value of a Collator.
-     * @see #setVariableTop
+     * {@icu} Gets the variable top value of a Collator.
+     * 
+     * @return the variable top primary weight
+     * @see #getMaxVariable
      * @stable ICU 2.6
      */
     public abstract int getVariableTop();
 
     /**
-     * {@icu} Sets the variable top to a collation element value supplied.
-     * Variable top is set to the upper 16 bits.
-     * Lower 16 bits are ignored.
-     * @param varTop Collation element value, as returned by setVariableTop or
-     *               getVariableTop
+     * {@icu} Sets the variable top to the specified primary weight.
+     *
+     * <p>Beginning with ICU 53, the variable top is pinned to
+     * the top of one of the supported reordering groups,
+     * and it must not be beyond the last of those groups.
+     * See {@link #setMaxVariable(int)}.
+     * 
+     * @param varTop primary weight, as returned by setVariableTop or getVariableTop
      * @see #getVariableTop
-     * @see #setVariableTop
-     * @stable ICU 2.6
+     * @see #setVariableTop(String)
+     * @deprecated ICU 53 Call setMaxVariable() instead.
      */
     public abstract void setVariableTop(int varTop);
 
@@ -1150,14 +1158,14 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
      */ 
     public int[] getReorderCodes() 
     { 
-        throw new UnsupportedOperationException(); 
+        throw new UnsupportedOperationException("Needs to be implemented by the subclass."); 
     }   
 
     /**
      * Retrieves all the reorder codes that are grouped with the given reorder code. Some reorder
      * codes are grouped and must reorder together.
      * 
-     * @param reorderCode code for which equivalents to be retrieved
+     * @param reorderCode The reorder code to determine equivalence for. 
      * @return the set of all reorder codes in the same group as the given reorder code.
      * @see #setReorderCodes
      * @see #getReorderCodes
@@ -1165,9 +1173,9 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
      * @see UScript
      * @stable ICU 4.8
      */
-    public static int[] getEquivalentReorderCodes(int reorderCode)
-    { 
-        throw new UnsupportedOperationException(); 
+    public static int[] getEquivalentReorderCodes(int reorderCode) {
+        CollationData baseData = CollationRoot.getData();
+        return baseData.getEquivalentScripts(reorderCode);
     }   
 
 

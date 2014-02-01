@@ -3639,8 +3639,6 @@ final class CollationParsedRuleBuilder {
         collator.setFrenchCollation(option.m_isFrenchCollation_);
         collator.m_isHiragana4_ = option.m_isHiragana4_;
         collator.setStrength(option.m_strength_);
-        collator.m_variableTopValue_ = option.m_variableTopValue_;
-        collator.m_reorderCodes_ = option.m_scriptOrder_;
     }
 
     /**

@@ -114,7 +114,7 @@ public final class Collation {
     /** No CE: End of input. Only used in runtime code, not stored in data. */
     static final long NO_CE_PRIMARY = 1;  // not a left-adjusted weight
     static final int NO_CE_WEIGHT16 = 0x0100;  // weight of LEVEL_SEPARATOR_BYTE
-    static final long NO_CE = 0x101000100L;  // NO_CE_PRIMARY, NO_CE_WEIGHT16, NO_CE_WEIGHT16
+    public static final long NO_CE = 0x101000100L;  // NO_CE_PRIMARY, NO_CE_WEIGHT16, NO_CE_WEIGHT16
 
     /** Sort key levels. */
 

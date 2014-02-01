@@ -31,7 +31,7 @@ public final class CollationRoot {
         }
         return rootSingleton;
     }
-    static final CollationData getData() {
+    public static final CollationData getData() {
         CollationTailoring root = getRoot();
         return root.data;
     }

@@ -208,14 +208,6 @@ final class CollationRuleParser
             m_decomposition_ = collator.getDecomposition();
             m_strength_ = collator.getStrength();
             m_isHiragana4_ = collator.m_isHiragana4_;
-
-            if(collator.m_reorderCodes_ != null){ 
-                m_scriptOrder_ = new int[collator.m_reorderCodes_.length]; 
-                for(int i = 0; i < m_scriptOrder_.length; i++){ 
-                    m_scriptOrder_[i] = collator.m_reorderCodes_[i]; 
-                } 
-            } 
-
         }
 
         // package private data members --------------------------------------
@@ -423,11 +415,6 @@ final class CollationRuleParser
         collator.m_defaultCaseFirst_ = m_options_.m_caseFirst_;
         collator.m_defaultIsHiragana4_ = m_options_.m_isHiragana4_;
         collator.m_defaultVariableTopValue_ = m_options_.m_variableTopValue_;
-        if(m_options_.m_scriptOrder_ != null) { 
-            collator.m_defaultReorderCodes_ = m_options_.m_scriptOrder_.clone(); 
-        } else { 
-            collator.m_defaultReorderCodes_ = null; 
-        }  
     }
 
     // private inner classes -------------------------------------------------
