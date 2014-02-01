@@ -6,17 +6,12 @@
  */
 package com.ibm.icu.text;
 
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.CharacterIterator;
 import java.text.ParseException;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.MissingResourceException;
-import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -41,7 +36,6 @@ import com.ibm.icu.impl.coll.FCDUTF16CollationIterator;
 import com.ibm.icu.impl.coll.SharedObject;
 import com.ibm.icu.impl.coll.UTF16CollationIterator;
 import com.ibm.icu.lang.UCharacter;
-import com.ibm.icu.lang.UScript;
 import com.ibm.icu.util.Output;
 import com.ibm.icu.util.RangeValueIterator;
 import com.ibm.icu.util.ULocale;
@@ -702,7 +696,7 @@ public final class RuleBasedCollator extends Collator {
     }
 
     /**
-     * Sets the variable top to the top of the specified reordering group.
+     * {@icu} Sets the variable top to the top of the specified reordering group.
      * The variable top determines the highest-sorting character
      * which is affected by the alternate handling behavior.
      * If that attribute is set to NON_IGNORABLE, then the variable top has no effect.
@@ -749,7 +743,7 @@ public final class RuleBasedCollator extends Collator {
     }
 
     /**
-     * Returns the maximum reordering group whose characters are affected by
+     * {@icu} Returns the maximum reordering group whose characters are affected by
      * the alternate handling behavior.
      * @return the maximum variable reordering group.
      * @see #setMaxVariable
@@ -762,28 +756,28 @@ public final class RuleBasedCollator extends Collator {
     }
 
     /**
-     * <p>
-     * Variable top is a two byte primary value which causes all the codepoints with primary values that are less or
-     * equal than the variable top to be shifted when alternate handling is set to SHIFTED.
-     * </p>
-     * <p>
-     * Sets the variable top to a collation element value of a string supplied.
-     * </p>
+     * {@icu} Sets the variable top to the primary weight of the specified string.
+     *
+     * <p>Beginning with ICU 53, the variable top is pinned to
+     * the top of one of the supported reordering groups,
+     * and it must not be beyond the last of those groups.
+     * See {@link #setMaxVariable(int)}.
      * 
      * @param varTop
      *            one or more (if contraction) characters to which the variable top should be set
-     * @return a int value containing the value of the variable top in upper 16 bits. Lower 16 bits are undefined.
+     * @return variable top primary weight
      * @exception IllegalArgumentException
      *                is thrown if varTop argument is not a valid variable top element. A variable top element is
      *                invalid when
      *                <ul>
      *                <li>it is a contraction that does not exist in the Collation order
-     *                <li>when the PRIMARY strength collation element for the variable top has more than two bytes
+     *                <li>the variable top is beyond
+     *                    the last reordering group supported by setMaxVariable()
      *                <li>when the varTop argument is null or zero in length.
      *                </ul>
      * @see #getVariableTop
      * @see RuleBasedCollator#setAlternateHandlingShifted
-     * @stable ICU 2.6
+     * @deprecated ICU 53 Call {@link #setMaxVariable(int)} instead.
      */
     @Override
     public int setVariableTop(String varTop) {
@@ -791,60 +785,67 @@ public final class RuleBasedCollator extends Collator {
         if (varTop == null || varTop.length() == 0) {
             throw new IllegalArgumentException("Variable top argument string can not be null or zero in length.");
         }
-
-        CollationBuffer buffer = null;
-        try {
-            buffer = getCollationBuffer();
-            return setVariableTop(varTop, buffer);
-        } finally {
-            releaseCollationBuffer(buffer);
+        boolean numeric = settings.readOnly().isNumeric();
+        long ce1, ce2;
+        if(settings.readOnly().dontCheckFCD()) {
+            UTF16CollationIterator ci = new UTF16CollationIterator(data, numeric, varTop, 0);
+            ce1 = ci.nextCE();
+            ce2 = ci.nextCE();
+        } else {
+            FCDUTF16CollationIterator ci = new FCDUTF16CollationIterator(data, numeric, varTop, 0);
+            ce1 = ci.nextCE();
+            ce2 = ci.nextCE();
         }
-
-    }
-
-    private int setVariableTop(String varTop, CollationBuffer buffer) {
-        buffer.m_srcUtilColEIter_.setText(varTop);
-        int ce = buffer.m_srcUtilColEIter_.next();
-
-        // here we check if we have consumed all characters
-        // you can put in either one character or a contraction
-        // you shouldn't put more...
-        if (buffer.m_srcUtilColEIter_.getOffset() != varTop.length() || ce == CollationElementIterator.NULLORDER) {
-            throw new IllegalArgumentException("Variable top argument string is a contraction that does not exist "
-                    + "in the Collation order");
+        if(ce1 == Collation.NO_CE || ce2 != Collation.NO_CE) {
+            throw new IllegalArgumentException("Variable top argument string must map to exactly one collation element");
         }
-
-        int nextCE = buffer.m_srcUtilColEIter_.next();
-
-        if ((nextCE != CollationElementIterator.NULLORDER)
-                && (!isContinuation(nextCE) || (nextCE & CE_PRIMARY_MASK_) != 0)) {
-            throw new IllegalArgumentException("Variable top argument string can only have a single collation "
-                    + "element that has less than or equal to two PRIMARY strength " + "bytes");
-        }
-
-        m_variableTopValue_ = (ce & CE_PRIMARY_MASK_) >> 16;
-
-        return ce & CE_PRIMARY_MASK_;
+        internalSetVariableTop(ce1 >>> 32);
+        return (int)settings.readOnly().variableTop;
     }
 
     /**
-     * Sets the variable top to a collation element value supplied. Variable top is set to the upper 16 bits. Lower 16
-     * bits are ignored.
+     * {@icu} Sets the variable top to the specified primary weight.
+     *
+     * <p>Beginning with ICU 53, the variable top is pinned to
+     * the top of one of the supported reordering groups,
+     * and it must not be beyond the last of those groups.
+     * See {@link #setMaxVariable(int)}.
      * 
-     * @param varTop
-     *            Collation element value, as returned by setVariableTop or getVariableTop
+     * @param varTop primary weight, as returned by setVariableTop or getVariableTop
      * @see #getVariableTop
      * @see #setVariableTop(String)
-     * @stable ICU 2.6
+     * @deprecated ICU 53 Call setMaxVariable() instead.
      */
     @Override
     public void setVariableTop(int varTop) {
         checkNotFrozen();
-        m_variableTopValue_ = (varTop & CE_PRIMARY_MASK_) >> 16;
+        internalSetVariableTop(varTop & 0xffffffffL);
+    }
+
+    private void internalSetVariableTop(long varTop) {
+        if(varTop != settings.readOnly().variableTop) {
+            // Pin the variable top to the end of the reordering group which contains it.
+            // Only a few special groups are supported.
+            int group = data.getGroupForPrimary(varTop);
+            if(group < Collator.ReorderCodes.FIRST || Collator.ReorderCodes.CURRENCY < group) {
+                throw new IllegalArgumentException("The variable top must be a primary weight in " +
+                        "the space/punctuation/symbols/currency symbols range");
+            }
+            long v = data.getLastPrimaryForGroup(group);
+            assert(v != 0 && v >= varTop);
+            varTop = v;
+            if(varTop != settings.readOnly().variableTop) {
+                CollationSettings ownedSettings = getOwnedSettings();
+                ownedSettings.setMaxVariable(group - Collator.ReorderCodes.FIRST,
+                        getDefaultSettings().options);
+                ownedSettings.variableTop = varTop;
+                setFastLatinOptions(ownedSettings);
+            }
+        }
     }
 
     /**
-     * When numeric collation is turned on, this Collator generates a collation key for the numeric value of substrings
+     * {@icu} When numeric collation is turned on, this Collator generates a collation key for the numeric value of substrings
      * of digits. This is a way to get '100' to sort AFTER '2'
      * 
      * @param flag
@@ -888,18 +889,37 @@ public final class RuleBasedCollator extends Collator {
      * then this clears any existing reordering
      * @throws IllegalArgumentException if the reordering codes are malformed in any way (e.g. duplicates, multiple reset codes, overlapping equivalent scripts)
      * @see #getReorderCodes
-     * @see #getEquivalentReorderCodes
+     * @see Collator#getEquivalentReorderCodes
      * @stable ICU 4.8
      */ 
     @Override
     public void setReorderCodes(int... order) {
         checkNotFrozen();
-        if (order != null && order.length > 0) {
-            m_reorderCodes_ = order.clone();
-        } else {
-            m_reorderCodes_ = null;
+        if(order == null ?
+                settings.readOnly().reorderCodes.length == 0 :
+                Arrays.equals(order, settings.readOnly().reorderCodes)) {
+            return;
         }
-        buildPermutationTable();
+        int length = (order != null) ? order.length : 0;
+        CollationSettings defaultSettings = getDefaultSettings();
+        if(length == 1 && order[0] == Collator.ReorderCodes.DEFAULT) {
+            if(settings.readOnly() != defaultSettings) {
+                CollationSettings ownedSettings = getOwnedSettings();
+                ownedSettings.setReordering(defaultSettings.reorderCodes,
+                                            defaultSettings.reorderTable);
+                setFastLatinOptions(ownedSettings);
+            }
+            return;
+        }
+        CollationSettings ownedSettings = getOwnedSettings();
+        if(length == 0) {
+            ownedSettings.resetReordering();
+        } else {
+            byte[] reorderTable = new byte[256];
+            data.makeReorderTable(order, order.length, reorderTable);
+            ownedSettings.setReordering(order.clone(), reorderTable);
+        }
+        setFastLatinOptions(ownedSettings);
     }
 
     private void setFastLatinOptions(CollationSettings ownedSettings) {
@@ -1359,15 +1379,15 @@ public final class RuleBasedCollator extends Collator {
     }
 
     /**
-     * Gets the variable top value of a Collator. Lower 16 bits are undefined and should be ignored.
+     * {@icu} Gets the variable top value of a Collator.
      * 
-     * @return the variable top value of a Collator.
-     * @see #setVariableTop
+     * @return the variable top primary weight
+     * @see #getMaxVariable
      * @stable ICU 2.6
      */
     @Override
     public int getVariableTop() {
-        return m_variableTopValue_ << 16;
+        return (int)settings.readOnly().variableTop;
     }
 
     /**
@@ -1389,43 +1409,12 @@ public final class RuleBasedCollator extends Collator {
      * @return a copy of the reordering codes for this collator; 
      * if none are set then returns an empty array
      * @see #setReorderCodes
-     * @see #getEquivalentReorderCodes
+     * @see Collator#getEquivalentReorderCodes
      * @stable ICU 4.8
      */ 
     @Override
     public int[] getReorderCodes() {
-        if (m_reorderCodes_ != null) {
-            return m_reorderCodes_.clone();
-        } else {
-            return LeadByteConstants.EMPTY_INT_ARRAY;
-        }
-    }
-
-    /**
-     * Retrieves all the reorder codes that are grouped with the given reorder code. Some reorder
-     * codes are grouped and must reorder together.
-     * 
-     * @param reorderCode code for which equivalents to be retrieved
-     * @return the set of all reorder codes in the same group as the given reorder code.
-     * @see #setReorderCodes
-     * @see #getReorderCodes
-     * @stable ICU 4.8
-     */
-    public static int[] getEquivalentReorderCodes(int reorderCode) {
-        Set<Integer> equivalentCodesSet = new HashSet<Integer>();
-        int[] leadBytes = RuleBasedCollator.LEADBYTE_CONSTANTS_.getLeadBytesForReorderCode(reorderCode);
-        for (int leadByte : leadBytes) {
-            int[] codes = RuleBasedCollator.LEADBYTE_CONSTANTS_.getReorderCodesForLeadByte(leadByte);
-            for (int code : codes) {
-                equivalentCodesSet.add(code);
-            }
-        }
-        int[] equivalentCodes = new int[equivalentCodesSet.size()];
-        int i = 0;
-        for (int code : equivalentCodesSet) {
-            equivalentCodes[i++] = code;
-        }
-        return equivalentCodes;
+        return settings.readOnly().reorderCodes.clone();
     }
 
     // public other methods -------------------------------------------------
@@ -1459,7 +1448,7 @@ public final class RuleBasedCollator extends Collator {
                 || other.m_isHiragana4_ != m_isHiragana4_) {
             return false;
         }
-        if (m_reorderCodes_ != null ^ other.m_reorderCodes_ != null) {
+        /*if (m_reorderCodes_ != null ^ other.m_reorderCodes_ != null) {
             return false;
         }
         if (m_reorderCodes_ != null) {
@@ -1471,7 +1460,7 @@ public final class RuleBasedCollator extends Collator {
                     return false;
                 }
             }
-        }
+        }*/
         boolean rules = m_rules_ == other.m_rules_;
         if (!rules && (m_rules_ != null && other.m_rules_ != null)) {
             rules = m_rules_.equals(other.m_rules_);
@@ -1887,135 +1876,6 @@ public final class RuleBasedCollator extends Collator {
         int PRIMARY_SPECIAL_MAX_; // 0xF0000000
     }
 
-    /**
-     * Script to Lead Byte and Lead Byte to Script Data
-     * 
-     */
-    static final class LeadByteConstants {
-        private static final int DATA_MASK_FOR_INDEX = 0x8000;
-        private static final int[] EMPTY_INT_ARRAY = new int[0];
-
-        private int serializedSize = 0;
-
-        private Map<Integer, Integer> SCRIPT_TO_LEAD_BYTES_INDEX;
-        private byte[] SCRIPT_TO_LEAD_BYTES_DATA;
-
-        private int[] LEAD_BYTE_TO_SCRIPTS_INDEX;
-        private byte[] LEAD_BYTE_TO_SCRIPTS_DATA;
-
-        LeadByteConstants() {
-        }
-
-        void read(DataInputStream dis) throws IOException {
-            int readcount = 0;
-            int indexCount;
-            int dataSize;
-
-            // script to lead bytes
-            indexCount = dis.readShort();
-            readcount += 2;
-            dataSize = dis.readShort();
-            readcount += 2;
-            this.SCRIPT_TO_LEAD_BYTES_INDEX = new HashMap<Integer, Integer>();
-            //System.out.println("Script to Lead Bytes Index - Count = " + indexCount);
-            for (int index = 0; index < indexCount; index++) {
-                int reorderCode = dis.readShort(); // reorder code
-                readcount += 2;
-                int dataOffset = 0xffff & dis.readShort(); // data offset
-                readcount += 2;
-                //                 System.out.println("\t-------------");
-                //                 System.out.println("\toffset = " + Integer.toHexString(readcount - 4));
-                //                 System.out.println("\treorderCode = " + Integer.toHexString(reorderCode));
-                //                 System.out.println("\tdataOffset = " + Integer.toHexString(dataOffset));
-                this.SCRIPT_TO_LEAD_BYTES_INDEX.put(reorderCode, dataOffset);
-            }
-
-            this.SCRIPT_TO_LEAD_BYTES_DATA = new byte[dataSize * 2];
-            dis.readFully(this.SCRIPT_TO_LEAD_BYTES_DATA, 0, this.SCRIPT_TO_LEAD_BYTES_DATA.length);
-            readcount += this.SCRIPT_TO_LEAD_BYTES_DATA.length;
-
-            // lead byte to scripts
-            indexCount = dis.readShort();
-            readcount += 2;
-            dataSize = dis.readShort();
-            readcount += 2;
-            this.LEAD_BYTE_TO_SCRIPTS_INDEX = new int[indexCount];
-            //System.out.println("Lead Byte to Scripts Index - Count = " + indexCount);
-            for (int index = 0; index < indexCount; index++) {
-                this.LEAD_BYTE_TO_SCRIPTS_INDEX[index] = 0xffff & dis.readShort();
-                readcount += 2;
-                //                System.out.println("\t-------------");
-                //                System.out.println("\toffset = " + Integer.toHexString(readcount - 2));
-                //                System.out.println("\tindex = " + Integer.toHexString(index));
-                //                System.out.println("\tdataOffset = " + Integer.toHexString(this.LEAD_BYTE_TO_SCRIPTS_INDEX[index]));
-            }
-
-            this.LEAD_BYTE_TO_SCRIPTS_DATA = new byte[dataSize * 2];
-            dis.readFully(this.LEAD_BYTE_TO_SCRIPTS_DATA, 0, this.LEAD_BYTE_TO_SCRIPTS_DATA.length);
-            readcount += this.LEAD_BYTE_TO_SCRIPTS_DATA.length;
-
-            this.serializedSize = readcount;
-        }
-
-        int getSerializedDataSize() {
-            return this.serializedSize;
-        }
-
-        int[] getReorderCodesForLeadByte(int leadByte) {
-            if (leadByte >= this.LEAD_BYTE_TO_SCRIPTS_INDEX.length) {
-                return EMPTY_INT_ARRAY;
-            }
-            int offset = this.LEAD_BYTE_TO_SCRIPTS_INDEX[leadByte];
-            if (offset == 0) {
-                return EMPTY_INT_ARRAY;
-            }
-            int[] reorderCodes;
-            if ((offset & DATA_MASK_FOR_INDEX) == DATA_MASK_FOR_INDEX) {
-                reorderCodes = new int[1];
-                reorderCodes[0] = offset & ~DATA_MASK_FOR_INDEX;
-            } else {
-                int length = readShort(this.LEAD_BYTE_TO_SCRIPTS_DATA, offset);
-                offset++;
-
-                reorderCodes = new int[length];
-                for (int code = 0; code < length; code++, offset++) {
-                    reorderCodes[code] = readShort(this.LEAD_BYTE_TO_SCRIPTS_DATA, offset);
-                }
-            }
-            return reorderCodes;
-        }
-
-        int[] getLeadBytesForReorderCode(int reorderCode) {
-            if (!this.SCRIPT_TO_LEAD_BYTES_INDEX.containsKey(reorderCode)) {
-                return EMPTY_INT_ARRAY;
-            }
-            int offset = this.SCRIPT_TO_LEAD_BYTES_INDEX.get(reorderCode);
-
-            if (offset == 0) {
-                return EMPTY_INT_ARRAY;
-            }
-
-            int[] leadBytes;
-            if ((offset & DATA_MASK_FOR_INDEX) == DATA_MASK_FOR_INDEX) {
-                leadBytes = new int[1];
-                leadBytes[0] = offset & ~DATA_MASK_FOR_INDEX;
-            } else {
-                int length = readShort(this.SCRIPT_TO_LEAD_BYTES_DATA, offset);
-                offset++;
-
-                leadBytes = new int[length];
-                for (int leadByte = 0; leadByte < length; leadByte++, offset++) {
-                    leadBytes[leadByte] = readShort(this.SCRIPT_TO_LEAD_BYTES_DATA, offset);
-                }
-            }
-            return leadBytes;
-        }
-
-        private static int readShort(byte[] data, int offset) {
-            return (0xff & data[offset * 2]) << 8 | (data[offset * 2 + 1] & 0xff);
-        }
-    }
-
     // package private data member -------------------------------------------
 
     static final byte BYTE_FIRST_TAILORED_ = (byte) 0x04;
@@ -2088,10 +1948,6 @@ public final class RuleBasedCollator extends Collator {
     int m_defaultStrength_;
     boolean m_defaultIsHiragana4_;
     boolean m_defaultIsNumericCollation_;
-    /**
-     * Default script order - the one created at initial rule parse time
-     */
-    int[] m_defaultReorderCodes_;
 
     /**
      * Value of the variable top
@@ -2109,10 +1965,6 @@ public final class RuleBasedCollator extends Collator {
      * Numeric collation option
      */
     boolean m_isNumericCollation_;
-    /**
-     * Script order
-     */
-    int[] m_reorderCodes_;
 
     // end Collator options --------------------------------------------------
 
@@ -2177,11 +2029,6 @@ public final class RuleBasedCollator extends Collator {
      */
     VersionInfo m_UCD_version_;
     /**
-     * Lead byte and script data
-     */
-    int m_leadByteToScripts;
-    int m_scriptToLeadBytes;
-    /**
      * UnicodeData.txt property object
      */
     static final RuleBasedCollator UCA_;
@@ -2189,10 +2036,6 @@ public final class RuleBasedCollator extends Collator {
      * UCA Constants
      */
     static final UCAConstants UCA_CONSTANTS_;
-    /**
-     * Lead Byte Constants
-     */
-    static LeadByteConstants LEADBYTE_CONSTANTS_;
     /**
      * Table for UCA and builder use
      */
@@ -2224,7 +2067,6 @@ public final class RuleBasedCollator extends Collator {
 
         RuleBasedCollator iUCA_ = null;
         UCAConstants iUCA_CONSTANTS_ = null;
-        LeadByteConstants iLEADBYTE_CONSTANTS = null;
         char iUCA_CONTRACTIONS_[] = null;
         Output<Integer> maxUCAContractionLength = new Output<Integer>();
         ImplicitCEGenerator iimpCEGen_ = null;
@@ -2236,8 +2078,7 @@ public final class RuleBasedCollator extends Collator {
             // not complete yet!
             iUCA_ = new RuleBasedCollator();
             iUCA_CONSTANTS_ = new UCAConstants();
-            iLEADBYTE_CONSTANTS = new LeadByteConstants();
-            iUCA_CONTRACTIONS_ = CollatorReader.read(iUCA_, iUCA_CONSTANTS_, iLEADBYTE_CONSTANTS, maxUCAContractionLength);
+            iUCA_CONTRACTIONS_ = CollatorReader.read(iUCA_, iUCA_CONSTANTS_, maxUCAContractionLength);
 
             // called before doing canonical closure for the UCA.
             iimpCEGen_ = new ImplicitCEGenerator(minImplicitPrimary, maxImplicitPrimary);
@@ -2256,7 +2097,6 @@ public final class RuleBasedCollator extends Collator {
 
         UCA_ = iUCA_;
         UCA_CONSTANTS_ = iUCA_CONSTANTS_;
-        LEADBYTE_CONSTANTS_ = iLEADBYTE_CONSTANTS;
         UCA_CONTRACTIONS_ = iUCA_CONTRACTIONS_;
         MAX_UCA_CONTRACTION_LENGTH = maxUCAContractionLength.value;
         impCEGen_ = iimpCEGen_;
@@ -2352,7 +2192,6 @@ public final class RuleBasedCollator extends Collator {
                         if (reorderRes != null) {
                             int[] reorderCodes = reorderRes.getIntVector();
                             setReorderCodes(reorderCodes);
-                            m_defaultReorderCodes_ = reorderCodes.clone();
                         }
                     } catch (MissingResourceException e) {
                         // ignore
@@ -2757,7 +2596,6 @@ public final class RuleBasedCollator extends Collator {
         builder.setRules(this);
         m_rules_ = rules;
         init();
-        buildPermutationTable();
     }
 
     // Is this primary weight compressible?
@@ -3401,130 +3239,6 @@ public final class RuleBasedCollator extends Collator {
         return array;
     }
 
-    private static final int UCOL_REORDER_CODE_IGNORE = ReorderCodes.LIMIT + 1;
-    /**
-     * Builds the lead byte permuatation table
-     */
-    private void buildPermutationTable() {
-        if (m_reorderCodes_ == null || m_reorderCodes_.length == 0 || (m_reorderCodes_.length == 1 && m_reorderCodes_[0] == ReorderCodes.NONE)) {
-            m_leadBytePermutationTable_ = null;
-            return;
-        }
-
-        if (m_reorderCodes_[0] == ReorderCodes.DEFAULT) {
-            if (m_reorderCodes_.length != 1) {
-                throw new IllegalArgumentException("Illegal collation reorder codes - default reorder code must be the only code in the list.");
-            }
-            // swap the reorder codes for those at build of the rules
-            if (m_defaultReorderCodes_ == null || m_defaultReorderCodes_.length == 0) {
-                m_leadBytePermutationTable_ = null;
-                return;
-            }
-            m_reorderCodes_ = m_defaultReorderCodes_.clone();
-        }
-
-        // TODO - these need to be read in from the UCA data file
-        // The lowest byte that hasn't been assigned a mapping
-        int toBottom = 0x03;
-        // The highest byte that hasn't been assigned a mapping
-        int toTop = 0xe4;
-
-        // filled slots in the output m_scriptOrder_
-        boolean[] permutationSlotFilled = new boolean[256];
-
-        // used lead bytes
-        boolean[] newLeadByteUsed = new boolean[256];
-
-        if (m_leadBytePermutationTable_ == null) {
-            m_leadBytePermutationTable_ = new byte[256];
-        }
-
-        // prefill the reordering codes with the leading entries
-        int[] internalReorderCodes = new int[m_reorderCodes_.length + (ReorderCodes.LIMIT - ReorderCodes.FIRST)];
-        for (int codeIndex = 0; codeIndex < ReorderCodes.LIMIT - ReorderCodes.FIRST; codeIndex++) {
-            internalReorderCodes[codeIndex] = ReorderCodes.FIRST + codeIndex;
-        }
-        for (int codeIndex = 0; codeIndex < m_reorderCodes_.length; codeIndex++) {
-            internalReorderCodes[codeIndex + (ReorderCodes.LIMIT - ReorderCodes.FIRST)] = m_reorderCodes_[codeIndex];
-            if (m_reorderCodes_[codeIndex] >= ReorderCodes.FIRST && m_reorderCodes_[codeIndex] < ReorderCodes.LIMIT) {
-                internalReorderCodes[m_reorderCodes_[codeIndex] - ReorderCodes.FIRST] = UCOL_REORDER_CODE_IGNORE;
-            }
-        }
-
-        /*
-         * Start from the front of the list and place each script we encounter at the earliest possible locatation
-         * in the permutation table. If we encounter UNKNOWN, start processing from the back, and place each script
-         * in the last possible location. At each step, we also need to make sure that any scripts that need to not
-         * be moved are copied to their same location in the final table.
-         */
-        boolean fromTheBottom = true;
-        int reorderCodesIndex = -1;
-        for (int reorderCodesCount = 0; reorderCodesCount < internalReorderCodes.length; reorderCodesCount++) {
-            reorderCodesIndex += fromTheBottom ? 1 : -1;
-            int next = internalReorderCodes[reorderCodesIndex];
-            if (next == UCOL_REORDER_CODE_IGNORE) {
-                continue;
-            }
-            if (next == UScript.UNKNOWN) {
-                if (fromTheBottom == false) {
-                    // double turnaround
-                    m_leadBytePermutationTable_ = null;
-                    throw new IllegalArgumentException("Illegal collation reorder codes - two \"from the end\" markers.");
-                }
-                fromTheBottom = false;
-                reorderCodesIndex = internalReorderCodes.length;
-                continue;
-            }
-
-            int[] leadBytes = RuleBasedCollator.LEADBYTE_CONSTANTS_.getLeadBytesForReorderCode(next);
-            if (fromTheBottom) {
-                for (int leadByte : leadBytes) {
-                    // don't place a lead byte twice in the permutation table
-                    if (permutationSlotFilled[leadByte]) {
-                        // lead byte already used
-                        m_leadBytePermutationTable_ = null;
-                        throw new IllegalArgumentException("Illegal reorder codes specified - multiple codes with the same lead byte.");
-                    }
-                    m_leadBytePermutationTable_[leadByte] = (byte) toBottom;
-                    newLeadByteUsed[toBottom] = true;
-                    permutationSlotFilled[leadByte] = true;
-                    toBottom++;                    
-                }
-            } else {
-                for (int leadByteIndex = leadBytes.length - 1; leadByteIndex >= 0; leadByteIndex--) {
-                    int leadByte = leadBytes[leadByteIndex];
-                    // don't place a lead byte twice in the permutation table
-                    if (permutationSlotFilled[leadByte]) {
-                        // lead byte already used
-                        m_leadBytePermutationTable_ = null;
-                        throw new IllegalArgumentException("Illegal reorder codes specified - multiple codes with the same lead byte.");
-                    }
-
-                    m_leadBytePermutationTable_[leadByte] = (byte) toTop;
-                    newLeadByteUsed[toTop] = true;
-                    permutationSlotFilled[leadByte] = true;
-                    toTop--;                    
-                }
-            }
-        }
-
-        /* Copy everything that's left over */
-        int reorderCode = 0;
-        for (int i = 0; i < 256; i++) {
-            if (!permutationSlotFilled[i]) {
-                while (newLeadByteUsed[reorderCode]) {
-                    if (reorderCode > 255) {
-                        throw new IllegalArgumentException("Unable to fill collation reordering table slots - no available reordering code.");
-                    }
-                    reorderCode++;
-                }
-                m_leadBytePermutationTable_[i] = (byte) reorderCode;
-                permutationSlotFilled[i] = true;
-                newLeadByteUsed[reorderCode] = true;
-            }
-        } 
-    }
-
     /**
      * Initializes the RuleBasedCollator
      */
@@ -3551,11 +3265,6 @@ public final class RuleBasedCollator extends Collator {
         m_caseFirst_ = m_defaultCaseFirst_;
         m_isHiragana4_ = m_defaultIsHiragana4_;
         m_isNumericCollation_ = m_defaultIsNumericCollation_;
-        if (m_defaultReorderCodes_ != null) {
-            m_reorderCodes_ = m_defaultReorderCodes_.clone();
-        } else {
-            m_reorderCodes_ = null;
-        }
     }
 
     /**

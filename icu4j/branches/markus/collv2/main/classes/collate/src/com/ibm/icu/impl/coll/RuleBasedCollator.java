@@ -559,42 +559,6 @@ public:
                                   int reorderCodesLength,
                                   UErrorCode& status) ;
 
-    /** Get the short definition string for a collator. This internal API harvests the collator's
-     *  locale and the attribute set and produces a string that can be used for opening 
-     *  a collator with the same properties using the ucol_openFromShortString API.
-     *  This string will be normalized.
-     *  The structure and the syntax of the string is defined in the "Naming collators"
-     *  section of the users guide: 
-     *  http://userguide.icu-project.org/collation/concepts#TOC-Collator-naming-scheme
-     *  This function supports preflighting.
-     * 
-     *  This is internal, and intended to be used with delegate converters.
-     *
-     *  @param locale a locale that will appear as a collators locale in the resulting
-     *                short string definition. If null, the locale will be harvested 
-     *                from the collator.
-     *  @param buffer space to hold the resulting string
-     *  @param capacity capacity of the buffer
-     *  @param status for returning errors. All the preflighting errors are featured
-     *  @return length of the resulting string
-     *  @see ucol_openFromShortString
-     *  @see ucol_normalizeShortDefinitionString
-     *  @see ucol_getShortDefinitionString
-     *  @internal
-     */
-    virtual int internalGetShortDefinitionString(const char *locale,
-                                                     char *buffer,
-                                                     int capacity,
-                                                     UErrorCode &status);
-
-    /**
-     * Implements ucol_nextSortKeyPart().
-     * @internal
-     */
-    virtual int internalNextSortKeyPart(
-            UCharIterator *iter, uint32_t state[2],
-            uint8_t *dest, int count);
-
 #ifndef U_HIDE_INTERNAL_API
     /**
      * Only for use in ucol_openRules().
@@ -1045,126 +1009,6 @@ private:
         ContractionsAndExpansions(&set, null, null, false).forCodePoint(data, c);
     }
 
-    uint32_t
-    RuleBasedCollator.getVariableTop(UErrorCode & /*errorCode*/) {
-        return settings.variableTop;
-    }
-
-    uint32_t
-    RuleBasedCollator.setVariableTop(const UChar *varTop, int len) {
-        if(U_FAILURE) { return 0; }
-        if(varTop == null && len !=0) {
-            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-            return 0;
-        }
-        if(len < 0) { len = u_strlen(varTop); }
-        if(len == 0) {
-            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-            return 0;
-        }
-        boolean numeric = settings.isNumeric();
-        long ce1, ce2;
-        if(settings.dontCheckFCD()) {
-            UTF16CollationIterator ci(data, numeric, varTop, varTop, varTop + len);
-            ce1 = ci.nextCE;
-            ce2 = ci.nextCE;
-        } else {
-            FCDUTF16CollationIterator ci(data, numeric, varTop, varTop, varTop + len);
-            ce1 = ci.nextCE;
-            ce2 = ci.nextCE;
-        }
-        if(ce1 == Collation.NO_CE || ce2 != Collation.NO_CE) {
-            errorCode = U_CE_NOT_FOUND_ERROR;
-            return 0;
-        }
-        setVariableTop(ce1 >>> 32);
-        return settings.variableTop;
-    }
-
-    uint32_t
-    RuleBasedCollator.setVariableTop(const UnicodeString &varTop) {
-        return setVariableTop(varTop.getBuffer(), varTop.length());
-    }
-
-    void
-    RuleBasedCollator.setVariableTop(uint32_t varTop) {
-        if(U_FAILURE) { return; }
-        if(varTop != settings.variableTop) {
-            // Pin the variable top to the end of the reordering group which contains it.
-            // Only a few special groups are supported.
-            int group = data.getGroupForPrimary(varTop);
-            if(group < Collator.ReorderCodes.FIRST || Collator.ReorderCodes.CURRENCY < group) {
-                errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-                return;
-            }
-            uint32_t v = data.getLastPrimaryForGroup(group);
-            assert(v != 0 && v >= varTop);
-            varTop = v;
-            if(varTop != settings.variableTop) {
-                CollationSettings ownedSettings = getOwnedSettings();
-                if(ownedSettings == null) {
-                    errorCode = U_MEMORY_ALLOCATION_ERROR;
-                    return;
-                }
-                ownedSettings.setMaxVariable(group - Collator.ReorderCodes.FIRST,
-                                              getDefaultSettings().options);
-                if(U_FAILURE) { return; }
-                ownedSettings.variableTop = varTop;
-                setFastLatinOptions(*ownedSettings);
-            }
-        }
-        if(varTop == getDefaultSettings().variableTop) {
-            setAttributeDefault(ATTR_VARIABLE_TOP);
-        } else {
-            setAttributeExplicitly(ATTR_VARIABLE_TOP);
-        }
-    }
-
-    int32_t
-    RuleBasedCollator.getReorderCodes(int *dest, int capacity,
-                                      ) {
-        if(U_FAILURE) { return 0; }
-        if(capacity < 0 || (dest == null && capacity > 0)) {
-            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-            return 0;
-        }
-        int length = settings.reorderCodesLength;
-        if(length == 0) { return 0; }
-        if(length > capacity) {
-            errorCode = U_BUFFER_OVERFLOW_ERROR;
-            return length;
-        }
-        uprv_memcpy(dest, settings.reorderCodes, length * 4);
-        return length;
-    }
-
-    void
-    RuleBasedCollator.setReorderCodes(int[] reorderCodes) {
-        if(Arrays.equals(order, settings.reorderCodesLength)) {
-            return;
-        }
-        int length = (reorderCodes != null) ? reorderCodes.length : 0;
-        CollationSettings defaultSettings = getDefaultSettings();
-        if(length == 1 && reorderCodes[0] == Collator.ReorderCodes.DEFAULT) {
-            if(settings != defaultSettings) {
-                CollationSettings ownedSettings = getOwnedSettings();
-                ownedSettings.setReordering(defaultSettings.reorderCodes,
-                                            defaultSettings.reorderTable);
-                setFastLatinOptions(ownedSettings);
-            }
-            return;
-        }
-        CollationSettings ownedSettings = getOwnedSettings();
-        if(length == 0) {
-            ownedSettings.resetReordering();
-        } else {
-            byte[] reorderTable = new byte[256];
-            data.makeReorderTable(reorderCodes, reorderTable);
-            ownedSettings.setReordering(reorderCodes.clone(), reorderTable);
-        }
-        setFastLatinOptions(ownedSettings);
-    }
-
     CollationKey &
     RuleBasedCollator.getCollationKey(const UnicodeString &s, CollationKey &key,
                                       ) {
@@ -1269,114 +1113,6 @@ private:
         u_writeIdenticalLevelRun(prev, nfd.getBuffer(), nfd.length(), sink);
     }
 
-    namespace {
-
-    /**
-    * internalNextSortKeyPart() calls CollationKeys.writeSortKeyUpToQuaternary()
-    * with an instance of this callback class.
-    * When another level is about to be written, the callback
-    * records the level and the number of bytes that will be written until
-    * the sink (which is actually a FixedSortKeyByteSink) fills up.
-    *
-    * When internalNextSortKeyPart() is called again, it restarts with the last level
-    * and ignores as many bytes as were written previously for that level.
-    */
-    class PartLevelCallback implements CollationKeys.LevelCallback {
-    public:
-        PartLevelCallback(const SortKeyByteSink &s)
-                : sink(s), level(Collation.PRIMARY_LEVEL) {
-            levelCapacity = sink.GetRemainingCapacity();
-        }
-        virtual ~PartLevelCallback() {}
-        virtual boolean needToWrite(Collation.Level l) {
-            if(!sink.Overflowed()) {
-                // Remember a level that will be at least partially written.
-                level = l;
-                levelCapacity = sink.GetRemainingCapacity();
-                return true;
-            } else {
-                return false;
-            }
-        }
-        Collation.Level getLevel() { return level; }
-        int getLevelCapacity() { return levelCapacity; }
-
-    private:
-        const SortKeyByteSink &sink;
-        Collation.Level level;
-        int levelCapacity;
-    };
-
-    }  // namespace
-
-    int32_t
-    RuleBasedCollator.internalNextSortKeyPart(UCharIterator *iter, uint32_t state[2],
-                                              uint8_t *dest, int count) {
-        if(U_FAILURE) { return 0; }
-        if(iter == null || state == null || count < 0 || (count > 0 && dest == null)) {
-            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-            return 0;
-        }
-        if(count == 0) { return 0; }
-
-        FixedSortKeyByteSink sink(reinterpret_cast<char *>(dest), count);
-        sink.IgnoreBytes((int32_t)state[1]);
-        iter.move(iter, 0, UITER_START);
-
-        Collation.Level level = (Collation.Level)state[0];
-        if(level <= Collation.QUATERNARY_LEVEL) {
-            boolean numeric = settings.isNumeric();
-            PartLevelCallback callback(sink);
-            if(settings.dontCheckFCD()) {
-                UIterCollationIterator ci(data, numeric, *iter);
-                CollationKeys.writeSortKeyUpToQuaternary(ci, data.compressibleBytes, *settings,
-                                                          sink, level, callback, false);
-            } else {
-                FCDUIterCollationIterator ci(data, numeric, *iter, 0);
-                CollationKeys.writeSortKeyUpToQuaternary(ci, data.compressibleBytes, *settings,
-                                                          sink, level, callback, false);
-            }
-            if(U_FAILURE) { return 0; }
-            if(sink.NumberOfBytesAppended() > count) {
-                state[0] = (uint32_t)callback.getLevel();
-                state[1] = (uint32_t)callback.getLevelCapacity();
-                return count;
-            }
-            // All of the normal levels are done.
-            if(settings.getStrength() == UCOL_IDENTICAL) {
-                level = Collation.IDENTICAL_LEVEL;
-                iter.move(iter, 0, UITER_START);
-            }
-            // else fall through to setting ZERO_LEVEL
-        }
-
-        if(level == Collation.IDENTICAL_LEVEL) {
-            int levelCapacity = sink.GetRemainingCapacity();
-            UnicodeString s;
-            for(;;) {
-                int c = iter.next(iter);
-                if(c < 0) { break; }
-                s.append((UChar)c);
-            }
-            const UChar *sArray = s.getBuffer();
-            writeIdenticalLevel(sArray, sArray + s.length(), sink);
-            if(U_FAILURE) { return 0; }
-            if(sink.NumberOfBytesAppended() > count) {
-                state[0] = (uint32_t)level;
-                state[1] = (uint32_t)levelCapacity;
-                return count;
-            }
-        }
-
-        // ZERO_LEVEL: Fill the remainder of dest with 00 bytes.
-        state[0] = (uint32_t)Collation.ZERO_LEVEL;
-        state[1] = 0;
-        int length = sink.NumberOfBytesAppended();
-        int i = length;
-        while(i < count) { dest[i++] = 0; }
-        return length;
-    }
-
     void
     RuleBasedCollator.internalGetCEs(const UnicodeString &str, UVector64 &ces,
                                       ) {
@@ -1399,103 +1135,6 @@ private:
         }
     }
 
-    namespace {
-
-    void appendSubtag(CharString &s, char letter, const char *subtag, int length,
-                      ) {
-        if(U_FAILURE || length == 0) { return; }
-        if(!s.isEmpty()) {
-            s.append('_');
-        }
-        s.append(letter);
-        for(int i = 0; i < length; ++i) {
-            s.append(uprv_toupper(subtag[i]));
-        }
-    }
-
-    void appendAttribute(CharString &s, char letter, UColAttributeValue value,
-                        ) {
-        if(U_FAILURE) { return; }
-        if(!s.isEmpty()) {
-            s.append('_');
-        }
-        private static final char *valueChars = "1234...........IXO..SN..LU......";
-        s.append(letter);
-        s.append(valueChars[value]);
-    }
-
-    }  // namespace
-
-    int32_t
-    RuleBasedCollator.internalGetShortDefinitionString(const char *locale,
-                                                        char *buffer, int capacity,
-                                                        ) {
-        if(U_FAILURE) { return 0; }
-        if(buffer == null ? capacity != 0 : capacity < 0) {
-            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
-            return 0;
-        }
-        if(locale == null) {
-            locale = internalGetLocaleID(ULOC_VALID_LOCALE);
-        }
-
-        char resultLocale[ULOC_FULLNAME_CAPACITY + 1];
-        int length = ucol_getFunctionalEquivalent(resultLocale, ULOC_FULLNAME_CAPACITY,
-                                                      "collation", locale,
-                                                      null, &errorCode);
-        if(U_FAILURE) { return 0; }
-        if(length == 0) {
-            uprv_strcpy(resultLocale, "root");
-        } else {
-            resultLocale[length] = 0;
-        }
-
-        // Append items in alphabetic order of their short definition letters.
-        CharString result;
-        char subtag[ULOC_KEYWORD_AND_VALUES_CAPACITY];
-
-        if(attributeHasBeenSetExplicitly(UCOL_ALTERNATE_HANDLING)) {
-            appendAttribute(result, 'A', getAttribute(UCOL_ALTERNATE_HANDLING));
-        }
-        // ATTR_VARIABLE_TOP not supported because 'B' was broken.
-        // See ICU tickets #10372 and #10386.
-        if(attributeHasBeenSetExplicitly(UCOL_CASE_FIRST)) {
-            appendAttribute(result, 'C', getAttribute(UCOL_CASE_FIRST));
-        }
-        if(attributeHasBeenSetExplicitly(UCOL_NUMERIC_COLLATION)) {
-            appendAttribute(result, 'D', getAttribute(UCOL_NUMERIC_COLLATION));
-        }
-        if(attributeHasBeenSetExplicitly(UCOL_CASE_LEVEL)) {
-            appendAttribute(result, 'E', getAttribute(UCOL_CASE_LEVEL));
-        }
-        if(attributeHasBeenSetExplicitly(UCOL_FRENCH_COLLATION)) {
-            appendAttribute(result, 'F', getAttribute(UCOL_FRENCH_COLLATION));
-        }
-        // Note: UCOL_HIRAGANA_QUATERNARY_MODE is deprecated and never changes away from default.
-        length = uloc_getKeywordValue(resultLocale, "collation", subtag, LENGTHOF(subtag), &errorCode);
-        appendSubtag(result, 'K', subtag, length);
-        length = uloc_getLanguage(resultLocale, subtag, LENGTHOF(subtag), &errorCode);
-        appendSubtag(result, 'L', subtag, length);
-        if(attributeHasBeenSetExplicitly(UCOL_NORMALIZATION_MODE)) {
-            appendAttribute(result, 'N', getAttribute(UCOL_NORMALIZATION_MODE));
-        }
-        length = uloc_getCountry(resultLocale, subtag, LENGTHOF(subtag), &errorCode);
-        appendSubtag(result, 'R', subtag, length);
-        if(attributeHasBeenSetExplicitly(UCOL_STRENGTH)) {
-            appendAttribute(result, 'S', getAttribute(UCOL_STRENGTH));
-        }
-        length = uloc_getVariant(resultLocale, subtag, LENGTHOF(subtag), &errorCode);
-        appendSubtag(result, 'V', subtag, length);
-        length = uloc_getScript(resultLocale, subtag, LENGTHOF(subtag), &errorCode);
-        appendSubtag(result, 'Z', subtag, length);
-
-        if(U_FAILURE) { return 0; }
-        if(result.length() <= capacity) {
-            uprv_memcpy(buffer, result.data(), result.length());
-        }
-        return u_terminateChars(buffer, capacity, result.length(), &errorCode);
-    }
-
     void
     RuleBasedCollator.computeMaxExpansions(const CollationTailoring *t) {
         t.maxExpansions = CollationElementIterator.computeMaxExpansions(t.data);
@@ -1510,7 +1149,7 @@ private:
     CollationElementIterator *
     RuleBasedCollator.createCollationElementIterator(const UnicodeString& source) {
         UErrorCode errorCode = U_ZERO_ERROR;
-        if(!initMaxExpansions) { return null; }
+        if(!initMaxExpansions()) { return null; }
         CollationElementIterator *cei = new CollationElementIterator(source, this);
         if(U_FAILURE) {
             delete cei;
@@ -1522,7 +1161,7 @@ private:
     CollationElementIterator *
     RuleBasedCollator.createCollationElementIterator(const CharacterIterator& source) {
         UErrorCode errorCode = U_ZERO_ERROR;
-        if(!initMaxExpansions) { return null; }
+        if(!initMaxExpansions()) { return null; }
         CollationElementIterator *cei = new CollationElementIterator(source, this);
         if(U_FAILURE) {
             delete cei;

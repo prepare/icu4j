@@ -25,7 +25,6 @@ public final class FCDUTF16CollationIterator extends UTF16CollationIterator {
         nfcImpl = d.nfcImpl;
     }
 
-    // TODO: needed in test code, or remove?
     public FCDUTF16CollationIterator(CollationData data, boolean numeric, CharSequence s, int p) {
         super(data, numeric, s, p);
         rawSeq = s;

@@ -205,7 +205,6 @@ public abstract class CollationIterator implements Cloneable {
         ceBuffer = null;
     }
 
-    // TODO: needed in test code, or remove?
     public CollationIterator(CollationData d, boolean numeric) {
         trie = d.trie;
         data = d;
@@ -264,7 +263,7 @@ public abstract class CollationIterator implements Cloneable {
     /**
      * Returns the next collation element.
      */
-    final long nextCE() {
+    public final long nextCE() {
         if(cesIndex < ceBuffer.length) {
             // Return the next buffered CE.
             return ceBuffer.get(cesIndex++);

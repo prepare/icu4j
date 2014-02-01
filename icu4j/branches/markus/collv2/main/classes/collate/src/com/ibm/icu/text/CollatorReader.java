@@ -17,7 +17,6 @@ import com.ibm.icu.impl.ICUData;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.IntTrie;
 import com.ibm.icu.text.CollationParsedRuleBuilder.InverseUCA;
-import com.ibm.icu.text.RuleBasedCollator.LeadByteConstants;
 import com.ibm.icu.text.RuleBasedCollator.UCAConstants;
 import com.ibm.icu.util.Output;
 import com.ibm.icu.util.VersionInfo;
@@ -40,12 +39,12 @@ import com.ibm.icu.util.VersionInfo;
 
 final class CollatorReader {
     static char[] read(RuleBasedCollator rbc, UCAConstants ucac,
-                       LeadByteConstants leadByteConstants, Output<Integer> maxUCAContractionLength)
+                       Output<Integer> maxUCAContractionLength)
             throws IOException {
         InputStream i = ICUData.getRequiredStream(ICUResourceBundle.ICU_BUNDLE + "/coll/ucadata.icu");
         BufferedInputStream b = new BufferedInputStream(i, 90000);
         CollatorReader reader = new CollatorReader(b);
-        char[] ucaContractions = reader.readImp(rbc, ucac, leadByteConstants, maxUCAContractionLength);
+        char[] ucaContractions = reader.readImp(rbc, ucac, maxUCAContractionLength);
         b.close();
         return ucaContractions;
     }
@@ -75,7 +74,7 @@ final class CollatorReader {
         // Consider changing ICUBinary to also work with a ByteBuffer.
         CollatorReader reader = new CollatorReader(makeByteBufferInputStream(data), false);
         if (dataLength > MIN_BINARY_DATA_SIZE_) {
-            reader.readImp(rbc, null, null, null);
+            reader.readImp(rbc, null, null);
         } else {
             reader.readHeader(rbc, null);
             reader.readOptions(rbc);
@@ -232,9 +231,9 @@ final class CollatorReader {
         readcount += 4;
         /*VersionInfo formatVersion =*/ readVersion(m_dataInputStream_);
         readcount += 4;
-        rbc.m_scriptToLeadBytes = m_dataInputStream_.readInt();
+        /*rbc.m_scriptToLeadBytes*/ m_dataInputStream_.readInt();
         readcount += 4;
-        rbc.m_leadByteToScripts = m_dataInputStream_.readInt();
+        /*rbc.m_leadByteToScripts*/ m_dataInputStream_.readInt();
         readcount += 4;
 
         // byte charsetName[] = new byte[32]; // for charset CEs
@@ -335,7 +334,6 @@ final class CollatorReader {
      *                thrown when there's a data error.
      */
     private char[] readImp(RuleBasedCollator rbc, RuleBasedCollator.UCAConstants UCAConst,
-            RuleBasedCollator.LeadByteConstants leadByteConstants,
             Output<Integer> maxUCAContractionLength) throws IOException {
         char ucaContractions[] = null; // return result
 
@@ -479,19 +477,13 @@ final class CollatorReader {
 
             readcount += readUCAConstcount;
 
-            int resultsize = (rbc.m_scriptToLeadBytes - readcount) / 2;
+            int resultsize = (-1 /*rbc.m_scriptToLeadBytes*/ - readcount) / 2;
             assert resultsize == m_UCAcontractionSize_ / 2;
             ucaContractions = new char[resultsize];
             for (int i = 0; i < resultsize; i++) {
                 ucaContractions[i] = m_dataInputStream_.readChar();
             }
             readcount += m_UCAcontractionSize_;
-        }
-
-        if (leadByteConstants != null) {
-            readcount += m_dataInputStream_.skip(rbc.m_scriptToLeadBytes - readcount);
-            leadByteConstants.read(m_dataInputStream_);
-            readcount += leadByteConstants.getSerializedDataSize();
         }
 
         if (readcount != m_size_) {

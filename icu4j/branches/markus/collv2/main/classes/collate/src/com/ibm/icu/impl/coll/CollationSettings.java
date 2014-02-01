@@ -120,14 +120,17 @@ public final class CollationSettings extends SharedObject {
         return h;
     }
 
-    void resetReordering() {
+    public void resetReordering() {
         // When we turn off reordering, we want to set a null permutation
         // rather than a no-op permutation.
         reorderTable = null;
         reorderCodes = EMPTY_INT_ARRAY;
     }
     // No aliasReordering() in Java. Use setReordering(). See comments near reorderCodes.
-    void setReordering(int[] codes, byte[] table) {
+    public void setReordering(int[] codes, byte[] table) {
+        if(codes == null) {
+            codes = EMPTY_INT_ARRAY;
+        }
         assert (codes.length == 0) == (table == null);
         reorderTable = table;
         reorderCodes = codes;
@@ -273,9 +276,9 @@ public final class CollationSettings extends SharedObject {
     /** Variable-top primary weight. */
     public long variableTop;
     /** 256-byte table for reordering permutation of primary lead bytes; null if no reordering. */
-    byte[] reorderTable;
+    public byte[] reorderTable;
     /** Array of reorder codes; ignored if length == 0. */
-    int[] reorderCodes = EMPTY_INT_ARRAY;
+    public int[] reorderCodes = EMPTY_INT_ARRAY;
     // Note: In C++, we keep a memory block around for the reorder codes and the permutation table,
     // and modify them for new codes.
     // In Java, we simply copy references and then never modify the array contents.

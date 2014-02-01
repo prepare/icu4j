@@ -139,7 +139,7 @@ public final class CollationData {
      * Finds the reordering group which contains the primary weight.
      * @return the first script of the group, or -1 if the weight is beyond the last group
      */
-    int getGroupForPrimary(long p) {
+    public int getGroupForPrimary(long p) {
         p >>= 24;  // Reordering groups are distinguished by primary lead bytes.
         for(int i = 0; i < scripts.length; i = i + 2 + scripts[i + 1]) {
             int lastByte = scripts[i] & 0xff;
@@ -162,7 +162,7 @@ public final class CollationData {
         return -1;
     }
 
-    int[] getEquivalentScripts(int script) {
+    public int[] getEquivalentScripts(int script) {
         int i = findScript(script);
         if(i < 0) { return EMPTY_INT_ARRAY; }
         int length = scripts[i + 1];
@@ -192,7 +192,7 @@ public final class CollationData {
      * The caller checks for illegal arguments and
      * takes care of [DEFAULT] and memory allocation.
      */
-    void makeReorderTable(int[] reorder, int length, byte[] table) {
+    public void makeReorderTable(int[] reorder, int length, byte[] table) {
         // Initialize the table.
         // Never reorder special low and high primary lead bytes.
         int lowByte;

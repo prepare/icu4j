@@ -24,7 +24,6 @@ public class UTF16CollationIterator extends CollationIterator {
         super(d);
     }
 
-    // TODO: needed in test code, or remove?
     public UTF16CollationIterator(CollationData d, boolean numeric, CharSequence s, int p) {
         super(d, numeric);
         seq = s;
