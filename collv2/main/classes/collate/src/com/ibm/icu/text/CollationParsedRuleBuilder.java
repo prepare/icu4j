@@ -3631,7 +3631,6 @@ final class CollationParsedRuleBuilder {
      */
     private static final void setAttributes(RuleBasedCollator collator,
             CollationRuleParser.OptionSet option) {
-        collator.latinOneFailed_ = true;
         collator.m_caseFirst_ = option.m_caseFirst_;
         collator.setDecomposition(option.m_decomposition_);
         collator
@@ -3642,7 +3641,6 @@ final class CollationParsedRuleBuilder {
         collator.setStrength(option.m_strength_);
         collator.m_variableTopValue_ = option.m_variableTopValue_;
         collator.m_reorderCodes_ = option.m_scriptOrder_;
-        collator.latinOneFailed_ = false;
     }
 
     /**

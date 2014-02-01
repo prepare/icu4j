@@ -27,11 +27,6 @@ import com.ibm.icu.text.UnicodeSet;
  * Collation binary data reader.
  */
 final class CollationDataReader /* all static */ {
-    private static final class CollationFastLatin {  // TODO: delete this after porting the real thing
-        private static final int VERSION = 0;
-        private static final int LATIN_LIMIT = 0x180;
-        private static int getOptions(CollationData data, CollationSettings settings, char[] primaries) { return -1; }
-    }
     // The following constants are also copied into source/common/ucol_swp.cpp.
     // Keep them in sync!
     /**
@@ -277,7 +272,7 @@ final class CollationDataReader /* all static */ {
                 throw new RuntimeException("Common sec/ter weights in base data differ from the hardcoded value");
             }
             long secTerBoundaries = data.rootElements[CollationRootElements.IX_SEC_TER_BOUNDARIES];
-            if((secTerBoundaries >>> 24) < 0x45 /* TODO: CollationKeys.SEC_COMMON_HIGH */) {
+            if((secTerBoundaries >>> 24) < CollationKeys.SEC_COMMON_HIGH) {
                 // [fixed last secondary common byte] is too low,
                 // and secondary weights would collide with compressed common secondaries.
                 throw new RuntimeException("[fixed last secondary common byte] is too low");
