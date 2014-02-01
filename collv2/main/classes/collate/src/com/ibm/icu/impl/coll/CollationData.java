@@ -328,7 +328,7 @@ public final class CollationData {
     long numericPrimary = 0x12000000;
 
     /** 256 flags for which primary-weight lead bytes are compressible. */
-    boolean[] compressibleBytes;
+    public boolean[] compressibleBytes;
     /**
      * Set of code points that are unsafe for starting string comparison after an identical prefix,
      * or in backwards CE iteration.

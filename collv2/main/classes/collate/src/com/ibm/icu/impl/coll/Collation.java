@@ -24,8 +24,8 @@ public final class Collation {
     public static final int SENTINEL_CP = -1;
 
     // Special sort key bytes for all levels.
-    static final int TERMINATOR_BYTE = 0;
-    static final int LEVEL_SEPARATOR_BYTE = 1;
+    public static final int TERMINATOR_BYTE = 0;
+    public static final int LEVEL_SEPARATOR_BYTE = 1;
     /**
      * Merge-sort-key separator.
      * Must not be used as the lead byte of any CE weight,
@@ -120,7 +120,7 @@ public final class Collation {
 
     /** Unspecified level. */
     static final int NO_LEVEL = 0;
-    static final int PRIMARY_LEVEL = 1;
+    public static final int PRIMARY_LEVEL = 1;
     static final int SECONDARY_LEVEL = 2;
     static final int CASE_LEVEL = 3;
     static final int TERTIARY_LEVEL = 4;

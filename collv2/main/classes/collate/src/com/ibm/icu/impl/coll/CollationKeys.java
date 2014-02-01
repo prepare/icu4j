@@ -19,8 +19,8 @@ public final class CollationKeys /* all methods are static */{
     // which is not available in Java. We don't need a super class created for implementing
     // collation features.
     public static abstract class SortKeyByteSink {
-        private byte[] buffer_;
-        private int capacity_;
+        protected byte[] buffer_;
+        protected int capacity_;
         private int appended_ = 0;
         private int ignore_ = 0;
 
@@ -137,13 +137,14 @@ public final class CollationKeys /* all methods are static */{
             return true;
         }
     };
+    public static final LevelCallback SIMPLE_LEVEL_FALLBACK = new LevelCallback();
 
     private static final class SortKeyLevel {
         private static final int INITIAL_CAPACITY = 40;
 
         byte[] buffer = new byte[INITIAL_CAPACITY];
         int len = 0;
-        boolean ok = true;
+        private static final boolean ok = true;  // In C++ "ok" is reset when memory allocations fail.
 
         SortKeyLevel() {
         }
@@ -315,7 +316,7 @@ public final class CollationKeys /* all methods are static */{
      * the case level. Stops writing levels when callback.needToWrite(level) returns false.
      * Separates levels with the LEVEL_SEPARATOR_BYTE but does not write a TERMINATOR_BYTE.
      */
-    static void writeSortKeyUpToQuaternary(CollationIterator iter, boolean[] compressibleBytes,
+    public static void writeSortKeyUpToQuaternary(CollationIterator iter, boolean[] compressibleBytes,
             CollationSettings settings, SortKeyByteSink sink, int minLevel, LevelCallback callback,
             boolean preflight) {
 
