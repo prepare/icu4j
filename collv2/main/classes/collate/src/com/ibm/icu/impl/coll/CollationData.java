@@ -29,7 +29,7 @@ public final class CollationData {
         nfcImpl = nfc;
     }
 
-    int getCE32(int c) {
+    public int getCE32(int c) {
         return trie.get(c);
     }
 
@@ -316,7 +316,7 @@ public final class CollationData {
     /** Array of prefix and contraction-suffix matching data. */
     String contexts;
     /** Base collation data, or null if this data itself is a base. */
-    CollationData base;
+    public CollationData base;
     /**
      * Simple array of JAMO_CE32S_LENGTH=19+21+27 CE32s, one per canonical Jamo L/V/T.
      * They are normally simple CE32s, rarely expansions.

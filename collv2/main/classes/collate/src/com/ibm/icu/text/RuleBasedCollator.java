@@ -6,7 +6,6 @@
  */
 package com.ibm.icu.text;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.CharacterIterator;
 import java.text.ParseException;
@@ -16,13 +15,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.ibm.icu.impl.BOCU;
-import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.impl.ICUResourceBundle;
-import com.ibm.icu.impl.ImplicitCEGenerator;
-import com.ibm.icu.impl.IntTrie;
 import com.ibm.icu.impl.Normalizer2Impl;
-import com.ibm.icu.impl.Trie;
-import com.ibm.icu.impl.TrieIterator;
+import com.ibm.icu.impl.Utility;
 import com.ibm.icu.impl.Normalizer2Impl.ReorderingBuffer;
 import com.ibm.icu.impl.coll.Collation;
 import com.ibm.icu.impl.coll.CollationCompare;
@@ -36,9 +31,6 @@ import com.ibm.icu.impl.coll.CollationTailoring;
 import com.ibm.icu.impl.coll.FCDUTF16CollationIterator;
 import com.ibm.icu.impl.coll.SharedObject;
 import com.ibm.icu.impl.coll.UTF16CollationIterator;
-import com.ibm.icu.lang.UCharacter;
-import com.ibm.icu.util.Output;
-import com.ibm.icu.util.RangeValueIterator;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.VersionInfo;
@@ -223,11 +215,10 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public RuleBasedCollator(String rules) throws Exception {
-        checkUCA();
         if (rules == null) {
             throw new IllegalArgumentException("Collation rules can not be null");
         }
-        init(rules);
+        // TODO: build! try to use reflection.
     }
 
     // public methods --------------------------------------------------------
@@ -939,7 +930,7 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public String getRules() {
-        return m_rules_;
+        return tailoring.rules;
     }
 
     /**
@@ -961,10 +952,9 @@ public final class RuleBasedCollator extends Collator {
      */
     public String getRules(boolean fullrules) {
         if (!fullrules) {
-            return m_rules_;
+            return tailoring.rules;
         }
-        // take the UCA rules and append real rules at the end
-        return UCA_.m_rules_.concat(m_rules_);
+        return /* TODO: CollationLoader.getRootRules() + */ tailoring.rules;
     }
 
     /**
@@ -976,128 +966,11 @@ public final class RuleBasedCollator extends Collator {
      */
     @Override
     public UnicodeSet getTailoredSet() {
-        try {
-            CollationRuleParser src = new CollationRuleParser(getRules());
-            return src.getTailoredSet();
-        } catch (Exception e) {
-            throw new IllegalStateException("A tailoring rule should not " + "have errors. Something is quite wrong!");
+        UnicodeSet tailored = new UnicodeSet();
+        if(data.base != null) {
+            // TODO: new TailoredSet(tailored).forData(data);
         }
-    }
-
-    private static class contContext {
-        RuleBasedCollator coll;
-        UnicodeSet contractions;
-        UnicodeSet expansions;
-        UnicodeSet removedContractions;
-        boolean addPrefixes;
-
-        contContext(RuleBasedCollator coll, UnicodeSet contractions, UnicodeSet expansions,
-                UnicodeSet removedContractions, boolean addPrefixes) {
-            this.coll = coll;
-            this.contractions = contractions;
-            this.expansions = expansions;
-            this.removedContractions = removedContractions;
-            this.addPrefixes = addPrefixes;
-        }
-    }
-
-    private void addSpecial(contContext c, StringBuilder buffer, int CE) {
-        StringBuilder b = new StringBuilder();
-        int offset = (CE & 0xFFFFFF) - c.coll.m_contractionOffset_;
-        int newCE = c.coll.m_contractionCE_[offset];
-        // we might have a contraction that ends from previous level
-        if (newCE != CollationElementIterator.CE_NOT_FOUND_) {
-            if (isSpecial(CE) && getTag(CE) == CollationElementIterator.CE_CONTRACTION_TAG_ && isSpecial(newCE)
-                    && getTag(newCE) == CollationElementIterator.CE_SPEC_PROC_TAG_ && c.addPrefixes) {
-                addSpecial(c, buffer, newCE);
-            }
-            if (buffer.length() > 1) {
-                if (c.contractions != null) {
-                    c.contractions.add(buffer.toString());
-                }
-                if (c.expansions != null && isSpecial(CE) && getTag(CE) == CollationElementIterator.CE_EXPANSION_TAG_) {
-                    c.expansions.add(buffer.toString());
-                }
-            }
-        }
-
-        offset++;
-        // check whether we're doing contraction or prefix
-        if (getTag(CE) == CollationElementIterator.CE_SPEC_PROC_TAG_ && c.addPrefixes) {
-            while (c.coll.m_contractionIndex_[offset] != 0xFFFF) {
-                b.delete(0, b.length());
-                b.append(buffer);
-                newCE = c.coll.m_contractionCE_[offset];
-                b.insert(0, c.coll.m_contractionIndex_[offset]);
-                if (isSpecial(newCE)
-                        && (getTag(newCE) == CollationElementIterator.CE_CONTRACTION_TAG_ || getTag(newCE) == CollationElementIterator.CE_SPEC_PROC_TAG_)) {
-                    addSpecial(c, b, newCE);
-                } else {
-                    if (c.contractions != null) {
-                        c.contractions.add(b.toString());
-                    }
-                    if (c.expansions != null && isSpecial(newCE)
-                            && getTag(newCE) == CollationElementIterator.CE_EXPANSION_TAG_) {
-                        c.expansions.add(b.toString());
-                    }
-                }
-                offset++;
-            }
-        } else if (getTag(CE) == CollationElementIterator.CE_CONTRACTION_TAG_) {
-            while (c.coll.m_contractionIndex_[offset] != 0xFFFF) {
-                b.delete(0, b.length());
-                b.append(buffer);
-                newCE = c.coll.m_contractionCE_[offset];
-                b.append(c.coll.m_contractionIndex_[offset]);
-                if (isSpecial(newCE)
-                        && (getTag(newCE) == CollationElementIterator.CE_CONTRACTION_TAG_ || getTag(newCE) == CollationElementIterator.CE_SPEC_PROC_TAG_)) {
-                    addSpecial(c, b, newCE);
-                } else {
-                    if (c.contractions != null) {
-                        c.contractions.add(b.toString());
-                    }
-                    if (c.expansions != null && isSpecial(newCE)
-                            && getTag(newCE) == CollationElementIterator.CE_EXPANSION_TAG_) {
-                        c.expansions.add(b.toString());
-                    }
-                }
-                offset++;
-            }
-        }
-    }
-
-    private void processSpecials(contContext c) {
-        int internalBufferSize = 512;
-        TrieIterator trieiterator = new TrieIterator(c.coll.m_trie_);
-        RangeValueIterator.Element element = new RangeValueIterator.Element();
-        while (trieiterator.next(element)) {
-            int start = element.start;
-            int limit = element.limit;
-            int CE = element.value;
-            StringBuilder contraction = new StringBuilder(internalBufferSize);
-
-            if (isSpecial(CE)) {
-                if (((getTag(CE) == CollationElementIterator.CE_SPEC_PROC_TAG_ && c.addPrefixes) || getTag(CE) == CollationElementIterator.CE_CONTRACTION_TAG_)) {
-                    while (start < limit) {
-                        // if there are suppressed contractions, we don't
-                        // want to add them.
-                        if (c.removedContractions != null && c.removedContractions.contains(start)) {
-                            start++;
-                            continue;
-                        }
-                        // we start our contraction from middle, since we don't know if it
-                        // will grow toward right or left
-                        contraction.append((char) start);
-                        addSpecial(c, contraction, CE);
-                        start++;
-                    }
-                } else if (c.expansions != null && getTag(CE) == CollationElementIterator.CE_EXPANSION_TAG_) {
-                    while (start < limit) {
-                        c.expansions.add(start++);
-                    }
-                }
-            }
-        }
+        return tailored;
     }
 
     /**
@@ -1114,28 +987,24 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 3.4
      */
     public void getContractionsAndExpansions(UnicodeSet contractions, UnicodeSet expansions, boolean addPrefixes)
-    throws Exception {
+            throws Exception {
         if (contractions != null) {
             contractions.clear();
         }
         if (expansions != null) {
             expansions.clear();
         }
-        String rules = getRules();
-        try {
-            CollationRuleParser src = new CollationRuleParser(rules);
-            contContext c = new contContext(RuleBasedCollator.UCA_, contractions, expansions, src.m_removeSet_,
-                    addPrefixes);
+        // TODO: new ContractionsAndExpansions(contractions, expansions, null, addPrefixes).forData(data);
+    }
 
-            // Add the UCA contractions
-            processSpecials(c);
-            // This is collator specific. Add contractions from a collator
-            c.coll = this;
-            c.removedContractions = null;
-            processSpecials(c);
-        } catch (Exception e) {
-            throw e;
-        }
+    /**
+     * Adds the contractions that start with character c to the set.
+     * Ignores prefixes. Used by AlphabeticIndex.
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    void internalAddContractions(int c, UnicodeSet set) {
+        // TODO: new ContractionsAndExpansions(set, null, null, false).forCodePoint(data, c);
     }
 
     /**
@@ -1478,15 +1347,15 @@ public final class RuleBasedCollator extends Collator {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        RuleBasedCollator other = (RuleBasedCollator) obj;
+        // TODO RuleBasedCollator other = (RuleBasedCollator) obj;
         // all other non-transient information is also contained in rules.
-        if (getStrength() != other.getStrength() || getDecomposition() != other.getDecomposition()
+        /* TODO -- if (getStrength() != other.getStrength() || getDecomposition() != other.getDecomposition()
                 || other.m_caseFirst_ != m_caseFirst_ || other.m_caseSwitch_ != m_caseSwitch_
                 || other.m_isAlternateHandlingShifted_ != m_isAlternateHandlingShifted_
                 || other.m_isCaseLevel_ != m_isCaseLevel_ || other.m_isFrenchCollation_ != m_isFrenchCollation_
                 || other.m_isHiragana4_ != m_isHiragana4_) {
             return false;
-        }
+        } */
         /*if (m_reorderCodes_ != null ^ other.m_reorderCodes_ != null) {
             return false;
         }
@@ -1500,22 +1369,22 @@ public final class RuleBasedCollator extends Collator {
                 }
             }
         }*/
-        boolean rules = m_rules_ == other.m_rules_;
+        /* TODO boolean rules = m_rules_ == other.m_rules_;
         if (!rules && (m_rules_ != null && other.m_rules_ != null)) {
             rules = m_rules_.equals(other.m_rules_);
         }
         if (!rules || !ICUDebug.enabled("collation")) {
             return rules;
-        }
-        if (m_addition3_ != other.m_addition3_ || m_bottom3_ != other.m_bottom3_
+        } */
+        /* TODO if (m_addition3_ != other.m_addition3_ || m_bottom3_ != other.m_bottom3_
                 || m_bottomCount3_ != other.m_bottomCount3_ || m_common3_ != other.m_common3_
-                || m_isSimple3_ != other.m_isSimple3_ || m_mask3_ != other.m_mask3_
+                || m_mask3_ != other.m_mask3_
                 || m_minContractionEnd_ != other.m_minContractionEnd_ || m_minUnsafe_ != other.m_minUnsafe_
                 || m_top3_ != other.m_top3_ || m_topCount3_ != other.m_topCount3_
                 || !Arrays.equals(m_unsafe_, other.m_unsafe_)) {
             return false;
-        }
-        if (!m_trie_.equals(other.m_trie_)) {
+        } */
+        /* TODO if (!m_trie_.equals(other.m_trie_)) {
             // we should use the trie iterator here, but then this part is
             // only used in the test.
             for (int i = UCharacter.MAX_VALUE; i >= UCharacter.MIN_VALUE; i--) {
@@ -1553,7 +1422,7 @@ public final class RuleBasedCollator extends Collator {
             if (m_expansionEndCEMaxSize_[i] != other.m_expansionEndCEMaxSize_[i]) {
                 return false;
             }
-        }
+        } */
         return true;
     }
 
@@ -1565,11 +1434,15 @@ public final class RuleBasedCollator extends Collator {
      */
     @Override
     public int hashCode() {
-        String rules = getRules();
-        if (rules == null) {
-            rules = "";
+        int h = settings.hashCode();
+        if(data.base == null) { return h; }  // root collator
+        // Do not rely on the rule string, see comments in operator==().
+        UnicodeSet set = getTailoredSet();
+        UnicodeSetIterator iter = new UnicodeSetIterator(set);
+        while(iter.next() && iter.codepoint != UnicodeSetIterator.IS_STRING) {
+            h ^= data.getCE32(iter.codepoint);
         }
-        return rules.hashCode();
+        return h;
     }
 
     /**
@@ -1840,315 +1713,6 @@ public final class RuleBasedCollator extends Collator {
         }
     }
 
-    /**
-     * DataManipulate singleton
-     */
-    static class DataManipulate implements Trie.DataManipulate {
-        // public methods ----------------------------------------------------
-
-        /**
-         * Internal method called to parse a lead surrogate's ce for the offset to the next trail surrogate data.
-         * 
-         * @param ce
-         *            collation element of the lead surrogate
-         * @return data offset or 0 for the next trail surrogate
-         * @stable ICU 2.8
-         */
-        public final int getFoldingOffset(int ce) {
-            if (isSpecial(ce) && getTag(ce) == CE_SURROGATE_TAG_) {
-                return (ce & 0xFFFFFF);
-            }
-            return 0;
-        }
-
-        /**
-         * Get singleton object
-         */
-        public static final DataManipulate getInstance() {
-            if (m_instance_ == null) {
-                m_instance_ = new DataManipulate();
-            }
-            return m_instance_;
-        }
-
-        // private data member ----------------------------------------------
-
-        /**
-         * Singleton instance
-         */
-        private static DataManipulate m_instance_;
-
-        // private constructor ----------------------------------------------
-
-        /**
-         * private to prevent initialization
-         */
-        private DataManipulate() {
-        }
-    }
-
-    /**
-     * UCAConstants
-     */
-    static final class UCAConstants {
-        int FIRST_TERTIARY_IGNORABLE_[] = new int[2]; // 0x00000000
-        int LAST_TERTIARY_IGNORABLE_[] = new int[2]; // 0x00000000
-        int FIRST_PRIMARY_IGNORABLE_[] = new int[2]; // 0x00008705
-        int FIRST_SECONDARY_IGNORABLE_[] = new int[2]; // 0x00000000
-        int LAST_SECONDARY_IGNORABLE_[] = new int[2]; // 0x00000500
-        int LAST_PRIMARY_IGNORABLE_[] = new int[2]; // 0x0000DD05
-        int FIRST_VARIABLE_[] = new int[2]; // 0x05070505
-        int LAST_VARIABLE_[] = new int[2]; // 0x13CF0505
-        int FIRST_NON_VARIABLE_[] = new int[2]; // 0x16200505
-        int LAST_NON_VARIABLE_[] = new int[2]; // 0x767C0505
-        int RESET_TOP_VALUE_[] = new int[2]; // 0x9F000303
-        int FIRST_IMPLICIT_[] = new int[2];
-        int LAST_IMPLICIT_[] = new int[2];
-        int FIRST_TRAILING_[] = new int[2];
-        int LAST_TRAILING_[] = new int[2];
-        int PRIMARY_TOP_MIN_;
-        int PRIMARY_IMPLICIT_MIN_; // 0xE8000000
-        int PRIMARY_IMPLICIT_MAX_; // 0xF0000000
-        int PRIMARY_TRAILING_MIN_; // 0xE8000000
-        int PRIMARY_TRAILING_MAX_; // 0xF0000000
-        int PRIMARY_SPECIAL_MIN_; // 0xE8000000
-        int PRIMARY_SPECIAL_MAX_; // 0xF0000000
-    }
-
-    // package private data member -------------------------------------------
-
-    static final byte BYTE_FIRST_TAILORED_ = (byte) 0x04;
-    static final byte BYTE_COMMON_ = (byte) 0x05;
-    static final int COMMON_TOP_2_ = 0x86; // int for unsigness
-    static final int COMMON_BOTTOM_2_ = BYTE_COMMON_;
-    static final int COMMON_BOTTOM_3 = 0x05;
-    /**
-     * Case strength mask
-     */
-    static final int CE_CASE_BIT_MASK_ = 0xC0;
-    static final int CE_TAG_SHIFT_ = 24;
-    static final int CE_TAG_MASK_ = 0x0F000000;
-
-    static final int CE_SPECIAL_FLAG_ = 0xF0000000;
-    /**
-     * Lead surrogate that is tailored and doesn't start a contraction
-     */
-    static final int CE_SURROGATE_TAG_ = 5;
-    /**
-     * Mask to get the primary strength of the collation element
-     */
-    static final int CE_PRIMARY_MASK_ = 0xFFFF0000;
-    /**
-     * Mask to get the secondary strength of the collation element
-     */
-    static final int CE_SECONDARY_MASK_ = 0xFF00;
-    /**
-     * Mask to get the tertiary strength of the collation element
-     */
-    static final int CE_TERTIARY_MASK_ = 0xFF;
-    /**
-     * Primary strength shift
-     */
-    static final int CE_PRIMARY_SHIFT_ = 16;
-    /**
-     * Secondary strength shift
-     */
-    static final int CE_SECONDARY_SHIFT_ = 8;
-    /**
-     * Continuation marker
-     */
-    static final int CE_CONTINUATION_MARKER_ = 0xC0;
-
-    /**
-     * Size of collator raw data headers and options before the expansion data. This is used when expansion ces are to
-     * be retrieved. ICU4C uses the expansion offset starting from UCollator.UColHeader, hence ICU4J will have to minus
-     * that off to get the right expansion ce offset. In number of ints.
-     */
-    int m_expansionOffset_;
-    /**
-     * Size of collator raw data headers, options and expansions before contraction data. This is used when contraction
-     * ces are to be retrieved. ICU4C uses contraction offset starting from UCollator.UColHeader, hence ICU4J will have
-     * to minus that off to get the right contraction ce offset. In number of chars.
-     */
-    int m_contractionOffset_;
-    /**
-     * Flag indicator if Jamo is special
-     */
-    boolean m_isJamoSpecial_;
-
-    // Collator options ------------------------------------------------------
-
-    int m_defaultVariableTopValue_;
-    boolean m_defaultIsFrenchCollation_;
-    boolean m_defaultIsAlternateHandlingShifted_;
-    int m_defaultCaseFirst_;
-    boolean m_defaultIsCaseLevel_;
-    int m_defaultDecomposition_;
-    int m_defaultStrength_;
-    boolean m_defaultIsHiragana4_;
-    boolean m_defaultIsNumericCollation_;
-
-    /**
-     * Value of the variable top
-     */
-    int m_variableTopValue_;
-    /**
-     * Attribute for special Hiragana
-     */
-    boolean m_isHiragana4_;
-    /**
-     * Case sorting customization
-     */
-    int m_caseFirst_;
-    /**
-     * Numeric collation option
-     */
-    boolean m_isNumericCollation_;
-
-    // end Collator options --------------------------------------------------
-
-    /**
-     * Expansion table
-     */
-    int m_expansion_[];
-    /**
-     * Contraction index table
-     */
-    char m_contractionIndex_[];
-    /**
-     * Contraction CE table
-     */
-    int m_contractionCE_[];
-    /**
-     * Data trie
-     */
-    IntTrie m_trie_;
-    /**
-     * Table to store all collation elements that are the last element of an expansion. This is for use in StringSearch.
-     */
-    int m_expansionEndCE_[];
-    /**
-     * Table to store the maximum size of any expansions that end with the corresponding collation element in
-     * m_expansionEndCE_. For use in StringSearch too
-     */
-    byte m_expansionEndCEMaxSize_[];
-    /**
-     * Heuristic table to store information on whether a char character is considered "unsafe". "Unsafe" character are
-     * combining marks or those belonging to some contraction sequence from the offset 1 onwards. E.g. if "ABC" is the
-     * only contraction, then 'B' and 'C' are considered unsafe. If we have another contraction "ZA" with the one above,
-     * then 'A', 'B', 'C' are "unsafe" but 'Z' is not.
-     */
-    byte m_unsafe_[];
-    /**
-     * Table to store information on whether a codepoint can occur as the last character in a contraction
-     */
-    byte m_contractionEnd_[];
-    /**
-     * Original collation rules
-     */
-    String m_rules_;
-    /**
-     * The smallest "unsafe" codepoint
-     */
-    char m_minUnsafe_;
-    /**
-     * The smallest codepoint that could be the end of a contraction
-     */
-    char m_minContractionEnd_;
-    /**
-     * General version of the collator
-     */
-    VersionInfo m_version_;
-    /**
-     * UCA version
-     */
-    VersionInfo m_UCA_version_;
-    /**
-     * UCD version
-     */
-    VersionInfo m_UCD_version_;
-    /**
-     * UnicodeData.txt property object
-     */
-    static final RuleBasedCollator UCA_;
-    /**
-     * UCA Constants
-     */
-    static final UCAConstants UCA_CONSTANTS_;
-    /**
-     * Table for UCA and builder use
-     */
-    static final char UCA_CONTRACTIONS_[];
-    static final int MAX_UCA_CONTRACTION_LENGTH;
-
-    private static boolean UCA_INIT_COMPLETE;
-
-    /**
-     * Implicit generator
-     */
-    static final ImplicitCEGenerator impCEGen_;
-
-    static final byte SORT_LEVEL_TERMINATOR_ = 1;
-
-    // These are values from UCA required for
-    // implicit generation and supressing sort key compression
-    // they should regularly be in the UCA, but if one
-    // is running without UCA, it could be a problem
-    static final int maxRegularPrimary = 0x7A;
-    static final int minImplicitPrimary = 0xE0;
-    static final int maxImplicitPrimary = 0xE4;
-
-    // block to initialise character property database
-    static {
-        // take pains to let static class init succeed, otherwise the class itself won't exist and
-        // clients will get a NoClassDefFoundException. Instead, make the constructors fail if
-        // we can't load the UCA data.
-
-        RuleBasedCollator iUCA_ = null;
-        UCAConstants iUCA_CONSTANTS_ = null;
-        char iUCA_CONTRACTIONS_[] = null;
-        Output<Integer> maxUCAContractionLength = new Output<Integer>();
-        ImplicitCEGenerator iimpCEGen_ = null;
-        try {
-            // !!! note what's going on here...
-            // even though the static init of the class is not yet complete, we
-            // instantiate an instance of the class. So we'd better be sure that
-            // instantiation doesn't rely on the static initialization that's
-            // not complete yet!
-            iUCA_ = new RuleBasedCollator();
-            iUCA_CONSTANTS_ = new UCAConstants();
-            iUCA_CONTRACTIONS_ = CollatorReader.read(iUCA_, iUCA_CONSTANTS_, maxUCAContractionLength);
-
-            // called before doing canonical closure for the UCA.
-            iimpCEGen_ = new ImplicitCEGenerator(minImplicitPrimary, maxImplicitPrimary);
-            // iimpCEGen_ = new ImplicitCEGenerator(iUCA_CONSTANTS_.PRIMARY_IMPLICIT_MIN_,
-            // iUCA_CONSTANTS_.PRIMARY_IMPLICIT_MAX_);
-            iUCA_.init();
-            ICUResourceBundle rb = (ICUResourceBundle) UResourceBundle.getBundleInstance(
-                    ICUResourceBundle.ICU_COLLATION_BASE_NAME, ULocale.ENGLISH);
-            iUCA_.m_rules_ = (String) rb.getObject("UCARules");
-        } catch (MissingResourceException ex) {
-            // throw ex;
-        } catch (IOException e) {
-            // e.printStackTrace();
-            // throw new MissingResourceException(e.getMessage(),"","");
-        }
-
-        UCA_ = iUCA_;
-        UCA_CONSTANTS_ = iUCA_CONSTANTS_;
-        UCA_CONTRACTIONS_ = iUCA_CONTRACTIONS_;
-        MAX_UCA_CONTRACTION_LENGTH = maxUCAContractionLength.value;
-        impCEGen_ = iimpCEGen_;
-
-        UCA_INIT_COMPLETE = true;
-    }
-
-    private static void checkUCA() throws MissingResourceException {
-        if (UCA_INIT_COMPLETE && UCA_ == null) {
-            throw new MissingResourceException("Collator UCA data unavailable", "", "");
-        }
-    }
-
     // package private constructors ------------------------------------------
 
     /**
@@ -2161,8 +1725,6 @@ public final class RuleBasedCollator extends Collator {
      * </p>
      */
     RuleBasedCollator() {
-        // TODO: delete checkUCA()
-        checkUCA();
         // TODO: rewrite the following temporary hack
         tailoring = CollationRoot.getRoot();
         data = tailoring.data;
@@ -2176,7 +1738,6 @@ public final class RuleBasedCollator extends Collator {
      * @param locale
      */
     RuleBasedCollator(ULocale locale) {
-        checkUCA();
         try {
             ICUResourceBundle rb = (ICUResourceBundle) UResourceBundle.getBundleInstance(
                     ICUResourceBundle.ICU_COLLATION_BASE_NAME, locale);
@@ -2206,7 +1767,7 @@ public final class RuleBasedCollator extends Collator {
                 ULocale uloc = rb.getULocale();
                 setLocale(uloc, uloc);
 
-                m_rules_ = elements.getString("Sequence");
+                // TODO: m_rules_ = elements.getString("Sequence");
                 ByteBuffer buf = elements.get("%%CollationBin").getBinary();
                 // %%CollationBin
                 if (buf != null) {
@@ -2221,11 +1782,11 @@ public final class RuleBasedCollator extends Collator {
                     // at this point, we have read in the collator
                     // now we need to check whether the binary image has
                     // the right UCA and other versions
-                    if (!m_UCA_version_.equals(UCA_.m_UCA_version_) || !m_UCD_version_.equals(UCA_.m_UCD_version_)) {
+                    /* TODO: delete -- if (!m_UCA_version_.equals(UCA_.m_UCA_version_) || !m_UCD_version_.equals(UCA_.m_UCD_version_)) {
                         init(m_rules_);
                         return;
-                    }
-                    init();
+                    } */
+                    // TODO: init();
                     try {
                         UResourceBundle reorderRes = elements.get("%%ReorderCodes");
                         if (reorderRes != null) {
@@ -2237,75 +1798,17 @@ public final class RuleBasedCollator extends Collator {
                     }
                     return;
                 } else {
-                    init(m_rules_);
+                    // TODO: init("m_rules_");
                     return;
                 }
             }
         } catch (Exception e) {
             // fallthrough
         }
-        setWithUCAData();
+        // TODO: setWithUCAData();
     }
 
     // package private methods -----------------------------------------------
-
-    /**
-     * Sets this collator to use the tables in UCA. Note options not taken care of here.
-     */
-    final void setWithUCATables() {
-        m_contractionOffset_ = UCA_.m_contractionOffset_;
-        m_expansionOffset_ = UCA_.m_expansionOffset_;
-        m_expansion_ = UCA_.m_expansion_;
-        m_contractionIndex_ = UCA_.m_contractionIndex_;
-        m_contractionCE_ = UCA_.m_contractionCE_;
-        m_trie_ = UCA_.m_trie_;
-        m_expansionEndCE_ = UCA_.m_expansionEndCE_;
-        m_expansionEndCEMaxSize_ = UCA_.m_expansionEndCEMaxSize_;
-        m_unsafe_ = UCA_.m_unsafe_;
-        m_contractionEnd_ = UCA_.m_contractionEnd_;
-        m_minUnsafe_ = UCA_.m_minUnsafe_;
-        m_minContractionEnd_ = UCA_.m_minContractionEnd_;
-    }
-
-    /**
-     * Sets this collator to use the all options and tables in UCA.
-     */
-    final void setWithUCAData() {
-        m_addition3_ = UCA_.m_addition3_;
-        m_bottom3_ = UCA_.m_bottom3_;
-        m_bottomCount3_ = UCA_.m_bottomCount3_;
-        m_caseFirst_ = UCA_.m_caseFirst_;
-        m_caseSwitch_ = UCA_.m_caseSwitch_;
-        m_common3_ = UCA_.m_common3_;
-        m_contractionOffset_ = UCA_.m_contractionOffset_;
-        setDecomposition(UCA_.getDecomposition());
-        m_defaultCaseFirst_ = UCA_.m_defaultCaseFirst_;
-        m_defaultDecomposition_ = UCA_.m_defaultDecomposition_;
-        m_defaultIsAlternateHandlingShifted_ = UCA_.m_defaultIsAlternateHandlingShifted_;
-        m_defaultIsCaseLevel_ = UCA_.m_defaultIsCaseLevel_;
-        m_defaultIsFrenchCollation_ = UCA_.m_defaultIsFrenchCollation_;
-        m_defaultIsHiragana4_ = UCA_.m_defaultIsHiragana4_;
-        m_defaultStrength_ = UCA_.m_defaultStrength_;
-        m_defaultVariableTopValue_ = UCA_.m_defaultVariableTopValue_;
-        m_defaultIsNumericCollation_ = UCA_.m_defaultIsNumericCollation_;
-        m_expansionOffset_ = UCA_.m_expansionOffset_;
-        m_isAlternateHandlingShifted_ = UCA_.m_isAlternateHandlingShifted_;
-        m_isCaseLevel_ = UCA_.m_isCaseLevel_;
-        m_isFrenchCollation_ = UCA_.m_isFrenchCollation_;
-        m_isHiragana4_ = UCA_.m_isHiragana4_;
-        m_isJamoSpecial_ = UCA_.m_isJamoSpecial_;
-        m_isSimple3_ = UCA_.m_isSimple3_;
-        m_mask3_ = UCA_.m_mask3_;
-        m_minContractionEnd_ = UCA_.m_minContractionEnd_;
-        m_minUnsafe_ = UCA_.m_minUnsafe_;
-        m_rules_ = UCA_.m_rules_;
-        setStrength(UCA_.getStrength());
-        m_top3_ = UCA_.m_top3_;
-        m_topCount3_ = UCA_.m_topCount3_;
-        m_variableTopValue_ = UCA_.m_variableTopValue_;
-        m_isNumericCollation_ = UCA_.m_isNumericCollation_;
-        setWithUCATables();
-    }
 
     /**
      * Test whether a char character is potentially "unsafe" for use as a collation starting point. "Unsafe" characters
@@ -2318,20 +1821,8 @@ public final class RuleBasedCollator extends Collator {
      * @return true if ch is unsafe, false otherwise
      */
     final boolean isUnsafe(char ch) {
-        if (ch < m_minUnsafe_) {
-            return false;
-        }
-
-        if (ch >= (HEURISTIC_SIZE_ << HEURISTIC_SHIFT_)) {
-            if (UTF16.isLeadSurrogate(ch) || UTF16.isTrailSurrogate(ch)) {
-                // Trail surrogate are always considered unsafe.
-                return true;
-            }
-            ch &= HEURISTIC_OVERFLOW_MASK_;
-            ch += HEURISTIC_OVERFLOW_OFFSET_;
-        }
-        int value = m_unsafe_[ch >> HEURISTIC_SHIFT_];
-        return ((value >> (ch & HEURISTIC_MASK_)) & 1) != 0;
+        // TODO: This does not seem to exist in C++. What does C++ use instead? Inspect call sites.
+        return data.isUnsafeBackward(ch, settings.readOnly().isNumeric());
     }
 
     /**
@@ -2342,155 +1833,16 @@ public final class RuleBasedCollator extends Collator {
      *            character to be determined
      */
     final boolean isContractionEnd(char ch) {
-        if (UTF16.isTrailSurrogate(ch)) {
-            return true;
-        }
-
-        if (ch < m_minContractionEnd_) {
-            return false;
-        }
-
-        if (ch >= (HEURISTIC_SIZE_ << HEURISTIC_SHIFT_)) {
-            ch &= HEURISTIC_OVERFLOW_MASK_;
-            ch += HEURISTIC_OVERFLOW_OFFSET_;
-        }
-        int value = m_contractionEnd_[ch >> HEURISTIC_SHIFT_];
-        return ((value >> (ch & HEURISTIC_MASK_)) & 1) != 0;
+        // TODO: This does not seem to exist in C++. What does C++ use instead? Inspect call sites.
+        return data.isUnsafeBackward(ch, settings.readOnly().isNumeric());
     }
 
-    /**
-     * Retrieve the tag of a special ce
-     * 
-     * @param ce
-     *            ce to test
-     * @return tag of ce
-     */
-    static int getTag(int ce) {
-        return (ce & CE_TAG_MASK_) >> CE_TAG_SHIFT_;
-    }
-
-    /**
-     * Checking if ce is special
-     * 
-     * @param ce
-     *            to check
-     * @return true if ce is special
-     */
-    static boolean isSpecial(int ce) {
-        return (ce & CE_SPECIAL_FLAG_) == CE_SPECIAL_FLAG_;
-    }
-
-    /**
-     * Checks if the argument ce is a continuation
-     * 
-     * @param ce
-     *            collation element to test
-     * @return true if ce is a continuation
-     */
-    static final boolean isContinuation(int ce) {
-        return ce != CollationElementIterator.NULLORDER && (ce & CE_CONTINUATION_TAG_) == CE_CONTINUATION_TAG_;
-    }
-
-    // private inner classes ------------------------------------------------
-
-    // private variables -----------------------------------------------------
-
-    /**
-     * The smallest natural unsafe or contraction end char character before tailoring. This is a combining mark.
-     */
-    private static final int DEFAULT_MIN_HEURISTIC_ = 0x300;
-    /**
-     * Heuristic table table size. Size is 32 bytes, 1 bit for each latin 1 char, and some power of two for hashing the
-     * rest of the chars. Size in bytes.
-     */
-    private static final char HEURISTIC_SIZE_ = 1056;
-    /**
-     * Mask value down to "some power of two" - 1, number of bits, not num of bytes.
-     */
-    private static final char HEURISTIC_OVERFLOW_MASK_ = 0x1fff;
-    /**
-     * Unsafe character shift
-     */
-    private static final int HEURISTIC_SHIFT_ = 3;
-    /**
-     * Unsafe character addition for character too large, it has to be folded then incremented.
-     */
-    private static final char HEURISTIC_OVERFLOW_OFFSET_ = 256;
-    /**
-     * Mask value to get offset in heuristic table.
-     */
-    private static final char HEURISTIC_MASK_ = 7;
-
-    private int m_caseSwitch_;
-    private int m_common3_;
-    private int m_mask3_;
-    /**
-     * When switching case, we need to add or subtract different values.
-     */
-    private int m_addition3_;
-    /**
-     * Upper range when compressing
-     */
-    private int m_top3_;
-    /**
-     * Upper range when compressing
-     */
-    private int m_bottom3_;
-    private int m_topCount3_;
-    private int m_bottomCount3_;
-    
-
-    // These values come from the UCA ----------------------------------------
-
-    /**
-     * This is an enum that lists magic special byte values from the fractional UCA
-     */
-    // private static final byte BYTE_ZERO_ = 0x0;
-    // private static final byte BYTE_LEVEL_SEPARATOR_ = (byte)0x01;
-    // private static final byte BYTE_SORTKEY_GLUE_ = (byte)0x02;
-    private static final byte BYTE_SHIFT_PREFIX_ = (byte) 0x03;
-    /* private */static final byte BYTE_UNSHIFTED_MIN_ = BYTE_SHIFT_PREFIX_;
-    // private static final byte BYTE_FIRST_UCA_ = BYTE_COMMON_;
-    // TODO: Make the following values dynamic since they change with almost every UCA version.
-    static final byte CODAN_PLACEHOLDER = 0x12;
-    private static final byte BYTE_FIRST_NON_LATIN_PRIMARY_ = (byte) 0x5B;
-
-    
-    
-    
-
-    /*
-     * Minimum size required for the binary collation data in bytes. Size of UCA header + size of options to 4 bytes
-     */
-    // private static final int MIN_BINARY_DATA_SIZE_ = (42 + 25) << 2;
-
-    /**
-     * If this collator is to generate only simple tertiaries for fast path
-     */
-    private boolean m_isSimple3_;
-
-    /**
-     * French collation sorting flag
-     */
-    private boolean m_isFrenchCollation_;
-    /**
-     * Flag indicating if shifted is requested for Quaternary alternate handling. If this is not true, the default for
-     * alternate handling will be non-ignorable.
-     */
-    private boolean m_isAlternateHandlingShifted_;
-    /**
-     * Extra case level for sorting
-     */
-    private boolean m_isCaseLevel_;
     /**
      * Frozen state of the collator.
      */
     private Lock frozenLock;
 
-
-    private static final int CE_CONTINUATION_TAG_ = 0xC0;
-    // TODO: make class CollationBuffer a static nested class
-    private final class CollationBuffer {
+    private static final class CollationBuffer {
         private CollationBuffer(CollationData data) {
             leftUTF16CollIter = new UTF16CollationIterator(data);
             rightUTF16CollIter = new UTF16CollationIterator(data);
@@ -2515,51 +1867,6 @@ public final class RuleBasedCollator extends Collator {
         RawCollationKey rawCollationKey;
     }
 
-    // private methods -------------------------------------------------------
-
-    private void init(String rules) throws Exception {
-        setWithUCAData();
-        CollationParsedRuleBuilder builder = new CollationParsedRuleBuilder(rules);
-        builder.setRules(this);
-        m_rules_ = rules;
-        init();
-    }
-
-    // Is this primary weight compressible?
-    // Returns false for multi-lead-byte scripts (digits, Latin, Han, implicit).
-    // TODO: This should use per-lead-byte flags from FractionalUCA.txt.
-    static boolean isCompressible(int primary1) {
-        return BYTE_FIRST_NON_LATIN_PRIMARY_ <= primary1 && primary1 <= maxRegularPrimary;
-    }
-
-    /**
-     * Initializes the RuleBasedCollator
-     */
-    private final void init() {
-        for (m_minUnsafe_ = 0; m_minUnsafe_ < DEFAULT_MIN_HEURISTIC_; m_minUnsafe_++) {
-            // Find the smallest unsafe char.
-            if (isUnsafe(m_minUnsafe_)) {
-                break;
-            }
-        }
-
-        for (m_minContractionEnd_ = 0; m_minContractionEnd_ < DEFAULT_MIN_HEURISTIC_; m_minContractionEnd_++) {
-            // Find the smallest contraction-ending char.
-            if (isContractionEnd(m_minContractionEnd_)) {
-                break;
-            }
-        }
-        setStrength(m_defaultStrength_);
-        setDecomposition(m_defaultDecomposition_);
-        m_variableTopValue_ = m_defaultVariableTopValue_;
-        m_isFrenchCollation_ = m_defaultIsFrenchCollation_;
-        m_isAlternateHandlingShifted_ = m_defaultIsAlternateHandlingShifted_;
-        m_isCaseLevel_ = m_defaultIsCaseLevel_;
-        m_caseFirst_ = m_defaultCaseFirst_;
-        m_isHiragana4_ = m_defaultIsHiragana4_;
-        m_isNumericCollation_ = m_defaultIsNumericCollation_;
-    }
-
     /**
      * Get the version of this collator object.
      * 
@@ -2568,28 +1875,11 @@ public final class RuleBasedCollator extends Collator {
      */
     @Override
     public VersionInfo getVersion() {
-        /* RunTime version */
+        VersionInfo version = tailoring.version;
         int rtVersion = VersionInfo.UCOL_RUNTIME_VERSION.getMajor();
-        /* Builder version */
-        int bdVersion = m_version_.getMajor();
-
-        /*
-         * Charset Version. Need to get the version from cnv files makeconv should populate cnv files with version and
-         * an api has to be provided in ucnv.h to obtain this version
-         */
-        int csVersion = 0;
-
-        /* combine the version info */
-        int cmbVersion = ((rtVersion << 11) | (bdVersion << 6) | (csVersion)) & 0xFFFF;
-
-        /* Tailoring rules */
-        return VersionInfo.getInstance(cmbVersion >> 8, cmbVersion & 0xFF, m_version_.getMinor(),
-        UCA_.m_UCA_version_.getMajor());
-
-        // versionInfo[0] = (uint8_t)(cmbVersion>>8);
-        // versionInfo[1] = (uint8_t)cmbVersion;
-        // versionInfo[2] = coll->image->version[1];
-        // versionInfo[3] = coll->UCA->image->UCAVersion[0];
+        return VersionInfo.getInstance(
+                version.getMajor() + (rtVersion << 4) + (rtVersion >> 4),
+                version.getMinor(), version.getMilli(), version.getMicro());
     }
 
     /**
@@ -2600,7 +1890,15 @@ public final class RuleBasedCollator extends Collator {
      */
     @Override
     public VersionInfo getUCAVersion() {
-        return UCA_.m_UCA_version_;
+        VersionInfo v = getVersion();
+        // Note: This is tied to how the current implementation encodes the UCA version
+        // in the overall getVersion().
+        // Alternatively, we could load the root collator and get at lower-level data from there.
+        // Either way, it will reflect the input collator's UCA version only
+        // if it is a known implementation.
+        // (C++ comment) It would be cleaner to make this a virtual Collator method.
+        // (In Java, it is virtual.)
+        return VersionInfo.getInstance(v.getMinor() >> 3, v.getMinor() & 7, v.getMilli() >> 6, 0);
     }
 
     private CollationBuffer collationBuffer;
@@ -2624,6 +1922,20 @@ public final class RuleBasedCollator extends Collator {
      * {@inheritDoc}
      */
     @Override
+    public ULocale getLocale(ULocale.Type type) {
+        if (type == ULocale.ACTUAL_LOCALE) {
+            return actualLocaleIsSameAsValid ? validLocale : tailoring.actualLocale;
+        } else if(type == ULocale.VALID_LOCALE) {
+            return validLocale;
+        } else {
+            throw new IllegalArgumentException("unknown ULocale.Type " + type);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     void setLocale(ULocale valid, ULocale actual) {
         // This method is called
         // by other protected functions that checks and makes sure that
@@ -2631,8 +1943,17 @@ public final class RuleBasedCollator extends Collator {
         assert (valid == null) == (actual == null);
         // Another check we could do is that the actual locale is at
         // the same level or less specific than the valid locale.
-        // TODO: this.validLocale = valid;
-        // TODO: this.actualLocale = actual;
+        // TODO: Starting with Java 7, use Objects.equals(a, b).
+        if(Utility.objectEquals(actual, tailoring.actualLocale)) {
+            actualLocaleIsSameAsValid = false;
+        } else if(tailoring.actualLocale == null) {
+            tailoring.actualLocale = actual;
+            actualLocaleIsSameAsValid = false;
+        } else {
+            assert(Utility.objectEquals(actual, valid));
+            actualLocaleIsSameAsValid = true;
+        }
+        validLocale = valid;
     }
 
     CollationData data;
