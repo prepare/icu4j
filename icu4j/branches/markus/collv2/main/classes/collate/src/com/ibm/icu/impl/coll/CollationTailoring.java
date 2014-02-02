@@ -29,11 +29,11 @@ import com.ibm.icu.util.VersionInfo;
  * The fields are public for convenience.
  */
 public final class CollationTailoring {
-    CollationTailoring(CollationSettings baseSettings) {
+    CollationTailoring(SharedObject.Reference<CollationSettings> baseSettings) {
         if(baseSettings != null) {
-            assert(baseSettings.reorderCodes.length == 0);
-            assert(baseSettings.reorderTable == null);
-            settings = new SharedObject.Reference<CollationSettings>(baseSettings);
+            assert(baseSettings.readOnly().reorderCodes.length == 0);
+            assert(baseSettings.readOnly().reorderTable == null);
+            settings = baseSettings.clone();
         } else {
             settings = new SharedObject.Reference<CollationSettings>(new CollationSettings());
         }
@@ -69,10 +69,10 @@ public final class CollationTailoring {
     // data for sorting etc.
     public CollationData data;  // == base data or ownedData
     public SharedObject.Reference<CollationSettings> settings;  // reference-counted
-    String rules;
+    public String rules = "";
     // The locale is null (C++: bogus) when built from rules or constructed from a binary blob.
     // It can then be set by the service registration code which is thread-safe.
-    public ULocale actualLocale;
+    public ULocale actualLocale = ULocale.ROOT;
     // UCA version u.v.w & rules version r.s.t.q:
     // version[0]: builder version (runtime version is mixed in at runtime)
     // version[1]: bits 7..3=u, bits 2..0=v
