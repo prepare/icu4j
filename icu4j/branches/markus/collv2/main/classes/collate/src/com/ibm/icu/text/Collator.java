@@ -57,8 +57,8 @@ import com.ibm.icu.util.VersionInfo;
 *     difference between large and small Kana. A tertiary difference is ignored
 *     when there is a primary or secondary difference anywhere in the strings.
 * <li>QUATERNARY strength: When punctuation is ignored
-*     <a href="http://www.icu-project.org/userguide/Collate_Concepts.html#Ignoring_Punctuation">
-*     (see Ignoring Punctuations in the user guide)</a> at PRIMARY to TERTIARY
+*     (see <a href="http://userguide.icu-project.org/collation/concepts#TOC-Ignoring-Punctuation">
+*     Ignoring Punctuations in the User Guide</a>) at PRIMARY to TERTIARY
 *     strength, an additional strength level can
 *     be used to distinguish words with and without punctuation (for example,
 *     "ab" &lt; "a-b" &lt; "aB").
@@ -88,8 +88,7 @@ import com.ibm.icu.util.VersionInfo;
 * a comparison or before getting a CollationKey.</p>
 *
 * <p>For more information about the collation service see the
-* <a href="http://www.icu-project.org/userguide/Collate_Intro.html">users
-* guide</a>.</p>
+* <a href="http://userguide.icu-project.org/collation">User Guide</a>.</p>
 *
 * <p>Examples of use
 * <pre>
@@ -126,7 +125,7 @@ import com.ibm.icu.util.VersionInfo;
 * @author Syn Wee Quek
 * @stable ICU 2.8
 */
-public abstract class Collator implements Comparator<Object>, Freezable<Collator>
+public abstract class Collator implements Comparator<Object>, Freezable<Collator>, Cloneable
 {
     // public data members ---------------------------------------------------
 
@@ -166,8 +165,8 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
     /**
      * {@icu} Fourth level collator strength value.
      * When punctuation is ignored
-     * <a href="http://www.icu-project.org/userguide/Collate_Concepts.html#Ignoring_Punctuation">
-     * (see Ignoring Punctuations in the user guide)</a> at PRIMARY to TERTIARY
+     * (see <a href="http://userguide.icu-project.org/collation/concepts#TOC-Ignoring-Punctuation">
+     * Ignoring Punctuation in the User Guide</a>) at PRIMARY to TERTIARY
      * strength, an additional strength level can
      * be used to distinguish words with and without punctuation.
      * See class documentation for more explanation.
@@ -435,7 +434,7 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
      * The default locale is determined by java.util.Locale.getDefault().
      * @return the Collator for the default locale (for example, en_US) if it
      *         is created successfully. Otherwise if there is no Collator
-     *         associated with the current locale, the default UCA collator
+     *         associated with the current locale, the root collator
      *         will be returned.
      * @see java.util.Locale#getDefault()
      * @see #getInstance(Locale)
@@ -601,7 +600,7 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
      * @param locale the desired locale.
      * @return Collator for the desired locale if it is created successfully.
      *         Otherwise if there is no Collator
-     *         associated with the current locale, a default UCA collator will
+     *         associated with the current locale, the root collator will
      *         be returned.
      * @see java.util.Locale
      * @see java.util.ResourceBundle
@@ -619,7 +618,7 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
      * @param locale the desired locale.
      * @return Collator for the desired locale if it is created successfully.
      *         Otherwise if there is no Collator
-     *         associated with the current locale, a default UCA collator will
+     *         associated with the current locale, the root collator will
      *         be returned.
      * @see java.util.Locale
      * @see java.util.ResourceBundle
@@ -776,7 +775,7 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
         LinkedList<String> values = new LinkedList<String>();
 
         UResourceBundle bundle = UResourceBundle.getBundleInstance(
-                ICUResourceBundle.ICU_BASE_NAME + "/coll", baseLoc);
+                ICUResourceBundle.ICU_COLLATION_BASE_NAME, baseLoc);
 
         String defcoll = null;
         while (bundle != null) {
@@ -822,7 +821,7 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
      * applications who wish to cache collators, or otherwise reuse
      * collators when possible.  The functional equivalent may change
      * over time.  For more information, please see the <a
-     * href="http://www.icu-project.org/userguide/locale.html#services">
+     * href="http://userguide.icu-project.org/locale#TOC-Locales-and-Services">
      * Locales and Services</a> section of the ICU User Guide.
      * @param keyword a particular keyword as enumerated by
      * getKeywords.
@@ -976,7 +975,7 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
      * in this collator.
      * @return a pointer to a UnicodeSet object containing all the
      *         code points and sequences that may sort differently than
-     *         in the UCA.
+     *         in the root collator.
      * @stable ICU 2.4
      */
     public UnicodeSet getTailoredSet()
@@ -1066,7 +1065,7 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
                                                        RawCollationKey key);
 
     /**
-     * Sets the variable top to the top of the specified reordering group.
+     * {@icu} Sets the variable top to the top of the specified reordering group.
      * The variable top determines the highest-sorting character
      * which is affected by the alternate handling behavior.
      * If that attribute is set to UCOL_NON_IGNORABLE, then the variable top has no effect.
@@ -1085,7 +1084,7 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
     }
 
     /**
-     * Returns the maximum reordering group whose characters are affected by
+     * {@icu} Returns the maximum reordering group whose characters are affected by
      * the alternate handling behavior.
      *
      * <p>The base class implementation returns Collator.ReorderCodes.PUNCTUATION.

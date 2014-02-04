@@ -23,7 +23,7 @@ import com.ibm.icu.util.UResourceBundle;
 /**
  * Convenience string denoting the Collation data tree
  */
-final class CollationLoader {
+public final class CollationLoader {
 
     // not implemented, all methods are static
     private CollationLoader() {
@@ -44,9 +44,10 @@ final class CollationLoader {
         }
     }
 
-    static void appendRootRules(StringBuilder s) {
+    // C++: static void appendRootRules(UnicodeString &s)
+    public static String getRootRules() {
         loadRootRules();
-        s.append(rootRules);
+        return rootRules;
     }
 
     static String loadRules(ULocale locale, CharSequence collationType) {
@@ -57,10 +58,9 @@ final class CollationLoader {
         return rules;
     }
 
-//    static CollationTailoring loadTailoring(ULocale locale, Locale &validLocale);
-    static CollationTailoring loadTailoring(ULocale locale, Output<ULocale> outValidLocale) {
+    public static CollationTailoring loadTailoring(ULocale locale, Output<ULocale> outValidLocale) {
 
-        // Java porting note: ICU4J getWithFallback/getStringWtihFallback currently does not
+        // Java porting note: ICU4J getWithFallback/getStringWithFallback currently does not
         // work well when alias table is involved in a resource path, unless full path is specified.
         // For now, collation resources does not contain such data, so the code below should work fine.
 
