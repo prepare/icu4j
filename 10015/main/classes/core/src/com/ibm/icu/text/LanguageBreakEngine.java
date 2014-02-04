@@ -7,7 +7,7 @@
 package com.ibm.icu.text;
 
 import java.text.CharacterIterator;
-import java.util.Stack;
+import java.util.Deque;
 
 /**
  * The LanguageBreakEngine interface is to be used to implement any 
@@ -36,5 +36,5 @@ interface LanguageBreakEngine {
      * @return the number of words found
      */
     public int findBreaks(CharacterIterator text, int startPos, int endPos,
-            boolean reverse, int breakType, Stack<Integer> foundBreaks);
+            boolean reverse, int breakType, Deque<Integer> foundBreaks);
 }

@@ -18,7 +18,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.CharacterIterator;
+import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Stack;
@@ -269,6 +271,17 @@ public class RuleBasedBreakIterator extends BreakIterator {
     private final Set<LanguageBreakEngine> fBreakEngines = Collections.synchronizedSet(new HashSet<LanguageBreakEngine>());
 
     /**
+     * Dumps caches and performs other actions associated with a complete change
+     * in text or iteration position.
+     */
+    private void reset() {
+        fCachedBreakPositions = null;
+        // fNumCachedBreakPositions = 0;
+        fDictionaryCharCount = 0;
+        fPositionInCache = 0;
+
+    }
+    /**
      * Dump the contents of the state table and character classes for this break iterator.
      * For debugging only.
      * @internal
@@ -360,7 +373,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
     public int next(int n) {
         int result = current();
         while (n > 0) {
-            result = handleNext();
+            result = next();
             --n;
         }
         while (n < 0) {
@@ -376,8 +389,252 @@ public class RuleBasedBreakIterator extends BreakIterator {
      * @stable ICU 2.0
      */
     public int next() {
-        return handleNext();
+        // if we have cached break positions and we're still in the range
+        // covered by them, just move one step forward in the cache
+        if (fCachedBreakPositions != null) {
+            if (fPositionInCache < fCachedBreakPositions.length - 1) {
+                ++fPositionInCache;
+                int pos = fCachedBreakPositions[fPositionInCache];
+                fText.setIndex(pos);
+                return pos;
+            }
+            else {
+                reset();
+            }
+        }
+
+        int startPos = current();
+        fDictionaryCharCount = 0;
+        int result = handleNext(fRData.fFTable);
+        if (fDictionaryCharCount > 0) {
+            result = checkDictionary(startPos, result, false);
+        }
+        return result;
     }
+
+    
+    /**
+      *  checkDictionary      This function handles all processing of characters in
+      *                       the "dictionary" set. It will determine the appropriate
+      *                       course of action, and possibly set up a cache in the
+      *                       process.
+      */
+    private int checkDictionary(int startPos, int endPos, boolean reverse) {
+        
+        // Reset the old break cache first.
+        reset();
+
+        // note: code segment below assumes that dictionary chars are in the 
+        // startPos-endPos range
+        // value returned should be next character in sequence
+        if ((endPos - startPos) <= 1) {
+            return (reverse ? startPos : endPos);
+        }
+
+        // Starting from the starting point, scan towards the proposed result,
+        // looking for the first dictionary character (which may be the one
+        // we're on, if we're starting in the middle of a range).
+        fText.setIndex(reverse ? endPos : startPos);
+        if (reverse) {
+            CharacterIteration.previous32(fText);
+        }
+
+        int  rangeStart = startPos;
+        int  rangeEnd = endPos;
+
+        int    category;
+        int    current;
+        ArrayDeque<Integer> breaks = new ArrayDeque<Integer>();
+        int     foundBreakCount = 0;
+        int     c = CharacterIteration.current32(fText);
+        category = (short)fRData.fTrie.getCodePointValue(c);
+
+        // Is the character we're starting on a dictionary character? If so, we
+        // need to back up to include the entire run; otherwise the results of
+        // the break algorithm will differ depending on where we start. Since
+        // the result is cached and there is typically a non-dictionary break
+        // within a small number of words, there should be little performance impact.
+        if ((category & 0x4000) != 0) {
+            if (reverse) {
+                do {
+                    CharacterIteration.next32(fText);
+                    c = CharacterIteration.current32(fText);
+                    category = (short)fRData.fTrie.getCodePointValue(c);
+                } while (c != CharacterIteration.DONE32 && ((category & 0x4000)) == 0);
+                
+                // Back up to the last dictionary character
+                rangeEnd = fText.getIndex();
+                if (c == CharacterIteration.DONE32) {
+                    // c = fText->last32();
+                    //   TODO:  why was this if needed?
+                    c = CharacterIteration.previous32(fText);
+                }
+                else {
+                    c = CharacterIteration.previous32(fText);
+                }
+            }
+            else {
+                do {
+                    c = CharacterIteration.previous32(fText);
+                    category = (short)fRData.fTrie.getCodePointValue(c);
+                }
+                while (c != CharacterIteration.DONE32 && ((category & 0x4000) != 0));
+                // Back up to the last dictionary character
+                if (c == CharacterIteration.DONE32) {
+                    // c = fText->first32();
+                    c = CharacterIteration.current32(fText);
+                }
+                else {
+                    CharacterIteration.next32(fText);
+                    c = CharacterIteration.current32(fText);
+                }
+                rangeStart = fText.getIndex();
+            }
+            category = (short)fRData.fTrie.getCodePointValue(c);
+        }
+
+        
+        // Loop through the text, looking for ranges of dictionary characters.
+        // For each span, find the appropriate break engine, and ask it to find
+        // any breaks within the span.
+        // Note: we always do this in the forward direction, so that the break
+        // cache is built in the right order.
+        if (reverse) {
+            fText.setIndex(rangeStart);
+            c = CharacterIteration.current32(fText);
+            category = (short)fRData.fTrie.getCodePointValue(c);
+        }
+        while(true) {
+            while((current = fText.getIndex()) < rangeEnd && (category & 0x4000) == 0) {
+                CharacterIteration.next32(fText);
+                c = CharacterIteration.current32(fText);
+                category = (short)fRData.fTrie.getCodePointValue(c);
+            }
+            if (current >= rangeEnd) {
+                break;
+            }
+            
+            // We now have a dictionary character. Get the appropriate language object
+            // to deal with it.
+            LanguageBreakEngine lbe = getLanguageBreakEngine(c);
+            
+            // Ask the language object if there are any breaks. It will leave the text
+            // pointer on the other side of its range, ready to search for the next one.
+            if (lbe != null) {
+                foundBreakCount += lbe.findBreaks(fText, rangeStart, rangeEnd, false, fBreakType, breaks);
+            }
+            
+            // Reload the loop variables for the next go-round
+            c = CharacterIteration.current32(fText);
+            category = (short)fRData.fTrie.getCodePointValue(c);
+        }
+        
+        // If we found breaks, build a new break cache. The first and last entries must
+        // be the original starting and ending position.
+        if (foundBreakCount > 0) {
+            int totalBreaks = foundBreakCount;
+            if (startPos < breaks.peekLast()) {
+                totalBreaks += 1;
+            }
+            if (endPos > breaks.peek()) {
+                totalBreaks += 1;
+            }
+            
+            // TODO: get rid of this array, use results from the deque directly
+            fCachedBreakPositions = new int[totalBreaks];
+            int out = totalBreaks;
+            if (startPos < breaks.peekLast()) {
+                fCachedBreakPositions[out++] = startPos;
+            }
+            for (int i: breaks) {
+                fCachedBreakPositions[--out] = i;
+            }
+
+            if (endPos > fCachedBreakPositions[totalBreaks-2]) {
+                fCachedBreakPositions[totalBreaks-1] = endPos;
+            }
+            // If there are breaks, then by definition, we are replacing the original
+            // proposed break by one of the breaks we found. Use following() and
+            // preceding() to do the work. They should never recurse in this case.
+            if (reverse) {
+                return preceding(endPos);
+            }
+            else {
+                return following(startPos);
+            }
+        }
+
+        // If we get here, there were no language-based breaks. Set the text pointer
+        // to the original proposed break.
+        fText.setIndex(reverse ? startPos : endPos);
+        return (reverse ? startPos : endPos);
+
+        
+        
+ /*       
+        
+        // if there are no cached break positions, or if we've just moved
+        // off the end of the range covered by the cache, we have to dump
+        // and possibly regenerate the cache
+        if (fCachedBreakPositions == null || fPositionInCache == fCachedBreakPositions.length - 1) {
+            startPos = fText.getIndex();
+
+            // start by using the rules handleNext() to find a tentative return
+            // value.   dictionaryCharCount tells us how many dictionary characters
+            // we passed over on our way to the tentative return value
+            fDictionaryCharCount = 0;
+            int result = handleNext(fRData.fFTable);
+
+            // if we passed over more than one dictionary character, then we use
+            // divideUpDictionaryRange() to regenerate the cached break positions
+            // for the new range.
+            if (fDictionaryCharCount > 1 && result - startPos > 1) {
+                LanguageBreakEngine e = getEngineFor(fText, startPos, result);
+                fText.setIndex(startPos);
+                if (e != null) {
+                    // we have an engine! use it to produce breaks
+                    //Stack<Integer> breaks = new Stack<Integer>();
+                    //e.findBreaks(fText, startPos, result, false, getBreakType(), breaks);
+
+                    int breaksSize = breaks.size();
+                    fCachedBreakPositions = new int[breaksSize + 2];
+                    fCachedBreakPositions[0] = startPos;
+                    for (int i = 0; i < breaksSize; i++) {
+                        fCachedBreakPositions[i + 1] = breaks.elementAt(i).intValue() ;
+                    }
+                    fCachedBreakPositions[breaksSize + 1] = result;
+
+                    fPositionInCache = 0;
+                } else {
+                    // we don't have an engine; just use the rules
+                    fText.setIndex(result);
+                    return result;
+                }
+            }
+            else {
+                // otherwise, the value we got back from the inherited function
+                // is our return value, and we can dump the cache
+                fCachedBreakPositions = null;
+                return result;
+            }
+        }
+
+        // if the cache of break positions has been regenerated (or existed all
+        // along), then just advance to the next break position in the cache
+        // and return it
+        if (fCachedBreakPositions != null) {
+            ++fPositionInCache;
+            fText.setIndex(fCachedBreakPositions[fPositionInCache]);
+            return fCachedBreakPositions[fPositionInCache];
+        }
+
+        ///CLOVER:OFF
+        Assert.assrt(false);
+        return BreakIterator.DONE;   // WE SHOULD NEVER GET HERE!
+        ///CLOVER:ON
+  
+         */
+        }
     
     
     /**
@@ -423,7 +680,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
             }
             
             while (result < offset) {
-                int nextResult = handleNext();
+                int nextResult = next();
                 if (nextResult >= offset) {
                     break;
                 }
@@ -487,7 +744,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
         // point is our return value
 
         for (;;) {
-            result         = handleNext();
+            result         = next();
             if (result == BreakIterator.DONE || result >= start) {
                 break;
             }
@@ -615,7 +872,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
 
         fText.setIndex(offset);
         if (offset == fText.getBeginIndex()) {
-            return handleNext();
+            return next();
         }
         result = previous();
 
@@ -950,12 +1207,20 @@ public class RuleBasedBreakIterator extends BreakIterator {
             }
             category = (short)fRData.fTrie.getCodePointValue(c);
         } while ((category & 0x4000) == 0);
+        
+        return getLanguageBreakEngine(c);
+    }
+    
+    
+    private LanguageBreakEngine getLanguageBreakEngine(int c) {
 
         // We have a dictionary character.
         // Does an already instantiated break engine handle it?
-        for (LanguageBreakEngine candidate : fBreakEngines) {
-            if (candidate.handles(c, fBreakType)) {
-                return candidate;
+        synchronized(fBreakEngines) {
+            for (LanguageBreakEngine candidate : fBreakEngines) {
+                if (candidate.handles(c, fBreakType)) {
+                    return candidate;
+                }
             }
         }
 
@@ -1002,77 +1267,15 @@ public class RuleBasedBreakIterator extends BreakIterator {
         }
 
         if (eng != null) {
+            // In the event of a race it's possible that the add() could fail
+            // and that two break engines of the same type will exist.
+            // Should be rare and pretty much harmless.
             fBreakEngines.add(eng);
         }
         return eng;
     }
 
-    //-----------------------------------------------------------------------------------
-    //
-    //      handleNext(void)    All forward iteration vectors through this function.
-    //                      
-    //-----------------------------------------------------------------------------------
-    private int handleNext() {
-        // if there are no cached break positions, or if we've just moved
-        // off the end of the range covered by the cache, we have to dump
-        // and possibly regenerate the cache
-        if (fCachedBreakPositions == null || fPositionInCache == fCachedBreakPositions.length - 1) {
-            int startPos = fText.getIndex();
-
-            // start by using the rules handleNext() to find a tentative return
-            // value.   dictionaryCharCount tells us how many dictionary characters
-            // we passed over on our way to the tentative return value
-            fDictionaryCharCount = 0;
-            int result = handleNext(fRData.fFTable);
-
-            // if we passed over more than one dictionary character, then we use
-            // divideUpDictionaryRange() to regenerate the cached break positions
-            // for the new range.
-            if (fDictionaryCharCount > 1 && result - startPos > 1) {
-                LanguageBreakEngine e = getEngineFor(fText, startPos, result);
-                fText.setIndex(startPos);
-                if (e != null) {
-                    // we have an engine! use it to produce breaks
-                    Stack<Integer> breaks = new Stack<Integer>();
-                    e.findBreaks(fText, startPos, result, false, getBreakType(), breaks);
-
-                    int breaksSize = breaks.size();
-                    fCachedBreakPositions = new int[breaksSize + 2];
-                    fCachedBreakPositions[0] = startPos;
-                    for (int i = 0; i < breaksSize; i++) {
-                        fCachedBreakPositions[i + 1] = breaks.elementAt(i).intValue();
-                    }
-                    fCachedBreakPositions[breaksSize + 1] = result;
-
-                    fPositionInCache = 0;
-                } else {
-                    // we don't have an engine; just use the rules
-                    fText.setIndex(result);
-                    return result;
-                }
-            }
-            else {
-                // otherwise, the value we got back from the inherited function
-                // is our return value, and we can dump the cache
-                fCachedBreakPositions = null;
-                return result;
-            }
-        }
-
-        // if the cache of break positions has been regenerated (or existed all
-        // along), then just advance to the next break position in the cache
-        // and return it
-        if (fCachedBreakPositions != null) {
-            ++fPositionInCache;
-            fText.setIndex(fCachedBreakPositions[fPositionInCache]);
-            return fCachedBreakPositions[fPositionInCache];
-        }
-
-        ///CLOVER:OFF
-        Assert.assrt(false);
-        return BreakIterator.DONE;   // WE SHOULD NEVER GET HERE!
-        ///CLOVER:ON
-    }
+   
 
     /**
      * The State Machine Engine for moving forward is here.
