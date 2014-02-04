@@ -7,16 +7,13 @@
 package com.ibm.icu.text;
 
 import java.lang.reflect.Method;
-import java.nio.ByteBuffer;
 import java.text.CharacterIterator;
 import java.text.ParseException;
 import java.util.Arrays;
-import java.util.MissingResourceException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.ibm.icu.impl.BOCU;
-import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.Normalizer2Impl;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.impl.Normalizer2Impl.ReorderingBuffer;
@@ -27,6 +24,7 @@ import com.ibm.icu.impl.coll.CollationFastLatin;
 import com.ibm.icu.impl.coll.CollationIterator;
 import com.ibm.icu.impl.coll.CollationKeys;
 import com.ibm.icu.impl.coll.CollationKeys.SortKeyByteSink;
+import com.ibm.icu.impl.coll.CollationLoader;
 import com.ibm.icu.impl.coll.CollationRoot;
 import com.ibm.icu.impl.coll.CollationSettings;
 import com.ibm.icu.impl.coll.CollationTailoring;
@@ -34,7 +32,6 @@ import com.ibm.icu.impl.coll.FCDUTF16CollationIterator;
 import com.ibm.icu.impl.coll.SharedObject;
 import com.ibm.icu.impl.coll.UTF16CollationIterator;
 import com.ibm.icu.util.ULocale;
-import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.VersionInfo;
 
 /**
@@ -45,28 +42,28 @@ import com.ibm.icu.util.VersionInfo;
  * </p>
  * 
  * <p>
- * Users are strongly encouraged to read <a href="http://www.icu-project.org/userguide/Collate_Intro.html"> the users
- * guide</a> for more information about the collation service before using this class.
+ * Users are strongly encouraged to read the <a href="http://userguide.icu-project.org/collation">User
+ * Guide</a> for more information about the collation service before using this class.
  * </p>
  * 
  * <p>
  * Create a RuleBasedCollator from a locale by calling the getInstance(Locale) factory method in the base class
  * Collator. Collator.getInstance(Locale) creates a RuleBasedCollator object based on the collation rules defined by the
  * argument locale. If a customized collation ordering or attributes is required, use the RuleBasedCollator(String)
- * constructor with the appropriate rules. The customized RuleBasedCollator will base its ordering on UCA, while
+ * constructor with the appropriate rules. The customized RuleBasedCollator will base its ordering on the CLDR root collation, while
  * re-adjusting the attributes and orders of the characters in the specified rule accordingly.
  * </p>
  * 
  * <p>
  * RuleBasedCollator provides correct collation orders for most locales supported in ICU. If specific data for a locale
- * is not available, the orders eventually falls back to the <a href="http://www.unicode.org/unicode/reports/tr10/">UCA
- * collation order </a>.
+ * is not available, the orders eventually falls back to the
+ * <a href="http://www.unicode.org/reports/tr35/tr35-collation.html#Root_Collation">CLDR root sort order</a>.
  * </p>
  * 
  * <p>
  * For information about the collation rule syntax and details about customization, please refer to the <a
- * href="http://www.icu-project.org/userguide/Collate_Customization.html"> Collation customization</a> section of the
- * user's guide.
+ * href="http://userguide.icu-project.org/collation/customization">Collation customization</a> section of the
+ * User Guide.
  * </p>
  * 
  * <p>
@@ -201,11 +198,12 @@ public final class RuleBasedCollator extends Collator {
 
     /**
      * <p>
-     * Constructor that takes the argument rules for customization. The collator will be based on UCA, with the
+     * Constructor that takes the argument rules for customization.
+     * The collator will be based on the CLDR root collation, with the
      * attributes and re-ordering of the characters specified in the argument rules.
      * </p>
      * <p>
-     * See the user guide's section on <a href="http://www.icu-project.org/userguide/Collate_Customization.html">
+     * See the User Guide's section on <a href="http://userguide.icu-project.org/collation/customization">
      * Collation Customization</a> for details on the rule syntax.
      * </p>
      * 
@@ -213,7 +211,7 @@ public final class RuleBasedCollator extends Collator {
      *            the collation rules to build the collation table from.
      * @exception ParseException
      *                and IOException thrown. ParseException thrown when argument rules have an invalid syntax.
-     *                IOException thrown when an error occured while reading internal data.
+     *                IOException thrown when an error occurred while reading internal data.
      * @stable ICU 2.8
      */
     public RuleBasedCollator(String rules) throws Exception {
@@ -224,6 +222,11 @@ public final class RuleBasedCollator extends Collator {
         internalBuildTailoring(rules);
     }
 
+    /**
+     * Implements from-rule constructors.
+     * @param rules rule string
+     * @throws Exception
+     */
     private final void internalBuildTailoring(String rules) throws Exception {
         CollationTailoring base = CollationRoot.getRoot();
         // Most code using Collator does not need to build a Collator from rules.
@@ -581,7 +584,7 @@ public final class RuleBasedCollator extends Collator {
     /**
      * Sets the mode for the direction of SECONDARY weights to be used in French collation. The default value is false,
      * which treats SECONDARY weights in the order they appear. If set to true, the SECONDARY weights will be sorted
-     * backwards. See the section on <a href="http://www.icu-project.org/userguide/Collate_ServiceArchitecture.html">
+     * backwards. See the section on <a href="http://userguide.icu-project.org/collation/architecture">
      * French collation</a> for more information.
      * 
      * @param flag
@@ -600,15 +603,15 @@ public final class RuleBasedCollator extends Collator {
 
     /**
      * Sets the alternate handling for QUATERNARY strength to be either shifted or non-ignorable. See the UCA definition
-     * on <a href="http://www.unicode.org/unicode/reports/tr10/#Variable_Weighting"> Alternate Weighting</a>. This
+     * on <a href="http://www.unicode.org/unicode/reports/tr10/#Variable_Weighting">Variable Weighting</a>. This
      * attribute will only be effective when QUATERNARY strength is set. The default value for this mode is false,
-     * corresponding to the NON_IGNORABLE mode in UCA. In the NON-IGNORABLE mode, the RuleBasedCollator will treats all
-     * the codepoints with non-ignorable primary weights in the same way. If the mode is set to true, the behaviour
-     * corresponds to SHIFTED defined in UCA, this causes codepoints with PRIMARY orders that are equal or below the
+     * corresponding to the NON_IGNORABLE mode in UCA. In the NON_IGNORABLE mode, the RuleBasedCollator treats all
+     * the code points with non-ignorable primary weights in the same way. If the mode is set to true, the behavior
+     * corresponds to SHIFTED defined in UCA, this causes code points with PRIMARY orders that are equal or below the
      * variable top value to be ignored in PRIMARY order and moved to the QUATERNARY order.
      * 
      * @param shifted
-     *            true if SHIFTED behaviour for alternate handling is desired, false for the NON_IGNORABLE behaviour.
+     *            true if SHIFTED behavior for alternate handling is desired, false for the NON_IGNORABLE behavior.
      * @see #isAlternateHandlingShifted
      * @see #setAlternateHandlingDefault
      * @stable ICU 2.8
@@ -631,7 +634,7 @@ public final class RuleBasedCollator extends Collator {
      * case level.
      * </p>
      * <p>
-     * See the section on <a href="http://www.icu-project.org/userguide/Collate_ServiceArchitecture.html"> case
+     * See the section on <a href="http://userguide.icu-project.org/collation/architecture">case
      * level</a> for more information.
      * </p>
      * 
@@ -975,10 +978,11 @@ public final class RuleBasedCollator extends Collator {
     }
 
     /**
-     * Returns current rules. The argument defines whether full rules (UCA + tailored) rules are returned or just the
-     * tailoring.
+     * Returns current rules.
+     * The argument defines whether full rules (root collation + tailored) rules are returned
+     * or just the tailoring.
      * 
-     * <p>The "UCA rules" are an <i>approximation</i> of the root collator's sort order.
+     * <p>The root collation rules are an <i>approximation</i> of the root collator's sort order.
      * They are almost never used or useful at runtime and can be removed from the data.
      * See <a href="http://userguide.icu-project.org/collation/customization#TOC-Building-on-Existing-Locales">User Guide:
      * Collation Customization, Building on Existing Locales</a>
@@ -995,14 +999,14 @@ public final class RuleBasedCollator extends Collator {
         if (!fullrules) {
             return tailoring.rules;
         }
-        return /* TODO: CollationLoader.getRootRules() + */ tailoring.rules;
+        return CollationLoader.getRootRules() + tailoring.rules;
     }
 
     /**
-     * Get an UnicodeSet that contains all the characters and sequences tailored in this collator.
+     * Get a UnicodeSet that contains all the characters and sequences tailored in this collator.
      * 
      * @return a pointer to a UnicodeSet object containing all the code points and sequences that may sort differently
-     *         than in the UCA.
+     *         than in the root collator.
      * @stable ICU 2.4
      */
     @Override
@@ -1300,7 +1304,7 @@ public final class RuleBasedCollator extends Collator {
     }
 
     /**
-     * Checks if the alternate handling behaviour is the UCA defined SHIFTED or NON_IGNORABLE. If return value is true,
+     * Checks if the alternate handling behavior is the UCA defined SHIFTED or NON_IGNORABLE. If return value is true,
      * then the alternate handling attribute for the Collator is SHIFTED. Otherwise if return value is false, then the
      * alternate handling attribute for the Collator is NON_IGNORABLE See setAlternateHandlingShifted(boolean) for more
      * details.
@@ -1723,11 +1727,7 @@ public final class RuleBasedCollator extends Collator {
 
     // package private constructors ------------------------------------------
 
-    RuleBasedCollator() {
-        validLocale = ULocale.ROOT;
-    }
-
-    RuleBasedCollator(CollationTailoring t) {  // TODO: needed in Java?
+    RuleBasedCollator(CollationTailoring t) {
         data = t.data;
         settings = t.settings.clone();
         tailoring = t;
@@ -1742,76 +1742,6 @@ public final class RuleBasedCollator extends Collator {
         tailoring = t;
         validLocale = t.actualLocale;
         actualLocaleIsSameAsValid = false;
-    }
-
-    /**
-     * Constructs a RuleBasedCollator from the argument locale.
-     * If no resource bundle is associated with the locale, UCA is used instead.
-     * 
-     * @param locale
-     */
-    RuleBasedCollator(ULocale locale) {
-        // TODO: delete this code once Collator.getInstance(locale) is hooked up with
-        // CollationLoader and RuleBasedCollator(CollationTailoring).
-        try {
-            ICUResourceBundle rb = (ICUResourceBundle) UResourceBundle.getBundleInstance(
-                    ICUResourceBundle.ICU_COLLATION_BASE_NAME, locale);
-            if (rb != null) {
-                ICUResourceBundle elements = null;
-
-                // Use keywords, if supplied for lookup
-                String collkey = locale.getKeywordValue("collation");
-                if (collkey != null) {
-                    try {
-                        elements = rb.getWithFallback("collations/" + collkey);
-                    } catch (MissingResourceException e) {
-                        // fall through
-                    }
-                }
-                if (elements == null) {
-                    // either collation keyword was not supplied or
-                    // the keyword was invalid - use default collation for the locale
-
-                    // collations/default should always give a string back
-                    // keyword for the real collation data
-                    collkey = rb.getStringWithFallback("collations/default");
-                    elements = rb.getWithFallback("collations/" + collkey);
-                }
-
-                // TODO: Determine actual & valid locale correctly
-                ULocale uloc = rb.getULocale();
-                setLocale(uloc, uloc);
-
-                // TODO: m_rules_ = elements.getString("Sequence");
-                ByteBuffer buf = elements.get("%%CollationBin").getBinary();
-                // %%CollationBin
-                if (buf != null) {
-                    // m_rules_ = (String)rules[1][1];
-                    CollatorReader.initRBC(this, buf);
-                    /*
-                     * BufferedInputStream input = new BufferedInputStream( new ByteArrayInputStream(map)); /*
-                     * CollatorReader reader = new CollatorReader(input, false); if (map.length >
-                     * MIN_BINARY_DATA_SIZE_) { reader.read(this, null); } else { reader.readHeader(this);
-                     * reader.readOptions(this); // duplicating UCA_'s data setWithUCATables(); }
-                     */
-                    // at this point, we have read in the collator
-                    // now we need to check whether the binary image has
-                    // the right UCA and other versions
-                    /* TODO: delete -- if (!m_UCA_version_.equals(UCA_.m_UCA_version_) || !m_UCD_version_.equals(UCA_.m_UCD_version_)) {
-                        init(m_rules_);
-                        return;
-                    } */
-                    // TODO: init();
-                    return;
-                } else {
-                    // TODO: init("m_rules_");
-                    return;
-                }
-            }
-        } catch (Exception e) {
-            // fallthrough
-        }
-        // TODO: setWithUCAData();
     }
 
     // package private methods -----------------------------------------------

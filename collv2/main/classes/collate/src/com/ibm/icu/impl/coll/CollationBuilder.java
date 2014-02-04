@@ -481,7 +481,7 @@ private:
         // In Java, we do not have a rules version.
         // In C++, the genrb build tool reads and supplies one,
         // and the rulesVersion is a parameter for this method.
-        VersionInfo rulesVersion = VersionInfo.getInstance(0, 0, 0, 0);  // TODO: make & use public VersionInfo.ZERO_VERSION see CollationTailoring
+        VersionInfo rulesVersion = VersionInfo.getInstance(0, 0, 0, 0);
         tailoring.setVersion(base.version, rulesVersion);
         return tailoring.orphan();
     }
