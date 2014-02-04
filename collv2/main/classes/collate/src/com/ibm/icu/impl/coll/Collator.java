@@ -1650,17 +1650,6 @@ public:
     {
     }
 
-    boolean Collator.operator==(const Collator& other) const
-    {
-        // Subclasses: Call this method and then add more specific checks.
-        return typeid(*this) == typeid(other);
-    }
-
-    boolean Collator.operator!=(const Collator& other) const
-    {
-        return (boolean)!(*this == other);
-    }
-
     int32_t U_EXPORT2 Collator.getBound(const uint8_t       *source,
                               int             sourceLength,
                               UColBoundMode       boundType,

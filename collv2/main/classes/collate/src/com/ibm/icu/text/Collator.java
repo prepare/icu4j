@@ -300,6 +300,23 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
     
     // public methods --------------------------------------------------------
 
+    /**
+     * Compares the equality of two Collator objects. Collator objects are equal if they have the same
+     * collation (sorting & searching) behavior.
+     *
+     * <p>The base class checks for null and for equal types.
+     * Subclasses should override.
+     *
+     * @param obj the Collator to compare to.
+     * @return true if this Collator has exactly the same collation behavior as obj, false otherwise.
+     * @stable ICU 2.8
+     */
+    @Override
+    public boolean equals(Object obj) {
+        // Subclasses: Call this method and then add more specific checks.
+        return this == obj || (obj != null && getClass() == obj.getClass());
+    }
+
     // public setters --------------------------------------------------------
 
     private void checkNotFrozen() {

@@ -32,7 +32,7 @@ public final class CollationFastLatin /* all static */ {
     public static final int VERSION = 1;
 
     public static final int LATIN_MAX = 0x17f;
-    static final int LATIN_LIMIT = LATIN_MAX + 1;
+    public static final int LATIN_LIMIT = LATIN_MAX + 1;
 
     static final int LATIN_MAX_UTF8_LEAD = 0xc5;  // UTF-8 lead byte of LATIN_MAX
 

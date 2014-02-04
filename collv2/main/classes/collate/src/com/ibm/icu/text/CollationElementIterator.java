@@ -1,10 +1,7 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2013, International Business Machines Corporation and    *
-* others. All Rights Reserved.                                                *
-*******************************************************************************
-*
-*
+* Copyright (C) 1996-2014, International Business Machines Corporation and
+* others. All Rights Reserved.
 *******************************************************************************
 */
 package com.ibm.icu.text;
@@ -14,6 +11,8 @@ package com.ibm.icu.text;
  * import java.text.CharacterIterator;
  */
 import java.text.CharacterIterator;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.CharacterIteratorWrapper;
@@ -22,6 +21,7 @@ import com.ibm.icu.impl.Norm2AllModes;
 import com.ibm.icu.impl.Normalizer2Impl;
 import com.ibm.icu.impl.StringUCharacterIterator;
 import com.ibm.icu.impl.UCharacterProperty;
+import com.ibm.icu.impl.coll.CollationData;
 import com.ibm.icu.lang.UCharacter;
 
 /**
@@ -147,6 +147,16 @@ public final class CollationElementIterator
 
     // public getters -------------------------------------------------------
 
+    private static final int getFirstHalf(long p, int lower32) {
+        return ((int)p & 0xffff0000) | ((lower32 >> 16) & 0xff00) | ((lower32 >> 8) & 0xff);
+    }
+    private static final int getSecondHalf(long p, int lower32) {
+        return ((int)p << 16) | ((lower32 >> 8) & 0xff00) | (lower32 & 0x3f);
+    }
+    private static final boolean ceNeedsTwoParts(long ce) {
+        return (ce & 0xffff00ff003fL) != 0;
+    }
+
     /**
      * <p>Returns the character offset in the source string
      * corresponding to the next collation element. I.e., getOffset()
@@ -196,33 +206,64 @@ public final class CollationElementIterator
      *         with the specified collation element.
      * @stable ICU 2.8
      */
-    public int getMaxExpansion(int ce)
-    {
-        int start = 0;
-        int limit = m_collator_.m_expansionEndCE_.length;
-        long unsignedce = ce & 0xFFFFFFFFl;
-        while (start < limit - 1) {
-            int mid = start + ((limit - start) >> 1);
-            long midce = m_collator_.m_expansionEndCE_[mid] & 0xFFFFFFFFl;
-            if (unsignedce <= midce) {
-                limit = mid;
+    public int getMaxExpansion(int ce) {
+        return getMaxExpansion(m_collator_.tailoring.maxExpansions, ce);
+    }
+
+    static int getMaxExpansion(Map<Integer, Integer> maxExpansions, int order) {
+        if (order == 0) { return 1; }
+        Integer max;
+        if(maxExpansions != null && (max = maxExpansions.get(order)) != null) {
+            return max;
+        }
+        if ((order & 0xc0) == 0xc0) {
+            // old-style continuation CE
+            return 2;
+        } else {
+            return 1;
+        }
+    }
+
+    private static final class MaxExpSink implements ContractionsAndExpansions.CESink {
+        MaxExpSink(Map<Integer, Integer> h) {
+            maxExpansions = h;
+        }
+        @Override
+        void handleCE(long ce) {}
+        @Override
+        void handleExpansion(long ces[], int length) {
+            if (length <= 1) {
+                // We do not need to add single CEs into the map.
+                return;
             }
-            else {
-                start = mid;
+            int count = 0;  // number of CE "halves"
+            for (int i = 0; i < length; ++i) {
+                count += ceNeedsTwoParts(ces[i]) ? 2 : 1;
+            }
+            // last "half" of the last CE
+            long ce = ces[length - 1];
+            long p = ce >>> 32;
+            int lower32 = (int)ce;
+            int lastHalf = getSecondHalf(p, lower32);
+            if (lastHalf == 0) {
+                lastHalf = getFirstHalf(p, lower32);
+                assert(lastHalf != 0);
+            } else {
+                lastHalf |= 0xc0;  // old-style continuation CE
+            }
+            if (count > maxExpansions.get(lastHalf)) {
+                maxExpansions.put(lastHalf, count);
             }
         }
-        int result = 1;
-        if (m_collator_.m_expansionEndCE_[start] == ce) {
-            result = m_collator_.m_expansionEndCEMaxSize_[start];
-        }
-        else if (limit < m_collator_.m_expansionEndCE_.length &&
-                 m_collator_.m_expansionEndCE_[limit] == ce) {
-            result = m_collator_.m_expansionEndCEMaxSize_[limit];
-        }
-        else if ((ce & 0xFFFF) == 0x00C0) {
-            result = 2;
-        }
-        return result;
+
+        private Map<Integer, Integer> maxExpansions;
+    }
+
+    static final Map<Integer, Integer> computeMaxExpansions(CollationData data) {
+        Map<Integer, Integer> maxExpansions = new HashMap<Integer, Integer>();
+        MaxExpSink sink = new MaxExpSink(maxExpansions);
+        // TODO: new ContractionsAndExpansions(null, null, sink, true).forData(data);
+        return maxExpansions;
     }
 
     // public other methods -------------------------------------------------

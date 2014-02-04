@@ -360,20 +360,6 @@ private:
 
     /* CollationElementIterator public methods --------------------------------- */
 
-    namespace {
-
-    int getFirstHalf(long p, int lower32) {
-        return ((int)p & 0xffff0000) | ((lower32 >> 16) & 0xff00) | ((lower32 >> 8) & 0xff);
-    }
-    int getSecondHalf(long p, int lower32) {
-        return ((int)p << 16) | ((lower32 >> 8) & 0xff00) | (lower32 & 0x3f);
-    }
-    boolean ceNeedsTwoParts(long ce) {
-        return (ce & 0xffff00ff003fL) != 0;
-    }
-
-    }  // namespace
-
     int32_t CollationElementIterator.getOffset() const
     {
         if (dir_ < 0 && offsets_ != null && !offsets_.isEmpty()) {
@@ -653,82 +639,6 @@ private:
             }
         }
         return *this;
-    }
-
-    namespace {
-
-    class MaxExpSink implements ContractionsAndExpansions.CESink {
-    public:
-        MaxExpSink(UHashtable *h, UErrorCode &ec) : maxExpansions(h)(ec) {}
-        virtual ~MaxExpSink();
-        virtual void handleCE(long /*ce*/) {}
-        virtual void handleExpansion(const long ces[], int length) {
-            if (length <= 1) {
-                // We do not need to add single CEs into the map.
-                return;
-            }
-            int count = 0;  // number of CE "halves"
-            for (int i = 0; i < length; ++i) {
-                count += ceNeedsTwoParts(ces[i]) ? 2 : 1;
-            }
-            // last "half" of the last CE
-            long ce = ces[length - 1];
-            long p = ce >>> 32;
-            int lower32 = (int)ce;
-            int lastHalf = getSecondHalf(p, lower32);
-            if (lastHalf == 0) {
-                lastHalf = getFirstHalf(p, lower32);
-                assert(lastHalf != 0);
-            } else {
-                lastHalf |= 0xc0;  // old-style continuation CE
-            }
-            if (count > uhash_igeti(maxExpansions, (int32_t)lastHalf)) {
-                uhash_iputi(maxExpansions, (int32_t)lastHalf, count, &errorCode);
-            }
-        }
-
-    private:
-        UHashtable *maxExpansions;
-        ;
-    };
-
-    MaxExpSink.~MaxExpSink() {}
-
-    }  // namespace
-
-    UHashtable *
-    CollationElementIterator.computeMaxExpansions(CollationData data) {
-        if (U_FAILURE) { return null; }
-        UHashtable *maxExpansions = uhash_open(uhash_hashLong, uhash_compareLong,
-                                              uhash_compareLong, &errorCode);
-        if (U_FAILURE) { return null; }
-        MaxExpSink sink(maxExpansions);
-        ContractionsAndExpansions(null, null, &sink, true).forData(data);
-        if (U_FAILURE) {
-            uhash_close(maxExpansions);
-            return null;
-        }
-        return maxExpansions;
-    }
-
-    int32_t
-    CollationElementIterator.getMaxExpansion(int order) {
-        return getMaxExpansion(rbc_.tailoring.maxExpansions, order);
-    }
-
-    int32_t
-    CollationElementIterator.getMaxExpansion(const UHashtable *maxExpansions, int order) {
-        if (order == 0) { return 1; }
-        int max;
-        if(maxExpansions != null && (max = uhash_igeti(maxExpansions, order)) != 0) {
-            return max;
-        }
-        if ((order & 0xc0) == 0xc0) {
-            // old-style continuation CE
-            return 2;
-        } else {
-            return 1;
-        }
     }
 
     /**  
