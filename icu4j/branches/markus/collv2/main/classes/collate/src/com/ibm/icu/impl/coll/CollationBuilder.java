@@ -11,6 +11,10 @@
 
 package com.ibm.icu.impl.coll;
 
+import java.util.Arrays;
+
+import com.ibm.icu.util.VersionInfo;
+
 final class CollationBuilder extends CollationRuleParser.Sink {
 public:
     CollationBuilder(const CollationTailoring *base);
@@ -376,158 +380,20 @@ private:
     UVector64 nodes;
 }
 
-    final class BundleImporter implements CollationRuleParser.Importer {
+    private static final class BundleImporter implements CollationRuleParser.Importer {
     public:
         BundleImporter() : rules(null) {}
-        virtual ~BundleImporter();
         virtual const UnicodeString *getRules(
-                const char *localeID, const char *collationType,
-                const char *&errorReason);
+                const char *localeID, const char *collationType);
 
     private:
         UnicodeString *rules;
     };
 
-    BundleImporter.~BundleImporter() {
-        delete rules;
-    }
-
     const UnicodeString *
     BundleImporter.getRules(
-            const char *localeID, const char *collationType,
-            const char *& /*errorReason*/) {
-        delete rules;
+            const char *localeID, const char *collationType) {
         return rules = CollationLoader.loadRules(localeID, collationType);
-    }
-
-    }  // namespace
-
-    // RuleBasedCollator implementation ---------------------------------------- ***
-
-    // These methods are here, rather than in rulebasedcollator.cpp,
-    // for modularization:
-    // Most code using Collator does not need to build a Collator from rules.
-    // By moving these constructors and helper methods to a separate file,
-    // most code will not have a static dependency on the builder code.
-
-    RuleBasedCollator.RuleBasedCollator()
-            : data(null),
-              settings(null),
-              tailoring(null),
-              validLocale(""),
-              explicitlySetAttributes(0),
-              actualLocaleIsSameAsValid(false) {
-    }
-
-    RuleBasedCollator.RuleBasedCollator(const UnicodeString &rules)
-            : data(null),
-              settings(null),
-              tailoring(null),
-              validLocale(""),
-              explicitlySetAttributes(0),
-              actualLocaleIsSameAsValid(false) {
-        internalBuildTailoring(rules, UCOL_DEFAULT, UCOL_DEFAULT, null, null);
-    }
-
-    RuleBasedCollator.RuleBasedCollator(const UnicodeString &rules, ECollationStrength strength,
-                                        )
-            : data(null),
-              settings(null),
-              tailoring(null),
-              validLocale(""),
-              explicitlySetAttributes(0),
-              actualLocaleIsSameAsValid(false) {
-        internalBuildTailoring(rules, strength, UCOL_DEFAULT, null, null);
-    }
-
-    RuleBasedCollator.RuleBasedCollator(const UnicodeString &rules,
-                                        UColAttributeValue decompositionMode,
-                                        )
-            : data(null),
-              settings(null),
-              tailoring(null),
-              validLocale(""),
-              explicitlySetAttributes(0),
-              actualLocaleIsSameAsValid(false) {
-        internalBuildTailoring(rules, UCOL_DEFAULT, decompositionMode, null, null);
-    }
-
-    RuleBasedCollator.RuleBasedCollator(const UnicodeString &rules,
-                                        ECollationStrength strength,
-                                        UColAttributeValue decompositionMode,
-                                        )
-            : data(null),
-              settings(null),
-              tailoring(null),
-              validLocale(""),
-              explicitlySetAttributes(0),
-              actualLocaleIsSameAsValid(false) {
-        internalBuildTailoring(rules, strength, decompositionMode, null, null);
-    }
-
-    RuleBasedCollator.RuleBasedCollator(const UnicodeString &rules,
-                                        UParseError &parseError, UnicodeString &reason,
-                                        )
-            : data(null),
-              settings(null),
-              tailoring(null),
-              validLocale(""),
-              explicitlySetAttributes(0),
-              actualLocaleIsSameAsValid(false) {
-        internalBuildTailoring(rules, UCOL_DEFAULT, UCOL_DEFAULT, &parseError, &reason);
-    }
-
-    void
-    RuleBasedCollator.internalBuildTailoring(const UnicodeString &rules,
-                                              int strength,
-                                              UColAttributeValue decompositionMode,
-                                              UParseError *outParseError, UnicodeString *outReason,
-                                              ) {
-        const CollationTailoring *base = CollationRoot.getRoot;
-        if(U_FAILURE) { return; }
-        if(outReason != null) { outReason.remove(); }
-        CollationBuilder builder(base);
-        VersionInfo noVersion = { 0, 0, 0, 0 };
-        BundleImporter importer;
-        LocalPointer<CollationTailoring> t(builder.parseAndBuild(rules, noVersion,
-                                                                &importer,
-                                                                outParseError));
-        if(U_FAILURE) {
-            const char *reason = builder.getErrorReason();
-            if(reason != null && outReason != null) {
-                *outReason = UnicodeString(reason, -1, US_INV);
-            }
-            return;
-        }
-        const CollationSettings &ts = *t.settings;
-        char fastLatinPrimaries[CollationFastLatin.LATIN_LIMIT];
-        int fastLatinOptions = CollationFastLatin.getOptions(
-                t.data, ts, fastLatinPrimaries, LENGTHOF(fastLatinPrimaries));
-        if((strength != UCOL_DEFAULT && strength != ts.getStrength()) ||
-                (decompositionMode != UCOL_DEFAULT &&
-                    decompositionMode != ts.getFlag(CollationSettings.CHECK_FCD)) ||
-                fastLatinOptions != ts.fastLatinOptions ||
-                (fastLatinOptions >= 0 &&
-                    uprv_memcmp(fastLatinPrimaries, ts.fastLatinPrimaries,
-                                sizeof(fastLatinPrimaries)) != 0)) {
-            CollationSettings *ownedSettings = SharedObject.copyOnWrite(t.settings);
-            if(ownedSettings == null) {
-                errorCode = U_MEMORY_ALLOCATION_ERROR;
-                return;
-            }
-            if(strength != UCOL_DEFAULT) {
-                ownedSettings.setStrength(strength, 0);
-            }
-            if(decompositionMode != UCOL_DEFAULT) {
-                ownedSettings.setFlag(CollationSettings.CHECK_FCD, decompositionMode, 0);
-            }
-            ownedSettings.fastLatinOptions = CollationFastLatin.getOptions(
-                t.data, *ownedSettings,
-                ownedSettings.fastLatinPrimaries, LENGTHOF(ownedSettings.fastLatinPrimaries));
-        }
-        if(U_FAILURE) { return; }
-        t.actualLocale.setToBogus();
-        adoptTailoring(t.orphan());
     }
 
     // CollationBuilder implementation ----------------------------------------- ***
@@ -563,13 +429,7 @@ private:
         delete dataBuilder;
     }
 
-    CollationTailoring *
-    CollationBuilder.parseAndBuild(const UnicodeString &ruleString,
-                                    const VersionInfo rulesVersion,
-                                    CollationRuleParser.Importer *importer,
-                                    UParseError *outParseError,
-                                    ) {
-        if(U_FAILURE) { return null; }
+    CollationTailoring parseAndBuild(String ruleString) {
         if(baseData.rootElements == null) {
             errorCode = U_MISSING_RESOURCE_ERROR;
             errorReason = "missing root elements data, tailoring not supported";
@@ -589,7 +449,9 @@ private:
         // See http://unicode.org/cldr/trac/ticket/6070
         variableTop = base.settings.variableTop;
         parser.setSink(this);
-        parser.setImporter(importer);
+        // In Java, there is only one Importer implementation.
+        // In C++, the importer is a parameter for this method.
+        parser.setImporter(new BundleImporter());
         parser.parse(ruleString, *tailoring, outParseError);
         errorReason = parser.getErrorReason();
         if(U_FAILURE) { return null; }
@@ -616,6 +478,10 @@ private:
         if(U_FAILURE) { return null; }
         tailoring.rules = ruleString;
         tailoring.rules.getTerminatedBuffer();  // ensure NUL-termination
+        // In Java, we do not have a rules version.
+        // In C++, the genrb build tool reads and supplies one,
+        // and the rulesVersion is a parameter for this method.
+        VersionInfo rulesVersion = VersionInfo.getInstance(0, 0, 0, 0);  // TODO: make & use public VersionInfo.ZERO_VERSION see CollationTailoring
         tailoring.setVersion(base.version, rulesVersion);
         return tailoring.orphan();
     }

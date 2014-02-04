@@ -310,7 +310,7 @@ public abstract class CollationIterator implements Cloneable {
      * Fetches all CEs.
      * @return getCEsLength()
      */
-    final int fetchCEs() {
+    public final int fetchCEs() {
         while(nextCE() != Collation.NO_CE) {
             // No need to loop for each expansion CE.
             cesIndex = ceBuffer.length;
@@ -366,15 +366,15 @@ public abstract class CollationIterator implements Cloneable {
         return ceBuffer.get(--ceBuffer.length);
     }
 
-    final int getCEsLength() {
+    public final int getCEsLength() {
         return ceBuffer.length;
     }
 
-    final long getCE(int i) {
+    public final long getCE(int i) {
         return ceBuffer.get(i);
     }
 
-    final long[] getCEs() {
+    public final long[] getCEs() {
         return ceBuffer.getCEs();
     }
 

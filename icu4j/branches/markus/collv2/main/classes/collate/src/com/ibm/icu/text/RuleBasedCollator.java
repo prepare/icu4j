@@ -6,6 +6,7 @@
  */
 package com.ibm.icu.text;
 
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.text.CharacterIterator;
 import java.text.ParseException;
@@ -23,6 +24,7 @@ import com.ibm.icu.impl.coll.Collation;
 import com.ibm.icu.impl.coll.CollationCompare;
 import com.ibm.icu.impl.coll.CollationData;
 import com.ibm.icu.impl.coll.CollationFastLatin;
+import com.ibm.icu.impl.coll.CollationIterator;
 import com.ibm.icu.impl.coll.CollationKeys;
 import com.ibm.icu.impl.coll.CollationKeys.SortKeyByteSink;
 import com.ibm.icu.impl.coll.CollationRoot;
@@ -218,7 +220,35 @@ public final class RuleBasedCollator extends Collator {
         if (rules == null) {
             throw new IllegalArgumentException("Collation rules can not be null");
         }
-        // TODO: build! try to use reflection.
+        validLocale = ULocale.ROOT;
+        internalBuildTailoring(rules);
+    }
+
+    private final void internalBuildTailoring(String rules) throws Exception {
+        CollationTailoring base = CollationRoot.getRoot();
+        // Most code using Collator does not need to build a Collator from rules.
+        // By using reflection, most code will not have a static dependency on the builder code.
+        // CollationBuilder builder = new CollationBuilder(base);
+        ClassLoader classLoader = getClass().getClassLoader();
+        Class<?> builderClass = classLoader.loadClass("com.ibm.icu.impl.coll.CollationBuilder");
+        Object builder = builderClass.getConstructor(CollationTailoring.class).newInstance(base);
+        // builder.parseAndBuild(rules);
+        Method parseAndBuild =
+                builderClass.getMethod("parseAndBuild", String.class);
+        CollationTailoring t = (CollationTailoring)parseAndBuild.invoke(builder, rules);
+        CollationSettings ts = t.settings.readOnly();
+        char[] fastLatinPrimaries = new char[CollationFastLatin.LATIN_LIMIT];
+        int fastLatinOptions = CollationFastLatin.getOptions(t.data, ts, fastLatinPrimaries);
+        if(fastLatinOptions != ts.fastLatinOptions ||
+                (fastLatinOptions >= 0 &&
+                    !Arrays.equals(fastLatinPrimaries, ts.fastLatinPrimaries))) {
+            CollationSettings ownedSettings = t.settings.copyOnWrite();
+            ownedSettings.fastLatinOptions = CollationFastLatin.getOptions(
+                t.data, ownedSettings,
+                ownedSettings.fastLatinPrimaries);
+        }
+        t.actualLocale = null;
+        adoptTailoring(t);
     }
 
     // public methods --------------------------------------------------------
@@ -237,6 +267,14 @@ public final class RuleBasedCollator extends Collator {
         return cloneAsThawed();
     }
 
+    private final void initMaxExpansions() {
+        synchronized(tailoring) {
+            if (tailoring.maxExpansions == null) {
+                tailoring.maxExpansions = CollationElementIterator.computeMaxExpansions(tailoring.data);
+            }
+        }
+    }
+
     /**
      * Return a CollationElementIterator for the given String.
      * 
@@ -244,6 +282,7 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public CollationElementIterator getCollationElementIterator(String source) {
+        initMaxExpansions();
         return new CollationElementIterator(source, this);
     }
 
@@ -255,6 +294,7 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public CollationElementIterator getCollationElementIterator(CharacterIterator source) {
+        initMaxExpansions();
         CharacterIterator newsource = (CharacterIterator) source.clone();
         return new CollationElementIterator(newsource, this);
     }
@@ -267,6 +307,7 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public CollationElementIterator getCollationElementIterator(UCharacterIterator source) {
+        initMaxExpansions();
         return new CollationElementIterator(source, this);
     }
 
@@ -1159,6 +1200,35 @@ public final class RuleBasedCollator extends Collator {
     }
 
     /**
+     * Returns the CEs for the string.
+     * @param str the string
+     * @internal for tests & tools
+     * @deprecated This API is ICU internal only.
+     */
+    public long[] internalGetCEs(CharSequence str) {
+        CollationBuffer buffer = null;
+        try {
+            buffer = getCollationBuffer();
+            boolean numeric = settings.readOnly().isNumeric();
+            CollationIterator iter;
+            if(settings.readOnly().dontCheckFCD()) {
+                buffer.leftUTF16CollIter.setText(numeric, str, 0);
+                iter = buffer.leftUTF16CollIter;
+            } else {
+                buffer.leftFCDUTF16Iter.setText(numeric, str, 0);
+                iter = buffer.leftFCDUTF16Iter;
+            }
+            int length = iter.getCEsLength() - 1;
+            assert length >= 0 && iter.getCE(length) == Collation.NO_CE;
+            long[] ces = new long[length];
+            System.arraycopy(iter.getCEs(), 0, ces, 0, length);
+            return ces;
+        } finally {
+            releaseCollationBuffer(buffer);
+        }
+    }
+
+    /**
      * Returns this Collator's strength attribute. The strength attribute
      * determines the minimum level of difference considered significant.
      *
@@ -1328,101 +1398,39 @@ public final class RuleBasedCollator extends Collator {
     // public other methods -------------------------------------------------
 
     /**
-     * Compares the equality of two RuleBasedCollator objects. RuleBasedCollator objects are equal if they have the same
-     * collation rules and the same attributes.
-     * 
-     * @param obj
-     *            the RuleBasedCollator to be compared to.
-     * @return true if this RuleBasedCollator has exactly the same collation behaviour as obj, false otherwise.
-     * @stable ICU 2.8
+     * {@inheritDoc}
      */
     @Override
     public boolean equals(Object obj) {
-        if (obj == null) {
-            return false; // super does class check
-        }
         if (this == obj) {
             return true;
         }
-        if (getClass() != obj.getClass()) {
+        if (!super.equals(obj)) {
             return false;
         }
-        // TODO RuleBasedCollator other = (RuleBasedCollator) obj;
-        // all other non-transient information is also contained in rules.
-        /* TODO -- if (getStrength() != other.getStrength() || getDecomposition() != other.getDecomposition()
-                || other.m_caseFirst_ != m_caseFirst_ || other.m_caseSwitch_ != m_caseSwitch_
-                || other.m_isAlternateHandlingShifted_ != m_isAlternateHandlingShifted_
-                || other.m_isCaseLevel_ != m_isCaseLevel_ || other.m_isFrenchCollation_ != m_isFrenchCollation_
-                || other.m_isHiragana4_ != m_isHiragana4_) {
-            return false;
-        } */
-        /*if (m_reorderCodes_ != null ^ other.m_reorderCodes_ != null) {
-            return false;
+        RuleBasedCollator o = (RuleBasedCollator) obj;
+        if(!settings.readOnly().equals(o.settings.readOnly())) { return false; }
+        if(data == o.data) { return true; }
+        boolean thisIsRoot = data.base == null;
+        boolean otherIsRoot = o.data.base == null;
+        assert(!thisIsRoot || !otherIsRoot);  // otherwise their data pointers should be ==
+        if(thisIsRoot != otherIsRoot) { return false; }
+        if((thisIsRoot || !tailoring.rules.isEmpty()) &&
+                (otherIsRoot || !o.tailoring.rules.isEmpty())) {
+            // Shortcut: If both collators have valid rule strings, then compare those.
+            if(tailoring.rules.equals(o.tailoring.rules)) { return true; }
         }
-        if (m_reorderCodes_ != null) {
-            if (m_reorderCodes_.length != other.m_reorderCodes_.length) {
-                return false;
-            }
-            for (int i = 0; i < m_reorderCodes_.length; i++) {
-                if (m_reorderCodes_[i] != other.m_reorderCodes_[i]) {
-                    return false;
-                }
-            }
-        }*/
-        /* TODO boolean rules = m_rules_ == other.m_rules_;
-        if (!rules && (m_rules_ != null && other.m_rules_ != null)) {
-            rules = m_rules_.equals(other.m_rules_);
-        }
-        if (!rules || !ICUDebug.enabled("collation")) {
-            return rules;
-        } */
-        /* TODO if (m_addition3_ != other.m_addition3_ || m_bottom3_ != other.m_bottom3_
-                || m_bottomCount3_ != other.m_bottomCount3_ || m_common3_ != other.m_common3_
-                || m_mask3_ != other.m_mask3_
-                || m_minContractionEnd_ != other.m_minContractionEnd_ || m_minUnsafe_ != other.m_minUnsafe_
-                || m_top3_ != other.m_top3_ || m_topCount3_ != other.m_topCount3_
-                || !Arrays.equals(m_unsafe_, other.m_unsafe_)) {
-            return false;
-        } */
-        /* TODO if (!m_trie_.equals(other.m_trie_)) {
-            // we should use the trie iterator here, but then this part is
-            // only used in the test.
-            for (int i = UCharacter.MAX_VALUE; i >= UCharacter.MIN_VALUE; i--) {
-                int v = m_trie_.getCodePointValue(i);
-                int otherv = other.m_trie_.getCodePointValue(i);
-                if (v != otherv) {
-                    int mask = v & (CE_TAG_MASK_ | CE_SPECIAL_FLAG_);
-                    if (mask == (otherv & 0xff000000)) {
-                        v &= 0xffffff;
-                        otherv &= 0xffffff;
-                        if (mask == 0xf1000000) {
-                            v -= (m_expansionOffset_ << 4);
-                            otherv -= (other.m_expansionOffset_ << 4);
-                        } else if (mask == 0xf2000000) {
-                            v -= m_contractionOffset_;
-                            otherv -= other.m_contractionOffset_;
-                        }
-                        if (v == otherv) {
-                            continue;
-                        }
-                    }
-                    return false;
-                }
-            }
-        }
-        if (!Arrays.equals(m_contractionCE_, other.m_contractionCE_)
-                || !Arrays.equals(m_contractionEnd_, other.m_contractionEnd_)
-                || !Arrays.equals(m_contractionIndex_, other.m_contractionIndex_)
-                || !Arrays.equals(m_expansion_, other.m_expansion_)
-                || !Arrays.equals(m_expansionEndCE_, other.m_expansionEndCE_)) {
-            return false;
-        }
-        // not comparing paddings
-        for (int i = 0; i < m_expansionEndCE_.length; i++) {
-            if (m_expansionEndCEMaxSize_[i] != other.m_expansionEndCEMaxSize_[i]) {
-                return false;
-            }
-        } */
+        // Different rule strings can result in the same or equivalent tailoring.
+        // The rule strings are optional in ICU resource bundles, although included by default.
+        // cloneBinary() drops the rule string.
+        UnicodeSet thisTailored = getTailoredSet();
+        UnicodeSet otherTailored = o.getTailoredSet();
+        if(!thisTailored.equals(otherTailored)) { return false; }
+        // For completeness, we should compare all of the mappings;
+        // or we should create a list of strings, sort it with one collator,
+        // and check if both collators compare adjacent strings the same
+        // (order & strength, down to quaternary); or similar.
+        // Testing equality of collators seems unusual.
         return true;
     }
 
@@ -1715,20 +1723,25 @@ public final class RuleBasedCollator extends Collator {
 
     // package private constructors ------------------------------------------
 
-    /**
-     * <p>
-     * Private contructor for use by subclasses. Public access to creating Collators is handled by the API
-     * Collator.getInstance() or RuleBasedCollator(String rules).
-     * </p>
-     * <p>
-     * This constructor constructs the UCA collator internally
-     * </p>
-     */
     RuleBasedCollator() {
-        // TODO: rewrite the following temporary hack
-        tailoring = CollationRoot.getRoot();
-        data = tailoring.data;
-        settings = tailoring.settings.clone();
+        validLocale = ULocale.ROOT;
+    }
+
+    RuleBasedCollator(CollationTailoring t) {  // TODO: needed in Java?
+        data = t.data;
+        settings = t.settings.clone();
+        tailoring = t;
+        validLocale = t.actualLocale;
+        actualLocaleIsSameAsValid = false;
+    }
+
+    void adoptTailoring(CollationTailoring t) {
+        assert(settings == null && data == null && tailoring == null);
+        data = t.data;
+        settings = t.settings.clone();
+        tailoring = t;
+        validLocale = t.actualLocale;
+        actualLocaleIsSameAsValid = false;
     }
 
     /**
@@ -1738,6 +1751,8 @@ public final class RuleBasedCollator extends Collator {
      * @param locale
      */
     RuleBasedCollator(ULocale locale) {
+        // TODO: delete this code once Collator.getInstance(locale) is hooked up with
+        // CollationLoader and RuleBasedCollator(CollationTailoring).
         try {
             ICUResourceBundle rb = (ICUResourceBundle) UResourceBundle.getBundleInstance(
                     ICUResourceBundle.ICU_COLLATION_BASE_NAME, locale);
@@ -1787,15 +1802,6 @@ public final class RuleBasedCollator extends Collator {
                         return;
                     } */
                     // TODO: init();
-                    try {
-                        UResourceBundle reorderRes = elements.get("%%ReorderCodes");
-                        if (reorderRes != null) {
-                            int[] reorderCodes = reorderRes.getIntVector();
-                            setReorderCodes(reorderCodes);
-                        }
-                    } catch (MissingResourceException e) {
-                        // ignore
-                    }
                     return;
                 } else {
                     // TODO: init("m_rules_");
