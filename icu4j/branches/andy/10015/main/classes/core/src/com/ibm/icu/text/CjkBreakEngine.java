@@ -12,8 +12,7 @@ import static com.ibm.icu.impl.CharacterIteration.next32;
 
 import java.io.IOException;
 import java.text.CharacterIterator;
-import java.util.Stack;
-
+import java.util.Deque;
 import com.ibm.icu.impl.Assert;
 
 class CjkBreakEngine implements LanguageBreakEngine {
@@ -51,6 +50,16 @@ class CjkBreakEngine implements LanguageBreakEngine {
         }
     }
 
+    public boolean equals(Object obj) {
+        // Normally is a singleton, but it's possible to have duplicates
+        //   during initialization. All are equivalent.
+        return obj instanceof CjkBreakEngine;
+    }
+
+    public int hashCode() {
+        return getClass().hashCode();
+    }
+    
     public boolean handles(int c, int breakType) {
         return (breakType == BreakIterator.KIND_WORD) &&
                 (fWordSet.contains(c));
@@ -71,7 +80,7 @@ class CjkBreakEngine implements LanguageBreakEngine {
     }
     
     public int findBreaks(CharacterIterator inText, int startPos, int endPos,
-            boolean reverse, int breakType, Stack<Integer> foundBreaks) {
+            boolean reverse, int breakType, Deque<Integer> foundBreaks) {
         if (startPos >= endPos) {
             return 0;
         }
@@ -213,9 +222,9 @@ class CjkBreakEngine implements LanguageBreakEngine {
                 foundBreaks.push(charPositions[t_boundary[i]] + startPos);
         }
 
-        if (!foundBreaks.empty() && foundBreaks.peek() == endPos)
+        if (!foundBreaks.isEmpty() && foundBreaks.peek() == endPos)
             foundBreaks.pop();
-        if (!foundBreaks.empty()) 
+        if (!foundBreaks.isEmpty()) 
             inText.setIndex(foundBreaks.peek());
         return 0;
     }

@@ -8,8 +8,7 @@ package com.ibm.icu.text;
 
 import java.io.IOException;
 import java.text.CharacterIterator;
-import java.util.Stack;
-
+import java.util.Deque;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
 import com.ibm.icu.lang.UScript;
@@ -134,6 +133,16 @@ class LaoBreakEngine implements LanguageBreakEngine {
         fDictionary = DictionaryData.loadDictionaryFor("Laoo");
     }
 
+    public boolean equals(Object obj) {
+        // Normally is a singleton, but it's possible to have duplicates
+        //   during initialization. All are equivalent.
+        return obj instanceof LaoBreakEngine;
+    }
+
+    public int hashCode() {
+        return getClass().hashCode();
+    }
+    
     public boolean handles(int c, int breakType) {
         if (breakType == BreakIterator.KIND_WORD || breakType == BreakIterator.KIND_LINE) {
             int script = UCharacter.getIntPropertyValue(c, UProperty.SCRIPT);
@@ -143,7 +152,7 @@ class LaoBreakEngine implements LanguageBreakEngine {
     }
 
     public int findBreaks(CharacterIterator fIter, int startPos, int endPos, boolean reverse, int breakType,
-            Stack<Integer> foundBreaks) {
+            Deque<Integer> foundBreaks) {
         
         // Find the span of characters included in the set.
         //   [From C++ DictionaryBreakEngine::findBreaks()]

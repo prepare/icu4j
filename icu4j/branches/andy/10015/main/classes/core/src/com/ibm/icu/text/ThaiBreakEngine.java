@@ -8,8 +8,7 @@ package com.ibm.icu.text;
 
 import java.io.IOException;
 import java.text.CharacterIterator;
-import java.util.Stack;
-
+import java.util.Deque;
 import com.ibm.icu.impl.CharacterIteration;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
@@ -98,6 +97,8 @@ class ThaiBreakEngine implements LanguageBreakEngine {
     private static final char THAI_MAIYAMOK = 0x0E46;
     // Minimum word size
     private static final byte THAI_MIN_WORD = 2;
+    // Minimum number of characters for two words
+    private static final byte THAI_MIN_WORD_SPAN = THAI_MIN_WORD * 2;
     
     private DictionaryMatcher fDictionary;
     private static UnicodeSet fThaiWordSet;
@@ -144,7 +145,17 @@ class ThaiBreakEngine implements LanguageBreakEngine {
         // Initialize dictionary
         fDictionary = DictionaryData.loadDictionaryFor("Thai");
     }
+    
+    public boolean equals(Object obj) {
+        // Normally is a singleton, but it's possible to have duplicates
+        //   during initialization. All are equivalent.
+        return obj instanceof ThaiBreakEngine;
+    }
 
+    public int hashCode() {
+        return getClass().hashCode();
+    }
+    
     public boolean handles(int c, int breakType) {
         if (breakType == BreakIterator.KIND_WORD || breakType == BreakIterator.KIND_LINE) {
             int script = UCharacter.getIntPropertyValue(c, UProperty.SCRIPT);
@@ -154,7 +165,7 @@ class ThaiBreakEngine implements LanguageBreakEngine {
     }
 
     public int findBreaks(CharacterIterator fIter, int startPos, int endPos, boolean reverse, int breakType,
-            Stack<Integer> foundBreaks) {
+            Deque<Integer> foundBreaks) {
         // Find the span of characters included in the set.
         //   [From C++ DictionaryBreakEngine::findBreaks()]
         int c = CharacterIteration.current32(fIter);
@@ -171,7 +182,7 @@ class ThaiBreakEngine implements LanguageBreakEngine {
         }            
         int rangeEnd = fIter.getIndex();
 
-        if ((rangeEnd - rangeStart) < THAI_MIN_WORD) {
+        if ((rangeEnd - rangeStart) < THAI_MIN_WORD_SPAN) {
             return 0;  // Not enough characters for word
         }
         int wordsFound = 0;
