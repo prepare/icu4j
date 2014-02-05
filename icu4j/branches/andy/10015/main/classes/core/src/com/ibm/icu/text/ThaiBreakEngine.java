@@ -9,12 +9,11 @@ package com.ibm.icu.text;
 import java.io.IOException;
 import java.text.CharacterIterator;
 import java.util.Deque;
-import com.ibm.icu.impl.CharacterIteration;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
 import com.ibm.icu.lang.UScript;
 
-class ThaiBreakEngine implements LanguageBreakEngine {
+class ThaiBreakEngine extends DictionaryBreakEngine {
     /* Helper class for improving readability of the Thai word break
      * algorithm.
      */
@@ -142,6 +141,8 @@ class ThaiBreakEngine implements LanguageBreakEngine {
     }
     
     public ThaiBreakEngine() throws IOException {
+        super((1<<BreakIterator.KIND_WORD) | (1<<BreakIterator.KIND_LINE));
+        setCharacters(fThaiWordSet);
         // Initialize dictionary
         fDictionary = DictionaryData.loadDictionaryFor("Thai");
     }
@@ -164,23 +165,8 @@ class ThaiBreakEngine implements LanguageBreakEngine {
         return false;
     }
 
-    public int findBreaks(CharacterIterator fIter, int startPos, int endPos, boolean reverse, int breakType,
+    public int divideUpDictionaryRange(CharacterIterator fIter, int rangeStart, int rangeEnd,
             Deque<Integer> foundBreaks) {
-        // Find the span of characters included in the set.
-        //   [From C++ DictionaryBreakEngine::findBreaks()]
-        int c = CharacterIteration.current32(fIter);
-        
-        for (c = CharacterIteration.current32(fIter); 
-                !fThaiWordSet.contains(c);
-                c = CharacterIteration.next32(fIter)) {
-        }
-        int rangeStart = fIter.getIndex();
-        
-        for (c = CharacterIteration.current32(fIter); 
-                c != CharacterIteration.DONE32 && fThaiWordSet.contains(c);
-                c = CharacterIteration.next32(fIter)) {
-        }            
-        int rangeEnd = fIter.getIndex();
 
         if ((rangeEnd - rangeStart) < THAI_MIN_WORD_SPAN) {
             return 0;  // Not enough characters for word

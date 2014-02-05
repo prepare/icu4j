@@ -9,11 +9,12 @@ package com.ibm.icu.text;
 import java.io.IOException;
 import java.text.CharacterIterator;
 import java.util.Deque;
+
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
 import com.ibm.icu.lang.UScript;
 
-class LaoBreakEngine implements LanguageBreakEngine {
+class LaoBreakEngine extends DictionaryBreakEngine {
     /* Helper class for improving readability of the Lao word break
      * algorithm.
      */
@@ -129,6 +130,8 @@ class LaoBreakEngine implements LanguageBreakEngine {
     }
     
     public LaoBreakEngine() throws IOException {
+        super((1<<BreakIterator.KIND_WORD) | (1<<BreakIterator.KIND_LINE));
+        setCharacters(fLaoWordSet);
         // Initialize dictionary
         fDictionary = DictionaryData.loadDictionaryFor("Laoo");
     }
@@ -151,42 +154,16 @@ class LaoBreakEngine implements LanguageBreakEngine {
         return false;
     }
 
-    public int findBreaks(CharacterIterator fIter, int startPos, int endPos, boolean reverse, int breakType,
+    public int divideUpDictionaryRange(CharacterIterator fIter, int rangeStart, int rangeEnd,
             Deque<Integer> foundBreaks) {
         
-        // Find the span of characters included in the set.
-        //   [From C++ DictionaryBreakEngine::findBreaks()]
-        int start = fIter.getIndex();
-        int current;
-        int rangeStart;
-        int rangeEnd;
-        UCharacterIterator uIter = UCharacterIterator.getInstance(fIter);
-        int c = uIter.currentCodePoint();   // TODO: handle supplementary chars.
-        if (reverse) {
-            // TODO: nothing is using the reverse option. Remove it?
-            boolean   isDict = fLaoWordSet.contains(c);
-            while((current = uIter.getIndex()) > startPos && isDict) {
-                c = uIter.previous();
-                isDict = fLaoWordSet.contains(c);
-            }
-            rangeStart = (current < startPos) ? startPos : current+(isDict ? 0 : 1);
-            rangeEnd = start + 1;
-        }
-        else {
-            while((current = uIter.getIndex()) < endPos && fLaoWordSet.contains(c)) {
-                // c = fIter.next(); // Pre Increment
-                uIter.nextCodePoint();  // Post Increment
-                c = uIter.currentCodePoint();
-            }
-            rangeStart = start;
-            rangeEnd = current;
-        }
         
         if ((rangeEnd - rangeStart) < LAO_MIN_WORD) {
             return 0;  // Not enough characters for word
         }
         int wordsFound = 0;
         int wordLength;
+        int current;
         PossibleWord words[] = new PossibleWord[LAO_LOOKAHEAD];
         for (int i = 0; i < LAO_LOOKAHEAD; i++) {
             words[i] = new PossibleWord();
@@ -194,7 +171,6 @@ class LaoBreakEngine implements LanguageBreakEngine {
         int uc;
 
         fIter.setIndex(rangeStart);
-
         while ((current = fIter.getIndex()) < rangeEnd) {
             wordLength = 0;
 
