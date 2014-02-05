@@ -516,46 +516,6 @@ private:
         dir_ = 1;
     }
 
-    /**
-    * Sets the source to the new source string.
-    */
-    void CollationElementIterator.setText(const UnicodeString& source,
-                                          UErrorCode& status)
-    {
-        if (U_FAILURE(status)) {
-            return;
-        }
-
-        string_ = source;
-        const UChar *s = string_.getBuffer();
-        CollationIterator *newIter;
-        boolean numeric = rbc_.settings.isNumeric();
-        if (rbc_.settings.dontCheckFCD()) {
-            newIter = new UTF16CollationIterator(rbc_.data, numeric, s, s, s + string_.length());
-        } else {
-            newIter = new FCDUTF16CollationIterator(rbc_.data, numeric, s, s, s + string_.length());
-        }
-        if (newIter == null) {
-            status = U_MEMORY_ALLOCATION_ERROR;
-            return;
-        }
-        delete iter_;
-        iter_ = newIter;
-        otherHalf_ = 0;
-        dir_ = 0;
-    }
-
-    // Sets the source to the new character iterator.
-    void CollationElementIterator.setText(CharacterIterator& source, 
-                                          UErrorCode& status)
-    {
-        if (U_FAILURE(status)) 
-            return;
-
-        source.getText(string_);
-        setText(string_, status);
-    }
-
     int32_t CollationElementIterator.strengthOrder(int order) const
     {
         UColAttributeValue s = (UColAttributeValue)rbc_.settings.getStrength();
@@ -568,33 +528,6 @@ private:
         }
 
         return order;
-    }
-
-    /* CollationElementIterator private constructors/destructors --------------- */
-
-    /** 
-    * This is the "real" constructor for this class; it constructs an iterator
-    * over the source text using the specified collator
-    */
-    CollationElementIterator.CollationElementIterator(
-                                                  const UnicodeString &source,
-                                                  const RuleBasedCollator *coll,
-                                                  UErrorCode &status)
-            : iter_(null), rbc_(coll), otherHalf_(0), dir_(0), offsets_(null) {
-        setText(source, status);
-    }
-
-    /** 
-    * This is the "real" constructor for this class; it constructs an iterator over 
-    * the source text using the specified collator
-    */
-    CollationElementIterator.CollationElementIterator(
-                                              const CharacterIterator &source,
-                                              const RuleBasedCollator *coll,
-                                              UErrorCode &status)
-            : iter_(null), rbc_(coll), otherHalf_(0), dir_(0), offsets_(null) {
-        // We only call source.getText() which should be const anyway.
-        setText(const_cast<CharacterIterator &>(source), status);
     }
 
     /* CollationElementIterator private methods -------------------------------- */

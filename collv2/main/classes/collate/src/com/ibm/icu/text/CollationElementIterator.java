@@ -22,7 +22,13 @@ import com.ibm.icu.impl.Normalizer2Impl;
 import com.ibm.icu.impl.StringUCharacterIterator;
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.impl.coll.CollationData;
+import com.ibm.icu.impl.coll.CollationIterator;
+import com.ibm.icu.impl.coll.CollationIterator.UVector32;
 import com.ibm.icu.impl.coll.ContractionsAndExpansions;
+import com.ibm.icu.impl.coll.FCDIterCollationIterator;
+import com.ibm.icu.impl.coll.FCDUTF16CollationIterator;
+import com.ibm.icu.impl.coll.IterCollationIterator;
+import com.ibm.icu.impl.coll.UTF16CollationIterator;
 import com.ibm.icu.lang.UCharacter;
 
 /**
@@ -582,11 +588,24 @@ public final class CollationElementIterator
      */
     public void setText(String source)
     {
+        // TODO: this is old code
         m_srcUtilIter_.setText(source);
         m_source_ = m_srcUtilIter_;
         updateInternalState();
 
         m_direction = 0;   // reset to initial state
+        // TODO: this is new code
+        string_ = source;  // TODO: do we need to remember the source string in a field?
+        CollationIterator newIter;
+        boolean numeric = rbc_.settings.readOnly().isNumeric();
+        if (rbc_.settings.readOnly().dontCheckFCD()) {
+            newIter = new UTF16CollationIterator(rbc_.data, numeric, string_, 0);
+        } else {
+            newIter = new FCDUTF16CollationIterator(rbc_.data, numeric, string_, 0);
+        }
+        iter_ = newIter;
+        otherHalf_ = 0;
+        dir_ = 0;
     }
     
     /**
@@ -600,11 +619,38 @@ public final class CollationElementIterator
      */
     public void setText(UCharacterIterator source)
     {
+        // TODO: this is old code
         m_srcUtilIter_.setText(source.getText());
         m_source_ = m_srcUtilIter_;
         updateInternalState(); 
 
         m_direction = 0;   // reset to initial state
+        // TODO: this is new code
+        // Note: In C++, we just setText(source.getText()).
+        // In Java, we actually operate on a character iterator.
+        // (The old code apparently did so only for a CharacterIterator;
+        // for a UCharacterIterator it also just used source.getText()).
+        // TODO: do we need to remember the cloned iterator in a field?
+        UCharacterIterator src;
+        try {
+            src = (UCharacterIterator) source.clone();
+        } catch (CloneNotSupportedException e) {
+            // Fall back to ICU 52 behavior of iterating over the text contents
+            // of the UCharacterIterator.
+            setText(source.getText());
+            return;
+        }
+        src.setToStart();
+        CollationIterator newIter;
+        boolean numeric = rbc_.settings.readOnly().isNumeric();
+        if (rbc_.settings.readOnly().dontCheckFCD()) {
+            newIter = new IterCollationIterator(rbc_.data, numeric, src);
+        } else {
+            newIter = new FCDIterCollationIterator(rbc_.data, numeric, src, 0);
+        }
+        iter_ = newIter;
+        otherHalf_ = 0;
+        dir_ = 0;
     }
 
     /**
@@ -616,11 +662,30 @@ public final class CollationElementIterator
      */
     public void setText(CharacterIterator source)
     {
+        // TODO: this is old code
         m_source_ = new CharacterIteratorWrapper(source);
         m_source_.setToStart();
         updateInternalState();
 
         m_direction = 0;   // reset to initial state
+        // TODO: this is new code
+        // Note: In C++, we just setText(source.getText()).
+        // In Java, we actually operate on a character iterator.
+        // TODO: do we need to remember the iterator in a field?
+        // TODO: apparently we don't clone a CharacterIterator in Java,
+        // we only clone the text for a UCharacterIterator?? see the old code in the constructors
+        UCharacterIterator src = new CharacterIteratorWrapper(source);
+        src.setToStart();
+        CollationIterator newIter;
+        boolean numeric = rbc_.settings.readOnly().isNumeric();
+        if (rbc_.settings.readOnly().dontCheckFCD()) {
+            newIter = new IterCollationIterator(rbc_.data, numeric, src);
+        } else {
+            newIter = new FCDIterCollationIterator(rbc_.data, numeric, src, 0);
+        }
+        iter_ = newIter;
+        otherHalf_ = 0;
+        dir_ = 0;
     }
 
     // public miscellaneous methods -----------------------------------------
@@ -671,6 +736,12 @@ public final class CollationElementIterator
         m_CEBuffer_ = new int[CE_BUFFER_INIT_SIZE_];
         m_buffer_ = new StringBuilder();
         m_utilSpecialBackUp_ = new Backup();
+        // TODO: this is new code
+        iter_ = null;
+        rbc_ = collator;
+        otherHalf_ = 0;
+        dir_ = 0;
+        offsets_ = null;
     }
 
     /**
@@ -687,8 +758,11 @@ public final class CollationElementIterator
     CollationElementIterator(String source, RuleBasedCollator collator)
     {
         this(collator);
+        // TODO: this is old code
         m_source_ = m_srcUtilIter_ = new StringUCharacterIterator(source);
         updateInternalState();
+        // TODO: this is new code
+        setText(source);
     }
 
     /**
@@ -706,9 +780,12 @@ public final class CollationElementIterator
                              RuleBasedCollator collator)
     {
         this(collator);
+        // TODO: this is old code
         m_srcUtilIter_ = new StringUCharacterIterator();
         m_source_ = new CharacterIteratorWrapper(source);
         updateInternalState();
+        // TODO: this is new code
+        setText(source);
     }
     
     /**
@@ -726,10 +803,13 @@ public final class CollationElementIterator
                              RuleBasedCollator collator)
     {
         this(collator);
+        // TODO: this is old code
         m_srcUtilIter_ = new StringUCharacterIterator();
         m_srcUtilIter_.setText(source.getText());
         m_source_ = m_srcUtilIter_;
         updateInternalState();
+        // TODO: this is new code
+        setText(source);
     }
 
     // package private data members -----------------------------------------
@@ -2919,4 +2999,23 @@ public final class CollationElementIterator
             m_bufferOffset_ ++;
         }
     }
+    // TODO: the following are already from the new C++ code
+    // CollationElementIterator private data members ----------------------------
+
+    private CollationIterator iter_;  // owned
+    private RuleBasedCollator rbc_;  // aliased
+    private int otherHalf_;
+    /**
+     * <0: backwards; 0: just after reset() (previous() begins from end);
+     * 1: just after setOffset(); >1: forward
+     */
+    private byte dir_;
+    /**
+     * Stores offsets from expansions and from unsafe-backwards iteration,
+     * so that getOffset() returns intermediate offsets for the CEs
+     * that are consistent with forward iteration.
+     */
+    private UVector32 offsets_;
+
+    private String string_;  // TODO: needed in Java? if so, then add a UCharacterIterator field too?
 }
