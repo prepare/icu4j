@@ -20,7 +20,7 @@ interface LanguageBreakEngine {
      *  of this engine - character, word, line, sentence
      * @return true if the engine can handle this character, false otherwise
      */
-    public boolean handles(int c, int breakType);
+    boolean handles(int c, int breakType);
 
     /**
      * Implements the actual breaking logic.
@@ -35,6 +35,9 @@ interface LanguageBreakEngine {
      * @param foundBreaks A Stack that the breaks found will be added to
      * @return the number of words found
      */
-    public int findBreaks(CharacterIterator text, int startPos, int endPos,
+    int findBreaks(CharacterIterator text, int startPos, int endPos,
             boolean reverse, int breakType, Deque<Integer> foundBreaks);
 }
+    
+    
+    

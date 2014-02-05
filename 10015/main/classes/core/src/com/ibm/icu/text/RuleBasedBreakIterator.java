@@ -7,7 +7,6 @@
 package com.ibm.icu.text;
 
 import static com.ibm.icu.impl.CharacterIteration.DONE32;
-import static com.ibm.icu.impl.CharacterIteration.current32;
 import static com.ibm.icu.impl.CharacterIteration.next32;
 import static com.ibm.icu.impl.CharacterIteration.nextTrail32;
 import static com.ibm.icu.impl.CharacterIteration.previous32;
@@ -20,11 +19,9 @@ import java.io.OutputStream;
 import java.text.CharacterIterator;
 import java.util.ArrayDeque;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
-import java.util.Stack;
-
 import com.ibm.icu.impl.Assert;
 import com.ibm.icu.impl.CharTrie;
 import com.ibm.icu.impl.CharacterIteration;
@@ -412,7 +409,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
         return result;
     }
 
-    
+    static private int debugCount;
     /**
       *  checkDictionary      This function handles all processing of characters in
       *                       the "dictionary" set. It will determine the appropriate
@@ -504,6 +501,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
             c = CharacterIteration.current32(fText);
             category = (short)fRData.fTrie.getCodePointValue(c);
         }
+        LanguageBreakEngine lbe = null;
         while(true) {
             while((current = fText.getIndex()) < rangeEnd && (category & 0x4000) == 0) {
                 CharacterIteration.next32(fText);
@@ -516,12 +514,14 @@ public class RuleBasedBreakIterator extends BreakIterator {
             
             // We now have a dictionary character. Get the appropriate language object
             // to deal with it.
-            LanguageBreakEngine lbe = getLanguageBreakEngine(c);
+            lbe = getLanguageBreakEngine(c);
             
             // Ask the language object if there are any breaks. It will leave the text
             // pointer on the other side of its range, ready to search for the next one.
             if (lbe != null) {
+                int startingIdx = fText.getIndex();
                 foundBreakCount += lbe.findBreaks(fText, rangeStart, rangeEnd, false, fBreakType, breaks);
+                assert fText.getIndex() > startingIdx;
             }
             
             // Reload the loop variables for the next go-round
@@ -532,27 +532,26 @@ public class RuleBasedBreakIterator extends BreakIterator {
         // If we found breaks, build a new break cache. The first and last entries must
         // be the original starting and ending position.
         if (foundBreakCount > 0) {
-            int totalBreaks = foundBreakCount;
+            debugCount ++;
+            if (foundBreakCount != breaks.size()) {
+                System.out.println("oops, foundBreakCount != breaks.size().  LBE = " + lbe.getClass());
+            }
+            assert foundBreakCount == breaks.size();
             if (startPos < breaks.peekLast()) {
-                totalBreaks += 1;
+                breaks.offer(startPos);
             }
             if (endPos > breaks.peek()) {
-                totalBreaks += 1;
+                breaks.push(endPos);
             }
             
             // TODO: get rid of this array, use results from the deque directly
-            fCachedBreakPositions = new int[totalBreaks];
-            int out = totalBreaks;
-            if (startPos < breaks.peekLast()) {
-                fCachedBreakPositions[out++] = startPos;
-            }
-            for (int i: breaks) {
-                fCachedBreakPositions[--out] = i;
+            fCachedBreakPositions = new int[breaks.size()];
+            Iterator<Integer> bit = breaks.descendingIterator();
+            int i = 0;
+            while (bit.hasNext()) {
+                fCachedBreakPositions[i++] = bit.next();
             }
 
-            if (endPos > fCachedBreakPositions[totalBreaks-2]) {
-                fCachedBreakPositions[totalBreaks-1] = endPos;
-            }
             // If there are breaks, then by definition, we are replacing the original
             // proposed break by one of the breaks we found. Use following() and
             // preceding() to do the work. They should never recurse in this case.
@@ -1183,33 +1182,6 @@ public class RuleBasedBreakIterator extends BreakIterator {
      */
     static final String fDebugEnv = ICUDebug.enabled(RBBI_DEBUG_ARG) ?
                                         ICUDebug.value(RBBI_DEBUG_ARG) : null;
-    
-    /**
-     * Finds an appropriate LanguageBreakEngine for this dictionary segment and 
-     * break type.
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    private LanguageBreakEngine getEngineFor(CharacterIterator cIter, int startPos, int limit) { 
-        // Scan characters in the segment, skipping over any that do not have the
-        // dictionary bit set in their rule data.
-        // handleNext() claimed that there was at least one dictionary char present,
-        //   or we wouldn't be here.
-        int c;
-        cIter.setIndex(startPos);
-        short category;
-        do {
-            c = CharacterIteration.current32(cIter);
-            assert cIter.getIndex() < limit;
-            CharacterIteration.next32(cIter);
-            if (c == DONE32 || !fUseDictionary) {
-                return null;
-            }
-            category = (short)fRData.fTrie.getCodePointValue(c);
-        } while ((category & 0x4000) == 0);
-        
-        return getLanguageBreakEngine(c);
-    }
     
     
     private LanguageBreakEngine getLanguageBreakEngine(int c) {
