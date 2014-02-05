@@ -28,8 +28,10 @@ import com.ibm.icu.impl.coll.CollationLoader;
 import com.ibm.icu.impl.coll.CollationRoot;
 import com.ibm.icu.impl.coll.CollationSettings;
 import com.ibm.icu.impl.coll.CollationTailoring;
+import com.ibm.icu.impl.coll.ContractionsAndExpansions;
 import com.ibm.icu.impl.coll.FCDUTF16CollationIterator;
 import com.ibm.icu.impl.coll.SharedObject;
+import com.ibm.icu.impl.coll.TailoredSet;
 import com.ibm.icu.impl.coll.UTF16CollationIterator;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.VersionInfo;
@@ -1013,7 +1015,7 @@ public final class RuleBasedCollator extends Collator {
     public UnicodeSet getTailoredSet() {
         UnicodeSet tailored = new UnicodeSet();
         if(data.base != null) {
-            // TODO: new TailoredSet(tailored).forData(data);
+            new TailoredSet(tailored).forData(data);
         }
         return tailored;
     }
@@ -1039,7 +1041,7 @@ public final class RuleBasedCollator extends Collator {
         if (expansions != null) {
             expansions.clear();
         }
-        // TODO: new ContractionsAndExpansions(contractions, expansions, null, addPrefixes).forData(data);
+        new ContractionsAndExpansions(contractions, expansions, null, addPrefixes).forData(data);
     }
 
     /**
@@ -1049,7 +1051,7 @@ public final class RuleBasedCollator extends Collator {
      * @deprecated This API is ICU internal only.
      */
     void internalAddContractions(int c, UnicodeSet set) {
-        // TODO: new ContractionsAndExpansions(set, null, null, false).forCodePoint(data, c);
+        new ContractionsAndExpansions(set, null, null, false).forCodePoint(data, c);
     }
 
     /**
