@@ -34,7 +34,7 @@ import com.ibm.icu.util.CharsTrie.Entry;
  * - That would only work if we have the rule string, and we allow users to
  *   omit the rule string from data files.
  */
-final class TailoredSet {
+public final class TailoredSet {
 
     private CollationData data;
     private CollationData baseData;

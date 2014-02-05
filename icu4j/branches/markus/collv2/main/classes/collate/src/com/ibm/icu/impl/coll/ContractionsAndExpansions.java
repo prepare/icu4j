@@ -18,22 +18,19 @@ import com.ibm.icu.text.UnicodeSet;
 import com.ibm.icu.util.CharsTrie;
 import com.ibm.icu.util.CharsTrie.Entry;
 
-final class ContractionsAndExpansions {
-
-    // TODO: Do we really want to make the scope of these fields 'package' instead of 'private'?
-    //      CollationData tailoring is set, but not referenced by the implementation in this class.
-    CollationData data;
-    CollationData tailoring;
-    UnicodeSet contractions;
-    UnicodeSet expansions;
-    CESink sink;
-    boolean addPrefixes;
-    int checkTailored = 0;  // -1: collected tailored  +1: exclude tailored
-    UnicodeSet tailored;
-    UnicodeSet ranges;
-    StringBuilder unreversedPrefix = new StringBuilder();
-    String suffix;
-    long[] ces = new long[Collation.MAX_EXPANSION_LENGTH];
+public final class ContractionsAndExpansions {
+    // C++: The following fields are @internal, only public for access by callback.
+    private CollationData data;
+    private UnicodeSet contractions;
+    private UnicodeSet expansions;
+    private CESink sink;
+    private boolean addPrefixes;
+    private int checkTailored = 0;  // -1: collected tailored  +1: exclude tailored
+    private UnicodeSet tailored;
+    private UnicodeSet ranges;
+    private StringBuilder unreversedPrefix = new StringBuilder();
+    private String suffix;
+    private long[] ces = new long[Collation.MAX_EXPANSION_LENGTH];
 
     public static interface CESink {
         void handleCE(long ce);
@@ -65,7 +62,6 @@ final class ContractionsAndExpansions {
         // Add all from the base data but only for un-tailored code points.
         tailored.freeze();
         checkTailored = 1;
-        tailoring = d;
         data = d.base;
         trieIterator = data.trie.iterator();
         while (trieIterator.hasNext() && !(range = trieIterator.next()).leadSurrogate) {

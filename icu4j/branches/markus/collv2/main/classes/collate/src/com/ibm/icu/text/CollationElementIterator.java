@@ -22,6 +22,7 @@ import com.ibm.icu.impl.Normalizer2Impl;
 import com.ibm.icu.impl.StringUCharacterIterator;
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.impl.coll.CollationData;
+import com.ibm.icu.impl.coll.ContractionsAndExpansions;
 import com.ibm.icu.lang.UCharacter;
 
 /**
@@ -228,20 +229,20 @@ public final class CollationElementIterator
         MaxExpSink(Map<Integer, Integer> h) {
             maxExpansions = h;
         }
-        @Override
-        void handleCE(long ce) {}
-        @Override
-        void handleExpansion(long ces[], int length) {
+        // Java 6: @Override
+        public void handleCE(long ce) {}
+        // Java 6: @Override
+        public void handleExpansion(long ces[], int start, int length) {
             if (length <= 1) {
                 // We do not need to add single CEs into the map.
                 return;
             }
             int count = 0;  // number of CE "halves"
             for (int i = 0; i < length; ++i) {
-                count += ceNeedsTwoParts(ces[i]) ? 2 : 1;
+                count += ceNeedsTwoParts(ces[start + i]) ? 2 : 1;
             }
             // last "half" of the last CE
-            long ce = ces[length - 1];
+            long ce = ces[start + length - 1];
             long p = ce >>> 32;
             int lower32 = (int)ce;
             int lastHalf = getSecondHalf(p, lower32);
