@@ -19,9 +19,12 @@ import java.io.OutputStream;
 import java.text.CharacterIterator;
 import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
+
 import com.ibm.icu.impl.Assert;
 import com.ibm.icu.impl.CharTrie;
 import com.ibm.icu.impl.CharacterIteration;
@@ -48,7 +51,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
     private RuleBasedBreakIterator() {
         fLastStatusIndexValid = true;
         fDictionaryCharCount  = 0;
-        fBreakEngines.add(fUnhandledBreakEngine);
+        fBreakEngines.put(-1, fUnhandledBreakEngine);
     }
 
     /**
@@ -265,8 +268,8 @@ public class RuleBasedBreakIterator extends BreakIterator {
      */
     private boolean fUseDictionary = true;
     
-    private final Set<LanguageBreakEngine> fBreakEngines = Collections.synchronizedSet(new HashSet<LanguageBreakEngine>());
-
+    //private final Set<LanguageBreakEngine> fBreakEngines = Collections.synchronizedSet(new HashSet<LanguageBreakEngine>());
+    private final Map<Integer, LanguageBreakEngine> fBreakEngines = new HashMap<Integer, LanguageBreakEngine>();
     /**
      * Dumps caches and performs other actions associated with a complete change
      * in text or iteration position.
@@ -1189,7 +1192,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
         // We have a dictionary character.
         // Does an already instantiated break engine handle it?
         synchronized(fBreakEngines) {
-            for (LanguageBreakEngine candidate : fBreakEngines) {
+            for (LanguageBreakEngine candidate : fBreakEngines.values()) {
                 if (candidate.handles(c, fBreakType)) {
                     return candidate;
                 }
@@ -1198,51 +1201,58 @@ public class RuleBasedBreakIterator extends BreakIterator {
 
         // if we don't have an existing engine, build one.
         int script = UCharacter.getIntPropertyValue(c, UProperty.SCRIPT);
-        LanguageBreakEngine eng = null;
-        try {
-            switch (script) {
-            case UScript.THAI:
-                eng = new ThaiBreakEngine();
-                break;
-            case UScript.LAO:
-                eng = new LaoBreakEngine();
-                break;
-            case UScript.KHMER:
-                eng = new KhmerBreakEngine();
-                break;
-            case UScript.KATAKANA:
-            case UScript.HIRAGANA:
-            case UScript.HAN:
-                if (getBreakType() == KIND_WORD) {
-                    eng = new CjkBreakEngine(false);
-                }
-                else {
+        LanguageBreakEngine eng = fBreakEngines.get(script);
+        if (eng != null && !eng.handles(c, fBreakType)) {
+            fUnhandledBreakEngine.handleChar(c, getBreakType());
+            eng = fUnhandledBreakEngine;
+        } else {
+            try {
+                switch (script) {
+                case UScript.THAI:
+                    eng = new ThaiBreakEngine();
+                    break;
+                case UScript.LAO:
+                    eng = new LaoBreakEngine();
+                    break;
+                case UScript.KHMER:
+                    eng = new KhmerBreakEngine();
+                    break;
+                case UScript.KATAKANA:
+                case UScript.HIRAGANA:
+                case UScript.HAN:
+                    if (getBreakType() == KIND_WORD) {
+                        eng = new CjkBreakEngine(false);
+                    }
+                    else {
+                        fUnhandledBreakEngine.handleChar(c, getBreakType());
+                        eng = fUnhandledBreakEngine;
+                    }
+                    break;
+                case UScript.HANGUL:
+                    if (getBreakType() == KIND_WORD) {
+                        eng = new CjkBreakEngine(true);
+                    } else {
+                        fUnhandledBreakEngine.handleChar(c, getBreakType());
+                        eng = fUnhandledBreakEngine;
+                    }
+                    break;
+                default:
                     fUnhandledBreakEngine.handleChar(c, getBreakType());
                     eng = fUnhandledBreakEngine;
+                    break;
                 }
-                break;
-            case UScript.HANGUL:
-                if (getBreakType() == KIND_WORD) {
-                    eng = new CjkBreakEngine(true);
-                } else {
-                    fUnhandledBreakEngine.handleChar(c, getBreakType());
-                    eng = fUnhandledBreakEngine;
-                }
-                break;
-            default:
-                fUnhandledBreakEngine.handleChar(c, getBreakType());
-                eng = fUnhandledBreakEngine;
-                break;
+            } catch (IOException e) {
+                eng = null;
             }
-        } catch (IOException e) {
-            eng = null;
         }
 
-        if (eng != null) {
+        if (eng != null && eng != fUnhandledBreakEngine) {
+            fBreakEngines.put(script, eng);
+            // assert eng.handles(c, fBreakType);
+            
             // In the event of a race it's possible that the add() could fail
             // and that two break engines of the same type will exist.
             // Should be rare and pretty much harmless.
-            fBreakEngines.add(eng);
         }
         return eng;
     }
