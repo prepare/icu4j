@@ -238,8 +238,7 @@ public final class RuleBasedCollator extends Collator {
         Class<?> builderClass = classLoader.loadClass("com.ibm.icu.impl.coll.CollationBuilder");
         Object builder = builderClass.getConstructor(CollationTailoring.class).newInstance(base);
         // builder.parseAndBuild(rules);
-        Method parseAndBuild =
-                builderClass.getMethod("parseAndBuild", String.class);
+        Method parseAndBuild = builderClass.getMethod("parseAndBuild", String.class);
         CollationTailoring t = (CollationTailoring)parseAndBuild.invoke(builder, rules);
         CollationSettings ts = t.settings.readOnly();
         char[] fastLatinPrimaries = new char[CollationFastLatin.LATIN_LIMIT];
