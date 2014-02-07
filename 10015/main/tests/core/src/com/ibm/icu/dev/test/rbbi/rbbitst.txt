@@ -32,9 +32,10 @@
 # TODO:  figure out how to have a single copy of the file for use by both C and Java.
 
 
-#   Temp debugging tests 
+#   Temp debugging tests
 <word>
-<data>•ที่๑พายุ<200>ไซโคลน<200></data>
+# test normalization/dictionary handling of halfwidth katakana: same dictionary phrase in fullwidth and halfwidth
+<data>•芽キャベツ<400>芽キャﾍﾞツ<400></data>
 
 
 ########################################################################################

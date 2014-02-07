@@ -7,27 +7,28 @@
 package com.ibm.icu.text;
 
 import java.text.CharacterIterator;
+import java.util.BitSet;
 import java.util.Deque;
+
 import com.ibm.icu.impl.CharacterIteration;
 
 abstract class DictionaryBreakEngine implements LanguageBreakEngine {
     UnicodeSet fSet = new UnicodeSet();
-    private final int fTypes;
+    private BitSet fTypes = new BitSet(32);
 
     /**
-     * @param breakTypes A mask of the break iterators that can use this engine.
-     *  For example, (1 << KIND_WORD) | (1 << KIND_LINE) could be used by 
-     *  word iterators and line iterators, but not any other kind.
+     * @param breakTypes The types of break iterators that can use this engine.
+     *  For example, BreakIterator.KIND_LINE 
      */
-    public DictionaryBreakEngine(int breakTypes) {
-        // TODO: consider using a java.util.BitSet with nbits <= 32
-        fTypes = breakTypes;
+    public DictionaryBreakEngine(Integer... breakTypes) {
+        for (Integer type: breakTypes) {
+            fTypes.set(type);
+        }
     }
 
     public boolean handles(int c, int breakType) {
-        return (breakType >= 0 && breakType < 32) &&   // breakType is in range
-                ((1 << breakType) & fTypes) != 0 &&    // this type can use us
-                fSet.contains(c);                      // we recognize the character
+        return fTypes.get(breakType) &&  // this type can use us
+                fSet.contains(c);        // we recognize the character
     }
 
     public int findBreaks(CharacterIterator text, int startPos, int endPos, 
