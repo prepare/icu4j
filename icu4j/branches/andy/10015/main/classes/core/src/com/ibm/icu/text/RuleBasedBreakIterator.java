@@ -20,11 +20,8 @@ import java.text.CharacterIterator;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
-
 import com.ibm.icu.impl.Assert;
 import com.ibm.icu.impl.CharTrie;
 import com.ibm.icu.impl.CharacterIteration;
@@ -259,17 +256,9 @@ public class RuleBasedBreakIterator extends BreakIterator {
      */
     private int fPositionInCache;
 
-    /** 
-     * Whether or not we should be using the dictionary. Set to true by 
-     * default - only set to false if we get an empty string as input or 
-     * if our "kind" is not KIND_WORD or KIND_LINE.
-     * 
-     * If this is set to false, no dictionary handling is done.
-     */
-    private boolean fUseDictionary = true;
     
-    //private final Set<LanguageBreakEngine> fBreakEngines = Collections.synchronizedSet(new HashSet<LanguageBreakEngine>());
-    private final Map<Integer, LanguageBreakEngine> fBreakEngines = new HashMap<Integer, LanguageBreakEngine>();
+    private final Map<Integer, LanguageBreakEngine> fBreakEngines = 
+            Collections.synchronizedMap(new HashMap<Integer, LanguageBreakEngine>());
     /**
      * Dumps caches and performs other actions associated with a complete change
      * in text or iteration position.
@@ -412,7 +401,6 @@ public class RuleBasedBreakIterator extends BreakIterator {
         return result;
     }
 
-    static private int debugCount;
     /**
       *  checkDictionary      This function handles all processing of characters in
       *                       the "dictionary" set. It will determine the appropriate
@@ -535,7 +523,6 @@ public class RuleBasedBreakIterator extends BreakIterator {
         // If we found breaks, build a new break cache. The first and last entries must
         // be the original starting and ending position.
         if (foundBreakCount > 0) {
-            debugCount ++;
             if (foundBreakCount != breaks.size()) {
                 System.out.println("oops, foundBreakCount != breaks.size().  LBE = " + lbe.getClass());
             }
@@ -1053,11 +1040,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
     public void setText(CharacterIterator newText) {
         fText = newText;
         // first() resets the caches
-        int firstIdx = this.first();
-        if (newText != null) {
-            fUseDictionary = ((fBreakType == KIND_WORD || fBreakType == KIND_LINE)
-                && newText.getEndIndex() != firstIdx);
-        }
+        this.first();
     }
 
     /**
@@ -1066,9 +1049,6 @@ public class RuleBasedBreakIterator extends BreakIterator {
      */
     void setBreakType(int type) {
         fBreakType = type;
-        if (type != KIND_WORD && type != KIND_LINE) {
-            fUseDictionary = false;
-        }
     }
 
     /**
