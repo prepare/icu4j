@@ -13,6 +13,7 @@ import static com.ibm.icu.impl.CharacterIteration.next32;
 import java.io.IOException;
 import java.text.CharacterIterator;
 import java.util.Deque;
+
 import com.ibm.icu.impl.Assert;
 
 class CjkBreakEngine extends DictionaryBreakEngine {
@@ -215,16 +216,21 @@ class CjkBreakEngine extends DictionaryBreakEngine {
             t_boundary[numBreaks++] = 0;
         }
 
+        int correctedNumBreaks = 0;
         for (int i = numBreaks - 1; i >= 0; i--) {
-            // int pos = charPositions[t_boundary[i]] + startPos;
-            // if (!(foundBreaks.contains(pos) || pos == startPos))
+            int pos = charPositions[t_boundary[i]] + startPos;
+            if (!(foundBreaks.contains(pos) || pos == startPos)) {
                 foundBreaks.push(charPositions[t_boundary[i]] + startPos);
+                correctedNumBreaks++;
+            }
         }
 
-        //if (!foundBreaks.isEmpty() && foundBreaks.peek() == endPos)
-        //    foundBreaks.pop();
-        //if (!foundBreaks.isEmpty()) 
-        //    inText.setIndex(foundBreaks.peek());
-        return numBreaks;
+        if (!foundBreaks.isEmpty() && foundBreaks.peek() == endPos) {
+            foundBreaks.pop();
+            correctedNumBreaks--;
+        }
+        if (!foundBreaks.isEmpty()) 
+            inText.setIndex(foundBreaks.peek());
+        return correctedNumBreaks;
     }
 }

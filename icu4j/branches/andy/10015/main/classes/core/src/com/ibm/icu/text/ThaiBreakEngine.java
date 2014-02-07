@@ -9,6 +9,7 @@ package com.ibm.icu.text;
 import java.io.IOException;
 import java.text.CharacterIterator;
 import java.util.Deque;
+
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
 import com.ibm.icu.lang.UScript;
@@ -141,7 +142,7 @@ class ThaiBreakEngine extends DictionaryBreakEngine {
     }
     
     public ThaiBreakEngine() throws IOException {
-        super((1<<BreakIterator.KIND_WORD) | (1<<BreakIterator.KIND_LINE));
+        super(BreakIterator.KIND_WORD, BreakIterator.KIND_LINE);
         setCharacters(fThaiWordSet);
         // Initialize dictionary
         fDictionary = DictionaryData.loadDictionaryFor("Thai");

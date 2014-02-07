@@ -460,7 +460,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
                     CharacterIteration.next32(fText);
                     c = CharacterIteration.current32(fText);
                     category = (short)fRData.fTrie.getCodePointValue(c);
-                } while (c != CharacterIteration.DONE32 && ((category & 0x4000)) == 0);
+                } while (c != CharacterIteration.DONE32 && ((category & 0x4000)) != 0);
                 
                 // Back up to the last dictionary character
                 rangeEnd = fText.getIndex();
@@ -570,72 +570,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
         // to the original proposed break.
         fText.setIndex(reverse ? startPos : endPos);
         return (reverse ? startPos : endPos);
-
-        
-        
- /*       
-        
-        // if there are no cached break positions, or if we've just moved
-        // off the end of the range covered by the cache, we have to dump
-        // and possibly regenerate the cache
-        if (fCachedBreakPositions == null || fPositionInCache == fCachedBreakPositions.length - 1) {
-            startPos = fText.getIndex();
-
-            // start by using the rules handleNext() to find a tentative return
-            // value.   dictionaryCharCount tells us how many dictionary characters
-            // we passed over on our way to the tentative return value
-            fDictionaryCharCount = 0;
-            int result = handleNext(fRData.fFTable);
-
-            // if we passed over more than one dictionary character, then we use
-            // divideUpDictionaryRange() to regenerate the cached break positions
-            // for the new range.
-            if (fDictionaryCharCount > 1 && result - startPos > 1) {
-                LanguageBreakEngine e = getEngineFor(fText, startPos, result);
-                fText.setIndex(startPos);
-                if (e != null) {
-                    // we have an engine! use it to produce breaks
-                    //Stack<Integer> breaks = new Stack<Integer>();
-                    //e.findBreaks(fText, startPos, result, false, getBreakType(), breaks);
-
-                    int breaksSize = breaks.size();
-                    fCachedBreakPositions = new int[breaksSize + 2];
-                    fCachedBreakPositions[0] = startPos;
-                    for (int i = 0; i < breaksSize; i++) {
-                        fCachedBreakPositions[i + 1] = breaks.elementAt(i).intValue() ;
-                    }
-                    fCachedBreakPositions[breaksSize + 1] = result;
-
-                    fPositionInCache = 0;
-                } else {
-                    // we don't have an engine; just use the rules
-                    fText.setIndex(result);
-                    return result;
-                }
-            }
-            else {
-                // otherwise, the value we got back from the inherited function
-                // is our return value, and we can dump the cache
-                fCachedBreakPositions = null;
-                return result;
-            }
-        }
-
-        // if the cache of break positions has been regenerated (or existed all
-        // along), then just advance to the next break position in the cache
-        // and return it
-        if (fCachedBreakPositions != null) {
-            ++fPositionInCache;
-            fText.setIndex(fCachedBreakPositions[fPositionInCache]);
-            return fCachedBreakPositions[fPositionInCache];
-        }
-
-        ///CLOVER:OFF
-        Assert.assrt(false);
-        return BreakIterator.DONE;   // WE SHOULD NEVER GET HERE!
-        ///CLOVER:ON
-  
-         */
+ 
         }
     
     
@@ -645,81 +580,46 @@ public class RuleBasedBreakIterator extends BreakIterator {
      * @stable ICU 2.0
      */
     public int previous() {
+        int result;
+        int startPos;
+        
         CharacterIterator text = getText();
 
         fLastStatusIndexValid = false;
 
         // if we have cached break positions and we're still in the range
         // covered by them, just move one step backward in the cache
-        if (fCachedBreakPositions != null && fPositionInCache > 0) {
-            --fPositionInCache;
-            text.setIndex(fCachedBreakPositions[fPositionInCache]);
-            return fCachedBreakPositions[fPositionInCache];
+        if (fCachedBreakPositions != null) {
+            if (fPositionInCache > 0) {
+                --fPositionInCache;
+                // If we're at the beginning of the cache, need to reevaluate the
+                // rule status
+                if (fPositionInCache <= 0) {
+                    fLastStatusIndexValid = false;
+                }
+                int pos = fCachedBreakPositions[fPositionInCache];
+                text.setIndex(pos);
+                return pos;
+            } else {
+                reset();
+            }
         }
 
-        // otherwise, dump the cache and use the inherited previous() method to move
-        // backward.  This may fill up the cache with new break positions, in which
-        // case we have to mark our position in the cache. If it doesn't, use next()
-        // to move forward until we hit or pass the current position. This *will* fill
-        // the cache.
-        else {
-            // TODO: Try to reuse the array rather than reallocating it all the time
-            fCachedBreakPositions = null;
-            
-            int offset = current();
-            int result = rulesPrevious();
-            if (result == BreakIterator.DONE) {
-                return result;
-            }
-
-            if (fDictionaryCharCount == 0) {
-                return result;
-            }
-
-            if (fCachedBreakPositions != null) {
-                fPositionInCache = fCachedBreakPositions.length - 2;
-                return result;
-            }
-            
-            while (result < offset) {
-                int nextResult = next();
-                if (nextResult >= offset) {
-                    break;
-                }
-
-                result = nextResult;
-            }
-            
-            if (fCachedBreakPositions != null) {
-                for (fPositionInCache = 0; fPositionInCache < fCachedBreakPositions.length; fPositionInCache++) {
-                    if (fCachedBreakPositions[fPositionInCache] >= offset) {
-                        fPositionInCache--;
-                        break;
-                    }
-                }
-            }
-            
-            // prepare for the user asking for our status
-            // our status will have been marked as valid by the next() 
-            // calls but isn't at the right place, so mark it as invalid 
-            // and recompute it when the user asks
-            fLastStatusIndexValid = false;
-            text.setIndex(result);
-            
-            return result;
-        }
-    }
-    
-    private int rulesPrevious() {
         // if we're already sitting at the beginning of the text, return DONE
-        if (fText == null || current() == fText.getBeginIndex()) {
+        startPos = current();
+        if (fText == null || startPos == fText.getBeginIndex()) {
             fLastRuleStatusIndex  = 0;
             fLastStatusIndexValid = true;
             return BreakIterator.DONE;
         }
 
+        // Rules with an exact reverse table are handled here.
         if (fRData.fSRTable != null || fRData.fSFTable != null) {
-            return handlePrevious(fRData.fRTable);
+            result =  handlePrevious(fRData.fRTable);
+            if (fDictionaryCharCount > 0) {
+                result = checkDictionary(result, startPos, true);
+            }
+            return result;
         }
 
         // old rule syntax
@@ -737,9 +637,9 @@ public class RuleBasedBreakIterator extends BreakIterator {
             lastResult = fText.getBeginIndex();
             fText.setIndex(lastResult);
         }
-        int       result        = lastResult;
-        int       lastTag       = 0;
-        boolean   breakTagValid = false;
+        result = lastResult;
+        int      lastTag       = 0;
+        boolean  breakTagValid = false;
 
         // iterate forward from the known break position until we pass our
         // starting point.  The last break position before the starting
@@ -759,11 +659,11 @@ public class RuleBasedBreakIterator extends BreakIterator {
         // the result position that we are to return (in lastResult.)  If
         // the backwards rules overshot and the above loop had to do two or more
         // handleNext()s to move up to the desired return position, we will have a valid
-        // tag value. But, if handlePrevious() took us to exactly the correct result positon,
+        // tag value. But, if handlePrevious() took us to exactly the correct result position,
         // we wont have a tag value for that position, which is only set by handleNext().
 
-        // set the current iteration position to be the last break position
-        // before where we started, and then return that value
+        // Set the current iteration position to be the last break position
+        // before where we started, and then return that value.
         fText.setIndex(lastResult);
         fLastRuleStatusIndex  = lastTag;       // for use by getRuleStatus()
         fLastStatusIndexValid = breakTagValid;
@@ -1201,11 +1101,18 @@ public class RuleBasedBreakIterator extends BreakIterator {
 
         // if we don't have an existing engine, build one.
         int script = UCharacter.getIntPropertyValue(c, UProperty.SCRIPT);
+        if (script == UScript.KATAKANA || script == UScript.HIRAGANA) {
+            // Katakana, Hiragana and Han are handled by the same dictionary engine.
+            // Fold them together for mapping from script -> engine.
+            script = UScript.HAN;
+        }
+        
         LanguageBreakEngine eng = fBreakEngines.get(script);
+        /*
         if (eng != null && !eng.handles(c, fBreakType)) {
             fUnhandledBreakEngine.handleChar(c, getBreakType());
             eng = fUnhandledBreakEngine;
-        } else {
+        } else  */  {
             try {
                 switch (script) {
                 case UScript.THAI:
@@ -1217,8 +1124,6 @@ public class RuleBasedBreakIterator extends BreakIterator {
                 case UScript.KHMER:
                     eng = new KhmerBreakEngine();
                     break;
-                case UScript.KATAKANA:
-                case UScript.HIRAGANA:
                 case UScript.HAN:
                     if (getBreakType() == KIND_WORD) {
                         eng = new CjkBreakEngine(false);

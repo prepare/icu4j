@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2014, International Business Machines Corporation and         *
+ * Copyright (C) 2013, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -93,6 +93,9 @@ class KhmerBreakEngine extends DictionaryBreakEngine {
     private static final byte KHMER_PREFIX_COMBINE_THRESHOLD = 3;
     // Minimum word size
     private static final byte KHMER_MIN_WORD = 2;
+    // Minimum number of characters for two words
+    private static final byte KHMER_MIN_WORD_SPAN = KHMER_MIN_WORD * 2;
+    
     
     private DictionaryMatcher fDictionary;
     private static UnicodeSet fKhmerWordSet;
@@ -106,10 +109,10 @@ class KhmerBreakEngine extends DictionaryBreakEngine {
         fMarkSet = new UnicodeSet();
         fBeginWordSet = new UnicodeSet();
 
-        fKhmerWordSet.applyPattern("[[:Khmr:]&[:LineBreak=SA:]]");
+        fKhmerWordSet.applyPattern("[[:Khmer:]&[:LineBreak=SA:]]");
         fKhmerWordSet.compact();
 
-        fMarkSet.applyPattern("[[:Khmr:]&[:LineBreak=SA:]&[:M:]]");
+        fMarkSet.applyPattern("[[:Khmer:]&[:LineBreak=SA:]&[:M:]]");
         fMarkSet.add(0x0020);
         fEndWordSet = new UnicodeSet(fKhmerWordSet);
         fBeginWordSet.add(0x1780, 0x17B3);
@@ -128,7 +131,7 @@ class KhmerBreakEngine extends DictionaryBreakEngine {
     }
     
     public KhmerBreakEngine() throws IOException {
-        super((1<<BreakIterator.KIND_WORD) | (1<<BreakIterator.KIND_LINE));
+        super(BreakIterator.KIND_WORD, BreakIterator.KIND_LINE);
         setCharacters(fKhmerWordSet);
         // Initialize dictionary
         fDictionary = DictionaryData.loadDictionaryFor("Khmr");
@@ -143,7 +146,7 @@ class KhmerBreakEngine extends DictionaryBreakEngine {
     public int hashCode() {
         return getClass().hashCode();
     }
-    
+ 
     public boolean handles(int c, int breakType) {
         if (breakType == BreakIterator.KIND_WORD || breakType == BreakIterator.KIND_LINE) {
             int script = UCharacter.getIntPropertyValue(c, UProperty.SCRIPT);
@@ -152,11 +155,10 @@ class KhmerBreakEngine extends DictionaryBreakEngine {
         return false;
     }
 
-    public int divideUpDictionaryRange(CharacterIterator fIter, int rangeStart, int rangeEnd,
+    public int divideUpDictionaryRange(CharacterIterator fIter, int rangeStart, int rangeEnd, 
             Deque<Integer> foundBreaks) {
-        
-        
-        if ((rangeEnd - rangeStart) < KHMER_MIN_WORD) {
+               
+        if ((rangeEnd - rangeStart) < KHMER_MIN_WORD_SPAN) {
             return 0;  // Not enough characters for word
         }
         int wordsFound = 0;
@@ -169,15 +171,16 @@ class KhmerBreakEngine extends DictionaryBreakEngine {
         int uc;
 
         fIter.setIndex(rangeStart);
+
         while ((current = fIter.getIndex()) < rangeEnd) {
             wordLength = 0;
 
             //Look for candidate words at the current position
-            int candidates = words[wordsFound%KHMER_LOOKAHEAD].candidates(fIter, fDictionary, rangeEnd);
+            int candidates = words[wordsFound % KHMER_LOOKAHEAD].candidates(fIter, fDictionary, rangeEnd);
 
             // If we found exactly one, use that
             if (candidates == 1) {
-                wordLength = words[wordsFound%KHMER_LOOKAHEAD].acceptMarked(fIter);
+                wordLength = words[wordsFound % KHMER_LOOKAHEAD].acceptMarked(fIter);
                 wordsFound += 1;
             }
 
