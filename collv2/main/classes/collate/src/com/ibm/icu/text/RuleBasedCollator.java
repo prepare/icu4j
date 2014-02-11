@@ -1420,8 +1420,8 @@ public final class RuleBasedCollator extends Collator {
         boolean otherIsRoot = o.data.base == null;
         assert(!thisIsRoot || !otherIsRoot);  // otherwise their data pointers should be ==
         if(thisIsRoot != otherIsRoot) { return false; }
-        if((thisIsRoot || !tailoring.rules.isEmpty()) &&
-                (otherIsRoot || !o.tailoring.rules.isEmpty())) {
+        if((thisIsRoot || tailoring.rules.length() != 0) &&
+                (otherIsRoot || o.tailoring.rules.length() != 0)) {
             // Shortcut: If both collators have valid rule strings, then compare those.
             if(tailoring.rules.equals(o.tailoring.rules)) { return true; }
         }
