@@ -23,12 +23,12 @@ import com.ibm.icu.impl.StringUCharacterIterator;
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.impl.coll.CollationData;
 import com.ibm.icu.impl.coll.CollationIterator;
-import com.ibm.icu.impl.coll.CollationIterator.UVector32;
 import com.ibm.icu.impl.coll.ContractionsAndExpansions;
 import com.ibm.icu.impl.coll.FCDIterCollationIterator;
 import com.ibm.icu.impl.coll.FCDUTF16CollationIterator;
 import com.ibm.icu.impl.coll.IterCollationIterator;
 import com.ibm.icu.impl.coll.UTF16CollationIterator;
+import com.ibm.icu.impl.coll.UVector32;
 import com.ibm.icu.lang.UCharacter;
 
 /**
