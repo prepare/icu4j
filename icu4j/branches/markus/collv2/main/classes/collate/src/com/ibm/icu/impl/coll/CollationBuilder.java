@@ -13,6 +13,7 @@ package com.ibm.icu.impl.coll;
 
 import java.util.Arrays;
 
+import com.ibm.icu.impl.Norm2AllModes;
 import com.ibm.icu.util.VersionInfo;
 
 final class CollationBuilder extends CollationRuleParser.Sink {
@@ -401,7 +402,7 @@ private:
     CollationBuilder.CollationBuilder(const CollationTailoring *b)
             : nfd(*Normalizer2.getNFDInstance),
               fcd(*Normalizer2Factory.getFCDInstance),
-              nfcImpl(*Normalizer2Factory.getNFCImpl),
+              nfcImpl(Norm2AllModes.getNFCInstance().impl /* TODO: delete -- Normalizer2Factory.getNFCImpl()*/),
               base(b),
               baseData(b.data),
               rootElements(b.data.rootElements, b.data.rootElementsLength),

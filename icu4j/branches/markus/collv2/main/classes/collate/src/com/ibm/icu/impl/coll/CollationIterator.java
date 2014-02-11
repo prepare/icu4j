@@ -23,25 +23,6 @@ import com.ibm.icu.util.CharsTrie;
  * except it can be negative as a sentinel value.
  */
 public abstract class CollationIterator implements Cloneable {
-    // TODO: There must be a Java class for a growable array of ints without auto-boxing to Integer?!
-    public static final class UVector32 {
-        public UVector32() {}
-        public int size() { return length; }
-        public void addElement(int e) {
-            if(length >= buffer.length) {
-                int[] newBuffer = new int[2 * buffer.length];
-                System.arraycopy(buffer, 0, newBuffer, 0, length);
-                buffer = newBuffer;
-            }
-            buffer[length++] = e;
-        }
-        public void removeAllElements() {
-            length = 0;
-        }
-        private int[] buffer = new int[32];
-        private int length = 0;
-    }
-
     private static final class CEBuffer {
         /** Large enough for CEs of most short strings. */
         private static final int INITIAL_CAPACITY = 40;
