@@ -237,9 +237,9 @@ public abstract class CollationIterator implements Cloneable {
      * Subclasses must implement, and must call the parent class method,
      * or CollationIterator.reset().
      */
-    abstract void resetToOffset(int newOffset);
+    public abstract void resetToOffset(int newOffset);
 
-    abstract int getOffset();
+    public abstract int getOffset();
 
     /**
      * Returns the next collation element.
@@ -310,7 +310,7 @@ public abstract class CollationIterator implements Cloneable {
     /**
      * Returns the previous collation element.
      */
-    final long previousCE(UVector32 offsets) {
+    public final long previousCE(UVector32 offsets) {
         if(ceBuffer.length > 0) {
             // Return the previous buffered CE.
             return ceBuffer.get(--ceBuffer.length);
@@ -363,7 +363,7 @@ public abstract class CollationIterator implements Cloneable {
         cesIndex = ceBuffer.length = 0;
     }
 
-    final void clearCEsIfNoneRemaining() {
+    public final void clearCEsIfNoneRemaining() {
         if(cesIndex == ceBuffer.length) { clearCEs(); }
     }
 

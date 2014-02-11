@@ -30,6 +30,7 @@ public final class UVector32 {
     public void removeAllElements() {
         length = 0;
     }
+    public boolean isEmpty() { return length == 0; }
     private int[] buffer = new int[32];
     private int length = 0;
 }

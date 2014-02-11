@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2011, International Business Machines Corporation and
+ * Copyright (C) 1996-2014, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -901,7 +901,7 @@ public final class StringSearch extends SearchIterator
             // if the ce is a variable, we mask and get only the primary values
             // no shifting to quartenary is required since all primary values
             // less than variabletop will need to be masked off anyway.
-            if (((m_collator_.m_variableTopValue_  << 16) & UNSIGNED_32BIT_MASK) > (ce & UNSIGNED_32BIT_MASK)) {
+            if (((m_collator_.getVariableTop()) & UNSIGNED_32BIT_MASK) > (ce & UNSIGNED_32BIT_MASK)) {
                 if (m_collator_.getStrength() == Collator.QUATERNARY) {
                     ce = CollationElementIterator.primaryOrder(ce);
                 }
@@ -3140,28 +3140,28 @@ public final class StringSearch extends SearchIterator
         text.setIndex(offset);
         return result.toString();
     }
-    
+
+    private static final int PRIMARYORDERMASK = 0xffff0000;
+    private static final int SECONDARYORDERMASK = 0x0000ff00;
+    private static final int TERTIARYORDERMASK = 0x000000ff;
+
     /**
      * Getting the mask for collation strength
      * @param strength collation strength
       * @return collation element mask
      */
-    private static final int getMask(int strength) 
-    {
-        switch (strength) 
-        {
-            case Collator.PRIMARY:
-                return RuleBasedCollator.CE_PRIMARY_MASK_;
-            case Collator.SECONDARY:
-                return RuleBasedCollator.CE_SECONDARY_MASK_ 
-                       | RuleBasedCollator.CE_PRIMARY_MASK_;
-            default:
-                return RuleBasedCollator.CE_TERTIARY_MASK_ 
-                       | RuleBasedCollator.CE_SECONDARY_MASK_ 
-                       | RuleBasedCollator.CE_PRIMARY_MASK_;
+    private static int getMask(int strength) {
+        switch(strength) {
+        case Collator.PRIMARY:
+            return PRIMARYORDERMASK;
+        case Collator.SECONDARY:
+            return SECONDARYORDERMASK | PRIMARYORDERMASK;
+        default:
+            return TERTIARYORDERMASK | SECONDARYORDERMASK |
+                   PRIMARYORDERMASK;
         }
     }
-    
+
     /**
      * Sets match not found 
      */
