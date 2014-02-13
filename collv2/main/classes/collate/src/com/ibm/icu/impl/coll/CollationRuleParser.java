@@ -41,6 +41,7 @@ public final class CollationRuleParser {
         FIRST_TRAILING,
         LAST_TRAILING
     }
+    static final Position[] POSITION_VALUES = Position.values();
 
     /**
      * First character of contractions that encode special reset positions.
@@ -48,25 +49,26 @@ public final class CollationRuleParser {
      *
      * The second contraction character is POS_BASE + Position.
      */
-    private static final char POS_LEAD = 0xfffe;
+    static final char POS_LEAD = 0xfffe;
     /**
      * Base for the second character of contractions that encode special reset positions.
      * Braille characters U+28xx are printable and normalization-inert.
      * @see POS_LEAD
      */
-    private static final char POS_BASE = 0x2800;
+    static final char POS_BASE = 0x2800;
 
-    abstract class Sink {
+    static abstract class Sink {
         /**
          * Adds a reset.
          * strength=UCOL_IDENTICAL for &str.
          * strength=UCOL_PRIMARY/UCOL_SECONDARY/UCOL_TERTIARY for &[before n]str where n=1/2/3.
          */
-        abstract void addReset(int strength, String str);
+        abstract void addReset(int strength, CharSequence str);
         /**
          * Adds a relation with strength and prefix | str / extension.
          */
-        abstract void addRelation(int strength, String prefix, String str, String extension);
+        abstract void addRelation(int strength, CharSequence prefix,
+                CharSequence str, CharSequence extension);
 
         void suppressContractions(UnicodeSet set) {}
 
@@ -226,7 +228,7 @@ public final class CollationRuleParser {
             i = parseTailoringString(i, rawBuilder);
         }
         try {
-            sink.addReset(resetStrength, rawBuilder.toString());
+            sink.addReset(resetStrength, rawBuilder);
         } catch(Exception e) {
             setParseError("adding reset failed", e);
             return UCOL_DEFAULT;
@@ -287,7 +289,8 @@ public final class CollationRuleParser {
         // Parse
         //     prefix | str / extension
         // where prefix and extension are optional.
-        String prefix = "", str, extension = "";
+        String prefix = "";
+        CharSequence extension = "";
         i = parseTailoringString(i, rawBuilder);
         char next = (i < rules.length()) ? rules.charAt(i) : 0;
         if(next == 0x7c) {  // '|' separates the context prefix from the string.
@@ -295,21 +298,22 @@ public final class CollationRuleParser {
             i = parseTailoringString(i + 1, rawBuilder);
             next = (i < rules.length()) ? rules.charAt(i) : 0;
         }
-        str = rawBuilder.toString();
+        // str = rawBuilder (do not modify rawBuilder any more in this function)
         if(next == 0x2f) {  // '/' separates the string from the extension.
-            i = parseTailoringString(i + 1, rawBuilder);
-            extension = rawBuilder.toString();
+            StringBuilder extBuilder = new StringBuilder();
+            i = parseTailoringString(i + 1, extBuilder);
+            extension = extBuilder;
         }
         if(!prefix.isEmpty()) {
             int prefix0 = prefix.codePointAt(0);
-            int c = str.codePointAt(0);
+            int c = rawBuilder.codePointAt(0);
             if(!nfc.hasBoundaryBefore(prefix0) || !nfc.hasBoundaryBefore(c)) {
                 setParseError("in 'prefix|str', prefix and str must each start with an NFC boundary");
                 return;
             }
         }
         try {
-            sink.addRelation(strength, prefix, str, extension);
+            sink.addRelation(strength, prefix, rawBuilder, extension);
         } catch(Exception e) {
             setParseError("adding relation failed", e);
             return;
