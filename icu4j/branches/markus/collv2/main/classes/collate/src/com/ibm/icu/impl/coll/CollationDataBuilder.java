@@ -113,7 +113,7 @@ final class CollationDataBuilder {  // not final in C++
         return Collation.isAssignedCE32(trie.get(c));
     }
 
-    void add(String prefix, String s, long ces[], int cesLength) {  // or maybe CharSequence?
+    void add(CharSequence prefix, CharSequence s, long ces[], int cesLength) {
         int ce32 = encodeCEs(ces, cesLength);
         addCE32(prefix, s, ce32);
     }
