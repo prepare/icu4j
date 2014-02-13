@@ -32,13 +32,6 @@ public class UTF16CollationIterator extends CollationIterator {
         limit = s.length();
     }
 
-    /* TODO: clone() + setText()?? UTF16CollationIterator(const UTF16CollationIterator &other, const UChar *newText)
-            : CollationIterator(other),
-              start(newText),
-              pos(newText + (other.pos - other.start)),
-              limit(other.limit == null ? null : newText + (other.limit - other.start)) {
-    }*/
-
     @Override
     public boolean equals(Object other) {
         if(!super.equals(other)) { return false; }
