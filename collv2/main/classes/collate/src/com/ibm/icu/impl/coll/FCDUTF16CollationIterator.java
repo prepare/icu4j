@@ -34,26 +34,6 @@ public final class FCDUTF16CollationIterator extends UTF16CollationIterator {
         checkDir = 1;
     }
 
-    /* TODO: clone() + setText()? FCDUTF16CollationIterator(const FCDUTF16CollationIterator &other, const UChar *newText)
-            : UTF16CollationIterator(other),
-              rawStart(newText),
-              segmentStart(newText + (other.segmentStart - other.rawStart)),
-              segmentLimit(other.segmentLimit == null ? null : newText + (other.segmentLimit - other.rawStart)),
-              rawLimit(other.rawLimit == null ? null : newText + (other.rawLimit - other.rawStart)),
-              nfcImpl(other.nfcImpl),
-              normalized(other.normalized),
-              checkDir(other.checkDir) {
-        if(checkDir != 0 || other.start == other.segmentStart) {
-            start = newText + (other.start - other.rawStart);
-            pos = newText + (other.pos - other.rawStart);
-            limit = other.limit == null ? null : newText + (other.limit - other.rawStart);
-        } else {
-            start = normalized.getBuffer();
-            pos = start + (other.pos - other.start);
-            limit = start + normalized.length();
-        }
-    }*/
-
     @Override
     public boolean equals(Object other) {
         // Skip the UTF16CollationIterator and call its parent.

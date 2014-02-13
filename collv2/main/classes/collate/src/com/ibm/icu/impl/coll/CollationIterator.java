@@ -22,7 +22,7 @@ import com.ibm.icu.util.CharsTrie;
  * When a method returns a code point value, it must be in 0..10FFFF,
  * except it can be negative as a sentinel value.
  */
-public abstract class CollationIterator implements Cloneable {
+public abstract class CollationIterator {
     private static final class CEBuffer {
         /** Large enough for CEs of most short strings. */
         private static final int INITIAL_CAPACITY = 40;
@@ -192,23 +192,6 @@ public abstract class CollationIterator implements Cloneable {
         numCpFwd = -1;
         isNumeric = numeric;
         ceBuffer = new CEBuffer();
-    }
-
-    @Override
-    protected Object clone() throws CloneNotSupportedException {
-        CollationIterator c = (CollationIterator)super.clone();
-        c.skipped = null;
-        int length = ceBuffer.length;
-        if(length > 0) {
-            c.ceBuffer.ensureAppendCapacity(length);
-            for(int i = 0; i < length; ++i) {
-                c.ceBuffer.set(i, ceBuffer.get(i));
-            }
-            c.ceBuffer.length = length;
-        } else {
-            c.cesIndex = 0;
-        }
-        return c;
     }
 
     @Override
