@@ -11,96 +11,35 @@
 
 package com.ibm.icu.impl.coll;
 
+import com.ibm.icu.lang.UScript;
+import com.ibm.icu.text.Collator;
+import com.ibm.icu.util.CharsTrie;
+
 final class CollationFastLatinBuilder {
-public:
-    CollationFastLatinBuilder();
-    ~CollationFastLatinBuilder();
-
-    boolean forData(CollationData data);
-
-    const char *getTable() {
-        return reinterpret_cast<const char *>(result.getBuffer());
-    }
-    int lengthOfTable() { return result.length(); }
-
-private:
-    boolean loadGroups(CollationData data);
-    boolean inSameGroup(long p, long q);
-
-    void resetCEs();
-    void getCEs(CollationData data);
-    boolean getCEsFromCE32(CollationData data, int c, int ce32,
-                         );
-    boolean getCEsFromContractionCE32(CollationData data, int ce32,
-                                    );
-    static int getSuffixFirstCharIndex(const UnicodeString &suffix);
-    void addContractionEntry(int x, long cce0, long cce1);
-    void addUniqueCE(long ce);
-    int getMiniCE(long ce);
-    boolean encodeUniqueCEs();
-    boolean encodeCharCEs();
-    boolean encodeExpansions();
-    boolean encodeContractions();
-    int encodeTwoCEs(long first, long second);
-
-    static boolean isContractionCharCE(long ce) {
-        return (ce >>> 32) == Collation.NO_CE_PRIMARY && ce != Collation.NO_CE;
-    }
-
-    private static final long CONTRACTION_FLAG = 0x80000000;
-
-    // temporary "buffer"
-    long ce0, ce1;
-
-    long charCEs[CollationFastLatin.NUM_FAST_CHARS][2];
-
-    UVector64 contractionCEs;
-    UVector64 uniqueCEs;
-
-    /** One 16-bit mini CE per unique CE. */
-    char[] miniCEs;
-
-    // These are constant for a given list of CollationData.scripts.
-    long firstDigitPrimary;
-    long firstLatinPrimary;
-    long lastLatinPrimary;
-    // This determines the first normal primary weight which is mapped to
-    // a short mini primary. It must be >=firstDigitPrimary.
-    long firstShortPrimary;
-
-    boolean shortPrimaryOverflow;
-
-    UnicodeString result;
-    int headerLength;
-}
-
-#define DEBUG_COLLATION_FAST_LATIN_BUILDER 0  // 0 or 1 or 2
-
-    namespace {
+    // #define DEBUG_COLLATION_FAST_LATIN_BUILDER 0  // 0 or 1 or 2
 
     /**
-    * Compare two signed long values as if they were unsigned.
-    */
-    int32_t
-    compareInt64AsUnsigned(long a, long b) {
-        if((ulong)a < (ulong)b) {
+     * Compare two signed long values as if they were unsigned.
+     */
+    private static final int compareInt64AsUnsigned(long a, long b) {
+        a += 0x8000000000000000L;
+        b += 0x8000000000000000L;
+        if(a < b) {
             return -1;
-        } else if((ulong)a > (ulong)b) {
+        } else if(a > b) {
             return 1;
         } else {
             return 0;
         }
     }
 
-    // TODO: Merge this with the near-identical version in collationbasedatabuilder.cpp
     /**
-    * Like Java Collections.binarySearch(List, String, Comparator).
-    *
-    * @return the index>=0 where the item was found,
-    *         or the index<0 for inserting the string at ~index in sorted order
-    */
-    int32_t
-    binarySearch(const long list[], int limit, long ce) {
+     * Like Java Collections.binarySearch(List, String, Comparator).
+     *
+     * @return the index>=0 where the item was found,
+     *         or the index<0 for inserting the string at ~index in sorted order
+     */
+    private static final int binarySearch(long[] list, int limit, long ce) {
         if (limit == 0) { return ~0; }
         int start = 0;
         for (;;) {
@@ -122,41 +61,37 @@ private:
         }
     }
 
-    }  // namespace
-
-    CollationFastLatinBuilder.CollationFastLatinBuilder()
-            : ce0(0), ce1(0),
-              contractionCEs, uniqueCEs,
-              miniCEs(null),
-              firstDigitPrimary(0), firstLatinPrimary(0), lastLatinPrimary(0),
-              firstShortPrimary(0), shortPrimaryOverflow(false),
-              headerLength(0) {
+    CollationFastLatinBuilder() {
+        ce0 = 0;
+        ce1 = 0;
+        contractionCEs = new UVector64();
+        uniqueCEs = new UVector64();
+        miniCEs = null;
+        firstDigitPrimary = 0;
+        firstLatinPrimary = 0;
+        lastLatinPrimary = 0;
+        firstShortPrimary = 0;
+        shortPrimaryOverflow = false;
+        headerLength = 0;
     }
 
-    CollationFastLatinBuilder.~CollationFastLatinBuilder() {
-        uprv_free(miniCEs);
-    }
-
-    boolean
-    CollationFastLatinBuilder.forData(CollationData data) {
-        if(U_FAILURE) { return false; }
-        if(!result.isEmpty()) {  // This builder is not reusable.
-            errorCode = U_INVALID_STATE_ERROR;
-            return false;
+    boolean forData(CollationData data) {
+        if(result.length() != 0) {  // This builder is not reusable.
+            throw new IllegalStateException("attempt to reuse a CollationFastLatinBuilder");
         }
         if(!loadGroups(data)) { return false; }
 
         // Fast handling of digits.
         firstShortPrimary = firstDigitPrimary;
         getCEs(data);
-        if(!encodeUniqueCEs) { return false; }
+        encodeUniqueCEs();
         if(shortPrimaryOverflow) {
             // Give digits long mini primaries,
             // so that there are more short primaries for letters.
             firstShortPrimary = firstLatinPrimary;
             resetCEs();
             getCEs(data);
-            if(!encodeUniqueCEs) { return false; }
+            encodeUniqueCEs();
         }
         // Note: If we still have a short-primary overflow but not a long-primary overflow,
         // then we could calculate how many more long primaries would fit,
@@ -166,24 +101,30 @@ private:
         // and it is simpler to suppress building fast Latin data for it in genrb,
         // or by returning false here if shortPrimaryOverflow.
 
-        boolean ok = !shortPrimaryOverflow &&
-                encodeCharCEs && encodeContractions;
+        boolean ok = !shortPrimaryOverflow;
+        if(ok) {
+            encodeCharCEs();
+            encodeContractions();
+        }
         contractionCEs.removeAllElements();  // might reduce heap memory usage
         uniqueCEs.removeAllElements();
         return ok;
     }
 
-    boolean
-    CollationFastLatinBuilder.loadGroups(CollationData data) {
-        if(U_FAILURE) { return false; }
+    char[] getTable() {
+        int length = result.length();
+        char[] resultArray = new char[length];
+        result.getChars(0, length, resultArray, 0);
+        return resultArray;
+    }
+
+    private boolean loadGroups(CollationData data) {
         result.append(0);  // reserved for version & headerLength
         // The first few reordering groups should be special groups
         // (space, punct, ..., digit) followed by Latn, then Grek and other scripts.
         for(int i = 0;;) {
-            if(i >= data.scriptsLength) {
-                // no Latn script
-                errorCode = U_INTERNAL_PROGRAM_ERROR;
-                return false;
+            if(i >= data.scripts.length) {
+                throw new AssertionError("no Latn script");
             }
             int head = data.scripts[i];
             int lastByte = head & 0xff;  // last primary byte in the group
@@ -192,12 +133,10 @@ private:
                 firstDigitPrimary = (long)(head & 0xff00) << 16;
                 headerLength = result.length();
                 int r0 = (CollationFastLatin.VERSION << 8) | headerLength;
-                result.setCharAt(0, (UChar)r0);
-            } else if(group == USCRIPT_LATIN) {
+                result.setCharAt(0, (char)r0);
+            } else if(group == UScript.LATIN) {
                 if(firstDigitPrimary == 0) {
-                    // no digit group
-                    errorCode = U_INTERNAL_PROGRAM_ERROR;
-                    return false;
+                    throw new AssertionError("no digit group");
                 }
                 firstLatinPrimary = (long)(head & 0xff00) << 16;
                 lastLatinPrimary = ((long)lastByte << 24) | 0xffffff;
@@ -216,8 +155,7 @@ private:
         return true;
     }
 
-    boolean
-    CollationFastLatinBuilder.inSameGroup(long p, long q) {
+    private boolean inSameGroup(long p, long q) {
         // Both or neither need to be encoded as short primaries,
         // so that we can test only one and use the same bit mask.
         if(p >= firstShortPrimary) {
@@ -238,9 +176,9 @@ private:
         p >>= 24;  // first primary byte
         q >>= 24;
         assert(p != 0 && q != 0);
-        assert(p <= result[headerLength - 1]);  // the loop will terminate
+        assert(p <= result.charAt(headerLength - 1));  // the loop will terminate
         for(int i = 1;; ++i) {
-            long lastByte = result[i];
+            long lastByte = result.charAt(i);
             if(p <= lastByte) {
                 return q <= lastByte;
             } else if(q <= lastByte) {
@@ -249,19 +187,16 @@ private:
         }
     }
 
-    void
-    CollationFastLatinBuilder.resetCEs() {
+    private void resetCEs() {
         contractionCEs.removeAllElements();
         uniqueCEs.removeAllElements();
         shortPrimaryOverflow = false;
-        result.truncate(headerLength);
+        result.setLength(headerLength);
     }
 
-    void
-    CollationFastLatinBuilder.getCEs(CollationData data) {
-        if(U_FAILURE) { return; }
+    private void getCEs(CollationData data) {
         int i = 0;
-        for(UChar c = 0;; ++i, ++c) {
+        for(char c = 0;; ++i, ++c) {
             if(c == CollationFastLatin.LATIN_LIMIT) {
                 c = CollationFastLatin.PUNCT_START;
             } else if(c == CollationFastLatin.PUNCT_LIMIT) {
@@ -273,9 +208,9 @@ private:
                 d = data.base;
                 ce32 = d.getCE32(c);
             } else {
-                d = &data;
+                d = data;
             }
-            if(getCEsFromCE32(*d, c, ce32)) {
+            if(getCEsFromCE32(d, c, ce32)) {
                 charCEs[i][0] = ce0;
                 charCEs[i][1] = ce1;
                 addUniqueCE(ce0);
@@ -298,10 +233,7 @@ private:
         contractionCEs.addElement(CollationFastLatin.CONTR_CHAR_MASK);
     }
 
-    boolean
-    CollationFastLatinBuilder.getCEsFromCE32(CollationData data, int c, int ce32,
-                                              ) {
-        if(U_FAILURE) { return false; }
+    private boolean getCEsFromCE32(CollationData data, int c, int ce32) {
         ce32 = data.getFinalCE32(ce32);
         ce1 = 0;
         if(Collation.isSimpleOrLongCE32(ce32)) {
@@ -313,12 +245,12 @@ private:
                 ce1 = Collation.latinCE1FromCE32(ce32);
                 break;
             case Collation.EXPANSION32_TAG: {
-                const uint32_t *ce32s = data.ce32s + Collation.indexFromCE32(ce32);
+                int index = Collation.indexFromCE32(ce32);
                 int length = Collation.lengthFromCE32(ce32);
                 if(length <= 2) {
-                    ce0 = Collation.ceFromCE32(ce32s[0]);
+                    ce0 = Collation.ceFromCE32(data.ce32s[index]);
                     if(length == 2) {
-                        ce1 = Collation.ceFromCE32(ce32s[1]);
+                        ce1 = Collation.ceFromCE32(data.ce32s[index + 1]);
                     }
                     break;
                 } else {
@@ -326,12 +258,12 @@ private:
                 }
             }
             case Collation.EXPANSION_TAG: {
-                const long *ces = data.ces + Collation.indexFromCE32(ce32);
+                int index = Collation.indexFromCE32(ce32);
                 int length = Collation.lengthFromCE32(ce32);
                 if(length <= 2) {
-                    ce0 = ces[0];
+                    ce0 = data.ces[index];
                     if(length == 2) {
-                        ce1 = ces[1];
+                        ce1 = data.ces[index + 1];
                     }
                     break;
                 } else {
@@ -387,17 +319,14 @@ private:
                 if(sc1 != Collation.COMMON_SECONDARY_CE) { return false; }
             }
             // No below-common tertiary weights.
-            if(Utility.compareUnsigned(lower32_1 & Collation.ONLY_TERTIARY_MASK, Collation.COMMON_WEIGHT16) < 0) { return false; }
+            if((lower32_0 & Collation.ONLY_TERTIARY_MASK) < Collation.COMMON_WEIGHT16) { return false; }
         }
         // No quaternary weights.
         if(((ce0 | ce1) & Collation.QUATERNARY_MASK) != 0) { return false; }
         return true;
     }
 
-    boolean
-    CollationFastLatinBuilder.getCEsFromContractionCE32(CollationData data, int ce32,
-                                                        ) {
-        if(U_FAILURE) { return false; }
+    private boolean getCEsFromContractionCE32(CollationData data, int ce32) {
         int trieIndex = Collation.indexFromCE32(ce32);
         ce32 = data.getCE32FromContexts(trieIndex);  // Default if no suffix match.
         // Since the original ce32 is not a prefix mapping,
@@ -414,9 +343,10 @@ private:
         // and starts with the same character.
         int prevX = -1;
         boolean addContraction = false;
-        UCharsTrie.Iterator suffixes(data.contexts, trieIndex + 2, 0);
-        while(suffixes.next) {
-            const UnicodeString &suffix = suffixes.getString();
+        CharsTrie.Iterator suffixes = CharsTrie.iterator(data.contexts, trieIndex + 2, 0);
+        while(suffixes.hasNext()) {
+            CharsTrie.Entry entry = suffixes.next();
+            CharSequence suffix = entry.chars;
             int x = getSuffixFirstCharIndex(suffix);
             if(x < 0) { continue; }  // ignore anything but fast Latin text
             if(x == prevX) {
@@ -430,7 +360,7 @@ private:
             if(addContraction) {
                 addContractionEntry(prevX, ce0, ce1);
             }
-            ce32 = suffixes.getValue();
+            ce32 = entry.value;
             if(suffix.length() == 1 && getCEsFromCE32(data, Collation.SENTINEL_CP, ce32)) {
                 addContraction = true;
             } else {
@@ -442,7 +372,6 @@ private:
         if(addContraction) {
             addContractionEntry(prevX, ce0, ce1);
         }
-        if(U_FAILURE) { return false; }
         // Note: There might not be any fast Latin contractions, but
         // we need to enter contraction handling anyway so that we can bail out
         // when there is a non-fast-Latin character following.
@@ -453,8 +382,7 @@ private:
         return true;
     }
 
-    int32_t
-    CollationFastLatinBuilder.getSuffixFirstCharIndex(const UnicodeString &suffix) {
+    private static int getSuffixFirstCharIndex(CharSequence suffix) {
         int x = CollationFastLatin.getCharIndex(suffix.charAt(0));
         int length = suffix.length();
         if(x >= 0 && length > 0) {
@@ -468,9 +396,7 @@ private:
         return x;
     }
 
-    void
-    CollationFastLatinBuilder.addContractionEntry(int x, long cce0, long cce1,
-                                                  ) {
+    private void addContractionEntry(int x, long cce0, long cce1) {
         contractionCEs.addElement(x);
         contractionCEs.addElement(cce0);
         contractionCEs.addElement(cce1);
@@ -478,9 +404,7 @@ private:
         addUniqueCE(cce1);
     }
 
-    void
-    CollationFastLatinBuilder.addUniqueCE(long ce) {
-        if(U_FAILURE) { return; }
+    private void addUniqueCE(long ce) {
         if(ce == 0 || (ce >>> 32) == Collation.NO_CE_PRIMARY) { return; }
         ce &= ~(long)Collation.CASE_MASK;  // blank out case bits
         int i = binarySearch(uniqueCEs.getBuffer(), uniqueCEs.size(), ce);
@@ -489,25 +413,17 @@ private:
         }
     }
 
-    int
-    CollationFastLatinBuilder.getMiniCE(long ce) {
+    private int getMiniCE(long ce) {
         ce &= ~(long)Collation.CASE_MASK;  // blank out case bits
         int index = binarySearch(uniqueCEs.getBuffer(), uniqueCEs.size(), ce);
         assert(index >= 0);
         return miniCEs[index];
     }
 
-    boolean
-    CollationFastLatinBuilder.encodeUniqueCEs() {
-        if(U_FAILURE) { return false; }
-        uprv_free(miniCEs);
-        miniCEs = (char *)uprv_malloc(uniqueCEs.size() * 2);
-        if(miniCEs == null) {
-            errorCode = U_MEMORY_ALLOCATION_ERROR;
-            return false;
-        }
+    private void encodeUniqueCEs() {
+        miniCEs = new char[uniqueCEs.size()];
         int group = 1;
-        long lastGroupByte = result[group];
+        long lastGroupByte = result.charAt(group);
         // The lowest unique CE must be at least a secondary CE.
         assert(((int)uniqueCEs.elementAti(0) >>> 16) != 0);
         long prevPrimary = 0;
@@ -526,9 +442,9 @@ private:
                     assert(pri <= CollationFastLatin.MAX_LONG);
                     // Add the last "long primary" in or before the group
                     // into the upper 9 bits of the group entry.
-                    result.setCharAt(group, (UChar)((pri << 4) | lastGroupByte));
+                    result.setCharAt(group, (char)((pri << 4) | lastGroupByte));
                     if(++group < headerLength) {  // group is 1-based
-                        lastGroupByte = result[group];
+                        lastGroupByte = result.charAt(group);
                     } else {
                         lastGroupByte = 0xff;
                         break;
@@ -540,9 +456,9 @@ private:
                     } else if(pri < CollationFastLatin.MAX_LONG) {
                         pri += CollationFastLatin.LONG_INC;
                     } else {
-    #if DEBUG_COLLATION_FAST_LATIN_BUILDER
+    /* #if DEBUG_COLLATION_FAST_LATIN_BUILDER
                         printf("long-primary overflow for %08x\n", p);
-    #endif
+    #endif */
                         miniCEs[i] = CollationFastLatin.BAIL_OUT;
                         continue;
                     }
@@ -553,9 +469,9 @@ private:
                         // Reserve the highest primary weight for U+FFFF.
                         pri += CollationFastLatin.SHORT_INC;
                     } else {
-    #if DEBUG_COLLATION_FAST_LATIN_BUILDER
+    /* #if DEBUG_COLLATION_FAST_LATIN_BUILDER
                         printf("short-primary overflow for %08x\n", p);
-    #endif
+    #endif */
                         shortPrimaryOverflow = true;
                         miniCEs[i] = CollationFastLatin.BAIL_OUT;
                         continue;
@@ -621,21 +537,18 @@ private:
                 miniCEs[i] = (char)(pri | sec | ter);
             }
         }
-    #if DEBUG_COLLATION_FAST_LATIN_BUILDER
+    /* #if DEBUG_COLLATION_FAST_LATIN_BUILDER
         printf("last mini primary: %04x\n", pri);
-    #endif
-    #if DEBUG_COLLATION_FAST_LATIN_BUILDER >= 2
+    #endif */
+    /* #if DEBUG_COLLATION_FAST_LATIN_BUILDER >= 2
         for(int i = 0; i < uniqueCEs.size(); ++i) {
             long ce = uniqueCEs.elementAti(i);
             printf("unique CE 0x%016lx . 0x%04x\n", ce, miniCEs[i]);
         }
-    #endif
-        return U_SUCCESS;
+    #endif */
     }
 
-    boolean
-    CollationFastLatinBuilder.encodeCharCEs() {
-        if(U_FAILURE) { return false; }
+    private void encodeCharCEs() {
         int miniCEsStart = result.length();
         for(int i = 0; i < CollationFastLatin.NUM_FAST_CHARS; ++i) {
             result.append(0);  // initialize to completely ignorable
@@ -650,47 +563,44 @@ private:
                 // and if so, then we could reuse the other expansion.
                 // However, that seems unlikely.
                 int expansionIndex = result.length() - indexBase;
-                if(expansionIndex > (int32_t)CollationFastLatin.INDEX_MASK) {
+                if(expansionIndex > CollationFastLatin.INDEX_MASK) {
                     miniCE = CollationFastLatin.BAIL_OUT;
                 } else {
                     result.append((char)(miniCE >> 16)).append((char)miniCE);
                     miniCE = CollationFastLatin.EXPANSION | expansionIndex;
                 }
             }
-            result.setCharAt(miniCEsStart + i, (UChar)miniCE);
+            result.setCharAt(miniCEsStart + i, (char)miniCE);
         }
-        return U_SUCCESS;
     }
 
-    boolean
-    CollationFastLatinBuilder.encodeContractions() {
+    private void encodeContractions() {
         // We encode all contraction lists so that the first word of a list
         // terminates the previous list, and we only need one additional terminator at the end.
-        if(U_FAILURE) { return false; }
         int indexBase = headerLength + CollationFastLatin.NUM_FAST_CHARS;
         int firstContractionIndex = result.length();
         for(int i = 0; i < CollationFastLatin.NUM_FAST_CHARS; ++i) {
             long ce = charCEs[i][0];
             if(!isContractionCharCE(ce)) { continue; }
             int contractionIndex = result.length() - indexBase;
-            if(contractionIndex > (int32_t)CollationFastLatin.INDEX_MASK) {
-                result.setCharAt(headerLength + i, CollationFastLatin.BAIL_OUT);
+            if(contractionIndex > CollationFastLatin.INDEX_MASK) {
+                result.setCharAt(headerLength + i, (char) CollationFastLatin.BAIL_OUT);
                 continue;
             }
             boolean firstTriple = true;
-            for(int index = (int32_t)ce & 0x7fffffff;; index += 3) {
+            for(int index = (int)ce & 0x7fffffff;; index += 3) {
                 long x = contractionCEs.elementAti(index);
                 if(x == CollationFastLatin.CONTR_CHAR_MASK && !firstTriple) { break; }
                 long cce0 = contractionCEs.elementAti(index + 1);
                 long cce1 = contractionCEs.elementAti(index + 2);
                 int miniCE = encodeTwoCEs(cce0, cce1);
                 if(miniCE == CollationFastLatin.BAIL_OUT) {
-                    result.append((UChar)(x | (1 << CollationFastLatin.CONTR_LENGTH_SHIFT)));
+                    result.append((char)(x | (1 << CollationFastLatin.CONTR_LENGTH_SHIFT)));
                 } else if(miniCE <= 0xffff) {
-                    result.append((UChar)(x | (2 << CollationFastLatin.CONTR_LENGTH_SHIFT)));
-                    result.append((UChar)miniCE);
+                    result.append((char)(x | (2 << CollationFastLatin.CONTR_LENGTH_SHIFT)));
+                    result.append((char)miniCE);
                 } else {
-                    result.append((UChar)(x | (3 << CollationFastLatin.CONTR_LENGTH_SHIFT)));
+                    result.append((char)(x | (3 << CollationFastLatin.CONTR_LENGTH_SHIFT)));
                     result.append((char)(miniCE >> 16)).append((char)miniCE);
                 }
                 firstTriple = false;
@@ -699,17 +609,13 @@ private:
             // and if so, then we could truncate the result and reuse the other list.
             // However, that seems unlikely.
             result.setCharAt(headerLength + i,
-                            (UChar)(CollationFastLatin.CONTRACTION | contractionIndex));
+                            (char)(CollationFastLatin.CONTRACTION | contractionIndex));
         }
         if(result.length() > firstContractionIndex) {
             // Terminate the last contraction list.
-            result.append((UChar)CollationFastLatin.CONTR_CHAR_MASK);
+            result.append((char)CollationFastLatin.CONTR_CHAR_MASK);
         }
-        if(result.isBogus()) {
-            errorCode = U_MEMORY_ALLOCATION_ERROR;
-            return false;
-        }
-    #if DEBUG_COLLATION_FAST_LATIN_BUILDER
+    /* #if DEBUG_COLLATION_FAST_LATIN_BUILDER
         printf("** fast Latin %d * 2 = %d bytes\n", result.length(), result.length() * 2);
         puts("   header & below-digit groups map");
         int i = 0;
@@ -734,12 +640,10 @@ private:
             printf(" %04x", result[i]);
         }
         puts("");
-    #endif
-        return true;
+    #endif */
     }
 
-    int
-    CollationFastLatinBuilder.encodeTwoCEs(long first, long second) {
+    private int encodeTwoCEs(long first, long second) {
         if(first == 0) {
             return 0;  // completely ignorable
         }
@@ -783,3 +687,35 @@ private:
         }
         return (miniCE << 16) | miniCE1;
     }
+
+    private static boolean isContractionCharCE(long ce) {
+        return (ce >>> 32) == Collation.NO_CE_PRIMARY && ce != Collation.NO_CE;
+    }
+
+    private static final long CONTRACTION_FLAG = 0x80000000L;
+
+    // temporary "buffer"
+    private long ce0, ce1;
+
+    private long[][] charCEs = new long[CollationFastLatin.NUM_FAST_CHARS][2];
+    // TODO: does this declaration work? probably still need to new long[2] each one.
+
+    private UVector64 contractionCEs;
+    private UVector64 uniqueCEs;
+
+    /** One 16-bit mini CE per unique CE. */
+    private char[] miniCEs;
+
+    // These are constant for a given list of CollationData.scripts.
+    private long firstDigitPrimary;
+    private long firstLatinPrimary;
+    private long lastLatinPrimary;
+    // This determines the first normal primary weight which is mapped to
+    // a short mini primary. It must be >=firstDigitPrimary.
+    private long firstShortPrimary;
+
+    private boolean shortPrimaryOverflow;
+
+    private StringBuilder result = new StringBuilder();
+    private int headerLength;
+}
