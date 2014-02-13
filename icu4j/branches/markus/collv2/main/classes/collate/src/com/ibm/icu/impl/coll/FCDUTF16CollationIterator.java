@@ -71,7 +71,7 @@ public final class FCDUTF16CollationIterator extends UTF16CollationIterator {
     }
 
     @Override
-    void resetToOffset(int newOffset) {
+    public void resetToOffset(int newOffset) {
         reset();
         seq = rawSeq;
         start = segmentStart = pos = rawStart + newOffset;
@@ -80,7 +80,7 @@ public final class FCDUTF16CollationIterator extends UTF16CollationIterator {
     }
 
     @Override
-    int getOffset() {
+    public int getOffset() {
         if(checkDir != 0 || seq == rawSeq) {
             return pos - rawStart;
         } else if(pos == start) {
