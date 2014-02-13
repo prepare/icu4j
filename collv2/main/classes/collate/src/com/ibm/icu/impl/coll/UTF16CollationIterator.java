@@ -48,13 +48,13 @@ public class UTF16CollationIterator extends CollationIterator {
     }
 
     @Override
-    void resetToOffset(int newOffset) {
+    public void resetToOffset(int newOffset) {
         reset();
         pos = start + newOffset;
     }
 
     @Override
-    int getOffset() {
+    public int getOffset() {
         return pos - start;
     }
 

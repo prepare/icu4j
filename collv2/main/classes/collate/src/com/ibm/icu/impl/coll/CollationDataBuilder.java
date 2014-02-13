@@ -1244,13 +1244,13 @@ final class CollationDataBuilder {  // not final in C++
         }
 
         @Override
-        void resetToOffset(int newOffset) {
+        public void resetToOffset(int newOffset) {
             reset();
             pos = newOffset;
         }
 
         @Override
-        int getOffset() {
+        public int getOffset() {
             return pos;
         }
 
