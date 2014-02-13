@@ -1,8 +1,8 @@
 
  /*
  *******************************************************************************
- * Copyright (C) 2002-2012, International Business Machines Corporation and    *
- * others. All Rights Reserved.                                                *
+ * Copyright (C) 2002-2014, International Business Machines Corporation and
+ * others. All Rights Reserved.
  *******************************************************************************
  */
 
@@ -20,7 +20,6 @@ import java.util.TreeSet;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.impl.ICUResourceBundle;
-import com.ibm.icu.impl.ImplicitCEGenerator;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
@@ -2029,115 +2028,6 @@ public class CollationMiscTest extends TestFmwk {
     {
         String test[] = { "\u4E56\u4E56\u7761", "\u4E56\u5B69\u5B50" };
         genericLocaleStarter(new Locale("zh", "", "PINYIN"), test);
-    }
-
-    static final long topByte = 0xFF000000L;
-    static final long bottomByte = 0xFFL;
-    static final long fourBytes = 0xFFFFFFFFL;
-
-    static final int MAX_INPUT = 0x220001; // 2 * Unicode range + 2
-
-    private void show(int i, ImplicitCEGenerator imp) {
-        if (i >= 0 && i <= MAX_INPUT) {
-            logln(Utility.hex(i) + "\t" + Utility.hex(imp.getImplicitFromRaw(i) & fourBytes));
-        }
-    }
-
-    private void throwError(String title, int cp, ImplicitCEGenerator imp) {
-        throw new IllegalArgumentException(title + "\t" + Utility.hex(cp, 6) + "\t" + Utility.hex(imp.getImplicitFromRaw(cp) & fourBytes));
-    }
-
-    private void throwError(String title, long ce) {
-        errln(title + "\t" + Utility.hex(ce & fourBytes));
-    }
-
-    public void TestImplicitGeneration()
-    {
-        logln("Start");
-        try {
-            ImplicitCEGenerator foo = new ImplicitCEGenerator(0xE0, 0xE4);
-
-            //int x = foo.getRawImplicit(0xF810);
-            foo.getRawFromImplicit(0xE20303E7);
-
-            //int gap4 = foo.getGap4();
-            //logln("Gap4: " + gap4);
-            //int gap3 = foo.getGap3();
-            //int minTrail = foo.getMinTrail();
-            //int maxTrail = foo.getMaxTrail();
-            long last = 0;
-            long current;
-            for (int i = 0; i <= MAX_INPUT; ++i) {
-                current = foo.getImplicitFromRaw(i) & fourBytes;
-
-                // check that it round-trips AND that all intervening ones are illegal
-                int roundtrip = foo.getRawFromImplicit((int)current);
-                if (roundtrip != i) {
-                    throwError("No roundtrip", i, foo);
-                }
-                if (last != 0) {
-                    for (long j = last + 1; j < current; ++j) {
-                        roundtrip = foo.getRawFromImplicit((int)j);
-                        // raise an error if it *doesn't* find an error
-                        if (roundtrip != -1) {
-                            throwError("Fails to recognize illegal", j);
-                        }
-                    }
-                }
-                // now do other consistency checks
-                long lastBottom = last & bottomByte;
-                long currentBottom = current & bottomByte;
-                long lastTop = last & topByte;
-                long currentTop = current & topByte;
-
-                // do some consistency checks
-                /*
-                  long gap = current - last;
-                  if (currentBottom != 0) { // if we are a 4-byte
-                  // gap has to be at least gap4
-                  // and gap from minTrail, maxTrail has to be at least gap4
-                  if (gap <= gap4) foo.throwError("Failed gap4 between", i);
-                  if (currentBottom < minTrail + gap4) foo.throwError("Failed gap4 before", i);
-                  if (currentBottom > maxTrail - gap4) foo.throwError("Failed gap4 after", i);
-                  } else { // we are a three-byte
-                  gap = gap >> 8; // move gap down for comparison.
-                  long current3Bottom = (current >> 8) & bottomByte;
-                  if (gap <= gap3) foo.throwError("Failed gap3 between ", i);
-                  if (current3Bottom < minTrail + gap3) foo.throwError("Failed gap3 before", i);
-                  if (current3Bottom > maxTrail - gap3) foo.throwError("Failed gap3 after", i);
-                  }
-                */
-                // print out some values for spot-checking
-                if (lastTop != currentTop || i == 0x10000 || i == 0x110000) {
-                    show(i-3, foo);
-                    show(i-2, foo);
-                    show(i-1, foo);
-                    if (i == 0) {
-                        // do nothing
-                    } else if (lastBottom == 0 && currentBottom != 0) {
-                        logln("+ primary boundary, 4-byte CE's below");
-                    } else if (lastTop != currentTop) {
-                        logln("+ primary boundary");
-                    }
-                    show(i, foo);
-                    show(i+1, foo);
-                    show(i+2, foo);
-                    logln("...");
-                }
-                last = current;
-                if(foo.getCodePointFromRaw(foo.getRawFromCodePoint(i)) != i) {
-                    errln("No raw <-> code point roundtrip for "+Utility.hex(i));
-                }
-            }
-            show(MAX_INPUT-2, foo);
-            show(MAX_INPUT-1, foo);
-            show(MAX_INPUT, foo);
-        } catch (Exception e) {
-            e.printStackTrace();
-            warnln(e.getMessage());
-        } finally {
-            logln("End");
-        }
     }
 
     /* supercedes TestJ784 */
