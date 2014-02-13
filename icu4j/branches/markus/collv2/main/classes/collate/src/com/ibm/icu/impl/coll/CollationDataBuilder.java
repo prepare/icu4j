@@ -12,6 +12,7 @@
 package com.ibm.icu.impl.coll;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 
 import com.ibm.icu.impl.Norm2AllModes;
@@ -1141,15 +1142,13 @@ final class CollationDataBuilder {  // not final in C++
 
         fastLatinBuilder = new CollationFastLatinBuilder();
         if(fastLatinBuilder.forData(data)) {
-            /* TODO: port CollationFastLatinBuilder -- char[] table = fastLatinBuilder.getTable();
-            int length = fastLatinBuilder.lengthOfTable();
-            if(base != null && length == base.fastLatinTableLength &&
-                    Arrays.equals(table, base.fastLatinTable)) {
+            char[] table = fastLatinBuilder.getTable();
+            if(base != null && Arrays.equals(table, base.fastLatinTable)) {
                 // Same fast Latin table as in the base, use that one instead.
                 fastLatinBuilder = null;
                 table = base.fastLatinTable;
             }
-            data.fastLatinTable = table; */
+            data.fastLatinTable = table;
         } else {
             fastLatinBuilder = null;
         }
