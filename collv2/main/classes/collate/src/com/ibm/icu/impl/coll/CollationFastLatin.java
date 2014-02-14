@@ -205,7 +205,7 @@ public final class CollationFastLatin /* all static */ {
      */
     public static int getOptions(CollationData data, CollationSettings settings,
             char[] primaries) {
-        char[] header = data.fastLatinTable;
+        char[] header = data.fastLatinTableHeader;
         if(header == null) { return -1; }
         assert((header[0] >> 8) == VERSION);
         assert(primaries.length == LATIN_LIMIT);
@@ -236,7 +236,7 @@ public final class CollationFastLatin /* all static */ {
             int prevLastByte = 0;
             for(int i = 0; i < length;) {
                 // reordered last byte of the group
-                int lastByte = reorderTable[scripts[i] & 0xff];
+                int lastByte = reorderTable[scripts[i] & 0xff] & 0xff;
                 if(lastByte < prevLastByte) {
                     // The permutation affects the groups up to Latin.
                     return -1;

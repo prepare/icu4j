@@ -55,10 +55,9 @@ public final class ContractionsAndExpansions {
         while (trieIterator.hasNext() && !(range = trieIterator.next()).leadSurrogate) {
             enumCnERange(range.startCodePoint, range.endCodePoint, range.value, this);
         }
-        // Java porting note: handleCE32() throws RuntimeException when it encounters unexpected
-        // a CE32 type. Otherwise, d.base should not be null.
-        assert (d.base != null);
-
+        if (d.base == null) {
+            return;
+        }
         // Add all from the base data but only for un-tailored code points.
         tailored.freeze();
         checkTailored = 1;
@@ -121,8 +120,9 @@ public final class ContractionsAndExpansions {
             case Collation.BUILDER_DATA_TAG:
             case Collation.LEAD_SURROGATE_TAG:
                 // Java porting note: U_INTERNAL_PROGRAM_ERROR is set to errorCode in ICU4C.
-                throw new RuntimeException("Unexpected CE32 tag type ("
-                        + Collation.tagFromCE32(ce32) + ") for CE32 value: " + ce32);
+                throw new AssertionError(
+                        String.format("Unexpected CE32 tag type %d for ce32=0x%08x",
+                                Collation.tagFromCE32(ce32), ce32));
             case Collation.LONG_PRIMARY_TAG:
                 if (sink != null) {
                     sink.handleCE(Collation.ceFromLongPrimaryCE32(ce32));

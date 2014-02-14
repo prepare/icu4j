@@ -13,40 +13,37 @@ package com.ibm.icu.impl.coll;
 
 import com.ibm.icu.text.Collator;
 
-public final class CollationKeys /* all methods are static */{
+public final class CollationKeys /* all methods are static */ {
 
     // Java porting note: C++ SortKeyByteSink class extends a common class ByteSink,
     // which is not available in Java. We don't need a super class created for implementing
     // collation features.
     public static abstract class SortKeyByteSink {
         protected byte[] buffer_;
-        protected int capacity_;
+        // protected int capacity_; == buffer_.length
         private int appended_ = 0;
-        private int ignore_ = 0;
+        // not used in Java -- private int ignore_ = 0;
 
         public SortKeyByteSink(byte[] dest) {
             buffer_ = dest;
-            capacity_ = buffer_.length;
         }
 
-        public void IgnoreBytes(int numIgnore) {
+        /* not used in Java -- public void IgnoreBytes(int numIgnore) {
             ignore_ = numIgnore;
-        }
+        } */
 
         /**
          * @param bytes
          *            the array of byte
-         * @param start
-         *            the start index within the array to be appended
          * @param n
          *            the length of bytes to be appended
          */
-        public void Append(byte[] bytes, int start, int n) {
+        public void Append(byte[] bytes, int n) {
             if (n <= 0 || bytes == null) {
                 return;
             }
 
-            if (ignore_ > 0) {
+            /* not used in Java -- if (ignore_ > 0) {
                 int ignoreRest = ignore_ - n;
                 if (ignoreRest >= 0) {
                     ignore_ = ignoreRest;
@@ -56,34 +53,27 @@ public final class CollationKeys /* all methods are static */{
                     n = -ignoreRest;
                     ignore_ = 0;
                 }
-            }
+            } */
 
             int length = appended_;
             appended_ += n;
 
-            int available = capacity_ - length;
-            if (n < available) {
-                System.arraycopy(bytes, start, buffer_, appended_, n);
+            int available = buffer_.length - length;
+            if (n <= available) {
+                System.arraycopy(bytes, 0, buffer_, length, n);
             } else {
-                AppendBeyondCapacity(bytes, start, n, length);
+                AppendBeyondCapacity(bytes, 0, n, length);
             }
         }
 
-        public void Append(byte[] bytes, int len) {
-            Append(bytes, 0, len);
-        }
-
-        public void Append(byte[] bytes) {
-            Append(bytes, 0, bytes.length);
-        }
-
         public void Append(int b) {
-            if (ignore_ > 0) {
+            /* not used in Java -- if (ignore_ > 0) {
                 --ignore_;
-            } else {
-                if (appended_ < capacity_ || Resize(1, appended_)) {
+            } else */ {
+                if (appended_ < buffer_.length || Resize(1, appended_)) {
                     buffer_[appended_] = (byte) b;
                 }
+                ++appended_;
             }
         }
 
@@ -99,16 +89,16 @@ public final class CollationKeys /* all methods are static */{
         }
 
         public int GetRemainingCapacity() {
-            return ignore_ + capacity_ - appended_;
+            return /* not used in Java -- ignore_ + */ buffer_.length - appended_;
         }
 
         public boolean Overflowed() {
-            return appended_ > capacity_;
+            return appended_ > buffer_.length;
         }
 
-        public boolean IsOk() {
+        /* not used in Java -- public boolean IsOk() {
             return true;
-        }
+        } */
 
         /**
          * @param bytes
@@ -136,7 +126,7 @@ public final class CollationKeys /* all methods are static */{
         boolean needToWrite(int level) {
             return true;
         }
-    };
+    }
     public static final LevelCallback SIMPLE_LEVEL_FALLBACK = new LevelCallback();
 
     private static final class SortKeyLevel {
@@ -144,14 +134,14 @@ public final class CollationKeys /* all methods are static */{
 
         byte[] buffer = new byte[INITIAL_CAPACITY];
         int len = 0;
-        private static final boolean ok = true;  // In C++ "ok" is reset when memory allocations fail.
+        // not used in Java -- private static final boolean ok = true;  // In C++ "ok" is reset when memory allocations fail.
 
         SortKeyLevel() {
         }
 
-        boolean isOk() {
+        /* not used in Java -- boolean isOk() {
             return ok;
-        }
+        } */
 
         boolean isEmpty() {
             return len == 0;
@@ -232,9 +222,9 @@ public final class CollationKeys /* all methods are static */{
         }
 
         private boolean ensureCapacity(int appendCapacity) {
-            if (!ok) {
+            /* not used in Java -- if (!ok) {
                 return false;
-            }
+            } */
             int newCapacity = 2 * buffer.length;
             int altCapacity = len + 2 * appendCapacity;
             if (newCapacity < altCapacity) {
@@ -249,6 +239,10 @@ public final class CollationKeys /* all methods are static */{
 
             return true;
         }
+    }
+
+    private static SortKeyLevel getSortKeyLevel(int levels, int level) {
+        return (levels & level) != 0 ? new SortKeyLevel() : null;
     }
 
     private CollationKeys() {
@@ -343,10 +337,11 @@ public final class CollationKeys /* all methods are static */{
 
         int tertiaryMask = CollationSettings.getTertiaryMask(options);
 
-        SortKeyLevel cases = new SortKeyLevel();
-        SortKeyLevel secondaries = new SortKeyLevel();
-        SortKeyLevel tertiaries = new SortKeyLevel();
-        SortKeyLevel quaternaries = new SortKeyLevel();
+        byte[] p234 = new byte[3];
+        SortKeyLevel cases = getSortKeyLevel(levels, Collation.CASE_LEVEL_FLAG);
+        SortKeyLevel secondaries = getSortKeyLevel(levels, Collation.SECONDARY_LEVEL_FLAG);
+        SortKeyLevel tertiaries = getSortKeyLevel(levels, Collation.TERTIARY_LEVEL_FLAG);
+        SortKeyLevel quaternaries = getSortKeyLevel(levels, Collation.QUATERNARY_LEVEL_FLAG);
 
         int compressedP1 = 0; // 0==no compression; otherwise reordered compressible lead byte
         int commonCases = 0;
@@ -379,7 +374,7 @@ public final class CollationKeys /* all methods are static */{
                     if ((levels & Collation.QUATERNARY_LEVEL_FLAG) != 0) {
                         int p1 = (int) p >>> 24;
                         if (reorderTable != null) {
-                            p1 = reorderTable[p1];
+                            p1 = reorderTable[p1] & 0xff;
                         }
                         if (p1 >= QUAT_SHIFTED_LIMIT_BYTE) {
                             // Prevent shifted primary lead bytes from
@@ -401,7 +396,7 @@ public final class CollationKeys /* all methods are static */{
             if (p > Collation.NO_CE_PRIMARY && (levels & Collation.PRIMARY_LEVEL_FLAG) != 0) {
                 int p1 = (int) p >>> 24;
                 if (reorderTable != null) {
-                    p1 = reorderTable[p1];
+                    p1 = reorderTable[p1] & 0xff;
                 }
                 if (p1 != compressedP1) {
                     if (compressedP1 != 0) {
@@ -418,7 +413,7 @@ public final class CollationKeys /* all methods are static */{
                     sink.Append(p1);
                     // Test the un-reordered lead byte for compressibility but
                     // remember the reordered lead byte.
-                    if (compressibleBytes[(int) (p >>> 24)]) {
+                    if (compressibleBytes[(int) p >>> 24]) {
                         compressedP1 = p1;
                     } else {
                         compressedP1 = 0;
@@ -426,26 +421,30 @@ public final class CollationKeys /* all methods are static */{
                 }
                 byte p2 = (byte) (p >>> 16);
                 if (p2 != 0) {
-                    byte[] buffer = new byte[] { p2, (byte) (p >>> 8), (byte) p };
-                    sink.Append(buffer, (buffer[1] == 0) ? 1 : (buffer[2] == 0) ? 2 : 3);
+                    p234[0] = p2;
+                    p234[1] = (byte) (p >>> 8);
+                    p234[2] = (byte) p;
+                    sink.Append(p234, (p234[1] == 0) ? 1 : (p234[2] == 0) ? 2 : 3);
                 }
                 // Optimization for internalNextSortKeyPart():
                 // When the primary level overflows we can stop because we need not
                 // calculate (preflight) the whole sort key length.
                 if (!preflight && sink.Overflowed()) {
-                    if (!sink.IsOk()) {
-                        // Java porting note: U_MEMORY_ALLOCATION_ERROR is set here in
-                        // C implementation. IsOk() in Java always returns true, so this
-                        // is a dead code.
-                        throw new RuntimeException("SortKeyByteSink.IsOK() returned false");
-                    }
+                    // not used in Java -- if (!sink.IsOk()) {
+                    // Java porting note: U_MEMORY_ALLOCATION_ERROR is set here in
+                    // C implementation. IsOk() in Java always returns true, so this
+                    // is a dead code.
                     return;
                 }
             }
 
-            long lower32 = ce & 0xffffffff;
+            int lower32 = (int) ce;
+            if (lower32 == 0) {
+                continue;
+            } // completely ignorable, no secondary/case/tertiary/quaternary
+
             if ((levels & Collation.SECONDARY_LEVEL_FLAG) != 0) {
-                int s = (int) (lower32 >>> 16); // / 16 bits
+                int s = lower32 >>> 16;  // 16 bits
                 if (s == 0) {
                     // secondary ignorable
                 } else if (s == Collation.COMMON_WEIGHT16) {
@@ -500,18 +499,14 @@ public final class CollationKeys /* all methods are static */{
                 }
             }
 
-            if (lower32 == 0) {
-                continue;
-            } // completely ignorable, no case/tertiary/quaternary
-
             if ((levels & Collation.CASE_LEVEL_FLAG) != 0) {
                 if ((CollationSettings.getStrength(options) == Collator.PRIMARY) ? p == 0
-                        : lower32 <= 0xffff) {
+                        : (lower32 >>> 16) == 0) {
                     // Primary+caseLevel: Ignore case level weights of primary ignorables.
                     // Otherwise: Ignore case level weights of secondary ignorables.
                     // For details see the comments in the CollationCompare class.
                 } else {
-                    int c = (int) (lower32 >>> 8) & 0xff; // case bits & tertiary lead byte
+                    int c = (lower32 >>> 8) & 0xff; // case bits & tertiary lead byte
                     assert ((c & 0xc0) != 0xc0);
                     if ((c & 0xc0) == 0 && c > Collation.MERGE_SEPARATOR_BYTE) {
                         ++commonCases;
@@ -563,7 +558,7 @@ public final class CollationKeys /* all methods are static */{
             }
 
             if ((levels & Collation.TERTIARY_LEVEL_FLAG) != 0) {
-                int t = (int) lower32 & tertiaryMask;
+                int t = lower32 & tertiaryMask;
                 assert ((lower32 & 0xc000) != 0xc000);
                 if (t == Collation.COMMON_WEIGHT16) {
                     ++commonTertiaries;
@@ -627,7 +622,7 @@ public final class CollationKeys /* all methods are static */{
                     // Tertiary CE 86..BF . C6..FF
                     if (t <= Collation.MERGE_SEPARATOR_WEIGHT16) {
                         // Keep separators unchanged.
-                    } else if (lower32 > 0xffff) {
+                    } else if ((lower32 >>> 16) != 0) {
                         // Invert case bits of primary & secondary CEs.
                         t ^= 0xc000;
                         if (t < (TER_UPPER_FIRST_COMMON_HIGH << 8)) {
@@ -658,7 +653,7 @@ public final class CollationKeys /* all methods are static */{
             }
 
             if ((levels & Collation.QUATERNARY_LEVEL_FLAG) != 0) {
-                int q = (int) lower32 & 0xffff;
+                int q = lower32 & 0xffff;
                 if ((q & 0xc0) == 0 && q > Collation.MERGE_SEPARATOR_WEIGHT16) {
                     ++commonQuaternaries;
                 } else if (q <= Collation.MERGE_SEPARATOR_WEIGHT16
@@ -706,12 +701,12 @@ public final class CollationKeys /* all methods are static */{
         }
 
         // Append the beyond-primary levels.
-        boolean ok = true;
+        // not used in Java -- boolean ok = true;
         if ((levels & Collation.SECONDARY_LEVEL_FLAG) != 0) {
             if (!callback.needToWrite(Collation.SECONDARY_LEVEL)) {
                 return;
             }
-            ok &= secondaries.isOk();
+            // not used in Java -- ok &= secondaries.isOk();
             sink.Append(Collation.LEVEL_SEPARATOR_BYTE);
             byte[] secs = secondaries.data();
             int length = secondaries.length() - 1; // Ignore the trailing NO_CE.
@@ -757,7 +752,7 @@ public final class CollationKeys /* all methods are static */{
             if (!callback.needToWrite(Collation.CASE_LEVEL)) {
                 return;
             }
-            ok &= cases.isOk();
+            // not used in Java -- ok &= cases.isOk();
             sink.Append(Collation.LEVEL_SEPARATOR_BYTE);
             // Write pairs of nibbles as bytes, except separator bytes as themselves.
             int length = cases.length() - 1; // Ignore the trailing NO_CE.
@@ -790,7 +785,7 @@ public final class CollationKeys /* all methods are static */{
             if (!callback.needToWrite(Collation.TERTIARY_LEVEL)) {
                 return;
             }
-            ok &= tertiaries.isOk();
+            // not used in Java -- ok &= tertiaries.isOk();
             sink.Append(Collation.LEVEL_SEPARATOR_BYTE);
             tertiaries.appendTo(sink);
         }
@@ -799,17 +794,14 @@ public final class CollationKeys /* all methods are static */{
             if (!callback.needToWrite(Collation.QUATERNARY_LEVEL)) {
                 return;
             }
-            ok &= quaternaries.isOk();
+            // not used in Java -- ok &= quaternaries.isOk();
             sink.Append(Collation.LEVEL_SEPARATOR_BYTE);
             quaternaries.appendTo(sink);
         }
 
-        if (!ok || !sink.IsOk()) {
-            // Java porting note: U_MEMORY_ALLOCATION_ERROR is set here in
-            // C implementation. IsOk() in Java always returns true, so this
-            // is a dead code.
-            throw new RuntimeException(
-                    "IsOk() returned false by either SortKeyLevel or SortKeyByteSink");
-        }
+        // not used in Java -- if (!ok || !sink.IsOk()) {
+        // Java porting note: U_MEMORY_ALLOCATION_ERROR is set here in
+        // C implementation. IsOk() in Java always returns true, so this
+        // is a dead code.
     }
 }

@@ -1140,7 +1140,7 @@ public final class RuleBasedCollator extends Collator {
 
         @Override
         protected boolean Resize(int appendCapacity, int length) {
-            int newCapacity = 2 * capacity_;
+            int newCapacity = 2 * buffer_.length;
             int altCapacity = length + 2 * appendCapacity;
             if (newCapacity < altCapacity) {
                 newCapacity = altCapacity;
@@ -1148,23 +1148,32 @@ public final class RuleBasedCollator extends Collator {
             if (newCapacity < 200) {
                 newCapacity = 200;
             }
-            assert key_.size == length;
-            buffer_ = key_.ensureCapacity(newCapacity).bytes;
-            capacity_ = newCapacity;
+            // Do not call key_.ensureCapacity(newCapacity) because we do not
+            // keep key_.size in sync with appended_.
+            // We only set it when we are done.
+            byte[] newBytes = new byte[newCapacity];
+            System.arraycopy(buffer_, 0, newBytes, 0, length);
+            buffer_ = key_.bytes = newBytes;
             return true;
         }
 
         private RawCollationKey key_;
     }
 
-    private RawCollationKey getRawCollationKey(String source, RawCollationKey key, CollationBuffer buffer) {
+    private RawCollationKey getRawCollationKey(CharSequence source, RawCollationKey key, CollationBuffer buffer) {
         if (key == null) {
-            key = new RawCollationKey();
+            key = new RawCollationKey(simpleKeyLengthEstimate(source));
+        } else if (key.bytes == null) {
+            key.bytes = new byte[simpleKeyLengthEstimate(source)];
         }
         CollationKeyByteSink sink = new CollationKeyByteSink(key);
         writeSortKey(source, sink, buffer);
         key.size = sink.NumberOfBytesAppended();
         return key;
+    }
+
+    private int simpleKeyLengthEstimate(CharSequence source) {
+        return 2 * source.length() + 10;
     }
 
     private void writeSortKey(CharSequence s, CollationKeyByteSink sink, CollationBuffer buffer) {
@@ -1223,7 +1232,7 @@ public final class RuleBasedCollator extends Collator {
                 buffer.leftFCDUTF16Iter.setText(numeric, str, 0);
                 iter = buffer.leftFCDUTF16Iter;
             }
-            int length = iter.getCEsLength() - 1;
+            int length = iter.fetchCEs() - 1;
             assert length >= 0 && iter.getCE(length) == Collation.NO_CE;
             long[] ces = new long[length];
             System.arraycopy(iter.getCEs(), 0, ces, 0, length);
