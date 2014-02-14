@@ -251,7 +251,7 @@ public class IdentifierInfo {
         //       time it is created, in setIdentifier().
         final int cardinalityPlus = requiredScripts.cardinality() + (commonAmongAlternates.cardinality() == 0 ? scriptSetSet.size() : 1);
         if (cardinalityPlus < 2) {
-            return RestrictionLevel.HIGHLY_RESTRICTIVE;
+            return RestrictionLevel.SINGLE_SCRIPT;
         }
         if (containsWithAlternates(JAPANESE, requiredScripts) || containsWithAlternates(CHINESE, requiredScripts)
                 || containsWithAlternates(KOREAN, requiredScripts)) {
