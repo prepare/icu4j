@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2008-2013, International Business Machines Corporation and
+ * Copyright (C) 2008-2014, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -243,7 +243,7 @@ public class AlphabeticIndexTest extends TestFmwk {
         AlphabeticIndex alphabeticIndex = new AlphabeticIndex(Locale.ENGLISH);
         RuleBasedCollator collator = alphabeticIndex.getCollator();
         collator.setStrength(Collator.IDENTICAL);
-        Collection<String> firsts = AlphabeticIndex.getFirstCharactersInScripts();
+        Collection<String> firsts = alphabeticIndex.getFirstCharactersInScripts();
         // Verify that each script is represented exactly once.
         UnicodeSet missingScripts = new UnicodeSet("[^[:sc=inherited:][:sc=unknown:][:sc=common:][:Script=Braille:]]");
         String last = "";
@@ -635,7 +635,8 @@ public class AlphabeticIndexTest extends TestFmwk {
     }
 
     public void TestFirstScriptCharacters() {
-        Collection<String> firstCharacters = AlphabeticIndex.getFirstCharactersInScripts();
+        Collection<String> firstCharacters =
+                new AlphabeticIndex(ULocale.ENGLISH).getFirstCharactersInScripts();
         Collection<String> expectedFirstCharacters = firstStringsInScript((RuleBasedCollator) Collator.getInstance(ULocale.ROOT));
         Collection<String> diff = new TreeSet<String>(firstCharacters);
         diff.removeAll(expectedFirstCharacters);
