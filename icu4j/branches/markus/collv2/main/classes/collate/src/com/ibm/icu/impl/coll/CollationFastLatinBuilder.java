@@ -111,10 +111,18 @@ final class CollationFastLatinBuilder {
         return ok;
     }
 
+    // C++ returns one combined array with the contents of the result buffer.
+    // Java returns two arrays (header & table) because we cannot use pointer arithmetic,
+    // and we do not want to index into the table with an offset.
+    char[] getHeader() {
+        char[] resultArray = new char[headerLength];
+        result.getChars(0, headerLength, resultArray, 0);
+        return resultArray;
+    }
+
     char[] getTable() {
-        int length = result.length();
-        char[] resultArray = new char[length];
-        result.getChars(0, length, resultArray, 0);
+        char[] resultArray = new char[result.length() - headerLength];
+        result.getChars(headerLength, result.length(), resultArray, 0);
         return resultArray;
     }
 

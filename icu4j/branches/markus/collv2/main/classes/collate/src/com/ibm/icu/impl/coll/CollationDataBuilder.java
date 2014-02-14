@@ -1142,12 +1142,17 @@ final class CollationDataBuilder {  // not final in C++
 
         fastLatinBuilder = new CollationFastLatinBuilder();
         if(fastLatinBuilder.forData(data)) {
+            char[] header = fastLatinBuilder.getHeader();
             char[] table = fastLatinBuilder.getTable();
-            if(base != null && Arrays.equals(table, base.fastLatinTable)) {
+            if(base != null &&
+                    Arrays.equals(header, base.fastLatinTableHeader) &&
+                    Arrays.equals(table, base.fastLatinTable)) {
                 // Same fast Latin table as in the base, use that one instead.
                 fastLatinBuilder = null;
+                header = base.fastLatinTableHeader;
                 table = base.fastLatinTable;
             }
+            data.fastLatinTableHeader = header;
             data.fastLatinTable = table;
         } else {
             fastLatinBuilder = null;

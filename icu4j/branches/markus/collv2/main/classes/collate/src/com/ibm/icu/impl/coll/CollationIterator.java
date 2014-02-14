@@ -374,11 +374,11 @@ public abstract class CollationIterator {
      * (See also the constructor comments.)
      */
     protected final void reset(boolean numeric) {
-        reset();
-        isNumeric = numeric;
         if(ceBuffer == null) {
             ceBuffer = new CEBuffer();
         }
+        reset();
+        isNumeric = numeric;
     }
 
     /**
