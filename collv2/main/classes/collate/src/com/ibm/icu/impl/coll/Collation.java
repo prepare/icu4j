@@ -409,7 +409,7 @@ public final class Collation {
 
     /** Returns a 64-bit CE from a simple CE32 (not special). */
     static long ceFromSimpleCE32(int ce32) {
-        // normal form ppppsstt . pppp0000ss00tt00
+        // normal form ppppsstt -> pppp0000ss00tt00
         assert (ce32 & 0xff) < SPECIAL_CE32_LOW_BYTE;
         return ((long)(ce32 & 0xffff0000) << 32) | ((ce32 & 0xff00) << 16) | ((ce32 & 0xff) << 8);
     }
@@ -418,17 +418,17 @@ public final class Collation {
     static long ceFromCE32(int ce32) {
         int tertiary = ce32 & 0xff;
         if(tertiary < SPECIAL_CE32_LOW_BYTE) {
-            // normal form ppppsstt . pppp0000ss00tt00
-            return ((long)(ce32 & 0xffff0000) << 32) | ((ce32 & 0xff00) << 16) | (tertiary << 8);
+            // normal form ppppsstt -> pppp0000ss00tt00
+            return ((long)(ce32 & 0xffff0000) << 32) | ((long)(ce32 & 0xff00) << 16) | (tertiary << 8);
         } else {
             ce32 -= tertiary;
             if((tertiary & 0xf) == LONG_PRIMARY_TAG) {
-                // long-primary form ppppppC1 . pppppp00050000500
+                // long-primary form ppppppC1 -> pppppp00050000500
                 return ((long)ce32 << 32) | COMMON_SEC_AND_TER_CE;
             } else {
-                // long-secondary form ssssttC2 . 00000000sssstt00
+                // long-secondary form ssssttC2 -> 00000000sssstt00
                 assert (tertiary & 0xf) == LONG_SECONDARY_TAG;
-                return (long)ce32 & 0xffffffffL;
+                return ce32 & 0xffffffffL;
             }
         }
     }

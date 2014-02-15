@@ -685,7 +685,7 @@ public final class CollationFastLatin /* all static */ {
                 c2 = s16.charAt(nextIndex++);
                 if(c2 > LATIN_MAX) {
                     if(PUNCT_START <= c2 && c2 < PUNCT_LIMIT) {
-                        c2 = c2 - PUNCT_START + LATIN_LIMIT;  // 2000..203F . 0180..01BF
+                        c2 = c2 - PUNCT_START + LATIN_LIMIT;  // 2000..203F -> 0180..01BF
                     } else if(c2 == 0xfffe || c2 == 0xffff) {
                         c2 = -1;  // U+FFFE & U+FFFF cannot occur in contractions.
                     } else {

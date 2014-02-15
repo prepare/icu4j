@@ -32,6 +32,7 @@ import com.ibm.icu.text.Collator;
 import com.ibm.icu.text.Normalizer2;
 import com.ibm.icu.text.RawCollationKey;
 import com.ibm.icu.text.RuleBasedCollator;
+import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
 import com.ibm.icu.util.ULocale;
 
@@ -665,8 +666,7 @@ public class AlphabeticIndexTest extends TestFmwk {
     private static Collection<String> firstStringsInScript(RuleBasedCollator ruleBasedCollator) {
         String[] results = new String[UScript.CODE_LIMIT];
         for (String current : TO_TRY) {
-            if (ruleBasedCollator.compare(current, "a") < 0) { // TODO fix; we only want "real" script characters, not
-                // symbols.
+            if (ruleBasedCollator.compare(current, "a") < 0) { // we only want "real" script characters, not symbols.
                 continue;
             }
             int script = UScript.getScript(current.codePointAt(0));
@@ -888,9 +888,9 @@ public class AlphabeticIndexTest extends TestFmwk {
         assertEquals("getBucketIndex(i)", 9, bucketIndex);
         bucketIndex = index.getBucketIndex("\u03B1");
         assertEquals("getBucketIndex(Greek alpha)", 27, bucketIndex);
-        // TODO: Test with an unassigned code point (not just U+FFFF)
-        // when unassigned code points are not in the Hani reordering group any more.
-        // String unassigned = UTF16.valueOf(0x50005);
+        // U+50005 is an unassigned code point which sorts at the end, independent of the Hani group.
+        bucketIndex = index.getBucketIndex(UTF16.valueOf(0x50005));
+        assertEquals("getBucketIndex(U+50005)", 27, bucketIndex);
         bucketIndex = index.getBucketIndex("\uFFFF");
         assertEquals("getBucketIndex(U+FFFF)", 27, bucketIndex);
     }
@@ -902,7 +902,7 @@ public class AlphabeticIndexTest extends TestFmwk {
         RuleBasedCollator coll = (RuleBasedCollator) Collator.getInstance(ULocale.CHINESE);
         coll.setReorderCodes(UScript.HAN);
         AlphabeticIndex index = new AlphabeticIndex(coll);
-        assertEquals("getBucketCount()", 1, index.getBucketCount());   // ... (underflow only)
+        assertEquals("getBucketCount()", 28, index.getBucketCount());   // ... A-Z ...
         index.addLabels(ULocale.CHINESE);
         assertEquals("getBucketCount()", 28, index.getBucketCount());  // ... A-Z ...
         int bucketIndex = index.getBucketIndex("\u897f");
@@ -911,9 +911,9 @@ public class AlphabeticIndexTest extends TestFmwk {
         assertEquals("getBucketIndex(i)", 9, bucketIndex);
         bucketIndex = index.getBucketIndex("\u03B1");
         assertEquals("getBucketIndex(Greek alpha)", 27, bucketIndex);
-        // TODO: Test with an unassigned code point (not just U+FFFF)
-        // when unassigned code points are not in the Hani reordering group any more.
-        // String unassigned = UTF16.valueOf(0x50005);
+        // U+50005 is an unassigned code point which sorts at the end, independent of the Hani group.
+        bucketIndex = index.getBucketIndex(UTF16.valueOf(0x50005));
+        assertEquals("getBucketIndex(U+50005)", 27, bucketIndex);
         bucketIndex = index.getBucketIndex("\uFFFF");
         assertEquals("getBucketIndex(U+FFFF)", 27, bucketIndex);
     }
@@ -986,5 +986,18 @@ public class AlphabeticIndexTest extends TestFmwk {
         assertEquals("label 3", "ㄇ", immIndex.getBucket(3).getLabel());
         assertEquals("label 4", "ㄈ", immIndex.getBucket(4).getLabel());
         assertEquals("label 5", "ㄉ", immIndex.getBucket(5).getLabel());
+    }
+
+    public void TestJapaneseKanji() {
+        AlphabeticIndex index = new AlphabeticIndex(ULocale.JAPANESE);
+        AlphabeticIndex.ImmutableIndex immIndex = index.buildImmutableIndex();
+        // There are no index characters for Kanji in the Japanese standard collator.
+        // They should all go into the overflow bucket.
+        final int[] kanji = { 0x4E9C, 0x95C7, 0x4E00, 0x58F1 };
+        int overflowIndex = immIndex.getBucketCount() - 1;
+        for(int i = 0; i < kanji.length; ++i) {
+            String msg = String.format("kanji[%d]=U+%04X in overflow bucket", i, kanji[i]);
+            assertEquals(msg, overflowIndex, immIndex.getBucketIndex(UTF16.valueOf(kanji[i])));
+        }
     }
 }

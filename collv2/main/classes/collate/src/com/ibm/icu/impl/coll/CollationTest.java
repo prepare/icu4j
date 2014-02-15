@@ -455,7 +455,7 @@ private:
             }
             if(!(previous < w && w < upperLimit)) {
                 errln("CollationWeights.allocWeights(%lx, %lx, %ld).nextWeight() "
-                      "number %ld . %lx not between %lx and %lx",
+                      "number %ld -> %lx not between %lx and %lx",
                       (long)lowerLimit, (long)upperLimit, (long)n,
                       (long)(i + 1), (long)w, (long)previous, (long)upperLimit);
                 return;
@@ -824,7 +824,7 @@ private:
                 }
                 uhash_puti(prevLocales, uprv_strdup(actual.getName()), 1);
                 errorCode.assertSuccess();
-                logln("TestTailoredElements(): requested %s . actual %s",
+                logln("TestTailoredElements(): requested %s -> actual %s",
                       localeWithType.getName(), actual.getName());
                 RuleBasedCollator *rbc = dynamic_cast<RuleBasedCollator *>(coll.getAlias());
                 if(rbc == null) {
