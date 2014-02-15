@@ -248,13 +248,11 @@ public class AlphabeticIndexTest extends TestFmwk {
         UnicodeSet missingScripts = new UnicodeSet("[^[:sc=inherited:][:sc=unknown:][:sc=common:][:Script=Braille:]]");
         String last = "";
         for (String index : firsts) {
-            if (index.equals("\uFFFF")) {
-                continue;
-            }
             if (collator.compare(last,index) >= 0) {
                 errln("Characters not in order: " + last + " !< " + index);
             }
-            int script = UScript.getScript(index.codePointAt(0)); // we actually look at just the first char
+            int script = getFirstRealScript(index);
+            if (script == UScript.UNKNOWN) { continue; }
             UnicodeSet s = new UnicodeSet().applyIntPropertyValue(UProperty.SCRIPT, script);
             if (missingScripts.containsNone(s)) {
                 errln("2nd character in script: " + index + "\t" + new UnicodeSet(missingScripts).retainAll(s).toPattern(false));
@@ -277,6 +275,18 @@ public class AlphabeticIndexTest extends TestFmwk {
             }
             errln("Missing character from:" + missingScriptNames + " -- " + missingScripts);
         }
+    }
+
+    private static final int getFirstRealScript(CharSequence s) {
+        for (int i = 0; i < s.length();) {
+            int c = Character.codePointAt(s, i);
+            int script = UScript.getScript(c);
+            if (script != UScript.UNKNOWN && script != UScript.INHERITED && script != UScript.COMMON) {
+                return script;
+            }
+            i += Character.charCount(c);
+        }
+        return UScript.UNKNOWN;
     }
 
     public void TestBuckets() {
@@ -675,12 +685,11 @@ public class AlphabeticIndexTest extends TestFmwk {
             if (extras.size() != 0) {
                 Normalizer2 normalizer = Normalizer2.getNFKCInstance();
                 for (String current : extras) {
-                    if (!TO_TRY.containsAll(current))
-                        continue;
-                    if (!normalizer.isNormalized(current) || ruleBasedCollator.compare(current, "a") < 0) {
+                    if (!normalizer.isNormalized(current) || ruleBasedCollator.compare(current, "9") <= 0) {
                         continue;
                     }
-                    int script = UScript.getScript(current.codePointAt(0));
+                    int script = getFirstRealScript(current);
+                    if (script == UScript.UNKNOWN && !isUnassignedBoundary(current)) { continue; }
                     if (results[script] == null) {
                         results[script] = current;
                     } else if (ruleBasedCollator.compare(current, results[script]) < 0) {
@@ -691,11 +700,8 @@ public class AlphabeticIndexTest extends TestFmwk {
         } catch (Exception e) {
         } // why have a checked exception???
 
-        results[UScript.LATIN] = "A";  // See comment about en_US_POSIX in the implementation.
         // TODO: We should not test that we get the same strings, but that we
         // get strings that sort primary-equal to those from the implementation.
-        // This whole test becomes obsolete when the root collator adds script-first-primary mappings
-        // and the AlphabeticIndex implementation starts using them.
 
         Collection<String> result = new ArrayList<String>();
         for (int i = 0; i < results.length; ++i) {
@@ -703,12 +709,15 @@ public class AlphabeticIndexTest extends TestFmwk {
                 result.add(results[i]);
             }
         }
-        // AlphabeticIndex also has a boundary string for the ultimate overflow bucket,
-        // for unassigned code points and trailing/special primary weights.
-        result.add("\uFFFF");
         return result;
     }
 
+    private static final boolean isUnassignedBoundary(CharSequence s) {
+        // The root collator provides a script-first-primary boundary contraction
+        // for the unassigned-implicit range.
+        return s.charAt(0) == 0xfdd1 &&
+                UScript.getScript(Character.codePointAt(s, 1)) == UScript.UNKNOWN;
+    }
 
     public void TestZZZ() {
         //            int x = 3;
