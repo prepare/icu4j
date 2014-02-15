@@ -231,7 +231,7 @@ final class CollationDataReader /* all static */ {
             }
             data.ce32s = new int[length / 4];
             for(int i = 0; i < length / 4; ++i) {
-                ds.readInt();
+                data.ce32s[i] = ds.readInt();
             }
             length &= 3;
         }

@@ -296,10 +296,6 @@ public final class AlphabeticIndex<V> implements Iterable<Bucket<V>> {
             }
         }
 
-        if (locale != null) {
-            addIndexExemplars(locale);
-        }
-
         // Chinese index characters, which are specific to each of the several Chinese tailorings,
         // take precedence over the single locale data exemplar set per language.
         if (!addChineseIndexCharacters() && locale != null) {
