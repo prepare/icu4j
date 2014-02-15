@@ -1334,13 +1334,13 @@ public final class CollationBuilder extends CollationRuleParser.Sink {
         return
             // CE byte offsets, to ensure valid CE bytes, and case bits 11
             0x4040000006002000L +
-            // index bits 19..13 . primary byte 1 = CE bits 63..56 (byte values 40..BF)
+            // index bits 19..13 -> primary byte 1 = CE bits 63..56 (byte values 40..BF)
             ((long)(index & 0xfe000) << 43) +
-            // index bits 12..6 . primary byte 2 = CE bits 55..48 (byte values 40..BF)
+            // index bits 12..6 -> primary byte 2 = CE bits 55..48 (byte values 40..BF)
             ((long)(index & 0x1fc0) << 42) +
-            // index bits 5..0 . secondary byte 1 = CE bits 31..24 (byte values 06..45)
+            // index bits 5..0 -> secondary byte 1 = CE bits 31..24 (byte values 06..45)
             ((index & 0x3f) << 24) +
-            // strength bits 1..0 . tertiary byte 1 = CE bits 13..8 (byte values 20..23)
+            // strength bits 1..0 -> tertiary byte 1 = CE bits 13..8 (byte values 20..23)
             (strength << 8);
     }
     private static int indexFromTempCE(long tempCE) {

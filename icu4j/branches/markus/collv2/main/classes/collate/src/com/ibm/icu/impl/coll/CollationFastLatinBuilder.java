@@ -551,7 +551,7 @@ final class CollationFastLatinBuilder {
     /* #if DEBUG_COLLATION_FAST_LATIN_BUILDER >= 2
         for(int i = 0; i < uniqueCEs.size(); ++i) {
             long ce = uniqueCEs.elementAti(i);
-            printf("unique CE 0x%016lx . 0x%04x\n", ce, miniCEs[i]);
+            printf("unique CE 0x%016lx -> 0x%04x\n", ce, miniCEs[i]);
         }
     #endif */
     }

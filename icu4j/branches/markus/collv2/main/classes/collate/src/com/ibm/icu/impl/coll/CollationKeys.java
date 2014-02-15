@@ -298,11 +298,15 @@ public final class CollationKeys /* all methods are static */ {
      * strength, excluding the CASE_LEVEL which is independent of the strength, and excluding
      * IDENTICAL_LEVEL which this function does not write.
      */
-    private static final int levelMasks[] = new int[] { 2, // UCOL_PRIMARY . PRIMARY_LEVEL
-            6, // UCOL_SECONDARY . up to SECONDARY_LEVEL
-            0x16, // UCOL_TERTIARY . up to TERTIARY_LEVEL
-            0x36, // UCOL_QUATERNARY . up to QUATERNARY_LEVEL
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x36 // UCOL_IDENTICAL . up to QUATERNARY_LEVEL
+    private static final int levelMasks[] = new int[] {
+        2,          // UCOL_PRIMARY -> PRIMARY_LEVEL
+        6,          // UCOL_SECONDARY -> up to SECONDARY_LEVEL
+        0x16,       // UCOL_TERTIARY -> up to TERTIARY_LEVEL
+        0x36,       // UCOL_QUATERNARY -> up to QUATERNARY_LEVEL
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0,
+        0x36        // UCOL_IDENTICAL -> up to QUATERNARY_LEVEL
     };
 
     /**
@@ -613,13 +617,13 @@ public final class CollationKeys /* all methods are static */ {
                     // Their case+tertiary weights must be greater than those of
                     // primary and secondary CEs.
                     //
-                    // Separators 01..02 . 01..02 (unchanged)
-                    // Lowercase 03..04 . 83..84 (includes uncased)
-                    // Common weight 05 . 85..C5 (common-weight compression range)
-                    // Lowercase 06..3F . C6..FF
-                    // Mixed case 43..7F . 43..7F
-                    // Uppercase 83..BF . 03..3F
-                    // Tertiary CE 86..BF . C6..FF
+                    // Separators    01..02 -> 01..02  (unchanged)
+                    // Lowercase     03..04 -> 83..84  (includes uncased)
+                    // Common weight     05 -> 85..C5  (common-weight compression range)
+                    // Lowercase     06..3F -> C6..FF
+                    // Mixed case    43..7F -> 43..7F
+                    // Uppercase     83..BF -> 03..3F
+                    // Tertiary CE   86..BF -> C6..FF
                     if (t <= Collation.MERGE_SEPARATOR_WEIGHT16) {
                         // Keep separators unchanged.
                     } else if ((lower32 >>> 16) != 0) {
