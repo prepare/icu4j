@@ -126,6 +126,7 @@ public class BOCU
                     prev = c;
                 }
             }
+            sink.size = p;
         }
         return prev;
     }
@@ -278,7 +279,7 @@ public class BOCU
                 buffer[offset + 3] = (byte)(SLOPE_MIN_ 
                                             + diff % SLOPE_TAIL_COUNT_);
                 diff /= SLOPE_TAIL_COUNT_;
-                buffer[offset] = (byte)(SLOPE_MIN_ 
+                buffer[offset + 2] = (byte)(SLOPE_MIN_ 
                                         + diff % SLOPE_TAIL_COUNT_);
                 diff /= SLOPE_TAIL_COUNT_;
                 buffer[offset + 1] = (byte)(SLOPE_MIN_ 

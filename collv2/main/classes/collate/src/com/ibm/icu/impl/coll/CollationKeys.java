@@ -28,6 +28,17 @@ public final class CollationKeys /* all methods are static */ {
             buffer_ = dest;
         }
 
+        /**
+         * Needed in Java for when we write to the buffer directly.
+         * In C++, the SortKeyByteSink is a subclass of ByteSink and lower-level code can write to that.
+         * TODO: Can we make Java SortKeyByteSink have-a ByteArrayWrapper and write through to it?
+         * Or maybe create interface ByteSink, have SortKeyByteSink implement it, and have BOCSU write to that??
+         */
+        public void setBufferAndAppended(byte[] dest, int app) {
+            buffer_ = dest;
+            appended_ = app;
+        }
+
         /* not used in Java -- public void IgnoreBytes(int numIgnore) {
             ignore_ = numIgnore;
         } */

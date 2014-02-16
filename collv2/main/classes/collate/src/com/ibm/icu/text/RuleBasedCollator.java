@@ -1201,16 +1201,21 @@ public final class RuleBasedCollator extends Collator {
         // NFD quick check
         int nfdQCYesLimit = data.nfcImpl.decompose(s, 0, s.length(), null);
         sink.Append(Collation.LEVEL_SEPARATOR_BYTE);
+        // Sync the ByteArrayWrapper size with the key length.
+        sink.key_.size = sink.NumberOfBytesAppended();
         int prev = 0;
         if(nfdQCYesLimit != 0) {
             prev = BOCU.writeIdenticalLevelRun(prev, s, 0, nfdQCYesLimit, sink.key_);
         }
         // Is there non-NFD text?
-        if(nfdQCYesLimit == s.length()) { return; }
-        int destLengthEstimate = s.length() - nfdQCYesLimit;
-        StringBuilder nfd = new StringBuilder();
-        data.nfcImpl.decompose(s, nfdQCYesLimit, s.length(), nfd, destLengthEstimate);
-        BOCU.writeIdenticalLevelRun(prev, nfd, 0, nfd.length(), sink.key_);
+        if(nfdQCYesLimit < s.length()) {
+            int destLengthEstimate = s.length() - nfdQCYesLimit;
+            StringBuilder nfd = new StringBuilder();
+            data.nfcImpl.decompose(s, nfdQCYesLimit, s.length(), nfd, destLengthEstimate);
+            BOCU.writeIdenticalLevelRun(prev, nfd, 0, nfd.length(), sink.key_);
+        }
+        // Sync the key with the buffer again which got bytes appended and may have been reallocated.
+        sink.setBufferAndAppended(sink.key_.bytes, sink.key_.size);
     }
 
     /**
