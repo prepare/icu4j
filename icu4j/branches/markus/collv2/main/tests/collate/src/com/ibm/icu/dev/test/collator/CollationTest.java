@@ -401,6 +401,43 @@ public class CollationTest extends ModuleTest{
           return true;
     }
 
+    static final String appendCompareResult(int result, String target){
+        if (result == -1) {
+            target += "LESS";
+        } else if (result == 0) {
+            target += "EQUAL";
+        } else if (result == 1) {
+            target += "GREATER";
+        } else {
+            String huh = "?";
+            target += huh + result;
+        }
+        return target;
+    }
+
+    static final String prettify(CollationKey key) {
+        byte[] bytes = key.toByteArray();
+        return prettify(bytes, bytes.length);
+    }
+
+    static final String prettify(RawCollationKey key) {
+        return prettify(key.bytes, key.size);
+    }
+
+    static final String prettify(byte[] skBytes, int length) {
+        StringBuilder target = new StringBuilder(length * 3 + 2).append('[');
+    
+        for (int i = 0; i < length; i++) {
+            String numStr = Integer.toHexString(skBytes[i] & 0xff);
+            if (numStr.length() < 2) {
+                target.append('0');
+            }
+            target.append(numStr).append(' ');
+        }
+        target.append(']');
+        return target.toString();
+    }
+
     private static void doTestVariant(TestFmwk test, 
                                       RuleBasedCollator myCollation,
                                       String source, String target, int result)

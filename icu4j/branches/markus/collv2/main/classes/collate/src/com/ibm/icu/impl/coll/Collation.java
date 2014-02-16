@@ -411,7 +411,7 @@ public final class Collation {
     static long ceFromSimpleCE32(int ce32) {
         // normal form ppppsstt -> pppp0000ss00tt00
         assert (ce32 & 0xff) < SPECIAL_CE32_LOW_BYTE;
-        return ((long)(ce32 & 0xffff0000) << 32) | ((ce32 & 0xff00) << 16) | ((ce32 & 0xff) << 8);
+        return ((long)(ce32 & 0xffff0000) << 32) | ((long)(ce32 & 0xff00) << 16) | ((ce32 & 0xff) << 8);
     }
 
     /** Returns a 64-bit CE from a simple/long-primary/long-secondary CE32. */

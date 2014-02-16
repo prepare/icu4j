@@ -225,14 +225,7 @@ public final class CollationKey implements Comparable<CollationKey>
      */
     public byte[] toByteArray() 
     {
-        int length = 0;
-        while (true) {
-            if (m_key_[length] == 0) {
-              break;
-            }
-            length ++;
-        }
-        length ++;
+        int length = getLength() + 1;
         byte result[] = new byte[length];
         System.arraycopy(m_key_, 0, result, 0, length);
         return result;
