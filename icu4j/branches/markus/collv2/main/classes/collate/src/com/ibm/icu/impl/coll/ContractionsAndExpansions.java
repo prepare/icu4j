@@ -26,7 +26,7 @@ public final class ContractionsAndExpansions {
     private CESink sink;
     private boolean addPrefixes;
     private int checkTailored = 0;  // -1: collected tailored  +1: exclude tailored
-    private UnicodeSet tailored;
+    private UnicodeSet tailored = new UnicodeSet();
     private UnicodeSet ranges;
     private StringBuilder unreversedPrefix = new StringBuilder();
     private String suffix;
@@ -85,6 +85,9 @@ public final class ContractionsAndExpansions {
                 return;
             }
         } else if (cne.tailored.containsSome(start, end)) {
+            if (cne.ranges == null) {
+                cne.ranges = new UnicodeSet();
+            }
             cne.ranges.set(start, end).removeAll(cne.tailored);
             int count = cne.ranges.getRangeCount();
             for (int i = 0; i < count; ++i) {
