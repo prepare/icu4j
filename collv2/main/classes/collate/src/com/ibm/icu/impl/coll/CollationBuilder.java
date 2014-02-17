@@ -998,10 +998,10 @@ public final class CollationBuilder extends CollationRuleParser.Sink {
                 // Appending the next source character to the composite would not be FCD.
                 return false;
             }
-            newNFDString.append(nfdString, sourceIndex, 0x7fffffff);
-            newString.append(nfdString, sourceIndex, 0x7fffffff);
+            newNFDString.append(nfdString, sourceIndex, nfdString.length());
+            newString.append(nfdString, sourceIndex, nfdString.length());
         } else if(decompIndex < decomp.length()) {  // more characters from decomp, not from nfdString
-            newNFDString.append(decomp, decompIndex, 0x7fffffff);
+            newNFDString.append(decomp, decompIndex, decomp.length());
         }
         assert(nfd.isNormalized(newNFDString));
         assert(fcd.isNormalized(newString));

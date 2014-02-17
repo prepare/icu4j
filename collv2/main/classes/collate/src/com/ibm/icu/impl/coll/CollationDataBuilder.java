@@ -878,7 +878,6 @@ final class CollationDataBuilder {  // not final in C++
             Iterator<Trie2.Range> trieIterator = trie.iteratorForLeadSurrogate(lead);
             while(trieIterator.hasNext()) {
                 Trie2.Range range = trieIterator.next();
-                assert range.leadSurrogate;
                 // The rest of this loop is equivalent to C++ enumRangeLeadValue().
                 int value = range.value;
                 if(value == Collation.UNASSIGNED_CE32) {
@@ -1342,7 +1341,7 @@ final class CollationDataBuilder {  // not final in C++
     protected UnicodeSet contextChars = new UnicodeSet();
     // Serialized UCharsTrie structures for finalized contexts.
     protected StringBuilder contexts = new StringBuilder();
-    protected UnicodeSet unsafeBackwardSet;
+    protected UnicodeSet unsafeBackwardSet = new UnicodeSet();
     protected boolean modified;
 
     protected boolean fastLatinEnabled;

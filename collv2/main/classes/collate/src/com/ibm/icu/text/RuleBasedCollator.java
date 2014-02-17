@@ -6,6 +6,7 @@
  */
 package com.ibm.icu.text;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.text.CharacterIterator;
 import java.text.ParseException;
@@ -235,11 +236,16 @@ public final class RuleBasedCollator extends Collator {
         // By using reflection, most code will not have a static dependency on the builder code.
         // CollationBuilder builder = new CollationBuilder(base);
         ClassLoader classLoader = getClass().getClassLoader();
-        Class<?> builderClass = classLoader.loadClass("com.ibm.icu.impl.coll.CollationBuilder");
-        Object builder = builderClass.getConstructor(CollationTailoring.class).newInstance(base);
-        // builder.parseAndBuild(rules);
-        Method parseAndBuild = builderClass.getMethod("parseAndBuild", String.class);
-        CollationTailoring t = (CollationTailoring)parseAndBuild.invoke(builder, rules);
+        CollationTailoring t;
+        try {
+            Class<?> builderClass = classLoader.loadClass("com.ibm.icu.impl.coll.CollationBuilder");
+            Object builder = builderClass.getConstructor(CollationTailoring.class).newInstance(base);
+            // builder.parseAndBuild(rules);
+            Method parseAndBuild = builderClass.getMethod("parseAndBuild", String.class);
+            t = (CollationTailoring)parseAndBuild.invoke(builder, rules);
+        } catch(InvocationTargetException e) {
+            throw (Exception)e.getTargetException();
+        }
         CollationSettings ts = t.settings.readOnly();
         char[] fastLatinPrimaries = new char[CollationFastLatin.LATIN_LIMIT];
         int fastLatinOptions = CollationFastLatin.getOptions(t.data, ts, fastLatinPrimaries);

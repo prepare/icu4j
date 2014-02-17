@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2002-2013, International Business Machines Corporation and
+ * Copyright (C) 2002-2014, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -242,12 +242,12 @@ public class CollationAPITest extends TestFmwk {
         
         // Collator col2 = (Collator)col1.clone();
         // doAssert(col1.equals(col2), "Cloned object is not equal to the orginal");
-        String ruleset = "< a, A < b, B < c, C < d, D, e, E";
+        String ruleset = "&9 < a, A < b, B < c, C < d, D, e, E";
         RuleBasedCollator col3 = null;
         try {
             col3 = new RuleBasedCollator(ruleset);
         } catch (Exception e) {
-            errln("Failure creating RuleBasedCollator with rule:" + ruleset);
+            errln("Failure creating RuleBasedCollator with rule: \"" + ruleset + "\"\n" + e);
             return;
         }
         doAssert(!col1.equals(col3), "Cloned object is equal to some dummy");

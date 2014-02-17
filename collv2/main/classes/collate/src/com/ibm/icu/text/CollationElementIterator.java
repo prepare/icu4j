@@ -501,6 +501,7 @@ public final class CollationElementIterator
      * @stable ICU 2.8
      */
     public void setText(UCharacterIterator source) {
+        string_ = source.getText(); // TODO: do we need to remember the source string in a field?
         // Note: In C++, we just setText(source.getText()).
         // In Java, we actually operate on a character iterator.
         // (The old code apparently did so only for a CharacterIterator;
@@ -543,6 +544,7 @@ public final class CollationElementIterator
         // we only clone the text for a UCharacterIterator?? see the old code in the constructors
         UCharacterIterator src = new CharacterIteratorWrapper(source);
         src.setToStart();
+        string_ = src.getText(); // TODO: do we need to remember the source string in a field?
         CollationIterator newIter;
         boolean numeric = rbc_.settings.readOnly().isNumeric();
         if (rbc_.settings.readOnly().dontCheckFCD()) {
@@ -606,7 +608,8 @@ public final class CollationElementIterator
             } else {
                 lastHalf |= 0xc0; // old-style continuation CE
             }
-            if (count > maxExpansions.get(lastHalf)) {
+            Integer oldCount = maxExpansions.get(lastHalf);
+            if (oldCount == null || count > oldCount) {
                 maxExpansions.put(lastHalf, count);
             }
         }
