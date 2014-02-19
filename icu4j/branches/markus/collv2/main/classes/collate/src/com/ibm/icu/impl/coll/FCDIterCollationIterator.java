@@ -35,7 +35,7 @@ public final class FCDIterCollationIterator extends IterCollationIterator {
 
     @Override
     public int getOffset() {
-        if(state.ordinal() <= State.ITER_CHECK_BWD.ordinal()) {
+        if(state.compareTo(State.ITER_CHECK_BWD) <= 0) {
             return iter.getIndex();
         } else if(state == State.ITER_IN_FCD_SEGMENT) {
             return pos;
@@ -79,7 +79,8 @@ public final class FCDIterCollationIterator extends IterCollationIterator {
                 pos += Character.charCount(c);
                 assert(c >= 0);
                 return c;
-            } else if(state.ordinal() >= State.IN_NORM_ITER_AT_LIMIT.ordinal() && pos != normalized.length()) {
+            } else if(state.compareTo(State.IN_NORM_ITER_AT_LIMIT) >= 0 &&
+                    pos != normalized.length()) {
                 c = normalized.codePointAt(pos);
                 pos += Character.charCount(c);
                 return c;
@@ -132,7 +133,7 @@ public final class FCDIterCollationIterator extends IterCollationIterator {
                 pos -= Character.charCount(c);
                 assert(c >= 0);
                 return c;
-            } else if(state.ordinal() >= State.IN_NORM_ITER_AT_LIMIT.ordinal() && pos != 0) {
+            } else if(state.compareTo(State.IN_NORM_ITER_AT_LIMIT) >= 0 && pos != 0) {
                 c = normalized.codePointBefore(pos);
                 pos -= Character.charCount(c);
                 return c;
@@ -168,7 +169,8 @@ public final class FCDIterCollationIterator extends IterCollationIterator {
                 ++pos;
                 assert(c >= 0);
                 break;
-            } else if(state.ordinal() >= State.IN_NORM_ITER_AT_LIMIT.ordinal() && pos != normalized.length()) {
+            } else if(state.compareTo(State.IN_NORM_ITER_AT_LIMIT) >= 0 &&
+                    pos != normalized.length()) {
                 c = normalized.charAt(pos++);
                 break;
             } else {
@@ -180,7 +182,7 @@ public final class FCDIterCollationIterator extends IterCollationIterator {
 
     @Override
     protected char handleGetTrailSurrogate() {
-        if(state.ordinal() <= State.ITER_IN_FCD_SEGMENT.ordinal()) {
+        if(state.compareTo(State.ITER_IN_FCD_SEGMENT) <= 0) {
             int trail = iter.next();
             if(isTrailSurrogate(trail)) {
                 if(state == State.ITER_IN_FCD_SEGMENT) { ++pos; }
@@ -220,7 +222,7 @@ public final class FCDIterCollationIterator extends IterCollationIterator {
     private void switchToForward() {
         assert(state == State.ITER_CHECK_BWD ||
                 (state == State.ITER_IN_FCD_SEGMENT && pos == limit) ||
-                (state.ordinal() >= State.IN_NORM_ITER_AT_LIMIT.ordinal() && pos == normalized.length()));
+                (state.compareTo(State.IN_NORM_ITER_AT_LIMIT) >= 0 && pos == normalized.length()));
         if(state == State.ITER_CHECK_BWD) {
             // Turn around from backward checking.
             start = pos = iter.getIndex();
@@ -309,7 +311,7 @@ public final class FCDIterCollationIterator extends IterCollationIterator {
     private void switchToBackward() {
         assert(state == State.ITER_CHECK_FWD ||
                 (state == State.ITER_IN_FCD_SEGMENT && pos == start) ||
-                (state.ordinal() >= State.IN_NORM_ITER_AT_LIMIT.ordinal() && pos == 0));
+                (state.compareTo(State.IN_NORM_ITER_AT_LIMIT) >= 0 && pos == 0));
         if(state == State.ITER_CHECK_FWD) {
             // Turn around from forward checking.
             limit = pos = iter.getIndex();
