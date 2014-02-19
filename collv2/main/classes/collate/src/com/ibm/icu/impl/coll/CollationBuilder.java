@@ -980,13 +980,13 @@ public final class CollationBuilder extends CollationRuleParser.Sink {
                 // Composite + sourceChar would not be FCD.
                 return false;
             } else if(decompCC < sourceCC) {
-                newNFDString.append(decompChar);
+                newNFDString.appendCodePoint(decompChar);
                 decompIndex += Character.charCount(decompChar);
             } else if(decompChar != sourceChar) {
                 // Blocked because same combining class.
                 return false;
             } else {  // match: decompChar == sourceChar
-                newNFDString.append(decompChar);
+                newNFDString.appendCodePoint(decompChar);
                 decompIndex += Character.charCount(decompChar);
                 sourceIndex += Character.charCount(decompChar);
                 sourceChar = Collation.SENTINEL_CP;

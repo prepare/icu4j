@@ -436,7 +436,7 @@ public final class CollationRuleParser {
                         return i;
                     }
                     int cp = rules.codePointAt(i);
-                    raw.append(cp);
+                    raw.appendCodePoint(cp);
                     i += Character.charCount(cp);
                 } else {
                     // Any other syntax character terminates a string.
@@ -813,7 +813,7 @@ public final class CollationRuleParser {
                 return i;
             }
             if(PatternProps.isWhiteSpace(c)) {
-                raw.append(0x20);
+                raw.append(' ');
                 i = skipWhiteSpace(i + 1);
             } else {
                 raw.append(c);

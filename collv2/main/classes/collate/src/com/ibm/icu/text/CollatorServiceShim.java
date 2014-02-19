@@ -39,7 +39,11 @@ final class CollatorServiceShim extends Collator.ServiceShim {
                 ///CLOVER:ON
             }
             coll = (Collator) coll.clone();
-            coll.setLocale(actualLoc[0], actualLoc[0]); // services make no distinction between actual & valid
+            // TODO: In ICU 52 and earlier we had the following line.
+            // However, the ICU 53 collation code does set correct valid and actual locale IDs
+            // while loading tailoring data, so this would clobber the correct data.
+            // In C++ this setLocale() call is conditional, with an "Ugly Hack Alert!" comment.
+            // coll.setLocale(actualLoc[0], actualLoc[0]); // services make no distinction between actual & valid
             return coll;
         }
         catch (CloneNotSupportedException e) {
