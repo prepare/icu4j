@@ -304,7 +304,7 @@ public final class CollationRuleParser {
             i = parseTailoringString(i + 1, extBuilder);
             extension = extBuilder;
         }
-        if(!prefix.isEmpty()) {
+        if(prefix.length() != 0) {
             int prefix0 = prefix.codePointAt(0);
             int c = rawBuilder.codePointAt(0);
             if(!nfc.hasBoundaryBefore(prefix0) || !nfc.hasBoundaryBefore(c)) {

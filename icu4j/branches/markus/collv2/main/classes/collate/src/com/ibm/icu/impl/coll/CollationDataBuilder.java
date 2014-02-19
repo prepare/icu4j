@@ -416,7 +416,7 @@ final class CollationDataBuilder {  // not final in C++
     }
 
     protected int addConditionalCE32(String context, int ce32) {
-        assert(!context.isEmpty());
+        assert(context.length() != 0);
         int index = conditionalCE32s.size();
         if(index > Collation.MAX_INDEX) {
             throw new IndexOutOfBoundsException("too many context-sensitive mappings");

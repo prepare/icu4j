@@ -7,6 +7,7 @@
 package com.ibm.icu.text;
 
 import java.text.CharacterIterator;
+import java.text.StringCharacterIterator;
 import java.util.Locale;
 
 import com.ibm.icu.util.ULocale;
@@ -247,7 +248,8 @@ public final class StringSearch extends SearchIterator {
         search_.isForwardSearching_ = true;
         search_.reset_ = true;
          */
-        search_.internalBreakIter_ = BreakIterator.getCharacterInstance(collator.getLocale(ULocale.VALID_LOCALE));
+        ULocale collLocale = collator.getLocale(ULocale.VALID_LOCALE);
+        search_.internalBreakIter_ = BreakIterator.getCharacterInstance(collLocale == null ? ULocale.ROOT : collLocale);
         search_.internalBreakIter_.setText((CharacterIterator)target.clone());  // We need to create a clone
 
         initialize();
@@ -373,7 +375,8 @@ public final class StringSearch extends SearchIterator {
         collator_ = collator;
         ceMask_ = getMask(collator_.getStrength());
 
-        search_.internalBreakIter_ = BreakIterator.getCharacterInstance(collator.getLocale(ULocale.VALID_LOCALE));
+        ULocale collLocale = collator.getLocale(ULocale.VALID_LOCALE);
+        search_.internalBreakIter_ = BreakIterator.getCharacterInstance(collLocale == null ? ULocale.ROOT : collLocale);
 
         toShift_ = collator.isAlternateHandlingShifted();
         variableTop_ = collator.getVariableTop();
