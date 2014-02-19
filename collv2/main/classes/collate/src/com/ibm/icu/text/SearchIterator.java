@@ -302,10 +302,14 @@ public abstract class SearchIterator
     {
         search_.setBreakIter(breakiter);
         if (search_.breakIter() != null) {
-            search_.breakIter().setText(search_.text());
+            // Create a clone of CharacterItearator, so it won't
+            // affect the position currently held by search_.text()
+            if (search_.text() != null) {
+                search_.breakIter().setText((CharacterIterator)search_.text().clone());
+            }
         }
     }
-    
+
     /**
      * Set the target text to be searched. Text iteration will then begin at 
       * the start of the text string. This method is useful if you want to 
@@ -328,7 +332,9 @@ public abstract class SearchIterator
         search_.reset_ = true;
         search_.isForwardSearching_ = true;
         if (search_.breakIter() != null) {
-            search_.breakIter().setText(text);
+            // Create a clone of CharacterItearator, so it won't
+            // affect the position currently held by search_.text()
+            search_.breakIter().setText((CharacterIterator)text.clone());
         }
     }
 
@@ -501,7 +507,7 @@ public abstract class SearchIterator
         int matchlength = search_.matchedLength();
         search_.reset_ = false;
         if (search_.isForwardSearching_) {
-            int endIdx = search_.text().getEndIndex();
+            int endIdx = search_.endIndex();
             if (index == endIdx || matchindex == endIdx ||
                     (matchindex != DONE &&
                     matchindex + matchlength >= endIdx)) {
@@ -560,7 +566,7 @@ public abstract class SearchIterator
     {
         int index;  // offset in ICU4C
         if (search_.reset_) {
-            index = search_.text().getEndIndex();   // m_search_->textLength in ICU4C
+            index = search_.endIndex();   // m_search_->textLength in ICU4C
             search_.isForwardSearching_ = false;
             search_.reset_ = false;
             setIndex(index);
@@ -580,7 +586,7 @@ public abstract class SearchIterator
                 return matchindex;
             }
         } else {
-            int startIdx = search_.text().getBeginIndex();
+            int startIdx = search_.beginIndex();
             if (index == startIdx || matchindex == startIdx) {
                 // not enough characters to match
                 setMatchNotFound();
@@ -590,7 +596,7 @@ public abstract class SearchIterator
 
         if (matchindex != DONE) {
             if (search_.isOverlap_) {
-                matchindex += search_.matchedIndex_ - 2;
+                matchindex += search_.matchedLength() - 2;
             }
 
             return handlePrevious(matchindex);
@@ -630,7 +636,7 @@ public abstract class SearchIterator
     public void reset()
     {
         setMatchNotFound();
-        setIndex(search_.text().getBeginIndex());
+        setIndex(search_.beginIndex());
         search_.isOverlap_ = false;
         search_.isCanonicalMatch_ = false;
         search_.elementComparisonType_ = ElementComparisonType.STANDARD_ELEMENT_COMPARISON;
@@ -853,5 +859,4 @@ public abstract class SearchIterator
         PATTERN_BASE_WEIGHT_IS_WILDCARD,
         USEARCH_ANY_BASE_WEIGHT_IS_WILDCARD
     }
-
 }

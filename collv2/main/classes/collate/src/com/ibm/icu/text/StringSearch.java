@@ -248,7 +248,7 @@ public final class StringSearch extends SearchIterator {
         search_.reset_ = true;
          */
         search_.internalBreakIter_ = BreakIterator.getCharacterInstance(collator.getLocale(ULocale.VALID_LOCALE));
-        search_.internalBreakIter_.setText(target);
+        search_.internalBreakIter_.setText((CharacterIterator)target.clone());  // We need to create a clone
 
         initialize();
     }
@@ -1129,7 +1129,7 @@ public final class StringSearch extends SearchIterator {
         if (pattern_.CELength_ == 0
                 || startIdx < search_.beginIndex()
                 || startIdx > search_.endIndex()) {
-            throw new IllegalArgumentException("search(int) expected position to be between " +
+            throw new IllegalArgumentException("search(" + startIdx + ", m) - expected position to be between " +
                     search_.beginIndex() + " and " + search_.endIndex());
         }
 
@@ -1345,7 +1345,7 @@ public final class StringSearch extends SearchIterator {
         if (pattern_.CELength_ == 0
                 || startIdx < search_.beginIndex()
                 || startIdx > search_.endIndex()) {
-            throw new IllegalArgumentException("searchBackwards(int) expected position to be between " +
+            throw new IllegalArgumentException("searchBackwards(" + startIdx + ", m) - expected position to be between " +
                     search_.beginIndex() + " and " + search_.endIndex());
         }
 
