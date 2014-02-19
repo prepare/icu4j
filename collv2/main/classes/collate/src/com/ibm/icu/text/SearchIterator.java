@@ -768,6 +768,9 @@ public abstract class SearchIterator
 
         search_.setTarget(target);
         search_.setBreakIter(breaker);
+        if (search_.breakIter() != null) {
+            search_.breakIter().setText((CharacterIterator)target.clone());
+        }
         search_.isOverlap_ = false;
         search_.isCanonicalMatch_ = false;
         search_.elementComparisonType_ = ElementComparisonType.STANDARD_ELEMENT_COMPARISON;
