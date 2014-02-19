@@ -140,16 +140,16 @@ public class Regex extends TypeHandler {
     /**
      * Processes the special cases.
      */
-    public int processSpecial(Expert expert, String text, CharTypes charTypes,
+    public int processSpecial(Expert expert, String text, BidiTransformStateImpl state, CharTypes charTypes,
             Offsets offsets, int caseNumber, int separLocation) {
         int location;
 
         if (separLocation < 0) {
-            caseNumber = ((Integer) expert.getState()).intValue(); // TBD
+            caseNumber = ((Integer) state.getState()).intValue(); // TBD
                                                                     // guard
                                                                     // against
                                                                     // "undefined"
-            expert.clearState();
+            state.clear();
         }
         switch (caseNumber) {
         case 1: /* comment (?#...) */
@@ -164,7 +164,7 @@ public class Regex extends TypeHandler {
             }
             location = text.indexOf(')', location);
             if (location < 0) {
-                expert.setState(STATE_COMMENT);
+                state.setState(STATE_COMMENT);
                 return text.length();
             }
             return location + 1;
@@ -207,7 +207,7 @@ public class Regex extends TypeHandler {
             }
             location = text.indexOf("\\E", location);
             if (location < 0) {
-                expert.setState(STATE_QUOTED_SEQUENCE);
+                state.setState(STATE_QUOTED_SEQUENCE);
                 return text.length();
             }
             // set the charType for the "E" to L (Left to Right character)

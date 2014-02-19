@@ -91,12 +91,14 @@ public class SomeMoreTest extends TestBase {
         test.cntError += assertTrue("", env2.isProcessingNeeded());
 
         TypeHandler handler1 = new TestHandler1();
-        Expert expert1 = ExpertFactory.getStatefulExpert(handler1, env1);
+        Expert expert1 = null;
+        //expert1 = ExpertFactory.getStatefulExpert(handler1, env1);
         String full = expert1.leanToFullText("abcd");
         test.cntError += assertEquals("", "@a@b@c@d", toPseudo(full));
 
         TypeHandler handler2 = new TestHandler2();
-        Expert expert2 = ExpertFactory.getStatefulExpert(handler2, env1);
+        Expert expert2 = null;
+        //expert2 = ExpertFactory.getStatefulExpert(handler2, env1);
         boolean catchFlag = false;
         try {
             full = expert2.leanToFullText("abcd");
@@ -106,7 +108,8 @@ public class SomeMoreTest extends TestBase {
         test.cntError += assertTrue("Catch missing indexOfSpecial", catchFlag);
 
         TypeHandler handler3 = new TestHandler3();
-        Expert expert3 = ExpertFactory.getStatefulExpert(handler3, env1);
+        Expert expert3 = null;
+        //expert3 = ExpertFactory.getStatefulExpert(handler3, env1);
         catchFlag = false;
         try {
             full = expert3.leanToFullText("abcd");

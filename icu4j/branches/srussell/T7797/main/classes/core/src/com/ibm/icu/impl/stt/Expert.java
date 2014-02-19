@@ -315,30 +315,4 @@ public interface Expert {
      */
     public BidiStructuredProcessor.Orientation getTextDirection(String text);
 
-    // ////////////////////////////////////////////////////////////////////
-    // Expert's state handling - can be used only for non-shared experts
-    // ////////////////////////////////////////////////////////////////////
-    /**
-     * Sets the state for the next text processing call. This method does
-     * nothing if the expert instance is not a stateful one.
-     * 
-     * @param state
-     *            an object returned by a previous call to {@link #getState}.
-     */
-    public void setState(Object state);
-
-    /**
-     * Gets the state established by the last text processing call. This is
-     * <code>null</code> if the expert instance is not a stateful one, or if the
-     * last text processing call had nothing to pass to the next call.
-     * 
-     * @return the last established state.
-     */
-    public Object getState();
-
-    /**
-     * Resets the state to initial. This method does nothing if the expert
-     * instance is not a stateful one.
-     */
-    public void clearState();
 }

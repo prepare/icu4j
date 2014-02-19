@@ -62,12 +62,7 @@ public class Environment {
      * @param mirrored
      *            specifies if the environment is mirrored.
      * @param orientation
-     *            the orientation of the GUI component, one of the values:
-     *            {@link #ORIENT_LTR ORIENT_LTR}, {@link #ORIENT_LTR ORIENT_RTL}
-     *            , {@link #ORIENT_CONTEXTUAL_LTR ORIENT_CONTEXTUAL_LTR},
-     *            {@link #ORIENT_CONTEXTUAL_RTL ORIENT_CONTEXTUAL_RTL},
-     *            {@link #ORIENT_UNKNOWN ORIENT_UNKNOWN}, or
-     *            {@link #ORIENT_IGNORE ORIENT_IGNORE}.
+     *            the orientation of the GUI component, {@link #getOrientation()}
      */
     public Environment(ULocale locale, boolean mirrored, BidiStructuredProcessor.Orientation orientation) {
         this.locale = locale == null ? ULocale.getDefault() : locale;
@@ -101,12 +96,13 @@ public class Environment {
      * <p>
      * The orientation value is one of the following:
      * <ul>
-     * <li>{@link #ORIENT_LTR ORIENT_LTR},</li>
-     * <li>{@link #ORIENT_LTR ORIENT_RTL},</li>
-     * <li>{@link #ORIENT_CONTEXTUAL_LTR ORIENT_CONTEXTUAL_LTR},</li>
-     * <li>{@link #ORIENT_CONTEXTUAL_RTL ORIENT_CONTEXTUAL_RTL},</li>
-     * <li>{@link #ORIENT_UNKNOWN ORIENT_UNKNOWN}, or</li>
-     * <li>{@link #ORIENT_IGNORE ORIENT_IGNORE}</li>.
+     * <li>{@link com.ibm.icu.text.BidiStructuredProcessor.Orientation#LTR},</li>
+     * <li>{@link com.ibm.icu.text.BidiStructuredProcessor.Orientation#RTL},</li>
+     * <li>{@link com.ibm.icu.text.BidiStructuredProcessor.Orientation#CONTEXTUAL},</li>
+     * <li>{@link com.ibm.icu.text.BidiStructuredProcessor.Orientation#CONTEXTUAL_LTR},</li>
+     * <li>{@link com.ibm.icu.text.BidiStructuredProcessor.Orientation#CONTEXTUAL_RTL},</li>
+     * <li>{@link com.ibm.icu.text.BidiStructuredProcessor.Orientation#IGNORE}, or</li>
+     * <li>{@link com.ibm.icu.text.BidiStructuredProcessor.Orientation#UNKNOWN}</li>.
      * </ul>
      * </p>
      */

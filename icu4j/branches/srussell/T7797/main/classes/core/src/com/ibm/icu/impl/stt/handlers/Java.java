@@ -76,17 +76,18 @@ public class Java extends TypeHandler {
      * <li>skip until after a line separator</li>
      * </ol>
      */
-    public int processSpecial(Expert expert, String text, CharTypes charTypes,
+    public int processSpecial(Expert expert, String text, BidiTransformStateImpl state, CharTypes charTypes,
             Offsets offsets, int caseNumber, int separLocation) {
         int location, counter, i;
 
         TypeHandler.processSeparator(text, charTypes, offsets, separLocation);
         if (separLocation < 0) {
-            caseNumber = ((Integer) expert.getState()).intValue(); // TBD
+            
+            caseNumber = ((Integer) state.getState()).intValue(); // TBD
                                                                     // guard
                                                                     // against
                                                                     // "undefined"
-            expert.clearState();
+            state.clear();
         }
         switch (caseNumber) {
         case 1: /* space */
@@ -118,7 +119,7 @@ public class Java extends TypeHandler {
                                                 // slash-aster
             location = text.indexOf("*/", location);
             if (location < 0) {
-                expert.setState(STATE_SLASH_ASTER_COMMENT);
+                state.setState(STATE_SLASH_ASTER_COMMENT);
                 return text.length();
             }
             // we need to call processSeparator since text may follow the

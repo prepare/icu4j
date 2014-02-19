@@ -9,6 +9,7 @@ package com.ibm.icu.text;
 import com.ibm.icu.impl.stt.Environment;
 import com.ibm.icu.impl.stt.Expert;
 import com.ibm.icu.impl.stt.ExpertFactory;
+import com.ibm.icu.impl.stt.handlers.BidiTransformStateImpl;
 import com.ibm.icu.impl.stt.handlers.Comma;
 import com.ibm.icu.impl.stt.handlers.Email;
 import com.ibm.icu.impl.stt.handlers.File;
@@ -17,7 +18,6 @@ import com.ibm.icu.impl.stt.handlers.Math;
 import com.ibm.icu.impl.stt.handlers.Property;
 import com.ibm.icu.impl.stt.handlers.Regex;
 import com.ibm.icu.impl.stt.handlers.Sql;
-import com.ibm.icu.impl.stt.handlers.SystemAndUser;
 import com.ibm.icu.impl.stt.handlers.TypeHandler;
 import com.ibm.icu.impl.stt.handlers.Underscore;
 import com.ibm.icu.impl.stt.handlers.Url;
@@ -165,6 +165,10 @@ public class BidiStructuredProcessor
     public enum StructuredTypes 
     {
         /**
+         * Generic structured text handler based on separators
+         */
+        GENERIC("generic",TypeHandler.class.getName(), true),
+        /**
          * Structured text handler identifier for property file statements. It
          * expects the following format:
          * 
@@ -172,7 +176,7 @@ public class BidiStructuredProcessor
          * name = value
          * </pre>
          */
-        PROPERTY("property",Property.class.getName()),
+        PROPERTY("property",Property.class.getName(), false),
         /**
          * Structured text handler identifier for compound names. It expects text to
          * be made of one or more parts separated by underscores:
@@ -181,7 +185,7 @@ public class BidiStructuredProcessor
          * part1_part2_part3
          * </pre>
          */
-        UNDERSCORE("underscore",Underscore.class.getName()),
+        UNDERSCORE("underscore",Underscore.class.getName(), false),
         /**
          * Structured text handler identifier for comma-delimited lists, such as:
          * 
@@ -189,60 +193,54 @@ public class BidiStructuredProcessor
          *  part1,part2,part3
          * </pre>
          */
-        COMMA_DELIMITED("comma",Comma.class.getName()),
-        /**
-         * Structured text handler identifier for strings with the following format:
-         * 
-         * <pre>
-         * system(user)
-         * </pre>
-         */
-        SYSTEM_USER("system",SystemAndUser.class.getName()),
+        COMMA_DELIMITED("comma",Comma.class.getName(), false),
         /**
          * Structured text handler identifier for directory and file paths.
          */
-        FILE("file",File.class.getName()),
+        FILE("file",File.class.getName(), false),
         /**
          * Structured text handler identifier for e-mail addresses.
          */
-        EMAIL("email",Email.class.getName()),
+        EMAIL("email",Email.class.getName(), false),
         /**
          * Structured text handler identifier for URLs.
          */
-        URL("url",Url.class.getName()),
+        URL("url",Url.class.getName(), false),
         /**
          * Structured text handler identifier for regular expressions, possibly
          * spanning multiple lines.
          */
-        REGEXP("regex",Regex.class.getName()),
+        REGEXP("regex",Regex.class.getName(), true),
         /**
          * Structured text handler identifier for XPath expressions.
          */
-        XPATH("xpath",XPath.class.getName()),
+        XPATH("xpath",XPath.class.getName(), false),
         /**
          * Structured text handler identifier for Java code, possibly spanning
          * multiple lines.
          */
-        JAVA("java",Java.class.getName()),
+        JAVA("java",Java.class.getName(), true),
         /**
          * Structured text handler identifier for SQL statements, possibly spanning
          * multiple lines.
          */
-        SQL("sql",Sql.class.getName()),
+        SQL("sql",Sql.class.getName(), true),
         /**
          * Structured text handler identifier for arithmetic expressions, possibly
          * with a RTL base direction.
          */
-        RTL_ARITHMETIC("math",Math.class.getName());
+        RTL_ARITHMETIC("math",Math.class.getName(), false);
 
         private String name;
         private String className;
         private TypeHandler handler = null;
+        private boolean stateful;
 
-        StructuredTypes(String name, String className) 
+        StructuredTypes(String name, String className, boolean stateful) 
         {
           this.name = name;
           this.className = className;
+          this.stateful = stateful;
         }
 
         public String getName() 
@@ -253,6 +251,11 @@ public class BidiStructuredProcessor
         protected String getClassName()
         {
             return this.className;
+        }
+        
+        public boolean isStateful()
+        {
+            return stateful;
         }
         
         public static StructuredTypes fromString(String text) 
@@ -387,25 +390,13 @@ public class BidiStructuredProcessor
         }
     }
 
-    /**
-     * the stateful expert associated when instantiating a BidiStructuredProcessor
-     */
-    private Expert statefulExpert = null;
     
     /**
-     * protected constructor for use by:<br/>
-     * <br/>{@link #getInstance(StructuredTypes)}<br/>
-     * {@link #getInstance(StructuredTypes, Environment)} or<br/> 
-     * {@link #getInstance(StructuredTypes, ULocale, Orientation, boolean)}
-     * 
-     * @param newStatefulExpert
-     *          Expert - the expert implementation that supports this instance
+     * hide the constructor
      */
-    protected BidiStructuredProcessor(Expert newStatefulExpert) 
+    private BidiStructuredProcessor(Expert newStatefulExpert) 
     {
         super();
-        
-        this.setStatefulExpert(newStatefulExpert);
     }
 
     /**
@@ -432,11 +423,106 @@ public class BidiStructuredProcessor
      */
     public static String transform(String str, StructuredTypes textType, ULocale locale, Orientation orientation, boolean mirrored)
     {
-        Environment env = new Environment(locale, mirrored, orientation);
-        Expert expert = ExpertFactory.getExpert(textType, env);
-        
-        return transform(str, expert);
+        return transform(str, null, textType, locale, orientation, mirrored);
     }
+    
+    /**
+     * Transforms a string that has a particular semantic meaning to render it
+     * correctly on BiDi locales with specific usage details for target Locale, 
+     * text orientation & an indication if the UI is RTL. 
+     * <br/><br/>
+     * For more details, see {@link #transform(String)}
+     * 
+     * @param str
+     *          the <i>lean</i> text to process.
+     * @param state
+     *          the transformation state object internally used by the handler to track transformation state across calls        
+     * @param textType
+     *          an identifier for the structured text handler appropriate for
+     *          the type of the text submitted. It must be one of the
+     *          identifiers defined in {@link BidiStructuredProcessor}.
+     * @param locale
+     *          ULocale - Locale information
+     * @param orientation
+     *          Orientation - text orientation
+     * @param mirrored
+     *          boolean - true if target UI is RTL
+     * 
+     * @return the processed string (<i>full</i> text).
+     * @see BidiTransformState
+     */
+    public static String transform(String str, BidiTransformState state, StructuredTypes textType, ULocale locale, Orientation orientation, boolean mirrored)
+    {
+        Environment env = new Environment(locale, mirrored, orientation);
+        
+        Expert expert;
+        if(state == null) 
+        {
+            expert = ExpertFactory.getExpert(textType, env);
+        }
+        else
+        {
+            expert = ExpertFactory.getExpert(textType, state, env);
+        }
+        
+        return transform(str, state, expert);
+    }
+    
+    /**
+     * Transforms a string that has a particular semantic meaning to render it
+     * correctly on BiDi locales with specific usage of the text type. 
+     * <br/><br/>
+     * For more details, see {@link #transform(String)}
+     * 
+     * @param str
+     *          the <i>lean</i> text to process.
+     * @param textType
+     *          an identifier for the structured text handler appropriate for
+     *          the type of the text submitted. It must be one of the
+     *          identifiers defined in {@link BidiStructuredProcessor}.
+     * 
+     * @return the processed string (<i>full</i> text).
+     */
+    public static String transform(String str, StructuredTypes textType)
+    {
+        return transform(str, null, textType);
+    }
+    
+    /**
+     * Transforms a string that has a particular semantic meaning to render it
+     * correctly on BiDi locales with specific usage of the text type and supports transformation states. 
+     * <br/><br/>
+     * For more details, see {@link #transform(String)}
+     * 
+     * @param str
+     *          the <i>lean</i> text to process.
+     * @param state
+     *          the transformation state object internally used by the handler to track transformation state across calls        
+     * @param textType
+     *          an identifier for the structured text handler appropriate for
+     *          the type of the text submitted. It must be one of the
+     *          identifiers defined in {@link BidiStructuredProcessor}.
+     * 
+     * @return the processed string (<i>full</i> text).
+     * @see BidiTransformState
+     */
+    public static String transform(String str, BidiTransformState state, StructuredTypes textType)
+    {
+        Environment env = Environment.DEFAULT;
+        
+        Expert expert;
+        if(state == null) 
+        {
+            expert = ExpertFactory.getExpert(textType, env);
+        }
+        else
+        {
+            expert = ExpertFactory.getExpert(textType, state, env);
+        }
+        
+        return transform(str, state, expert);
+    }
+    
     
     /**
      * Transforms the given (<i>lean</i>) text and returns a string with
@@ -463,8 +549,28 @@ public class BidiStructuredProcessor
      */
     public static String transform(String str) 
     {
-        return transform(str, defaultSeparators);
+        //return transform(str, (BidiTransformState)null);      // TODO commented out because following method commented out
+        return transform(str, null, defaultSeparators);
     }
+
+    /**
+     * Transforms a string that has a particular semantic meaning to render it
+     * correctly on BiDi locales with support of transformation states. 
+     * <br/><br/>
+     * For more details, see {@link #transform(String)}
+     * 
+     * @param state
+     *          the transformation state object internally used by the handler to track transformation state across calls        
+     * @param str
+     *            the <i>lean</i> text to process.
+     * 
+     * @return the transformed string (<i>full</i> text).
+     */
+    /*
+    public static String transform(String str, BidiTransformState state) 
+    {
+        return transform(str, state, defaultSeparators);
+    }*/
 
     /**
      * Transforms a string that has a particular semantic meaning to render it
@@ -479,6 +585,11 @@ public class BidiStructuredProcessor
      * @return the transformed string (<i>full</i> text).
      */
     public static String transform(String str, String separators) 
+    {
+        return transform(str, (BidiTransformState)null, separators);
+    }
+    
+    private static String transform(String str, BidiTransformState state, String separators) 
     {
         if ((str == null) || (str.length() <= 1))
         {
@@ -525,31 +636,11 @@ public class BidiStructuredProcessor
 
         // make sure that LRE/PDF are added around the string
         Environment env = new Environment(null, false, BidiStructuredProcessor.Orientation.UNKNOWN);
-        TypeHandler handler = new TypeHandler(separators);
         
-        return transform(str, ExpertFactory.getStatefulExpert(handler, env));
+        return transform(str, state, ExpertFactory.getExpert(separators, env));
     }
 
-    /**
-     * Transforms a string that has a particular semantic meaning to render it
-     * correctly on BiDi locales. For more details, see {@link #transform(String)}
-     * 
-     * @param str
-     *            the <i>lean</i> text to process.
-     * @param textType
-     *            an identifier for the structured text handler appropriate for
-     *            the type of the text submitted. It must be one of the
-     *            identifiers defined in {@link BidiStructuredProcessor}.
-     * 
-     * @return the processed string (<i>full</i> text).
-     */
-    public static String transform(String str, StructuredTypes textType) 
-    {
-        Environment env = new Environment(null, false, BidiStructuredProcessor.Orientation.UNKNOWN);
-        
-        return transform(str, ExpertFactory.getExpert(textType, env));
-    }
-
+    
     
     /**
      * actual transform logic called from convenience methods
@@ -560,9 +651,13 @@ public class BidiStructuredProcessor
      *          Expert - the appropriate expert to perform the transformation
      * @return 
      *          String - the transformed String
-     */
-    
+     */    
     private static String transform(String str, Expert expert)
+    {
+        return transform(str, null, expert);
+    }
+    
+    private static String transform(String str, BidiTransformState state, Expert expert)
     {
         if ((str == null) || (str.length() <= 1))
             return str;
@@ -606,85 +701,18 @@ public class BidiStructuredProcessor
     {
         return defaultSeparators;
     }
-
-    /**
-     * Returns an instance of a BidiStructuredProcessor suitable for stateful processing. 
-     * @param textType
-     *          StructuredTypes - the desired type for the stateful processing
-     * @param locale
-     *          ULocale - the Locale associated with future transforms
-     * @param orientation
-     *          Orientation - the text orientation of future transforms
-     * @param mirrored
-     *          boolean - true if the desired target is generally RTL
-     * @return
-     *          BidiStructuredProcessor - an instance of of stateful BidiStructuredProcessor
-     */
-    public static BidiStructuredProcessor getInstance(StructuredTypes textType, ULocale locale, Orientation orientation, boolean mirrored)
-    {
-        Environment env = new Environment(locale, mirrored, orientation);
-        return getInstance(textType, env);
-    }
     
     /**
-     * Returns an instance of a BidiStructuredProcessor suitable for stateful processing when only the text type is known.
-     * 
+     * obtain an instance of a implementation of a TransformationState implementation
      * @param textType
-     *          StructuredTypes - the desired type for the stateful processing
+     *      the text type requiring state
      * @return
-     *          BidiStructuredProcessor - an instance of of stateful BidiStructuredProcessor
+     *      BidiTransformState a suitable transformation state object
      */
-    public static BidiStructuredProcessor getInstance(StructuredTypes textType)
+    public static BidiTransformState getBidiTransformationStateInstance(StructuredTypes textType) 
     {
-        Environment env = new Environment(null, false, BidiStructuredProcessor.Orientation.UNKNOWN);
-        return getInstance(textType, env);
-    }
-    
-    /**
-     * Returns an instantiated instance of a BidiStructuredProcessor. This is called from the above convenience methods. 
-     * 
-     * @param textType
-     *          StructuredTypes - the desired type for the stateful processing
-     * @param env
-     *          Environment - the desired (can be default) environment details to associate with the expert
-     * @return
-     *          BidiStructuredProcessor - an instance of of stateful BidiStructuredProcessor
-     */
-    private static BidiStructuredProcessor getInstance(StructuredTypes textType, Environment env)
-    {
-        return new BidiStructuredProcessor(ExpertFactory.getStatefulExpert(textType.getInstance(), env));
+        return new BidiTransformStateImpl(); 
     }
 
-    /**
-     * Stateful transformation utilizing this instance.
-     * 
-     * @param str
-     *          String - the data to transform.
-     * @return 
-     *          String - the transformed String
-     */
-    public String transformWithState(String str)
-    {
-        return getStatefulExpert().leanToFullText(str);
-    }
-    
-    /**
-     * @return the statefulExpert
-     */
-    protected Expert getStatefulExpert() 
-    {
-        if(statefulExpert == null)  // should never happen
-            throw new IllegalStateException("no expert associated with this BidiStructuredProcessor"); 
-            
-        return statefulExpert;
-    }
-
-    /**
-     * @param statefulExpert the statefulExpert to set
-     */
-    protected void setStatefulExpert(Expert statefulExpert) 
-    {
-        this.statefulExpert = statefulExpert;
-    }
 }
 
