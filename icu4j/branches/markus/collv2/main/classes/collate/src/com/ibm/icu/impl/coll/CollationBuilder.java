@@ -26,6 +26,7 @@ import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.VersionInfo;
 
 public final class CollationBuilder extends CollationRuleParser.Sink {
+    private static final boolean DEBUG = false;
     private static final class BundleImporter implements CollationRuleParser.Importer {
         BundleImporter() {}
         public String getRules(String localeID, String collationType) {
@@ -1082,16 +1083,12 @@ public final class CollationBuilder extends CollationRuleParser.Sink {
         return true;
     }
 
-    /* #ifdef DEBUG_COLLATION_BUILDER
-
     private static final int alignWeightRight(int w) {
         if(w != 0) {
             while((w & 0xff) == 0) { w >>>= 8; }
         }
         return w;
     }
-
-    #endif */
 
     /**
      * Walks the tailoring graph and overwrites tailored nodes with new CEs.
@@ -1114,9 +1111,9 @@ public final class CollationBuilder extends CollationRuleParser.Sink {
             boolean pIsTailored = false;
             boolean sIsTailored = false;
             boolean tIsTailored = false;
-    /* #ifdef DEBUG_COLLATION_BUILDER
-            printf("\nprimary     %lx\n", (long)alignWeightRight(p));
-    #endif */
+            if(DEBUG) {
+                System.out.printf("\nprimary     %x\n", alignWeightRight((int)p));
+            }
             int pIndex = p == 0 ? 0 : rootElements.findPrimary(p);
             int nextIndex = nextIndexFromNode(node);
             while(nextIndex != 0) {
@@ -1126,9 +1123,9 @@ public final class CollationBuilder extends CollationRuleParser.Sink {
                 int strength = strengthFromNode(node);
                 if(strength == Collator.QUATERNARY) {
                     assert(isTailoredNode(node));
-    /* #ifdef DEBUG_COLLATION_BUILDER
-                    printf("      quat+     ");
-    #endif */
+                    if(DEBUG) {
+                        System.out.print("      quat+     ");
+                    }
                     if(q == 3) {
                         // C++ U_BUFFER_OVERFLOW_ERROR
                         throw new UnsupportedOperationException("quaternary tailoring gap too small");
@@ -1137,9 +1134,9 @@ public final class CollationBuilder extends CollationRuleParser.Sink {
                 } else {
                     if(strength == Collator.TERTIARY) {
                         if(isTailoredNode(node)) {
-    /* #ifdef DEBUG_COLLATION_BUILDER
-                            printf("    ter+        ");
-    #endif */
+                            if(DEBUG) {
+                                System.out.print("    ter+        ");
+                            }
                             if(!tIsTailored) {
                                 // First tailored tertiary node for [p, s].
                                 int tCount = countTailoredNodes(nodesArray, nextIndex,
@@ -1172,16 +1169,16 @@ public final class CollationBuilder extends CollationRuleParser.Sink {
                         } else {
                             t = weight16FromNode(node);
                             tIsTailored = false;
-    /* #ifdef DEBUG_COLLATION_BUILDER
-                            printf("    ter     %lx\n", (long)alignWeightRight(t));
-    #endif */
+                            if(DEBUG) {
+                                System.out.printf("    ter     %x\n", alignWeightRight(t));
+                            }
                         }
                     } else {
                         if(strength == Collator.SECONDARY) {
                             if(isTailoredNode(node)) {
-    /* #ifdef DEBUG_COLLATION_BUILDER
-                                printf("  sec+          ");
-    #endif */
+                                if(DEBUG) {
+                                    System.out.print("  sec+          ");
+                                }
                                 if(!sIsTailored) {
                                     // First tailored secondary node for p.
                                     int sCount = countTailoredNodes(nodesArray, nextIndex,
@@ -1218,15 +1215,15 @@ public final class CollationBuilder extends CollationRuleParser.Sink {
                             } else {
                                 s = weight16FromNode(node);
                                 sIsTailored = false;
-    /* #ifdef DEBUG_COLLATION_BUILDER
-                                printf("  sec       %lx\n", (long)alignWeightRight(s));
-    #endif */
+                                if(DEBUG) {
+                                    System.out.printf("  sec       %x\n", alignWeightRight(s));
+                                }
                             }
                         } else /* Collator.PRIMARY */ {
                             assert(isTailoredNode(node));
-    /* #ifdef DEBUG_COLLATION_BUILDER
-                            printf("pri+            ");
-    #endif */
+                            if(DEBUG) {
+                                System.out.print("pri+            ");
+                            }
                             if(!pIsTailored) {
                                 // First tailored primary node in this list.
                                 int pCount = countTailoredNodes(nodesArray, nextIndex,
@@ -1253,9 +1250,9 @@ public final class CollationBuilder extends CollationRuleParser.Sink {
                 }
                 if(isTailoredNode(node)) {
                     nodesArray[i] = Collation.makeCE(p, s, t, q);
-    /* #ifdef DEBUG_COLLATION_BUILDER
-                    printf("%016llx\n", (long long)nodesArray[i]);
-    #endif */
+                    if(DEBUG) {
+                        System.out.printf("%016x\n", nodesArray[i]);
+                    }
                 }
             }
         }

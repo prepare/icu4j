@@ -79,7 +79,7 @@ public class CollationRegressionTest extends TestFmwk {
     // Collator -> rules -> Collator round-trip broken for expanding characters
     //
     public void Test4051866() {
-       String rules = "< o & oe ,o\u3080& oe ,\u1530 ,O& OE ,O\u3080& OE ,\u1520< p ,P";
+       String rules = "&n < o & oe ,o\u3080& oe ,\u1530 ,O& OE ,O\u3080& OE ,\u1520< p ,P";
 
         // Build a collator containing expanding characters
         RuleBasedCollator c1 = null;
@@ -314,7 +314,7 @@ public class CollationRegressionTest extends TestFmwk {
     //
     public void Test4059820(/* char* par */) {
         RuleBasedCollator c = null;
-        String rules = "< a < b , c/a < d < z";
+        String rules = "&9 < a < b , c/a < d < z";
         try {
             c = new RuleBasedCollator(rules);
         } catch (Exception e) {
@@ -333,14 +333,14 @@ public class CollationRegressionTest extends TestFmwk {
     // MergeCollation::fixEntry broken for "& H < \u0131, \u0130, i, I"
     //
     public void Test4060154(/* char* par */) {
-        String rules ="< g, G < h, H < i, I < j, J & H < \u0131, \u0130, i, I";
+        String rules ="&f < g, G < h, H < i, I < j, J & H < \u0131, \u0130, i, I";
     
         RuleBasedCollator c = null;
         try {
             c = new RuleBasedCollator(rules);
         } catch (Exception e) {
             //System.out.println(e);
-            errln("failure building collator.");
+            errln("failure building collator:" + e);
             return;
         }
     
@@ -468,7 +468,7 @@ public class CollationRegressionTest extends TestFmwk {
     public void Test4078588(/* char *par */) {
         RuleBasedCollator rbc = null;
         try {
-            rbc = new RuleBasedCollator("< a < bb");
+            rbc = new RuleBasedCollator("&9 < a < bb");
         } catch (Exception e) {
             errln("Failed to create RuleBasedCollator.");
             return;
@@ -534,7 +534,7 @@ public class CollationRegressionTest extends TestFmwk {
         c.setStrength(Collator.SECONDARY);
         String tests[] = {
             "\u007a",       "\u003c", "\u00E6",            // z        < ae
-            "\u0061\u0308", "\u003c", "\u0061\u030A",      // a-unlaut < a-ring
+            "\u0061\u0308", "\u003c", "\u0061\u030A",      // a-umlaut < a-ring
             "\u0059",       "\u003c", "\u0075\u0308",      // Y        < u-umlaut
         };
         compareArray(c, tests);
@@ -600,7 +600,7 @@ public class CollationRegressionTest extends TestFmwk {
     //
     public void Test4101940(/* char* par */) {
         RuleBasedCollator c = null;
-        String rules = "< a < b";
+        String rules = "&9 < a < b";
         String nothing = "";
         try {
             c = new RuleBasedCollator(rules);
@@ -1002,7 +1002,7 @@ public class CollationRegressionTest extends TestFmwk {
             throw new Exception("\"a<a\" collation sequence didn't cause parse error!");
         }
 
-        RuleBasedCollator collator = new RuleBasedCollator("<\u00e0=a\u0300");
+        RuleBasedCollator collator = new RuleBasedCollator("&a<\u00e0=a\u0300");
         //commented by Kevin 2003/10/21 
         //for "FULL_DECOMPOSITION is not supported here." in ICU4J DOC
         //collator.setDecomposition(Collator.FULL_DECOMPOSITION);

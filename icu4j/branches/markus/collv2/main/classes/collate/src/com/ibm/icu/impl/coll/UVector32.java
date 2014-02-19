@@ -27,6 +27,7 @@ public final class UVector32 {
         ensureAppendCapacity();
         System.arraycopy(buffer, index, buffer, index + 1, length - index);
         buffer[index] = elem;
+        ++length;
     }
     public void removeAllElements() {
         length = 0;
