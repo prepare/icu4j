@@ -692,4 +692,12 @@ public final class CollationElementIterator
         assert false : "hashCode not designed";
         return 42;
     }
+
+    /**
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    public RuleBasedCollator getRuleBasedCollator() {
+        return rbc_;
+    }
 }
