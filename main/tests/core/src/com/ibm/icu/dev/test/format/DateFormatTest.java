@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2001-2014, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2013, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -2548,7 +2548,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             }
             
             // force success on fallback
-            text = "08/15/58 " + TimeZone.getDefault().getDisplayName(true, TimeZone.SHORT);
+            text = "08/15/58 " + TimeZone.getDefault().getID();
             try {
                 fmt.parse(text);
                 logln("found default tz");
@@ -4200,32 +4200,6 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             new TestContextItem( "cs", "LLLL y", DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,     "\u010Cervenec 2008" ),
             new TestContextItem( "cs", "LLLL y", DisplayContext.CAPITALIZATION_FOR_STANDALONE,          "\u010Dervenec 2008" ),
         };
-        class TestRelativeContextItem {
-            public String locale;
-            public DisplayContext capitalizationContext;
-            public String expectedFormatToday;
-            public String expectedFormatYesterday;
-             // Simple constructor
-            public TestRelativeContextItem(String loc, DisplayContext capCtxt, String expFmtToday, String expFmtYesterday) {
-                locale = loc;
-                capitalizationContext = capCtxt;
-                expectedFormatToday = expFmtToday;
-                expectedFormatYesterday = expFmtYesterday;
-            }
-        };
-        final TestRelativeContextItem[] relItems = {
-            new TestRelativeContextItem( "en", DisplayContext.CAPITALIZATION_NONE,                      "today", "yesterday" ),
-            new TestRelativeContextItem( "en", DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    "today", "yesterday" ),
-            new TestRelativeContextItem( "en", DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, "Today", "Yesterday" ),
-            new TestRelativeContextItem( "en", DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       "Today", "Yesterday" ),
-            new TestRelativeContextItem( "en", DisplayContext.CAPITALIZATION_FOR_STANDALONE,            "Today", "Yesterday" ),
-            new TestRelativeContextItem( "nb", DisplayContext.CAPITALIZATION_NONE,                      "i dag", "i g\u00E5r" ),
-            new TestRelativeContextItem( "nb", DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    "i dag", "i g\u00E5r" ),
-            new TestRelativeContextItem( "nb", DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, "I dag", "I g\u00E5r" ),
-            new TestRelativeContextItem( "nb", DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       "i dag", "i g\u00E5r" ),
-            new TestRelativeContextItem( "nb", DisplayContext.CAPITALIZATION_FOR_STANDALONE,            "I dag", "I g\u00E5r" ),
-        };
-
         Calendar cal = new GregorianCalendar(2008, Calendar.JULY, 2);
         for (TestContextItem item: items) {
             ULocale locale = new ULocale(item.locale);
@@ -4237,44 +4211,14 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             FieldPosition fpos2 = new FieldPosition(0);
             sdfmt.format(cal, result2, fpos2);
             if (result2.toString().compareTo(item.expectedFormat) != 0) {
-                errln("FAIL: format for locale " + item.locale +  ", capitalizationContext " + item.capitalizationContext +
+                errln("FAIL: format (default context) for locale " + item.locale +  ", capitalizationContext " + item.capitalizationContext +
                         ", expected \"" + item.expectedFormat + "\", got \"" + result2 + "\"");
             }
 
-            // now read back context, make sure it is what we set (testing with DateFormat subclass)
+            // now read back context, make sure it is what we set
             DisplayContext capitalizationContext = sdfmt.getContext(DisplayContext.Type.CAPITALIZATION);
             if (capitalizationContext != item.capitalizationContext) {
-                errln("FAIL: getContext for locale " + item.locale +  ", capitalizationContext " + item.capitalizationContext +
-                        ", but got context " + capitalizationContext);
-            }
-        }
-        for (TestRelativeContextItem relItem: relItems) {
-            ULocale locale = new ULocale(relItem.locale);
-            DateFormat dfmt = DateFormat.getDateInstance(DateFormat.RELATIVE_LONG, locale);
-            Date today = new Date();
-
-            // now try context & standard format call
-            dfmt.setContext(relItem.capitalizationContext);
-            cal.setTime(today);
-            StringBuffer result2 = new StringBuffer();
-            FieldPosition fpos2 = new FieldPosition(0);
-            dfmt.format(cal, result2, fpos2);
-            if (result2.toString().compareTo(relItem.expectedFormatToday) != 0) {
-                errln("FAIL: format today for locale " + relItem.locale +  ", capitalizationContext " + relItem.capitalizationContext +
-                        ", expected \"" + relItem.expectedFormatToday + "\", got \"" + result2 + "\"");
-            }
-            cal.add(Calendar.DATE, -1);
-            result2.setLength(0);
-            dfmt.format(cal, result2, fpos2);
-            if (result2.toString().compareTo(relItem.expectedFormatYesterday) != 0) {
-                errln("FAIL: format yesterday for locale " + relItem.locale +  ", capitalizationContext " + relItem.capitalizationContext +
-                        ", expected \"" + relItem.expectedFormatYesterday + "\", got \"" + result2 + "\"");
-            }
-
-            // now read back context, make sure it is what we set (testing with DateFormat itself)
-            DisplayContext capitalizationContext = dfmt.getContext(DisplayContext.Type.CAPITALIZATION);
-            if (capitalizationContext != relItem.capitalizationContext) {
-                errln("FAIL: getContext for locale " + relItem.locale +  ", capitalizationContext " + relItem.capitalizationContext +
+                errln("FAIL: getDefaultContext for locale " + item.locale +  ", capitalizationContext " + item.capitalizationContext +
                         ", but got context " + capitalizationContext);
             }
         }
@@ -4376,7 +4320,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 if(p.getErrorIndex() != -1)
                     continue;
                 else
-                    errln("error: unexpected parse success..."+item.parseString + " w/ lenient="+item.leniency+" should have failed");
+                    errln("error: unexpected parse success..."+item.parseString + " w/ lenient="+item.leniency+" should have faile");
             }
             if(p.getErrorIndex() != -1) {
                 errln("error: parse error for string " +item.parseString + " -- idx["+p.getIndex()+"] errIdx["+p.getErrorIndex()+"]");
@@ -4392,48 +4336,4 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         }
     }
 
-    // A regression test case for ticket#10632.
-    // Make sure RELATIVE style works for getInstance overloads taking
-    // Calendar instance.
-    public void Test10632() {
-        Date[] testDates = new Date[3];
-        Calendar cal = Calendar.getInstance();
-
-        // today
-        testDates[0] = cal.getTime();
-
-        // tomorrow
-        cal.add(Calendar.DATE, 1);
-        testDates[1] = cal.getTime();
-
-        // yesterday
-        cal.add(Calendar.DATE, -2);
-        testDates[2] = cal.getTime();
-
-
-        // Relative styles for testing
-        int[] dateStylesList = {
-                DateFormat.RELATIVE_FULL,
-                DateFormat.RELATIVE_LONG,
-                DateFormat.RELATIVE_MEDIUM,
-                DateFormat.RELATIVE_SHORT
-        };
-
-        Calendar fmtCal = DateFormat.getInstance().getCalendar();
-
-        for (int i = 0; i < dateStylesList.length; i++) {
-            DateFormat fmt0 = DateFormat.getDateTimeInstance(dateStylesList[i], DateFormat.DEFAULT);
-            DateFormat fmt1 = DateFormat.getDateTimeInstance(fmtCal, dateStylesList[i], DateFormat.DEFAULT);
-
-            for (int j = 0; j < testDates.length; j++) {
-                String s0 = fmt0.format(testDates[j]);
-                String s1 = fmt1.format(testDates[j]);
-
-                if (!s0.equals(s1)) {
-                    errln("FAIL: Different results returned by two equivalent relative formatters: s0="
-                            + s0 + ", s1=" + s1);
-                }
-            }
-        }
-    }
 }

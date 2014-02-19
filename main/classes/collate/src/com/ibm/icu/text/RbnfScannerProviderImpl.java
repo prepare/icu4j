@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-* Copyright (C) 2009-2014, International Business Machines Corporation and    *
+* Copyright (C) 2009-2010, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -10,7 +10,6 @@ package com.ibm.icu.text;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.util.ULocale;
 
 /**
@@ -20,7 +19,6 @@ import com.ibm.icu.util.ULocale;
  * @deprecated This API is ICU internal only.
  */
 public class RbnfScannerProviderImpl implements RbnfLenientScannerProvider {
-    private static final boolean DEBUG = ICUDebug.enabled("rbnf");
     private Map<String, RbnfLenientScanner> cache;
 
     /**
@@ -100,7 +98,7 @@ public class RbnfScannerProviderImpl implements RbnfLenientScannerProvider {
             // If we get here, it means we have a malformed set of
             // collation rules, which hopefully won't happen
             ///CLOVER:OFF
-            if (DEBUG){ // debug hook
+            if (true){ // debug hook
                 e.printStackTrace(); System.out.println("++++");
             }
             collator = null;

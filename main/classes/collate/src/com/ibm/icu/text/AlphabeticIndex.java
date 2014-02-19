@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2008-2014, Google Inc, International Business Machines Corporation
+ * Copyright (C) 2008-2013, Google Inc, International Business Machines Corporation
  * and others. All Rights Reserved.
  *******************************************************************************
  */
@@ -958,26 +958,7 @@ public final class AlphabeticIndex<V> implements Iterable<Bucket<V>> {
          * @stable ICU 4.8
          */
         public enum LabelType {
-            /**
-             * Normal
-             * @stable ICU 4.8
-             */
-            NORMAL,
-            /**
-             * Underflow (before the first)
-             * @stable ICU 4.8
-             */
-            UNDERFLOW,
-            /**
-             * Inflow (between scripts)
-             * @stable ICU 4.8
-             */
-            INFLOW,
-            /**
-             * Overflow (after the last)
-             * @stable ICU 4.8
-             */
-            OVERFLOW
+            NORMAL, UNDERFLOW, INFLOW, OVERFLOW
         }
 
         /**

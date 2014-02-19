@@ -30,4 +30,4 @@
 #
 # For example: java.rt=C:/ibmjava5/jre/lib/vm.jar;C:/ibmjava5/jre/lib/core.jar;C:/ibmjava5/jre/lib/graphics.jar;C:/ibmjava5/jre/lib/xml.jar
 #
-java.rt=
+#java.rt=

@@ -1,7 +1,7 @@
 /*
  * @(#)TimeZone.java    1.51 00/01/19
  *
- * Copyright (C) 1996-2014, International Business Machines
+ * Copyright (C) 1996-2013, International Business Machines
  * Corporation and others.  All Rights Reserved.
  */
 
@@ -745,7 +745,7 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
      * @return the specified <code>TimeZone</code> or UNKNOWN_ZONE if the given ID
      * cannot be understood.
      */
-    private static TimeZone getTimeZone(String ID, int type, boolean frozen) {
+    private static synchronized TimeZone getTimeZone(String ID, int type, boolean frozen) {
         TimeZone result;
         if (type == TIMEZONE_JDK) {
             result = JavaTimeZone.createTimeZone(ID);
@@ -919,17 +919,13 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
      * @return a default <code>TimeZone</code>.
      * @stable ICU 2.0
      */
-    public static TimeZone getDefault() {
+    public static synchronized TimeZone getDefault() {
         if (defaultZone == null) {
-            synchronized(TimeZone.class) {
-                if (defaultZone == null) {
-                    if (TZ_IMPL == TIMEZONE_JDK) {
-                        defaultZone = new JavaTimeZone();
-                    } else {
-                        java.util.TimeZone temp = java.util.TimeZone.getDefault();
-                        defaultZone = getFrozenTimeZone(temp.getID());
-                    }
-                }
+            if (TZ_IMPL == TIMEZONE_JDK) {
+                defaultZone = new JavaTimeZone();
+            } else {
+                java.util.TimeZone temp = java.util.TimeZone.getDefault();
+                defaultZone = getFrozenTimeZone(temp.getID());
             }
         }
         return defaultZone.cloneAsThawed();
@@ -1279,7 +1275,7 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
     /**
      * The default time zone, or null if not set.
      */
-    private static volatile TimeZone  defaultZone = null;
+    private static TimeZone  defaultZone = null;
 
     /**
      * The tzdata version

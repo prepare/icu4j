@@ -362,7 +362,6 @@ public class OlsonTimeZone extends BasicTimeZone {
             if (dstOffsetAt(trsIdx - 1) != 0) {
                 return true;
             }
-            trsIdx--;
         }
         return false;
     }

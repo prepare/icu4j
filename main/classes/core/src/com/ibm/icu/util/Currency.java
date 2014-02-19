@@ -7,6 +7,7 @@
 package com.ibm.icu.util;
 
 import java.io.ObjectStreamException;
+import java.io.Serializable;
 import java.lang.ref.SoftReference;
 import java.text.ParsePosition;
 import java.util.ArrayList;
@@ -52,7 +53,7 @@ import com.ibm.icu.util.ULocale.Category;
  * @author Alan Liu
  * @stable ICU 2.2
  */
-public class Currency extends MeasureUnit {
+public class Currency extends MeasureUnit implements Serializable {
     private static final long serialVersionUID = -5839973855554750484L;
     private static final boolean DEBUG = ICUDebug.enabled("currency");
 
@@ -244,7 +245,7 @@ public class Currency extends MeasureUnit {
             throw new IllegalArgumentException(
                     "The input currency code is not 3-letter alphabetic code.");
         }
-        return (Currency) MeasureUnit.internalGetInstance("currency", theISOCode.toUpperCase(Locale.ENGLISH));
+        return (Currency) MeasureUnit.addUnit("currency", theISOCode.toUpperCase(Locale.ENGLISH), CURRENCY_FACTORY);
     }
     
     
@@ -396,7 +397,7 @@ public class Currency extends MeasureUnit {
      * @stable ICU 2.2
      */
     public String getCurrencyCode() {
-        return subType;
+        return code;
     }
 
     /**
@@ -414,7 +415,7 @@ public class Currency extends MeasureUnit {
                     "currencyNumericCodes",
                     ICUResourceBundle.ICU_DATA_CLASS_LOADER);
             UResourceBundle codeMap = bundle.get("codeMap");
-            UResourceBundle numCode = codeMap.get(subType);
+            UResourceBundle numCode = codeMap.get(code);
             result = numCode.getInt();
         } catch (MissingResourceException e) {
             // fall through
@@ -503,7 +504,7 @@ public class Currency extends MeasureUnit {
         }
 
         CurrencyDisplayNames names = CurrencyDisplayNames.getInstance(locale);
-        return nameStyle == SYMBOL_NAME ? names.getSymbol(subType) : names.getName(subType);
+        return nameStyle == SYMBOL_NAME ? names.getSymbol(code) : names.getName(code);
     }
 
     /**
@@ -552,7 +553,7 @@ public class Currency extends MeasureUnit {
         }
         
         CurrencyDisplayNames names = CurrencyDisplayNames.getInstance(locale);
-        return names.getPluralName(subType, pluralCount);
+        return names.getPluralName(code, pluralCount);
     }
 
     /**
@@ -729,7 +730,7 @@ public class Currency extends MeasureUnit {
      */
     public int getDefaultFractionDigits() {
         CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
-        CurrencyDigits digits = info.currencyDigits(subType);
+        CurrencyDigits digits = info.currencyDigits(code);
         return digits.fractionDigits;
     }
 
@@ -741,7 +742,7 @@ public class Currency extends MeasureUnit {
      */
     public double getRoundingIncrement() {
         CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
-        CurrencyDigits digits = info.currencyDigits(subType);
+        CurrencyDigits digits = info.currencyDigits(code);
 
         int data1 = digits.roundingIncrement;
 
@@ -768,7 +769,7 @@ public class Currency extends MeasureUnit {
      * @stable ICU 2.2
      */
     public String toString() {
-        return subType;
+        return code;
     }
 
     /**
@@ -783,7 +784,7 @@ public class Currency extends MeasureUnit {
 
         // isoCode is kept for readResolve() and Currency class no longer
         // use it. So this statement actually does not have any effect.
-        isoCode = theISOCode;
+        isoCode = code; 
     }
 
     // POW10[i] = 10^i
@@ -903,7 +904,7 @@ public class Currency extends MeasureUnit {
     }
     
     private Object writeReplace() throws ObjectStreamException {
-        return new MeasureUnitProxy(type, subType);
+        return new MeasureUnitProxy(type, code);
     }
 
     // For backward compatibility only
@@ -913,7 +914,6 @@ public class Currency extends MeasureUnit {
     private final String isoCode;
 
     private Object readResolve() throws ObjectStreamException {
-        // The old isoCode field used to determine the currency.
         return Currency.getInstance(isoCode);
     }
 }
