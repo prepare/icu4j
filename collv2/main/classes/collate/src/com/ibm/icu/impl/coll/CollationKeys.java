@@ -746,8 +746,8 @@ public final class CollationKeys /* all methods are static */ {
                     if (start < limit) {
                         for (int i = start, j = limit - 1; i < j; i++, j--) {
                             byte tmp = secs[i];
-                            secs[j] = secs[i];
-                            secs[i] = tmp;
+                            secs[i] = secs[j];
+                            secs[j] = tmp;
                         }
                     }
                     // Did we reach the end of the string?

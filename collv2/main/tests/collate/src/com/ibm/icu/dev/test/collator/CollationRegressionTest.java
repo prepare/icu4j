@@ -917,9 +917,12 @@ public class CollationRegressionTest extends TestFmwk {
         iter.setOffset(5);
         int elt5 = CollationElementIterator.primaryOrder(iter.next());
 
-        if (elt4 != elt0 || elt5 != elt0)
-            errln("The collation elements at positions 0 (" + elt0 + "), 4 ("
-                    + elt4 + "), and 5 (" + elt5 + ") don't match.");
+        // Compares and prints only 16-bit primary weights.
+        if (elt4 != elt0 || elt5 != elt0) {
+            errln(String.format("The collation elements at positions 0 (0x%04x), " +
+                    "4 (0x%04x), and 5 (0x%04x) don't match.",
+                    elt0, elt4, elt5));
+        }
 
         // test that the "cat" combination works properly
         iter.setOffset(14);
@@ -940,11 +943,14 @@ public class CollationRegressionTest extends TestFmwk {
         iter.setOffset(19);
         int elt19 = CollationElementIterator.primaryOrder(iter.next());
 
+        // Compares and prints only 16-bit primary weights.
         if (elt14 != elt15 || elt14 != elt16 || elt14 != elt17
-                || elt14 != elt18 || elt14 != elt19)
-            errln("\"cat\" elements don't match: elt14 = " + elt14 + ", elt15 = "
-            + elt15 + ", elt16 = " + elt16 + ", elt17 = " + elt17
-            + ", elt18 = " + elt18 + ", elt19 = " + elt19);
+                || elt14 != elt18 || elt14 != elt19) {
+            errln(String.format("\"cat\" elements don't match: elt14 = 0x%04x, " +
+                    "elt15 = 0x%04x, elt16 = 0x%04x, elt17 = 0x%04x, " +
+                    "elt18 = 0x%04x, elt19 = 0x%04x",
+                    elt14, elt15, elt16, elt17, elt18, elt19));
+        }
 
         // now generate a complete list of the collation elements,
         // first using next() and then using setOffset(), and
