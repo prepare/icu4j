@@ -129,8 +129,14 @@ public final class CollationLoader {
 
         // Is this the same as the root collator? If so, then use that instead.
         ULocale actualLocale = data.getULocale();
-        if (actualLocale.equals(ULocale.ROOT) && type.equals("standard")) {
-            return root;
+        // http://bugs.icu-project.org/trac/ticket/10715 ICUResourceBundle(root).getULocale() != ULocale.ROOT
+        // Therefore not just if (actualLocale.equals(ULocale.ROOT) && type.equals("standard")) {
+        String actualLocaleName = actualLocale.getName();
+        if (actualLocaleName.length() == 0 || actualLocaleName.equals("root")) {
+            actualLocale = ULocale.ROOT;
+            if (type.equals("standard")) {
+                return root;
+            }
         }
 
         CollationTailoring t = new CollationTailoring(root.settings);

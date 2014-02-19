@@ -1467,7 +1467,7 @@ public final class RuleBasedCollator extends Collator {
      */
     @Override
     public int hashCode() {
-        int h = settings.hashCode();
+        int h = settings.readOnly().hashCode();
         if(data.base == null) { return h; }  // root collator
         // Do not rely on the rule string, see comments in operator==().
         UnicodeSet set = getTailoredSet();
