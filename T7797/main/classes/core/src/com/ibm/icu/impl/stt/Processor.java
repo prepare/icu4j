@@ -313,8 +313,7 @@ public final class Processor {
             separators = defaultSeparators;
 
         // make sure that LRE/PDF are added around the string
-        TypeHandler handler = new TypeHandler(separators);
-        Expert expert = ExpertFactory.getStatefulExpert(handler, env);
+        Expert expert = ExpertFactory.getExpert(separators, env);
         return expert.leanToFullText(str);
     }
 

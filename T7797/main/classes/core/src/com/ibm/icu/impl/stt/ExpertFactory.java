@@ -12,6 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.ibm.icu.impl.stt.handlers.TypeHandler;
 import com.ibm.icu.text.BidiStructuredProcessor;
+import com.ibm.icu.text.BidiStructuredProcessor.StructuredTypes;
+import com.ibm.icu.text.BidiTransformState;
 
 /**
  * Obtains Expert instances. An {@link Expert} instance (called in short an
@@ -40,12 +42,20 @@ import com.ibm.icu.text.BidiStructuredProcessor;
 final public class ExpertFactory {
 
     /**
+     * 
+     */
+    private static final StructuredTypes DEFAULT_TYPE = BidiStructuredProcessor.StructuredTypes.GENERIC;
+
+    /**
      * The default set of separators used to segment a string: dot, colon,
      * slash, backslash.
      */
     private static final String defaultSeparators = Processor
             .getDefaultSeparators();
 
+    /*
+     * experts with no environment specified so uses default environment information
+     */
     static private ConcurrentHashMap<BidiStructuredProcessor.StructuredTypes, Expert> sharedDefaultExperts = new ConcurrentHashMap<BidiStructuredProcessor.StructuredTypes, Expert>();
 
     // String type -> map of { environment -> expert }
@@ -68,10 +78,35 @@ final public class ExpertFactory {
     static public Expert getExpert() {
         if (defaultExpert == null) {
             TypeHandler handler = new TypeHandler(defaultSeparators);
-            defaultExpert = new ExpertImpl(handler, Environment.DEFAULT, false);
+            defaultExpert = new ExpertImpl(handler, Environment.DEFAULT);
         }
         return defaultExpert;
     }
+    
+    
+    /**
+     * Obtains a Expert instance for processing structured text with a default
+     * type handler segmenting the text according to the specified separators. This
+     * expert instance does not handle states.
+     * 
+     * @return the Expert instance.
+     * @see Processor#getDefaultSeparators()
+     */
+    static public Expert getExpert(String separators, Environment env) {
+        Expert expert = sharedDefaultExperts.get(DEFAULT_TYPE);
+        if (expert == null) {
+            TypeHandler handler = new TypeHandler(separators);
+            Environment targetEnv = env;
+            if(targetEnv == null) {
+                targetEnv = Environment.DEFAULT;
+            }
+            expert = new ExpertImpl(handler, targetEnv);
+            sharedDefaultExperts.putIfAbsent(DEFAULT_TYPE, expert);
+        }
+        return expert;
+    }
+    
+    
 
     /**
      * Obtains a Expert instance for processing structured text with the
@@ -86,7 +121,7 @@ final public class ExpertFactory {
         Expert expert = sharedDefaultExperts.get(type);
         if (expert == null) {
             TypeHandler handler = type.getInstance();
-            expert = new ExpertImpl(handler, Environment.DEFAULT, false);
+            expert = new ExpertImpl(handler, Environment.DEFAULT);
             sharedDefaultExperts.putIfAbsent(type, expert);
         }
         return expert;
@@ -119,7 +154,7 @@ final public class ExpertFactory {
         expert = (Expert) experts.get(environment);
         if (expert == null) {
             TypeHandler handler = type.getInstance();
-            expert = new ExpertImpl(handler, environment, false);
+            expert = new ExpertImpl(handler, environment);
             experts.putIfAbsent(environment, expert);
         }
         return expert;
@@ -134,8 +169,8 @@ final public class ExpertFactory {
      *            must be one of those listed in {@link TypeHandlerFactory} .
      * @return the Expert instance.
      */
-    static public Expert getStatefulExpert(BidiStructuredProcessor.StructuredTypes type) {
-        return getStatefulExpert(type, Environment.DEFAULT);
+    static public Expert getExpert(BidiStructuredProcessor.StructuredTypes type, BidiTransformState state) {
+        return getExpert(type, state, Environment.DEFAULT);
     }
 
     /**
@@ -153,9 +188,9 @@ final public class ExpertFactory {
      *            should be assumed.
      * @return the Expert instance.
      */
-    static public Expert getStatefulExpert(BidiStructuredProcessor.StructuredTypes type, Environment environment) {
+    static public Expert getExpert(BidiStructuredProcessor.StructuredTypes type, BidiTransformState state, Environment environment) {
         TypeHandler handler = type.getInstance();
-        return getStatefulExpert(handler, environment);
+        return getExpert(type, handler, state, environment);
     }
 
     /**
@@ -174,11 +209,18 @@ final public class ExpertFactory {
      *            should be assumed.
      * @return the Expert instance.
      */
-    static public Expert getStatefulExpert(TypeHandler handler,
+    static public Expert getExpert(BidiStructuredProcessor.StructuredTypes type, 
+            TypeHandler handler,
+            BidiTransformState state,
             Environment environment) {
         if (environment == null)
             environment = Environment.DEFAULT;
-        return new ExpertImpl(handler, environment, true);
+        
+        if(state != null && !type.isStateful()) {        
+            throw new RuntimeException("state object passed for a non-stateful handler type");
+        }
+        
+        return new ExpertImpl(handler, environment);
     }
 
 }

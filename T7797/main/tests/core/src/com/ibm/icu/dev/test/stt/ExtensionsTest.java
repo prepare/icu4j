@@ -80,8 +80,7 @@ public class ExtensionsTest extends TestBase {
                 .getExpert(BidiStructuredProcessor.StructuredTypes.FILE, test.env);
         test.doTest1("File #1", "c:\\A\\B\\FILE.EXT", "c:\\A@\\B@\\FILE@.EXT");
 
-        test.expert = ExpertFactory.getStatefulExpert(BidiStructuredProcessor.StructuredTypes.JAVA,
-                test.env);
+        //test.expert = ExpertFactory.getStatefulExpert(BidiStructuredProcessor.StructuredTypes.JAVA, test.env);
         test.doTest1("Java #1", "A = B + C;", "A@ = B@ + C;");
         test.doTest1("Java #2", "A   = B + C;", "A@   = B@ + C;");
         test.doTest1("Java #3", "A = \"B+C\"+D;", "A@ = \"B+C\"@+D;");
@@ -100,8 +99,7 @@ public class ExtensionsTest extends TestBase {
         test.doTest1("Property #2", "NAME=VAL1,VAL2=VAL3",
                 "NAME@=VAL1,VAL2=VAL3");
 
-        test.expert = ExpertFactory.getStatefulExpert(
-                BidiStructuredProcessor.StructuredTypes.REGEXP, test.env);
+        //test.expert = ExpertFactory.getStatefulExpert(BidiStructuredProcessor.StructuredTypes.REGEXP, test.env);
         data = toUT16("ABC(?") + "#" + toUT16("DEF)GHI");
         test.doTest2("Regex #0.0", data, "A@B@C@(?#DEF)@G@H@I");
         data = toUT16("ABC(?") + "#" + toUT16("DEF");
@@ -186,8 +184,7 @@ public class ExtensionsTest extends TestBase {
         test.doTest2("Regex #16.2", data, "<&#HI\\eJKL&^");
         test.env = test.envHebrew;
 
-        test.expert = ExpertFactory.getStatefulExpert(BidiStructuredProcessor.StructuredTypes.SQL,
-                test.env);
+        //test.expert = ExpertFactory.getStatefulExpert(BidiStructuredProcessor.StructuredTypes.SQL,test.env);
         test.doTest1("SQL #0", "abc GHI", "abc GHI");
         test.doTest1("SQL #1", "abc DEF   GHI", "abc DEF@   GHI");
         test.doTest1("SQL #2", "ABC, DEF,   GHI", "ABC@, DEF@,   GHI");
@@ -210,8 +207,7 @@ public class ExtensionsTest extends TestBase {
         test.doTest1("SQL #13", "ABC--DEF GHI`|JKL MN",
                 "ABC@--DEF GHI`|JKL@ MN");
 
-        test.expert = ExpertFactory.getExpert(BidiStructuredProcessor.StructuredTypes.SYSTEM_USER,
-                test.env);
+        //test.expert = ExpertFactory.getExpert(BidiStructuredProcessor.StructuredTypes.SYSTEM_USER,test.env);
         test.doTest1("System #1", "HOST(JACK)", "HOST@(JACK)");
 
         test.expert = ExpertFactory.getExpert(BidiStructuredProcessor.StructuredTypes.UNDERSCORE,

@@ -10,6 +10,7 @@ package com.ibm.icu.impl.stt;
 import com.ibm.icu.impl.stt.handlers.TypeHandler;
 import com.ibm.icu.text.BidiStructuredProcessor;
 import com.ibm.icu.text.BidiStructuredProcessor.Orientation;
+import com.ibm.icu.text.BidiTransformState;
 
 /**
  * Implements Expert; the members of this class should not be accessed directly
@@ -34,14 +35,6 @@ public class ExpertImpl implements Expert {
      * The environment associated with the expert.
      */
     protected final Environment environment;
-    /**
-     * Flag which is true if the expert is stateful.
-     */
-    protected final boolean sharedExpert;
-    /**
-     * Last state value set by {@link #setState} or {@link #clearState}.
-     */
-    protected Object state;
 
     /**
      * Constructor used in {@link ExpertFactory}; this constructor should not be
@@ -51,14 +44,11 @@ public class ExpertImpl implements Expert {
      *            the structured text handler used by this expert.
      * @param environment
      *            the environment associated with this expert.
-     * @param shared
-     *            flag which is true if the expert is stateful.
      */
     public ExpertImpl(TypeHandler structuredTextHandler,
-            Environment environment, boolean shared) {
+            Environment environment) {
         this.handler = structuredTextHandler;
         this.environment = environment;
-        sharedExpert = shared;
     }
 
     /**
@@ -81,29 +71,6 @@ public class ExpertImpl implements Expert {
      */
     public BidiStructuredProcessor.Orientation getTextDirection(String text) {
         return handler.getDirection(this, text);
-    }
-
-    /**
-     * This method should be invoked only through {@link Expert#clearState}.
-     */
-    public void clearState() {
-        if (sharedExpert)
-            state = null;
-    }
-
-    /**
-     * This method should be invoked only through {@link Expert#setState}.
-     */
-    public void setState(Object newState) {
-        if (sharedExpert)
-            state = newState;
-    }
-
-    /**
-     * This method should be invoked only through {@link Expert#getState}.
-     */
-    public Object getState() {
-        return state;
     }
 
     long computeNextLocation(String text, CharTypes charTypes, Offsets offsets,
@@ -253,7 +220,7 @@ public class ExpertImpl implements Expert {
         if (len == 0)
             return text;
         CharTypes charTypes = new CharTypes(this, text);
-        Offsets offsets = leanToFullCommon(text, charTypes);
+        Offsets offsets = leanToFullCommon(text, charTypes, null);
         int prefixLength = offsets.getPrefixLength();
         BidiStructuredProcessor.Orientation direction = charTypes.getDirection();
         return insertMarks(text, offsets.getOffsets(), direction, prefixLength);
@@ -267,7 +234,7 @@ public class ExpertImpl implements Expert {
         if (len == 0)
             return EMPTY_INT_ARRAY;
         CharTypes charTypes = new CharTypes(this, text);
-        Offsets offsets = leanToFullCommon(text, charTypes);
+        Offsets offsets = leanToFullCommon(text, charTypes, null);
         int prefixLength = offsets.getPrefixLength();
         int[] map = new int[len];
         int count = offsets.getCount(); // number of used entries
@@ -291,11 +258,11 @@ public class ExpertImpl implements Expert {
         if (len == 0)
             return EMPTY_INT_ARRAY;
         CharTypes charTypes = new CharTypes(this, text);
-        Offsets offsets = leanToFullCommon(text, charTypes);
+        Offsets offsets = leanToFullCommon(text, charTypes, null);
         return offsets.getOffsets();
     }
 
-    private Offsets leanToFullCommon(String text, CharTypes charTypes) {
+    private Offsets leanToFullCommon(String text, CharTypes charTypes, BidiTransformState state) {
         int len = text.length();
         Offsets offsets = new Offsets();
         Orientation direction = handler.getDirection(this, text, charTypes);

@@ -11,6 +11,7 @@ import com.ibm.icu.impl.stt.Expert;
 import com.ibm.icu.impl.stt.ExpertFactory;
 import com.ibm.icu.text.BidiStructuredProcessor;
 import com.ibm.icu.text.BidiStructuredProcessor.Orientation;
+import com.ibm.icu.text.BidiTransformState;
 import com.ibm.icu.util.ULocale;
 
 /**
@@ -37,7 +38,6 @@ public class TestBidiStructuredProcessor extends TestFmwk
     // TODO flush out a reasonable test
     public void TestStateful()
     {
-        BidiStructuredProcessor bsp = BidiStructuredProcessor.getInstance(BidiStructuredProcessor.StructuredTypes.JAVA);
         String[] javaCode = 
         {
                 "class HelloWorldApp",
@@ -50,9 +50,10 @@ public class TestBidiStructuredProcessor extends TestFmwk
         };
         
         StringBuffer result = new StringBuffer();
+        BidiTransformState state = BidiStructuredProcessor.getBidiTransformationStateInstance(BidiStructuredProcessor.StructuredTypes.JAVA);
         for(int x = 0; x < javaCode.length; x++)
         {
-            result.append(bsp.transformWithState(javaCode[x]));
+            result.append(BidiStructuredProcessor.transform(javaCode[x], state, BidiStructuredProcessor.StructuredTypes.JAVA));
         }
         System.out.println(result.toString());
     }
