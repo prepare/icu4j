@@ -73,26 +73,38 @@ public final class CollationLoader {
         // For now, collation resources does not contain such data, so the code below should work fine.
 
         CollationTailoring root = CollationRoot.getRoot();
+        String localeName = locale.getName();
+        if (localeName.length() == 0 || localeName.equals("root")) {
+            outValidLocale.value = ULocale.ROOT;
+            return root;
+        }
 
         UResourceBundle bundle = null;
         try {
             bundle = UResourceBundle.getBundleInstance(
                     ICUResourceBundle.ICU_COLLATION_BASE_NAME, locale);
         } catch (MissingResourceException e) {
-            if (outValidLocale != null) {
-                outValidLocale.value = ULocale.ROOT;
-            }
+            outValidLocale.value = ULocale.ROOT;
             return root;
         }
 
         ULocale validLocale = bundle.getULocale();
-        if (outValidLocale != null) {
-            outValidLocale.value = validLocale;
+        // Normalize the root locale. See
+        // http://bugs.icu-project.org/trac/ticket/10715
+        String validLocaleName = validLocale.getName();
+        if (validLocaleName.length() == 0 || validLocaleName.equals("root")) {
+            validLocale = ULocale.ROOT;
         }
+        outValidLocale.value = validLocale;
 
         // There are zero or more tailorings in the collations table.
-        UResourceBundle collations = ((ICUResourceBundle)bundle).get("collations");
-        if (collations == null) {
+        UResourceBundle collations;
+        try {
+            collations = ((ICUResourceBundle)bundle).get("collations");
+            if (collations == null) {
+                return root;
+            }
+        } catch(MissingResourceException ignored) {
             return root;
         }
 
@@ -100,12 +112,15 @@ public final class CollationLoader {
         String type = locale.getKeywordValue("collation");
         String defaultType = "standard";
 
-        String defT = ((ICUResourceBundle)collations).getStringWithFallback("default");
-        if (defT != null) {
-            defaultType = defT;
+        try {
+            String defT = ((ICUResourceBundle)collations).getStringWithFallback("default");
+            if (defT != null) {
+                defaultType = defT;
+            }
+        } catch(MissingResourceException ignored) {
         }
 
-        if (type == null) {
+        if (type == null || type.equals("default")) {
             type = defaultType;
         }
 
@@ -117,10 +132,10 @@ public final class CollationLoader {
         // boolean typeFallback = false;
         UResourceBundle data = getWithFallback(collations, type);
         if (data == null &&
-                type.length() > 6 && type.regionMatches(true, 0, "search", 0, 6)) {
+                type.length() > 6 && type.startsWith("search")) {
             // fall back from something like "searchjl" to "search"
             // typeFallback = true;
-            type = type.substring(0, 6);
+            type = "search";
             data = getWithFallback(collations, type);
         }
 
@@ -128,6 +143,13 @@ public final class CollationLoader {
             // fall back to the default type
             // typeFallback = true;
             type = defaultType;
+            data = getWithFallback(collations, type);
+        }
+
+        if (data == null && !type.equals("standard")) {
+            // fall back to the "standard" type
+            // typeFallback = true;
+            type = "standard";
             data = getWithFallback(collations, type);
         }
 
@@ -162,15 +184,15 @@ public final class CollationLoader {
         }   // No need to close BAIS.
 
         // Try to fetch the optional rules string.
-        String seq = ((ICUResourceBundle)data).getString("Sequence");
-        if (seq != null) {
-            t.rules = seq;
+        try {
+            t.rules = ((ICUResourceBundle)data).getString("Sequence");
+        } catch(MissingResourceException ignored) {
         }
 
         // Set the collation types on the informational locales,
         // except when they match the default types (for brevity and backwards compatibility).
         // For the valid locale, suppress the default type.
-        if (outValidLocale != null && !type.equals(defaultType)) {
+        if (!type.equals(defaultType)) {
             outValidLocale.value = validLocale.setKeywordValue("collation", type);
         }
 
@@ -183,8 +205,13 @@ public final class CollationLoader {
             // Opening a bundle for the actual locale should always succeed.
             UResourceBundle actualBundle = UResourceBundle.getBundleInstance(
                     ICUResourceBundle.ICU_COLLATION_BASE_NAME, actualLocale);
-            defT = ((ICUResourceBundle)actualBundle).getStringWithFallback("collations/default");
-            defaultType = (defT == null) ? "standard" : defT;
+            try {
+                String defT = ((ICUResourceBundle)actualBundle).getStringWithFallback("collations/default");
+                if (defT != null) {
+                    defaultType = defT;
+                }
+            } catch(MissingResourceException ignored) {
+            }
         }
 
         if (!type.equals(defaultType)) {
