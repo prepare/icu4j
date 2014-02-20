@@ -465,6 +465,36 @@ public final class CollationElementIterator
      * @stable ICU 2.8
      */
     public void setOffset(int newOffset) {
+        if (0 < newOffset && newOffset < string_.length()) {
+            int offset = newOffset;
+            do {
+                char c = string_.charAt(offset);
+                if (!rbc_.isUnsafe(c) ||
+                        (Character.isHighSurrogate(c) && !rbc_.isUnsafe(string_.codePointAt(offset)))) {
+                    break;
+                }
+                // Back up to before this unsafe character.
+                --offset;
+            } while (offset > 0);
+            if (offset < newOffset) {
+                // We might have backed up more than necessary.
+                // For example, contractions "ch" and "cu" make both 'h' and 'u' unsafe,
+                // but for text "chu" setOffset(2) should remain at 2
+                // although we initially back up to offset 0.
+                // Find the last safe offset no greater than newOffset by iterating forward.
+                int lastSafeOffset = offset;
+                do {
+                    iter_.resetToOffset(lastSafeOffset);
+                    do {
+                        iter_.nextCE();
+                    } while ((offset = iter_.getOffset()) == lastSafeOffset);
+                    if (offset <= newOffset) {
+                        lastSafeOffset = offset;
+                    }
+                } while (offset < newOffset);
+                newOffset = lastSafeOffset;
+            }
+        }
         iter_.resetToOffset(newOffset);
         otherHalf_ = 0;
         dir_ = 1;
