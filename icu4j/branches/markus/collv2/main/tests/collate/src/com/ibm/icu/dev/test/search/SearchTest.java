@@ -378,7 +378,7 @@ public class SearchTest extends TestFmwk {
     };
 
     SearchData NORMEXACT[] = {
-        new SearchData("a\u0300\u0325", "\u0325\u0300", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {3}),
+        new SearchData("a\u0300\u0325", "a\u0325\u0300", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {3}),
         new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
