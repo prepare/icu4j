@@ -14,10 +14,10 @@ import java.util.Arrays;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.ibm.icu.impl.BOCU;
 import com.ibm.icu.impl.Normalizer2Impl;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.impl.Normalizer2Impl.ReorderingBuffer;
+import com.ibm.icu.impl.coll.BOCSU;
 import com.ibm.icu.impl.coll.Collation;
 import com.ibm.icu.impl.coll.CollationCompare;
 import com.ibm.icu.impl.coll.CollationData;
@@ -1211,14 +1211,14 @@ public final class RuleBasedCollator extends Collator {
         sink.key_.size = sink.NumberOfBytesAppended();
         int prev = 0;
         if(nfdQCYesLimit != 0) {
-            prev = BOCU.writeIdenticalLevelRun(prev, s, 0, nfdQCYesLimit, sink.key_);
+            prev = BOCSU.writeIdenticalLevelRun(prev, s, 0, nfdQCYesLimit, sink.key_);
         }
         // Is there non-NFD text?
         if(nfdQCYesLimit < s.length()) {
             int destLengthEstimate = s.length() - nfdQCYesLimit;
             StringBuilder nfd = new StringBuilder();
             data.nfcImpl.decompose(s, nfdQCYesLimit, s.length(), nfd, destLengthEstimate);
-            BOCU.writeIdenticalLevelRun(prev, nfd, 0, nfd.length(), sink.key_);
+            BOCSU.writeIdenticalLevelRun(prev, nfd, 0, nfd.length(), sink.key_);
         }
         // Sync the key with the buffer again which got bytes appended and may have been reallocated.
         sink.setBufferAndAppended(sink.key_.bytes, sink.key_.size);

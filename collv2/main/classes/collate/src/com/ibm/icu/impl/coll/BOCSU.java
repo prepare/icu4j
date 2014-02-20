@@ -4,12 +4,12 @@
 * others. All Rights Reserved.
 *******************************************************************************
 */
-package com.ibm.icu.impl;
+package com.ibm.icu.impl.coll;
 
 import com.ibm.icu.util.ByteArrayWrapper;
 
 /**
- * <p>Binary Ordered Compression for Unicode</p>
+ * <p>Binary Ordered Compression Scheme for Unicode</p>
  * 
  * <p>Users are strongly encouraged to read the ICU paper on 
  * <a href="http://www.icu-project.org/docs/papers/binary_ordered_compression_for_unicode.html">
@@ -76,7 +76,7 @@ import com.ibm.icu.util.ByteArrayWrapper;
  * @author Syn Wee Quek
  * @since release 2.2, May 3rd 2002
  */
-public class BOCU 
+public class BOCSU 
 {      
     // public methods -------------------------------------------------------
 
@@ -219,7 +219,7 @@ public class BOCU
      * Constructor private to prevent initialization
      */
     ///CLOVER:OFF
-    private BOCU()
+    private BOCSU()
     {
     }            
     ///CLOVER:ON                                                                                       
