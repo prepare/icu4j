@@ -355,7 +355,7 @@ final class CollationFastLatinBuilder {
         while(suffixes.hasNext()) {
             CharsTrie.Entry entry = suffixes.next();
             CharSequence suffix = entry.chars;
-            int x = getSuffixFirstCharIndex(suffix);
+            int x = CollationFastLatin.getCharIndex(suffix.charAt(0));
             if(x < 0) { continue; }  // ignore anything but fast Latin text
             if(x == prevX) {
                 if(addContraction) {
@@ -388,20 +388,6 @@ final class CollationFastLatinBuilder {
         ce0 = (Collation.NO_CE_PRIMARY << 32) | CONTRACTION_FLAG | contractionIndex;
         ce1 = 0;
         return true;
-    }
-
-    private static int getSuffixFirstCharIndex(CharSequence suffix) {
-        int x = CollationFastLatin.getCharIndex(suffix.charAt(0));
-        int length = suffix.length();
-        if(x >= 0 && length > 0) {
-            // Ignore the contraction if it contains non-fast-Latin characters.
-            for(int i = 1; i < length; ++i) {
-                if(CollationFastLatin.getCharIndex(suffix.charAt(i)) < 0) {
-                    return -1;
-                }
-            }
-        }
-        return x;
     }
 
     private void addContractionEntry(int x, long cce0, long cce1) {

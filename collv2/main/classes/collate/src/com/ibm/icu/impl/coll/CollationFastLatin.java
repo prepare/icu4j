@@ -717,7 +717,7 @@ public final class CollationFastLatin /* all static */ {
             if(length == 2) {
                 result = ce;
             } else {
-                result = ((int)table[index + 2] << 16) | ce;
+                result = ((long)table[index + 2] << 16) | ce;
             }
             return inc ? ~result : result;
         }

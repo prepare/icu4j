@@ -43,15 +43,13 @@ public final class CollationBuilder extends CollationRuleParser.Sink {
         rootElements = new CollationRootElements(b.data.rootElements);
         variableTop = 0;
         dataBuilder = new CollationDataBuilder();
-        fastLatinEnabled = false;
+        fastLatinEnabled = true;
         cesLength = 0;
         rootPrimaryIndexes = new UVector32();
         nodes = new UVector64();
         nfcImpl.ensureCanonIterData();
         dataBuilder.initForTailoring(baseData);
     }
-
-    public void enableFastLatin() { fastLatinEnabled = true; }
 
     public CollationTailoring parseAndBuild(String ruleString) throws ParseException {
         if(baseData.rootElements == null) {
