@@ -38,13 +38,7 @@ final class CollatorServiceShim extends Collator.ServiceShim {
                 throw new MissingResourceException("Could not locate Collator data", "", "");
                 ///CLOVER:ON
             }
-            coll = (Collator) coll.clone();
-            // TODO: In ICU 52 and earlier we had the following line.
-            // However, the ICU 53 collation code does set correct valid and actual locale IDs
-            // while loading tailoring data, so this would clobber the correct data.
-            // In C++ this setLocale() call is conditional, with an "Ugly Hack Alert!" comment.
-            // coll.setLocale(actualLoc[0], actualLoc[0]); // services make no distinction between actual & valid
-            return coll;
+            return (Collator) coll.clone();
         }
         catch (CloneNotSupportedException e) {
         ///CLOVER:OFF
@@ -54,6 +48,10 @@ final class CollatorServiceShim extends Collator.ServiceShim {
     }
 
     Object registerInstance(Collator collator, ULocale locale) {
+        // Set the collator locales while registering so that getInstance()
+        // need not guess whether the collator's locales are already set properly
+        // (as they are by the data loader).
+        collator.setLocale(locale, locale);
         return service.registerObject(collator, locale);
     }
 
