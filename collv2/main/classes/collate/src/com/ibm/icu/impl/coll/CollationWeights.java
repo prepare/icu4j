@@ -388,7 +388,12 @@ public final class CollationWeights {
                                 countBytes(length)*(getWeightByte(end, length-1)-getWeightByte(start, length-1));
                         upper[length].count=0;
                         while(--length>middleLength) {
-                            lower[length].count=upper[length].count=0;
+                            if(lower[length] != null) {
+                                lower[length].count = 0;
+                            }
+                            if(upper[length] != null) {
+                                upper[length].count = 0;
+                            }
                         }
                         break;
                     }

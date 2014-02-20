@@ -497,18 +497,19 @@ public final class CollationRuleParser {
         int j = readWords(i + 1, rawBuilder);
         if(j > i && rules.charAt(j) == 0x5d && rawBuilder.length() != 0) {  // words end with ]
             ++j;
+            String raw = rawBuilder.toString();
             str.setLength(0);
             for(int pos = 0; pos < positions.length; ++pos) {
-                if(positions[pos].contentEquals(rawBuilder)) {
+                if(raw.equals(positions[pos])) {
                     str.append(POS_LEAD).append((char)(POS_BASE + pos));
                     return j;
                 }
             }
-            if("top".contentEquals(rawBuilder)) {
+            if(raw.equals("top")) {
                 str.append(POS_LEAD).append((char)(POS_BASE + Position.LAST_REGULAR.ordinal()));
                 return j;
             }
-            if("variable top".contentEquals(rawBuilder)) {
+            if(raw.equals("variable top")) {
                 str.append(POS_LEAD).append((char)(POS_BASE + Position.LAST_VARIABLE.ordinal()));
                 return j;
             }

@@ -58,6 +58,14 @@ public final class CollationLoader {
         return rules;
     }
 
+    private static final UResourceBundle getWithFallback(UResourceBundle table, String entryName) {
+        try {
+            return ((ICUResourceBundle)table).getWithFallback(entryName);
+        } catch(MissingResourceException e) {
+            return null;
+        }
+    }
+
     public static CollationTailoring loadTailoring(ULocale locale, Output<ULocale> outValidLocale) {
 
         // Java porting note: ICU4J getWithFallback/getStringWithFallback currently does not
@@ -107,20 +115,20 @@ public final class CollationLoader {
         // ICU4C, but not used by ICU4J
 
         // boolean typeFallback = false;
-        UResourceBundle data = ((ICUResourceBundle)collations).getWithFallback(type);
+        UResourceBundle data = getWithFallback(collations, type);
         if (data == null &&
                 type.length() > 6 && type.regionMatches(true, 0, "search", 0, 6)) {
             // fall back from something like "searchjl" to "search"
             // typeFallback = true;
             type = type.substring(0, 6);
-            data = ((ICUResourceBundle)collations).getWithFallback(type);
+            data = getWithFallback(collations, type);
         }
 
         if (data == null && !type.equals(defaultType)) {
             // fall back to the default type
             // typeFallback = true;
             type = defaultType;
-            data = ((ICUResourceBundle)collations).getWithFallback(type);
+            data = getWithFallback(collations, type);
         }
 
         if (data == null) {
