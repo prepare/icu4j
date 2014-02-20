@@ -185,7 +185,10 @@ public final class CollationLoader {
 
         // Try to fetch the optional rules string.
         try {
-            t.rules = ((ICUResourceBundle)data).getString("Sequence");
+            String s = ((ICUResourceBundle)data).getString("Sequence");
+            if (s != null) {
+                t.rules = s;
+            }
         } catch(MissingResourceException ignored) {
         }
 
