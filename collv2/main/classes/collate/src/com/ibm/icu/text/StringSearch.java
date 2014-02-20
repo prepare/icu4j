@@ -460,7 +460,7 @@ public final class StringSearch extends SearchIterator {
     @Override
     public void setTarget(CharacterIterator text) {
         super.setTarget(text);
-        search_.matchedIndex_ = DONE;
+        textIter_.setText(text);
     }
 
     /**
