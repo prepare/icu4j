@@ -328,6 +328,7 @@ public abstract class SearchIterator
 
         text.setIndex(text.getBeginIndex());
         search_.setTarget(text);
+        search_.matchedIndex_ = DONE;
         search_.setMatchedLength(0);
         search_.reset_ = true;
         search_.isForwardSearching_ = true;
@@ -335,6 +336,9 @@ public abstract class SearchIterator
             // Create a clone of CharacterItearator, so it won't
             // affect the position currently held by search_.text()
             search_.breakIter().setText((CharacterIterator)text.clone());
+        }
+        if (search_.internalBreakIter_ != null) {
+            search_.internalBreakIter_.setText((CharacterIterator)text.clone());
         }
     }
 
@@ -464,8 +468,7 @@ public abstract class SearchIterator
             int limit = search_.matchedIndex_ + search_.matchedLength();
             StringBuilder result = new StringBuilder(search_.matchedLength());
             CharacterIterator it = search_.text();
-            result.append(it.current());
-            it.next();
+            it.setIndex(search_.matchedIndex_);
             while (it.getIndex() < limit) {
                 result.append(it.current());
                 it.next();
