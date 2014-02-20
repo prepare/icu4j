@@ -605,7 +605,7 @@ public final class StringSearch extends SearchIterator {
             search_.matchedIndex_ = search_.matchedIndex_ == DONE ?
                                     getIndex() : search_.matchedIndex_ + 1;
             search_.setMatchedLength(0);
-            textIter_.setOffset(position);
+            textIter_.setOffset(search_.matchedIndex_);
             if (search_.matchedIndex_ == search_.endIndex()) {
                 search_.matchedIndex_ = DONE;
             }
