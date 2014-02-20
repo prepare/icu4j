@@ -1756,7 +1756,7 @@ public final class RuleBasedCollator extends Collator {
         actualLocaleIsSameAsValid = false;
     }
 
-    void adoptTailoring(CollationTailoring t) {
+    private void adoptTailoring(CollationTailoring t) {
         assert(settings == null && data == null && tailoring == null);
         data = t.data;
         settings = t.settings.clone();
@@ -1768,30 +1768,14 @@ public final class RuleBasedCollator extends Collator {
     // package private methods -----------------------------------------------
 
     /**
-     * Test whether a char character is potentially "unsafe" for use as a collation starting point. "Unsafe" characters
-     * are combining marks or those belonging to some contraction sequence from the offset 1 onwards. E.g. if "ABC" is
-     * the only contraction, then 'B' and 'C' are considered unsafe. If we have another contraction "ZA" with the one
-     * above, then 'A', 'B', 'C' are "unsafe" but 'Z' is not.
-     * 
-     * @param ch
-     *            character to determin
-     * @return true if ch is unsafe, false otherwise
+     * Tests whether a character is "unsafe" for use as a collation starting point.
+     *
+     * @param c code point or code unit
+     * @return true if c is unsafe
+     * @see CollationElementIterator#setOffset(int)
      */
-    final boolean isUnsafe(char ch) {
-        // TODO: This does not seem to exist in C++. What does C++ use instead? Inspect call sites.
-        return data.isUnsafeBackward(ch, settings.readOnly().isNumeric());
-    }
-
-    /**
-     * Approximate determination if a char character is at a contraction end. Guaranteed to be true if a character is at
-     * the end of a contraction, otherwise it is not deterministic.
-     * 
-     * @param ch
-     *            character to be determined
-     */
-    final boolean isContractionEnd(char ch) {
-        // TODO: This does not seem to exist in C++. What does C++ use instead? Inspect call sites.
-        return data.isUnsafeBackward(ch, settings.readOnly().isNumeric());
+    final boolean isUnsafe(int c) {
+        return data.isUnsafeBackward(c, settings.readOnly().isNumeric());
     }
 
     /**
@@ -1916,9 +1900,9 @@ public final class RuleBasedCollator extends Collator {
     CollationData data;
     SharedObject.Reference<CollationSettings> settings;  // reference-counted
     CollationTailoring tailoring;  // C++: reference-counted
-    ULocale validLocale;
+    private ULocale validLocale;
     // Note: No need in Java to track which attributes have been set explicitly.
     // int or EnumSet  explicitlySetAttributes;
 
-    boolean actualLocaleIsSameAsValid;
+    private boolean actualLocaleIsSameAsValid;
 }
