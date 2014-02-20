@@ -377,6 +377,7 @@ public final class StringSearch extends SearchIterator {
 
         ULocale collLocale = collator.getLocale(ULocale.VALID_LOCALE);
         search_.internalBreakIter_ = BreakIterator.getCharacterInstance(collLocale == null ? ULocale.ROOT : collLocale);
+        search_.internalBreakIter_.setText((CharacterIterator)search_.text().clone());  // We need to create a clone
 
         toShift_ = collator.isAlternateHandlingShifted();
         variableTop_ = collator.getVariableTop();
@@ -924,7 +925,7 @@ public final class StringSearch extends SearchIterator {
         }
         */
 
-        // Java porting note: ICU4C frees previously malloc'ed PCE buffer here.
+        pattern_.PCE_ = null;
 
         // since intializePattern is an internal method status is a success.
         return initializePatternCETable();

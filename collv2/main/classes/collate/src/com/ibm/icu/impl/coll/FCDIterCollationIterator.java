@@ -273,7 +273,7 @@ public final class FCDIterCollationIterator extends IterCollationIterator {
                 iter.previousCodePoint();
                 break;
             }
-            s.append(c);
+            s.appendCodePoint(c);
             if(leadCC != 0 && (prevCC > leadCC || CollationFCD.isFCD16OfTibetanCompositeVowel(fcd16))) {
                 // Fails FCD check. Find the next FCD boundary and normalize.
                 for(;;) {
@@ -283,7 +283,7 @@ public final class FCDIterCollationIterator extends IterCollationIterator {
                         iter.previousCodePoint();
                         break;
                     }
-                    s.append(c);
+                    s.appendCodePoint(c);
                 }
                 normalize(s);
                 start = pos;
@@ -362,7 +362,7 @@ public final class FCDIterCollationIterator extends IterCollationIterator {
                 iter.nextCodePoint();
                 break;
             }
-            s.append(c);
+            s.appendCodePoint(c);
             if(trailCC != 0 && ((nextCC != 0 && trailCC > nextCC) ||
                                 CollationFCD.isFCD16OfTibetanCompositeVowel(fcd16))) {
                 // Fails FCD check. Find the previous FCD boundary and normalize.
@@ -374,7 +374,7 @@ public final class FCDIterCollationIterator extends IterCollationIterator {
                         iter.nextCodePoint();
                         break;
                     }
-                    s.append(c);
+                    s.appendCodePoint(c);
                 }
                 s.reverse();
                 normalize(s);
