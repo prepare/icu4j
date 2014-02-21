@@ -1857,9 +1857,6 @@ public class SearchTest extends TestFmwk {
     }
 
     public void TestSupplementary() {
-        if (logKnownIssue("8080", null)) {
-            return;
-        }
         int count = 0;
         while (SUPPLEMENTARY[count].text != null) {
             if (!assertEqual(SUPPLEMENTARY[count])) {
@@ -1870,9 +1867,6 @@ public class SearchTest extends TestFmwk {
     }
 
     public void TestSupplementaryCanonical() {
-        if (logKnownIssue("8080", null)) {
-            return;
-        }
         int count = 0;
         while (SUPPLEMENTARYCANONICAL[count].text != null) {
             if (!assertCanonicalEqual(SUPPLEMENTARYCANONICAL[count])) {
