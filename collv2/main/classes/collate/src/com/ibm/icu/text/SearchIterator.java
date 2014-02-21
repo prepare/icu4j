@@ -267,6 +267,7 @@ public abstract class SearchIterator
         }
         search_.reset_ = false;
         search_.setMatchedLength(0);
+        search_.matchedIndex_ = DONE;
     }
     
     /**
