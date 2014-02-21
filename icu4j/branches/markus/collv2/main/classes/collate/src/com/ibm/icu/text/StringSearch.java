@@ -508,13 +508,7 @@ public final class StringSearch extends SearchIterator {
         // ICU4J SearchIterator.setIndex() is not abstract method.
 
         super.setIndex(position);
-
-        // super.setIndex(position) does following:
-        //      [position is within the range, otherwise, throw IndexOutOfBoundsException]
-        //      search_.reset_ = false;
-        //      search_.setMatchedLength(0);
-
-        search_.matchedIndex_ = DONE;
+        textIter_.setOffset(position);
     }
 
     /** 

@@ -1255,6 +1255,8 @@ public class SearchTest extends TestFmwk {
             return;
         }
         strsrch.setCanonical(true);
+        //TODO: setCanonical is not sufficient for canonical match. See #10725
+        strsrch.getCollator().setDecomposition(Collator.CANONICAL_DECOMPOSITION);
         /* testing out of bounds error */
         try {
             strsrch.setIndex(-1);
@@ -1314,6 +1316,7 @@ public class SearchTest extends TestFmwk {
             }
         }
         strsrch.getCollator().setStrength(Collator.TERTIARY);
+        strsrch.getCollator().setDecomposition(Collator.NO_DECOMPOSITION);
     }
 
     public void TestIgnorable() {
