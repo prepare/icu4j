@@ -464,7 +464,7 @@ final class CollationDataReader /* all static */ {
             settings.setReordering(reorderCodes, reorderTable);
         } else {
             byte[] table = new byte[256];
-            baseData.makeReorderTable(reorderCodes, reorderCodes.length, table);
+            baseData.makeReorderTable(reorderCodes, table);
             settings.setReordering(reorderCodes, table);
         }
 

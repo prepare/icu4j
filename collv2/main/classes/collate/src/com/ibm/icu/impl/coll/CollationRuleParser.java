@@ -333,11 +333,10 @@ public final class CollationRuleParser {
         for(;;) {
             while(j < rawBuilder.length()) {
                 int c = rawBuilder.codePointAt(j);
-                /* TODO: reenable: http://unicode.org/cldr/trac/ticket/6738
                 if(!nfd.isInert(c)) {
                     setParseError("starred-relation string is not all NFD-inert");
                     return;
-                } */
+                }
                 try {
                     sink.addRelation(strength, empty, UTF16.valueOf(c), empty);
                 } catch(Exception e) {
@@ -366,11 +365,10 @@ public final class CollationRuleParser {
             }
             // range prev-c
             while(++prev <= c) {
-                /* TODO: reenable: http://unicode.org/cldr/trac/ticket/6738
                 if(!nfd.isInert(prev)) {
                     setParseError("starred-relation string range is not all NFD-inert");
                     return;
-                } */
+                }
                 if(isSurrogate(prev)) {
                     setParseError("starred-relation string range contains a surrogate");
                     return;
@@ -629,10 +627,9 @@ public final class CollationRuleParser {
             } else if(raw.equals("hiraganaQ")) {
                 int value = getOnOffValue(v);
                 if(value != UCOL_DEFAULT) {
-                    /* TODO: remove [hiraganaQ on] from ja.txt and re-enable this check
                     if(value == UCOL_ON) {
                         setParseError("[hiraganaQ on] is not supported");
-                    } */
+                    }
                     ruleIndex = j;
                     return;
                 }
@@ -730,7 +727,7 @@ public final class CollationRuleParser {
         int j = 0;
         for(Integer code : reorderCodes) { codes[j++] = code; }
         byte[] table = new byte[256];
-        baseData.makeReorderTable(codes, codes.length, table);  // TODO: can we drop the length parameter?
+        baseData.makeReorderTable(codes, table);
         settings.setReordering(codes, table);
     }
 
@@ -903,7 +900,7 @@ public final class CollationRuleParser {
         return i;
     }
 
-    // TODO: reenable: http://unicode.org/cldr/trac/ticket/6738 -- private Normalizer2 nfd = Normalizer2.getNFDInstance();
+    private Normalizer2 nfd = Normalizer2.getNFDInstance();
     private Normalizer2 nfc = Normalizer2.getNFCInstance();
 
     private String rules;
