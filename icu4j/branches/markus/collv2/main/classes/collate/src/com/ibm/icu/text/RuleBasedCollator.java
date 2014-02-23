@@ -959,7 +959,7 @@ public final class RuleBasedCollator extends Collator {
             ownedSettings.resetReordering();
         } else {
             byte[] reorderTable = new byte[256];
-            data.makeReorderTable(order, order.length, reorderTable);
+            data.makeReorderTable(order, reorderTable);
             ownedSettings.setReordering(order.clone(), reorderTable);
         }
         setFastLatinOptions(ownedSettings);

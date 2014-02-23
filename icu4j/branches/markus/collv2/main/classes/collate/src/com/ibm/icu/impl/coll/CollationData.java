@@ -192,7 +192,8 @@ public final class CollationData {
      * The caller checks for illegal arguments and
      * takes care of [DEFAULT] and memory allocation.
      */
-    public void makeReorderTable(int[] reorder, int length, byte[] table) {
+    public void makeReorderTable(int[] reorder, byte[] table) {
+        int length = reorder.length;
         // Initialize the table.
         // Never reorder special low and high primary lead bytes.
         int lowByte;
