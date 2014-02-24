@@ -21,7 +21,7 @@ import com.ibm.icu.impl.ICUResourceBundle;
 /**
  * Collation root provider.
  */
-public final class CollationRoot {
+public final class CollationRoot {  // purely static
     private static final CollationTailoring rootSingleton;
     private static final RuntimeException exception;
 
