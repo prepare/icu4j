@@ -353,6 +353,7 @@ public class CollationMiscTest extends TestFmwk {
     }
 
     public void TestContractionClosure() {
+        // Note: This was also ported to the data-driven test, see collationtest.txt.
         String[] rules = {
             "&b=\u00e4\u00e4",
             "&b=\u00C5",
