@@ -152,9 +152,7 @@ final class CollatorServiceShim extends Collator.ServiceShim {
         Output<ULocale> validLocale = new Output<ULocale>(ULocale.ROOT);
         CollationTailoring t =
             CollationLoader.loadTailoring(desiredLocale, validLocale);
-        Collator result = new RuleBasedCollator(t);
-        result.setLocale(validLocale.value, t.actualLocale);
-        return result;
+        return new RuleBasedCollator(t, validLocale.value);
     }
 
     private static ICULocaleService service = new CService();

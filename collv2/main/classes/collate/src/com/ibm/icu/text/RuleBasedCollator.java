@@ -1748,11 +1748,11 @@ public final class RuleBasedCollator extends Collator {
 
     // package private constructors ------------------------------------------
 
-    RuleBasedCollator(CollationTailoring t) {
+    RuleBasedCollator(CollationTailoring t, ULocale vl) {
         data = t.data;
         settings = t.settings.clone();
         tailoring = t;
-        validLocale = t.actualLocale;
+        validLocale = vl;
         actualLocaleIsSameAsValid = false;
     }
 

@@ -92,6 +92,9 @@ public final class CollationData {
         return ce32;
     }
 
+    /**
+     * Computes a CE from c's ce32 which has the OFFSET_TAG.
+     */
     long getCEFromOffsetCE32(int c, int ce32) {
         long dataCE = ces[Collation.indexFromCE32(ce32)];
         return Collation.makeCE(Collation.getThreeBytePrimaryForOffsetData(c, dataCE));
