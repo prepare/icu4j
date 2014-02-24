@@ -1887,13 +1887,12 @@ public final class RuleBasedCollator extends Collator {
         // TODO: Starting with Java 7, use Objects.equals(a, b).
         if(Utility.objectEquals(actual, tailoring.actualLocale)) {
             actualLocaleIsSameAsValid = false;
-        } else if(tailoring.actualLocale == null) {
-            tailoring.actualLocale = actual;
-            actualLocaleIsSameAsValid = false;
         } else {
             assert(Utility.objectEquals(actual, valid));
             actualLocaleIsSameAsValid = true;
         }
+        // Do not modify tailoring.actualLocale:
+        // We cannot be sure that that would be thread-safe.
         validLocale = valid;
     }
 
