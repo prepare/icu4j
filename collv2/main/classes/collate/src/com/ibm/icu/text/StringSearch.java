@@ -1079,7 +1079,7 @@ public final class StringSearch extends SearchIterator {
                 return CE_SKIP_TARG;
             }
             if (patLev1 == 0
-                    && compareType == ElementComparisonType.USEARCH_ANY_BASE_WEIGHT_IS_WILDCARD) {
+                    && compareType == ElementComparisonType.ANY_BASE_WEIGHT_IS_WILDCARD) {
                 return CE_SKIP_PATN;
             }
             return CE_NO_MATCH;
@@ -1093,11 +1093,11 @@ public final class StringSearch extends SearchIterator {
                 return CE_SKIP_TARG;
             }
             if (patLev2 == 0
-                    && compareType == ElementComparisonType.USEARCH_ANY_BASE_WEIGHT_IS_WILDCARD) {
+                    && compareType == ElementComparisonType.ANY_BASE_WEIGHT_IS_WILDCARD) {
                 return CE_SKIP_PATN;
             }
             return (patLev2 == CE_LEVEL2_BASE ||
-                    (compareType == ElementComparisonType.USEARCH_ANY_BASE_WEIGHT_IS_WILDCARD &&
+                    (compareType == ElementComparisonType.ANY_BASE_WEIGHT_IS_WILDCARD &&
                         targLev2 == CE_LEVEL2_BASE)) ? CE_MATCH : CE_NO_MATCH;
         }
 
@@ -1106,7 +1106,7 @@ public final class StringSearch extends SearchIterator {
         int patLev3 = (int)(patCE & mask);
         if (targLev3 != patLev3) {
             return (patLev3 == CE_LEVEL3_BASE ||
-                    (compareType == ElementComparisonType.USEARCH_ANY_BASE_WEIGHT_IS_WILDCARD &&
+                    (compareType == ElementComparisonType.ANY_BASE_WEIGHT_IS_WILDCARD &&
                         targLev3 == CE_LEVEL3_BASE) )? CE_MATCH: CE_NO_MATCH;
         }
 

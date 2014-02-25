@@ -860,10 +860,81 @@ public abstract class SearchIterator
         search_.setMatchedLength(0);
     }
 
-    //TODO: We should expose this along with get/setElementComparisonType
-    enum ElementComparisonType {
+    /**
+     * Option to control how collation elements are compared.
+     * The default value will be {@link #STANDARD_ELEMENT_COMPARISON}.
+     * 
+     * @see #setElementComparisonType(ElementComparisonType)
+     * @see #getElementComparisonType()
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    public enum ElementComparisonType {
+        /**
+         * Standard collation element comparison at the specified collator strength.
+         * 
+         * @internal
+         * @deprecated This API is ICU internal only.
+         */
         STANDARD_ELEMENT_COMPARISON,
+        /**
+         * <p>Collation element comparison is modified to effectively provide behavior
+         * between the specified strength and strength - 1.</p>
+         * 
+         * <p>Collation elements in the pattern that have the base weight for the specified
+         * strength are treated as "wildcards" that match an element with any other
+         * weight at that collation level in the searched text. For example, with a
+         * secondary-strength English collator, a plain 'e' in the pattern will match
+         * a plain e or an e with any diacritic in the searched text, but an e with
+         * diacritic in the pattern will only match an e with the same diacritic in
+         * the searched text.<p>
+         * 
+         * @internal
+         * @deprecated This API is ICU internal only.
+         */
         PATTERN_BASE_WEIGHT_IS_WILDCARD,
-        USEARCH_ANY_BASE_WEIGHT_IS_WILDCARD
+
+        /**
+         * <p>Collation element comparison is modified to effectively provide behavior
+         * between the specified strength and strength - 1.</p>
+         * 
+         * <p>Collation elements in either the pattern or the searched text that have the
+         * base weight for the specified strength are treated as "wildcards" that match
+         * an element with any other weight at that collation level. For example, with
+         * a secondary-strength English collator, a plain 'e' in the pattern will match
+         * a plain e or an e with any diacritic in the searched text, but an e with
+         * diacritic in the pattern will only match an e with the same diacritic or a
+         * plain e in the searched text.</p>
+         * 
+         * @internal
+         * @deprecated This API is ICU internal only.
+         */
+        ANY_BASE_WEIGHT_IS_WILDCARD
+    }
+
+    /**
+     * <p>Sets the collation element comparison type.</p>
+     * 
+     * <p>The default comparison type is {@link ElementComparisonType#STANDARD_ELEMENT_COMPARISON}.</p>
+     * 
+     * @see ElementComparisonType
+     * @see #getElementComparisonType()
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    public void setElementComparisonType(ElementComparisonType type) {
+        search_.elementComparisonType_ = type;
+    }
+
+    /**
+     * <p>Returns the collation element comparison type.</p>
+     * 
+     * @see ElementComparisonType
+     * @see #setElementComparisonType(ElementComparisonType)
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    public ElementComparisonType getElementComparisonType() {
+        return search_.elementComparisonType_;
     }
 }
