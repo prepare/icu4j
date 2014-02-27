@@ -191,12 +191,6 @@ import com.ibm.icu.util.VersionInfo;
  * @stable ICU 2.8
  */
 public final class RuleBasedCollator extends Collator {
-    // TODO: ICU4C API returns UCollationResult defined as enum.
-    // ICU4J uses int - should we define these somewhere?
-    private static final int UCOL_EQUAL = 0;
-    private static final int UCOL_GREATER = 1;
-    private static final int UCOL_LESS = -1;
-
     // public constructors ---------------------------------------------------
 
     /**
@@ -1639,10 +1633,10 @@ public final class RuleBasedCollator extends Collator {
             } else {
                 rightCp = right.nextDecomposedCodePoint(nfcImpl, rightCp);
             }
-            if(leftCp < rightCp) { return UCOL_LESS; }
-            if(leftCp > rightCp) { return UCOL_GREATER; }
+            if(leftCp < rightCp) { return Collation.LESS; }
+            if(leftCp > rightCp) { return Collation.GREATER; }
         }
-        return UCOL_EQUAL;
+        return Collation.EQUAL;
     }
 
     /**
@@ -1653,14 +1647,14 @@ public final class RuleBasedCollator extends Collator {
     @Override
     protected int doCompare(CharSequence left, CharSequence right) {
         if(left == right) {
-            return UCOL_EQUAL;
+            return Collation.EQUAL;
         }
 
         // Identical-prefix test.
         int equalPrefixLength = 0;
         for(;;) {
             if(equalPrefixLength == left.length()) {
-                if(equalPrefixLength == right.length()) { return UCOL_EQUAL; }
+                if(equalPrefixLength == right.length()) { return Collation.EQUAL; }
                 break;
             } else if(equalPrefixLength == right.length() ||
                       left.charAt(equalPrefixLength) != right.charAt(equalPrefixLength)) {
@@ -1723,7 +1717,7 @@ public final class RuleBasedCollator extends Collator {
                 releaseCollationBuffer(buffer);
             }
         }
-        if(result != UCOL_EQUAL || roSettings.getStrength() < Collator.IDENTICAL) {
+        if(result != Collation.EQUAL || roSettings.getStrength() < Collator.IDENTICAL) {
             return result;
         }
 

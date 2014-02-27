@@ -91,11 +91,6 @@ public class UTF16CollationIterator extends CollationIterator {
         }
     }
 
-    /* TODO: // Copy constructor only for subclasses which set the pointers.
-    protected UTF16CollationIterator(const UTF16CollationIterator &other)
-            : CollationIterator(other),
-              start(null), pos(null), limit(null) {} */
-
     @Override
     protected long handleNextCE32() {
         if(pos == limit) {

@@ -23,6 +23,12 @@ public final class Collation {
      */
     public static final int SENTINEL_CP = -1;
 
+    // ICU4C compare() API returns enum UCollationResult values (with UCOL_ prefix).
+    // ICU4J just returns int. We use these constants for ease of porting.
+    public static final int LESS = -1;
+    public static final int EQUAL = 0;
+    public static final int GREATER = 1;
+
     // Special sort key bytes for all levels.
     public static final int TERMINATOR_BYTE = 0;
     public static final int LEVEL_SEPARATOR_BYTE = 1;

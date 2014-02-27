@@ -14,12 +14,6 @@ package com.ibm.icu.impl.coll;
 import com.ibm.icu.text.Collator;
 
 public final class CollationCompare /* all static */ {
-    // TODO: ICU4C API returns UCollationResult defined as enum.
-    // ICU4J uses int - should we define these somewhere?
-    private static final int UCOL_EQUAL = 0;
-    private static final int UCOL_GREATER = 1;
-    private static final int UCOL_LESS = -1;
-
     public static int compareUpToQuaternary(CollationIterator left, CollationIterator right,
             CollationSettings settings) {
         int options = settings.options;
@@ -90,7 +84,7 @@ public final class CollationCompare /* all static */ {
                     leftPrimary = Collation.reorder(reorderTable, leftPrimary);
                     rightPrimary = Collation.reorder(reorderTable, rightPrimary);
                 }
-                return (leftPrimary < rightPrimary) ? UCOL_LESS : UCOL_GREATER;
+                return (leftPrimary < rightPrimary) ? Collation.LESS : Collation.GREATER;
             }
             if (leftPrimary == Collation.NO_CE_PRIMARY) {
                 break;
@@ -116,7 +110,7 @@ public final class CollationCompare /* all static */ {
                     } while (rightSecondary == 0);
 
                     if (leftSecondary != rightSecondary) {
-                        return (leftSecondary < rightSecondary) ? UCOL_LESS : UCOL_GREATER;
+                        return (leftSecondary < rightSecondary) ? Collation.LESS : Collation.GREATER;
                     }
                     if (leftSecondary == Collation.NO_CE_WEIGHT16) {
                         break;
@@ -157,7 +151,7 @@ public final class CollationCompare /* all static */ {
                         }
 
                         if (leftSecondary != rightSecondary) {
-                            return (leftSecondary < rightSecondary) ? UCOL_LESS : UCOL_GREATER;
+                            return (leftSecondary < rightSecondary) ? Collation.LESS : Collation.GREATER;
                         }
                         if (leftSecondary == 0) {
                             break;
@@ -235,9 +229,9 @@ public final class CollationCompare /* all static */ {
                 // so level length differences were handled there.
                 if (leftCase != rightCase) {
                     if ((options & CollationSettings.UPPER_FIRST) == 0) {
-                        return (leftCase < rightCase) ? UCOL_LESS : UCOL_GREATER;
+                        return (leftCase < rightCase) ? Collation.LESS : Collation.GREATER;
                     } else {
-                        return (leftCase < rightCase) ? UCOL_GREATER : UCOL_LESS;
+                        return (leftCase < rightCase) ? Collation.GREATER : Collation.LESS;
                     }
                 }
                 if ((leftLower32 >>> 16) == Collation.NO_CE_WEIGHT16) {
@@ -246,7 +240,7 @@ public final class CollationCompare /* all static */ {
             }
         }
         if (CollationSettings.getStrength(options) <= Collator.SECONDARY) {
-            return UCOL_EQUAL;
+            return Collation.EQUAL;
         }
 
         int tertiaryMask = CollationSettings.getTertiaryMask(options);
@@ -294,20 +288,20 @@ public final class CollationCompare /* all static */ {
                         }
                     }
                 }
-                return (leftTertiary < rightTertiary) ? UCOL_LESS : UCOL_GREATER;
+                return (leftTertiary < rightTertiary) ? Collation.LESS : Collation.GREATER;
             }
             if (leftTertiary == Collation.NO_CE_WEIGHT16) {
                 break;
             }
         }
         if (CollationSettings.getStrength(options) <= Collator.TERTIARY) {
-            return UCOL_EQUAL;
+            return Collation.EQUAL;
         }
 
         if (!anyVariable && (anyQuaternaries & 0xc0) == 0) {
             // If there are no "variable" CEs and no non-zero quaternary weights,
             // then there are no quaternary differences.
-            return UCOL_EQUAL;
+            return Collation.EQUAL;
         }
 
         leftIndex = 0;
@@ -352,12 +346,12 @@ public final class CollationCompare /* all static */ {
                     leftQuaternary = Collation.reorder(reorderTable, leftQuaternary);
                     rightQuaternary = Collation.reorder(reorderTable, rightQuaternary);
                 }
-                return (leftQuaternary < rightQuaternary) ? UCOL_LESS : UCOL_GREATER;
+                return (leftQuaternary < rightQuaternary) ? Collation.LESS : Collation.GREATER;
             }
             if (leftQuaternary == Collation.NO_CE_WEIGHT16) {
                 break;
             }
         }
-        return UCOL_EQUAL;
+        return Collation.EQUAL;
     }
 }

@@ -15,12 +15,6 @@ import com.ibm.icu.lang.UScript;
 import com.ibm.icu.text.Collator;
 
 public final class CollationFastLatin /* all static */ {
-    // TODO: ICU4C API returns UCollationResult defined as enum.
-    // ICU4J uses int - should we define these somewhere?
-    private static final int UCOL_EQUAL = 0;
-    private static final int UCOL_GREATER = 1;
-    private static final int UCOL_LESS = -1;
-
     /**
      * Fast Latin format version (one byte 1..FF).
      * Must be incremented for any runtime-incompatible changes,
@@ -368,7 +362,7 @@ public final class CollationFastLatin /* all static */ {
             int rightPrimary = rightPair & 0xffff;
             if(leftPrimary != rightPrimary) {
                 // Return the primary difference.
-                return (leftPrimary < rightPrimary) ? UCOL_LESS : UCOL_GREATER;
+                return (leftPrimary < rightPrimary) ? Collation.LESS : Collation.GREATER;
             }
             if(leftPair == EOS) { break; }
             leftPair >>>= 16;
@@ -455,7 +449,7 @@ public final class CollationFastLatin /* all static */ {
                         // and moving backwards between merge separators.
                         return BAIL_OUT_RESULT;
                     }
-                    return (leftSecondary < rightSecondary) ? UCOL_LESS : UCOL_GREATER;
+                    return (leftSecondary < rightSecondary) ? Collation.LESS : Collation.GREATER;
                 }
                 if(leftPair == EOS) { break; }
                 leftPair >>>= 16;
@@ -513,9 +507,9 @@ public final class CollationFastLatin /* all static */ {
                 int rightCase = rightPair & 0xffff;
                 if(leftCase != rightCase) {
                     if((options & CollationSettings.UPPER_FIRST) == 0) {
-                        return (leftCase < rightCase) ? UCOL_LESS : UCOL_GREATER;
+                        return (leftCase < rightCase) ? Collation.LESS : Collation.GREATER;
                     } else {
-                        return (leftCase < rightCase) ? UCOL_GREATER : UCOL_LESS;
+                        return (leftCase < rightCase) ? Collation.GREATER : Collation.LESS;
                     }
                 }
                 if(leftPair == EOS) { break; }
@@ -523,7 +517,7 @@ public final class CollationFastLatin /* all static */ {
                 rightPair >>>= 16;
             }
         }
-        if(CollationSettings.getStrength(options) <= Collator.SECONDARY) { return UCOL_EQUAL; }
+        if(CollationSettings.getStrength(options) <= Collator.SECONDARY) { return Collation.EQUAL; }
 
         // Remove the case bits from the tertiary weight when caseLevel is on or caseFirst is off.
         boolean withCaseBits = CollationSettings.isTertiaryWithCaseBits(options);
@@ -586,13 +580,13 @@ public final class CollationFastLatin /* all static */ {
                         rightTertiary ^= CASE_MASK;
                     }
                 }
-                return (leftTertiary < rightTertiary) ? UCOL_LESS : UCOL_GREATER;
+                return (leftTertiary < rightTertiary) ? Collation.LESS : Collation.GREATER;
             }
             if(leftPair == EOS) { break; }
             leftPair >>>= 16;
             rightPair >>>= 16;
         }
-        if(CollationSettings.getStrength(options) <= Collator.TERTIARY) { return UCOL_EQUAL; }
+        if(CollationSettings.getStrength(options) <= Collator.TERTIARY) { return Collation.EQUAL; }
 
         leftIndex = rightIndex = startIndex;
         leftPair = rightPair = 0;
@@ -641,13 +635,13 @@ public final class CollationFastLatin /* all static */ {
             int leftQuaternary = leftPair & 0xffff;
             int rightQuaternary = rightPair & 0xffff;
             if(leftQuaternary != rightQuaternary) {
-                return (leftQuaternary < rightQuaternary) ? UCOL_LESS : UCOL_GREATER;
+                return (leftQuaternary < rightQuaternary) ? Collation.LESS : Collation.GREATER;
             }
             if(leftPair == EOS) { break; }
             leftPair >>>= 16;
             rightPair >>>= 16;
         }
-        return UCOL_EQUAL;
+        return Collation.EQUAL;
     }
 
     private static int lookup(char[] table, int c) {
