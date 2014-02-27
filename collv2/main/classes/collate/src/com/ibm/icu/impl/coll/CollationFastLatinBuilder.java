@@ -692,7 +692,6 @@ final class CollationFastLatinBuilder {
     private long ce0, ce1;
 
     private long[][] charCEs = new long[CollationFastLatin.NUM_FAST_CHARS][2];
-    // TODO: does this declaration work? probably still need to new long[2] each one.
 
     private UVector64 contractionCEs;
     private UVector64 uniqueCEs;
