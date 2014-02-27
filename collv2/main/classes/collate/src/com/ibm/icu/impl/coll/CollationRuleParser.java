@@ -5,8 +5,8 @@
 *******************************************************************************
 * CollationRuleParser.java, ported from collationruleparser.h/.cpp
 *
-* @since 2013apr10
-* @author Markus W. Scherer
+* C++ version created on: 2013apr10
+* created by: Markus W. Scherer
 */
 
 package com.ibm.icu.impl.coll;

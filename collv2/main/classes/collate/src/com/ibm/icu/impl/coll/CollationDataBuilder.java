@@ -5,8 +5,8 @@
 *******************************************************************************
 * CollationDataBuilder.java, ported from collationdatabuilder.h/.cpp
 *
-* @since 2012apr01
-* @author Markus W. Scherer
+* C++ version created on: 2012apr01
+* created by: Markus W. Scherer
 */
 
 package com.ibm.icu.impl.coll;

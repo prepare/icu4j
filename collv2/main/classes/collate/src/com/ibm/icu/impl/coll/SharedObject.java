@@ -5,8 +5,8 @@
 *******************************************************************************
 * SharedObject.java, ported from sharedobject.h/.cpp
 *
-* @since 2013dec19
-* @author Markus W. Scherer
+* C++ version created on: 2013dec19
+* created by: Markus W. Scherer
 */
 
 package com.ibm.icu.impl.coll;

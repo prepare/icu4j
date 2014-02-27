@@ -5,8 +5,8 @@
 *******************************************************************************
 * CollationFCD.java, ported from collationfcd.h/.cpp
 *
-* @since 2012aug18
-* @author Markus W. Scherer
+* C++ version created on: 2012aug18
+* created by: Markus W. Scherer
 */
 
 package com.ibm.icu.impl.coll;

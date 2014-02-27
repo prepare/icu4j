@@ -5,8 +5,8 @@
 *******************************************************************************
 * CollationDataReader.java, ported from collationdatareader.h/.cpp
 *
-* @since 2013feb07
-* @author Markus W. Scherer
+* C++ version created on: 2013feb07
+* created by: Markus W. Scherer
 */
 
 package com.ibm.icu.impl.coll;

@@ -5,8 +5,8 @@
  *******************************************************************************
  * CollationCompare.java, ported from collationcompare.h/.cpp
  *
- * @since 2012feb14 with new and old collation code
- * @author Markus W. Scherer
+ * C++ version created on: 2012feb14 with new and old collation code
+ * created by: Markus W. Scherer
  */
 
 package com.ibm.icu.impl.coll;

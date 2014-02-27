@@ -5,8 +5,8 @@
 *******************************************************************************
 * IterCollationIterator.java, ported from uitercollationiterator.h/.cpp
 *
-* @since 2012sep23 (from utf16collationiterator.h)
-* @author Markus W. Scherer
+* C++ version created on: 2012sep23 (from utf16collationiterator.h)
+* created by: Markus W. Scherer
 */
 
 package com.ibm.icu.impl.coll;

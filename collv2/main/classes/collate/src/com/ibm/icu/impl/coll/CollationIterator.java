@@ -5,8 +5,8 @@
 *******************************************************************************
 * CollationIterator.java, ported from collationiterator.h/.cpp
 *
-* @since 2010oct27
-* @author Markus W. Scherer
+* C++ version created on: 2010oct27
+* created by: Markus W. Scherer
 */
 
 package com.ibm.icu.impl.coll;

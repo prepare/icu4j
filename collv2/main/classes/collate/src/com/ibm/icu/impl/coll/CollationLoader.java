@@ -7,6 +7,8 @@
 *******************************************************************************
 *
 * CollationLoader.java, ported from ucol_res.cpp
+*
+* created by: Markus W. Scherer
 */
 
 package com.ibm.icu.impl.coll;
