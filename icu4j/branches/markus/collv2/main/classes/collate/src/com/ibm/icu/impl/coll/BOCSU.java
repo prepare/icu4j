@@ -246,7 +246,7 @@ public class BOCSU
     }
         
     /**
-     * Encode one difference value -0x10ffff..+0x10ffff in 1..3 bytes,
+     * Encode one difference value -0x10ffff..+0x10ffff in 1..4 bytes,
      * preserving lexical order
      * @param diff
      * @param buffer byte buffer to append to

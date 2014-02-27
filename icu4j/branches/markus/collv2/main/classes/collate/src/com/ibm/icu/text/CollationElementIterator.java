@@ -6,10 +6,6 @@
 */
 package com.ibm.icu.text;
 
-/***
- * import java.text.StringCharacterIterator;
- * import java.text.CharacterIterator;
- */
 import java.text.CharacterIterator;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,28 +21,23 @@ import com.ibm.icu.impl.coll.IterCollationIterator;
 import com.ibm.icu.impl.coll.UTF16CollationIterator;
 import com.ibm.icu.impl.coll.UVector32;
 
-//TODO: Update document
 /**
  * <p><code>CollationElementIterator</code> is an iterator created by
  * a RuleBasedCollator to walk through a string. The return result of
- * each iteration is a 32-bit collation element that defines the
+ * each iteration is a 32-bit collation element (CE) that defines the
  * ordering priority of the next character or sequence of characters
  * in the source string.</p>
  *
- * <p>For illustration, consider the following in Spanish:
+ * <p>For illustration, consider the following in Slovak and in traditional Spanish collation:
  * <blockquote>
  * <pre>
- * "ca" -> the first collation element is collation_element('c') and second
- *         collation element is collation_element('a').
- *
- * Since "ch" in Spanish sorts as one entity, the below example returns one
- * collation element for the two characters 'c' and 'h'
- *
- * "cha" -> the first collation element is collation_element('ch') and second
- *          collation element is collation_element('a').
+ * "ca" -> the first collation element is CE('c') and the second
+ *         collation element is CE('a').
+ * "cha" -> the first collation element is CE('ch') and the second
+ *          collation element is CE('a').
  * </pre>
  * </blockquote>
- * And in German,
+ * And in German phonebook collation,
  * <blockquote>
  * <pre>
  * Since the character '&#230;' is a composed character of 'a' and 'e', the
@@ -60,13 +51,13 @@ import com.ibm.icu.impl.coll.UVector32;
  * </p>
  *
  * <p>For collation ordering comparison, the collation element results
- * can not be compared simply by using basic arithmetric operators,
+ * can not be compared simply by using basic arithmetic operators,
  * e.g. &lt;, == or &gt;, further processing has to be done. Details
  * can be found in the ICU
- * <a href="http://www.icu-project.org/userguide/Collate_ServiceArchitecture.html">
- * user guide</a>. An example of using the CollationElementIterator
+ * <a href="http://userguide.icu-project.org/collation/architecture">
+ * User Guide</a>. An example of using the CollationElementIterator
  * for collation ordering comparison is the class
- * <a href=StringSearch.html> com.ibm.icu.text.StringSearch</a>.</p>
+ * {@link com.ibm.icu.text.StringSearch}.</p>
  *
  * <p>To construct a CollationElementIterator object, users
  * call the method getCollationElementIterator() on a
@@ -228,6 +219,14 @@ public final class CollationElementIterator
         this(collator);
         setText(source);
     }
+    // Note: The constructors should take settings & tailoring, not a collator,
+    // to avoid circular dependencies.
+    // However, for equals() we would need to be able to compare tailoring data for equality
+    // without making CollationData or CollationTailoring depend on TailoredSet.
+    // (See the implementation of RuleBasedCollator.equals().)
+    // That might require creating an intermediate class that would be used
+    // by both CollationElementIterator and RuleBasedCollator
+    // but only contain the part of RBC.equals() related to data and rules.
 
     /**
      * <p>CollationElementIterator constructor. This takes a source
@@ -337,7 +336,7 @@ public final class CollationElementIterator
             dir_ = 2;
         } else /* dir_ < 0 */{
             // illegal change of direction
-            throw new RuntimeException("Illegal change of direction");
+            throw new IllegalStateException("Illegal change of direction");
             // Java porting note: ICU4C sets U_INVALID_STATE_ERROR to the return status.
         }
         // No need to keep all CEs in the buffer when we iterate.
@@ -392,7 +391,7 @@ public final class CollationElementIterator
             dir_ = -1;
         } else /* dir_ > 1 */{
             // illegal change of direction
-            throw new RuntimeException("Illegal change of direction");
+            throw new IllegalStateException("Illegal change of direction");
             // Java porting note: ICU4C sets U_INVALID_STATE_ERROR to the return status.
         }
         if (offsets_ == null) {
