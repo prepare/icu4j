@@ -5,8 +5,8 @@
 *******************************************************************************
 * CollationFastLatin.java, ported from collationfastlatin.h/.cpp
 *
-* @since 2013aug09
-* @author Markus W. Scherer
+* C++ version created on: 2013aug09
+* created by: Markus W. Scherer
 */
 
 package com.ibm.icu.impl.coll;

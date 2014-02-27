@@ -4,8 +4,8 @@
  * others. All Rights Reserved.
  *******************************************************************************
  *
- * @since 2014feb10
- * @author Markus W. Scherer
+ * created on: 2014feb10
+ * created by: Markus W. Scherer
  */
 package com.ibm.icu.impl.coll;
 

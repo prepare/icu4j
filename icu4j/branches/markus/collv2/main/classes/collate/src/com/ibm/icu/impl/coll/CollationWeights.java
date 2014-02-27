@@ -7,8 +7,8 @@
 *******************************************************************************
 *   CollationWeights.java, ported from collationweights.h/.cpp
 *
-*   @since 2001mar08 as ucol_wgt.h
-*   @author Markus W. Scherer
+*   C++ version created on: 2001mar08 as ucol_wgt.h
+*   created by: Markus W. Scherer
 */
 
 package com.ibm.icu.impl.coll;

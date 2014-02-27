@@ -5,8 +5,8 @@
 *******************************************************************************
 * CollationRoot.java, ported from collationroot.h/.cpp
 *
-* @since 2012dec17
-* @author Markus W. Scherer
+* C++ version created on: 2012dec17
+* created by: Markus W. Scherer
 */
 
 package com.ibm.icu.impl.coll;

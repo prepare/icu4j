@@ -5,8 +5,8 @@
  *******************************************************************************
  * CollationKeys.java, ported from collationkeys.h/.cpp
  *
- * @since 2012sep02
- * @author Markus W. Scherer
+ * C++ version created on: 2012sep02
+ * created by: Markus W. Scherer
  */
 
 package com.ibm.icu.impl.coll;

@@ -5,8 +5,8 @@
 *******************************************************************************
 * CollationTest.cpp, ported from collationtest.cpp
 *
-* @since 2012apr27
-* @author Markus W. Scherer
+* C++ version created on: 2012apr27
+* created by: Markus W. Scherer
 */
 
 // TODO: try to share code with IntlTestCollator; for example, prettify(CollationKey)

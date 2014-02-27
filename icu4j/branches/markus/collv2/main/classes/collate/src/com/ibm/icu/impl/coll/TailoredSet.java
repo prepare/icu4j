@@ -5,8 +5,8 @@
 *******************************************************************************
 * TailoredSet.java, ported from collationsets.h/.cpp
 *
-* @since 2013feb09
-* @author Markus W. Scherer
+* C++ version created on: 2013feb09
+* created by: Markus W. Scherer
 */
 
 package com.ibm.icu.impl.coll;
