@@ -1181,6 +1181,14 @@ public class CollationRegressionTest extends TestFmwk {
         caseFirstCompressionSub(col, "lower first");
     }
 
+    public void TestTrailingComment() throws Exception {
+        // ICU ticket #8070:
+        // Check that the rule parser handles a comment without terminating end-of-line.
+        RuleBasedCollator coll = new RuleBasedCollator("&c<b#comment1\n<a#comment2");
+        assertTrue("c<b", coll.compare("c", "b") < 0);
+        assertTrue("b<a", coll.compare("b", "a") < 0);
+    }
+
     /*
      * Compare two strings - "aaa...A" and "aaa...a" with
      * Collation#compare and CollationKey#compareTo, called from
