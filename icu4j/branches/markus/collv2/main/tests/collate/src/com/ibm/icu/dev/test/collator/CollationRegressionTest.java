@@ -1189,6 +1189,21 @@ public class CollationRegressionTest extends TestFmwk {
         assertTrue("b<a", coll.compare("b", "a") < 0);
     }
 
+    public void TestBeforeWithTooStrongAfter() {
+        // ICU ticket #9959:
+        // Forbid rules with a before-reset followed by a stronger relation.
+        try {
+            new RuleBasedCollator("&[before 2]x<<q<p");
+            errln("should forbid before-2-reset followed by primary relation");
+        } catch(Exception expected) {
+        }
+        try {
+            new RuleBasedCollator("&[before 3]x<<<q<<s<p");
+            errln("should forbid before-3-reset followed by primary or secondary relation");
+        } catch(Exception expected) {
+        }
+    }
+
     /*
      * Compare two strings - "aaa...A" and "aaa...a" with
      * Collation#compare and CollationKey#compareTo, called from
