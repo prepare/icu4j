@@ -565,10 +565,8 @@ public final class RuleBasedCollator extends Collator {
     }
 
     /**
-     * Method to set numeric collation to its default value. When numeric collation is turned on, this Collator
-     * generates a collation key for the numeric value of substrings of digits. This is a way to get '100' to sort AFTER
-     * '2'
-     * 
+     * Method to set numeric collation to its default value.
+     *
      * @see #getNumericCollation
      * @see #setNumericCollation
      * @stable ICU 2.8
@@ -882,9 +880,21 @@ public final class RuleBasedCollator extends Collator {
     }
 
     /**
-     * {@icu} When numeric collation is turned on, this Collator generates a collation key for the numeric value of substrings
-     * of digits. This is a way to get '100' to sort AFTER '2'
-     * 
+     * {@icu} When numeric collation is turned on, this Collator makes
+     * substrings of digits sort according to their numeric values.
+     *
+     * <p>This is a way to get '100' to sort AFTER '2'. Note that the longest
+     * digit substring that can be treated as a single unit is
+     * 254 digits (not counting leading zeros). If a digit substring is
+     * longer than that, the digits beyond the limit will be treated as a
+     * separate digit substring.
+     *
+     * <p>A "digit" in this sense is a code point with General_Category=Nd,
+     * which does not include circled numbers, roman numerals, etc.
+     * Only a contiguous digit substring is considered, that is,
+     * non-negative integers without separators.
+     * There is no support for plus/minus signs, decimals, exponents, etc.
+     *
      * @param flag
      *            true to turn numeric collation on and false to turn it off
      * @see #getNumericCollation
