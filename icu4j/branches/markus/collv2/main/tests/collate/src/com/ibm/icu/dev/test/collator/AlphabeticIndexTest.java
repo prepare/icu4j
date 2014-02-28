@@ -1000,4 +1000,17 @@ public class AlphabeticIndexTest extends TestFmwk {
             assertEquals(msg, overflowIndex, immIndex.getBucketIndex(UTF16.valueOf(kanji[i])));
         }
     }
+
+    public void TestFrozenCollator() {
+        // Ticket #9472
+        RuleBasedCollator coll = (RuleBasedCollator) Collator.getInstance(new ULocale("da"));
+        coll.setStrength(Collator.IDENTICAL);
+        coll.freeze();
+        // The AlphabeticIndex constructor used to throw an exception
+        // because it cloned the collator (which preserves frozenness)
+        // and set the clone's strength to PRIMARY.
+        AlphabeticIndex index = new AlphabeticIndex(coll);
+        assertEquals("same strength as input Collator",
+                Collator.IDENTICAL, index.getCollator().getStrength());
+    }
 }
