@@ -1355,7 +1355,7 @@ public class CollationTest extends TestFmwk {
     }
 
     private boolean needsNormalization(String s) {
-        if (fcd.isNormalized(s)) {
+        if (!fcd.isNormalized(s)) {
             return true;
         }
         // In some sequences with Tibetan composite vowel signs,
@@ -1439,7 +1439,7 @@ public class CollationTest extends TestFmwk {
             if (mergedKey == null) {
                 mergedKey = tmpKey;
             } else {
-                mergedKey.merge(tmpKey);
+                mergedKey = mergedKey.merge(tmpKey);
             }
             if (i == sLength) {
                 break;
