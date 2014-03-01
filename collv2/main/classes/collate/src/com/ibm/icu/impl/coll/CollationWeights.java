@@ -174,7 +174,7 @@ public final class CollationWeights {
 
     /* helper functions for CE weights */
 
-    private static int lengthOfWeight(long weight) {
+    public static int lengthOfWeight(long weight) {
         if((weight&0xffffff)==0) {
             return 1;
         } else if((weight&0xffff)==0) {

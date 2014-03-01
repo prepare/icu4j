@@ -36,12 +36,12 @@ public class IterCollationIterator extends CollationIterator {
     }
 
     @Override
-    int nextCodePoint() {
+    public int nextCodePoint() {
         return iter.nextCodePoint();
     }
 
     @Override
-    int previousCodePoint() {
+    public int previousCodePoint() {
         return iter.previousCodePoint();
     }
 

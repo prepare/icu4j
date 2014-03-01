@@ -354,13 +354,13 @@ public abstract class CollationIterator {
      * Returns the next code point (with post-increment).
      * Public for identical-level comparison and for testing.
      */
-    abstract int nextCodePoint();
+    public abstract int nextCodePoint();
 
     /**
      * Returns the previous code point (with pre-decrement).
      * Public for identical-level comparison and for testing.
      */
-    abstract int previousCodePoint();
+    public abstract int previousCodePoint();
 
     protected final void reset() {
         cesIndex = ceBuffer.length = 0;

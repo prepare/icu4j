@@ -46,11 +46,11 @@ public final class CollationData {
         return unsafeBackwardSet.contains(c) || (numeric && isDigit(c));
     }
 
-    boolean isCompressibleLeadByte(int b) {
+    public boolean isCompressibleLeadByte(int b) {
         return compressibleBytes[b];
     }
 
-    boolean isCompressiblePrimary(long p) {
+    public boolean isCompressiblePrimary(long p) {
         return isCompressibleLeadByte((int)p >>> 24);
     }
 
@@ -376,5 +376,5 @@ public final class CollationData {
      * Used by the CollationRootElements class. The data structure is described there.
      * null in a tailoring.
      */
-    long[] rootElements;
+    public long[] rootElements;
 }

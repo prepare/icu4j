@@ -80,7 +80,7 @@ public final class FCDUTF16CollationIterator extends UTF16CollationIterator {
     }
 
     @Override
-    int nextCodePoint() {
+    public int nextCodePoint() {
         char c;
         for(;;) {
             if(checkDir > 0) {
@@ -115,7 +115,7 @@ public final class FCDUTF16CollationIterator extends UTF16CollationIterator {
     }
 
     @Override
-    int previousCodePoint() {
+    public int previousCodePoint() {
         char c;
         for(;;) {
             if(checkDir < 0) {

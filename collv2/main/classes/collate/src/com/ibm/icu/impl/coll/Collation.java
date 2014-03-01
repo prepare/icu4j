@@ -38,10 +38,10 @@ public final class Collation {
      * nor as primary compression low terminator.
      * Otherwise usable.
      */
-    static final int MERGE_SEPARATOR_BYTE = 2;
-    static final long MERGE_SEPARATOR_PRIMARY = 0x02000000;  // U+FFFE
+    public static final int MERGE_SEPARATOR_BYTE = 2;
+    public static final long MERGE_SEPARATOR_PRIMARY = 0x02000000;  // U+FFFE
     static final int MERGE_SEPARATOR_WEIGHT16 = 0x0200;  // U+FFFE
-    static final int MERGE_SEPARATOR_LOWER32 = 0x02000200;  // U+FFFE
+    public static final int MERGE_SEPARATOR_LOWER32 = 0x02000200;  // U+FFFE
     static final int MERGE_SEPARATOR_CE32 = 0x02000202;  // U+FFFE
 
     /**
@@ -49,36 +49,36 @@ public final class Collation {
      * Reserved value in primary second byte if the lead byte is compressible.
      * Otherwise usable in all CE weight bytes.
      */
-    static final int PRIMARY_COMPRESSION_LOW_BYTE = 3;
+    public static final int PRIMARY_COMPRESSION_LOW_BYTE = 3;
     /**
      * Primary compression high terminator.
      * Reserved value in primary second byte if the lead byte is compressible.
      * Otherwise usable in all CE weight bytes.
      */
-    static final int PRIMARY_COMPRESSION_HIGH_BYTE = 0xff;
+    public static final int PRIMARY_COMPRESSION_HIGH_BYTE = 0xff;
 
     /** Default secondary/tertiary weight lead byte. */
     static final int COMMON_BYTE = 5;
-    static final int COMMON_WEIGHT16 = 0x0500;
+    public static final int COMMON_WEIGHT16 = 0x0500;
     /** Middle 16 bits of a CE with a common secondary weight. */
     static final int COMMON_SECONDARY_CE = 0x05000000;
     /** Lower 16 bits of a CE with a common tertiary weight. */
     static final int COMMON_TERTIARY_CE = 0x0500;
     /** Lower 32 bits of a CE with common secondary and tertiary weights. */
-    static final int COMMON_SEC_AND_TER_CE = 0x05000500;
+    public static final int COMMON_SEC_AND_TER_CE = 0x05000500;
 
     static final int SECONDARY_MASK = 0xffff0000;
-    static final int CASE_MASK = 0xc000;
+    public static final int CASE_MASK = 0xc000;
     static final int SECONDARY_AND_CASE_MASK = SECONDARY_MASK | CASE_MASK;
     /** Only the 2*6 bits for the pure tertiary weight. */
-    static final int ONLY_TERTIARY_MASK = 0x3f3f;
+    public static final int ONLY_TERTIARY_MASK = 0x3f3f;
     /** Only the secondary & tertiary bits; no case, no quaternary. */
     static final int ONLY_SEC_TER_MASK = SECONDARY_MASK | ONLY_TERTIARY_MASK;
     /** Case bits and tertiary bits. */
     static final int CASE_AND_TERTIARY_MASK = CASE_MASK | ONLY_TERTIARY_MASK;
-    static final int QUATERNARY_MASK = 0xc0;
+    public static final int QUATERNARY_MASK = 0xc0;
     /** Case bits and quaternary bits. */
-    static final int CASE_AND_QUATERNARY_MASK = CASE_MASK | QUATERNARY_MASK;
+    public static final int CASE_AND_QUATERNARY_MASK = CASE_MASK | QUATERNARY_MASK;
 
     static final int UNASSIGNED_IMPLICIT_BYTE = 0xfe;  // compressible
     /**
@@ -93,12 +93,12 @@ public final class Collation {
 
     static final int TRAIL_WEIGHT_BYTE = 0xff;  // not compressible
     static final long FIRST_TRAILING_PRIMARY = 0xff020200L;  // [first trailing]
-    static final long MAX_PRIMARY = 0xffff0000L;  // U+FFFF
+    public static final long MAX_PRIMARY = 0xffff0000L;  // U+FFFF
     static final int MAX_REGULAR_CE32 = 0xffff0505;  // U+FFFF
 
     // CE32 value for U+FFFD as well as illegal UTF-8 byte sequences (which behave like U+FFFD).
     // We use the third-highest primary weight for U+FFFD (as in UCA 6.3+).
-    static final long FFFD_PRIMARY = MAX_PRIMARY - 0x20000;
+    public static final long FFFD_PRIMARY = MAX_PRIMARY - 0x20000;
     static final int FFFD_CE32 = MAX_REGULAR_CE32 - 0x20000;
 
     /**
@@ -125,15 +125,15 @@ public final class Collation {
     /** Sort key levels. */
 
     /** Unspecified level. */
-    static final int NO_LEVEL = 0;
+    public static final int NO_LEVEL = 0;
     public static final int PRIMARY_LEVEL = 1;
-    static final int SECONDARY_LEVEL = 2;
-    static final int CASE_LEVEL = 3;
-    static final int TERTIARY_LEVEL = 4;
-    static final int QUATERNARY_LEVEL = 5;
-    static final int IDENTICAL_LEVEL = 6;
+    public static final int SECONDARY_LEVEL = 2;
+    public static final int CASE_LEVEL = 3;
+    public static final int TERTIARY_LEVEL = 4;
+    public static final int QUATERNARY_LEVEL = 5;
+    public static final int IDENTICAL_LEVEL = 6;
     /** Beyond sort key bytes. */
-    static final int ZERO_LEVEL = 7;
+    public static final int ZERO_LEVEL = 7;
 
     /**
      * Sort key level flags: xx_FLAG = 1 << xx_LEVEL.
@@ -440,7 +440,7 @@ public final class Collation {
     }
 
     /** Creates a CE from a primary weight. */
-    static long makeCE(long p) {
+    public static long makeCE(long p) {
         return (p << 32) | COMMON_SEC_AND_TER_CE;
     }
     /**
@@ -454,7 +454,7 @@ public final class Collation {
     /**
      * Increments a 2-byte primary by a code point offset.
      */
-    static long incTwoBytePrimaryByOffset(long basePrimary, boolean isCompressible,
+    public static long incTwoBytePrimaryByOffset(long basePrimary, boolean isCompressible,
                                               int offset) {
         // Extract the second byte, minus the minimum byte value,
         // plus the offset, modulo the number of usable byte values, plus the minimum.
@@ -476,7 +476,7 @@ public final class Collation {
     /**
      * Increments a 3-byte primary by a code point offset.
      */
-    static long incThreeBytePrimaryByOffset(long basePrimary, boolean isCompressible,
+    public static long incThreeBytePrimaryByOffset(long basePrimary, boolean isCompressible,
                                                 int offset) {
         // Extract the third byte, minus the minimum byte value,
         // plus the offset, modulo the number of usable byte values, plus the minimum.

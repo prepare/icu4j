@@ -14,6 +14,7 @@ package com.ibm.icu.impl.coll;
 import java.text.ParseException;
 import java.util.ArrayList;
 
+import com.ibm.icu.impl.IllegalIcuArgumentException;
 import com.ibm.icu.impl.PatternProps;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
@@ -741,15 +742,19 @@ public final class CollationRuleParser {
      * -1==Collator.ReorderCodes.REORDER_CODE_DEFAULT, or
      * -2 if not recognized
      */
-    private static int getReorderCode(String word) {
+    public static int getReorderCode(String word) {
         for(int i = 0; i < gSpecialReorderCodes.length; ++i) {
             if(word.equalsIgnoreCase(gSpecialReorderCodes[i])) {
                 return Collator.ReorderCodes.FIRST + i;
             }
         }
-        int script = UCharacter.getPropertyValueEnum(UProperty.SCRIPT, word);
-        if(script >= 0) {
-            return script;
+        try {
+            int script = UCharacter.getPropertyValueEnum(UProperty.SCRIPT, word);
+            if(script >= 0) {
+                return script;
+            }
+        } catch (IllegalIcuArgumentException e) {
+            // fall through
         }
         if(word.equalsIgnoreCase("default")) {
             return Collator.ReorderCodes.DEFAULT;

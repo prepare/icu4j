@@ -60,7 +60,7 @@ public class UTF16CollationIterator extends CollationIterator {
     }
 
     @Override
-    int nextCodePoint() {
+    public int nextCodePoint() {
         if(pos == limit) {
             return Collation.SENTINEL_CP;
         }
@@ -76,7 +76,7 @@ public class UTF16CollationIterator extends CollationIterator {
     }
 
     @Override
-    int previousCodePoint() {
+    public int previousCodePoint() {
         if(pos == start) {
             return Collation.SENTINEL_CP;
         }
