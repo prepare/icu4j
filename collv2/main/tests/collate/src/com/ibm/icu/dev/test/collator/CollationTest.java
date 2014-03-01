@@ -613,7 +613,7 @@ public class CollationTest extends TestFmwk {
 
         // Non-compressible primaries use 254 second bytes 02..FF.
         logln("CollationWeights.initForPrimary(non-compressible)");
-        cw.initForPrimary(true);
+        cw.initForPrimary(false);
         // Expect 1 weight 11 and 254 weights 12xx.
         checkAllocWeights(cw, 0x10000000L, 0x13000000L, 255, 1, 1);
         checkAllocWeights(cw, 0x10000000L, 0x13000000L, 255, 2, 254);
@@ -797,9 +797,9 @@ public class CollationTest extends TestFmwk {
                 // Return the next primary in this range.
                 boolean isCompressible = data.isCompressiblePrimary(pri);
                 if ((pri & 0xffff) == 0) {
-                    pri = (int) Collation.incTwoBytePrimaryByOffset(pri, isCompressible, step);
+                    pri = Collation.incTwoBytePrimaryByOffset(pri, isCompressible, step);
                 } else {
-                    pri = (int) Collation.incThreeBytePrimaryByOffset(pri, isCompressible, step);
+                    pri = Collation.incThreeBytePrimaryByOffset(pri, isCompressible, step);
                 }
                 return true;
             }
