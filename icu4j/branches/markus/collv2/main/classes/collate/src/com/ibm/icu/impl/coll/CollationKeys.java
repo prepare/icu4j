@@ -736,7 +736,7 @@ public final class CollationKeys /* all methods are static */ {
                     int limit;
                     if (anyMergeSeparators) {
                         limit = start;
-                        while (secs[limit] > 1) {
+                        while (((int)secs[limit] & 0xff) > 1) {
                             ++limit;
                         }
                     } else {
