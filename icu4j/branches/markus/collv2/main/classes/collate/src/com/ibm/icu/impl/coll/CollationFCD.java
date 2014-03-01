@@ -45,8 +45,8 @@ import com.ibm.icu.text.UTF16;
  * hasTccc(trail)=false:
  * It should only be tested for unpaired trail surrogates which are FCD-inert.
  */
-final class CollationFCD {
-    static boolean hasLccc(int c) {
+public final class CollationFCD {
+    public static boolean hasLccc(int c) {
         assert c <= 0xffff;
         // c can be negative, e.g., Collation.SENTINEL_CP from UCharIterator;
         // that is handled in the first test.
@@ -58,7 +58,7 @@ final class CollationFCD {
             (lcccBits[i] & (1 << (c & 0x1f))) != 0;
     }
 
-    static boolean hasTccc(int c) {
+    public static boolean hasTccc(int c) {
         assert c <= 0xffff;
         // c can be negative, e.g., Collation.SENTINEL_CP from UCharIterator;
         // that is handled in the first test.

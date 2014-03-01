@@ -1258,7 +1258,7 @@ final class CollationDataBuilder {  // not final in C++
         }
 
         @Override
-        int nextCodePoint() {
+        public int nextCodePoint() {
             if(pos == s.length()) {
                 return Collation.SENTINEL_CP;
             }
@@ -1268,7 +1268,7 @@ final class CollationDataBuilder {  // not final in C++
         }
 
         @Override
-        int previousCodePoint() {
+        public int previousCodePoint() {
             if(pos == 0) {
                 return Collation.SENTINEL_CP;
             }

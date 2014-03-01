@@ -18,31 +18,31 @@ package com.ibm.icu.impl.coll;
  *
  * This class takes and returns 16-bit secondary and tertiary weights.
  */
-final class CollationRootElements {
-    CollationRootElements(long[] rootElements) {
+public final class CollationRootElements {
+    public CollationRootElements(long[] rootElements) {
         elements = rootElements;
     }
 
     /**
      * Higher than any root primary.
      */
-    private static final long PRIMARY_SENTINEL = 0xffffff00L;
+    public static final long PRIMARY_SENTINEL = 0xffffff00L;
 
     /**
      * Flag in a root element, set if the element contains secondary & tertiary weights,
      * rather than a primary.
      */
-    private static final int SEC_TER_DELTA_FLAG = 0x80;
+    public static final int SEC_TER_DELTA_FLAG = 0x80;
     /**
      * Mask for getting the primary range step value from a primary-range-end element.
      */
-    private static final int PRIMARY_STEP_MASK = 0x7f;
+    public static final int PRIMARY_STEP_MASK = 0x7f;
 
     /**
      * Index of the first CE with a non-zero tertiary weight.
      * Same as the start of the compact root elements table.
      */
-    static final int IX_FIRST_TERTIARY_INDEX = 0;
+    public static final int IX_FIRST_TERTIARY_INDEX = 0;
     /**
      * Index of the first CE with a non-zero secondary weight.
      */
@@ -75,7 +75,7 @@ final class CollationRootElements {
      * This is the upper limit for tertiaries of primary/secondary CEs.
      * This minus one is the lower limit for tertiaries of tertiary CEs.
      */
-    int getTertiaryBoundary() {
+    public int getTertiaryBoundary() {
         return ((int)elements[IX_SEC_TER_BOUNDARIES] << 8) & 0xff00;
     }
 
@@ -97,7 +97,7 @@ final class CollationRootElements {
      * Returns the last common secondary weight.
      * This is the lower limit for secondaries of primary CEs.
      */
-    int getLastCommonSecondary() {
+    public int getLastCommonSecondary() {
         return ((int)elements[IX_SEC_TER_BOUNDARIES] >> 16) & 0xff00;
     }
 
@@ -107,7 +107,7 @@ final class CollationRootElements {
      * This is the upper limit for secondaries of primary CEs.
      * This minus one is the lower limit for secondaries of secondary CEs.
      */
-    int getSecondaryBoundary() {
+    public int getSecondaryBoundary() {
         return ((int)elements[IX_SEC_TER_BOUNDARIES] >> 8) & 0xff00;
     }
 

@@ -47,7 +47,7 @@ public final class FCDIterCollationIterator extends IterCollationIterator {
     }
 
     @Override
-    int nextCodePoint() {
+    public int nextCodePoint() {
         int c;
         for(;;) {
             if(state == State.ITER_CHECK_FWD) {
@@ -91,7 +91,7 @@ public final class FCDIterCollationIterator extends IterCollationIterator {
     }
 
     @Override
-    int previousCodePoint() {
+    public int previousCodePoint() {
         int c;
         for(;;) {
             if(state == State.ITER_CHECK_BWD) {
