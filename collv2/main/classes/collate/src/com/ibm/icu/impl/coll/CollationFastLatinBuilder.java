@@ -552,7 +552,7 @@ final class CollationFastLatinBuilder {
             long ce = charCEs[i][0];
             if(isContractionCharCE(ce)) { continue; }  // defer contraction
             int miniCE = encodeTwoCEs(ce, charCEs[i][1]);
-            if(miniCE > 0xffff) {
+            if((miniCE >>> 16) > 0) {   // if ((unsigned)miniCE > 0xffff)
                 // Note: There is a chance that this new expansion is the same as a previous one,
                 // and if so, then we could reuse the other expansion.
                 // However, that seems unlikely.
