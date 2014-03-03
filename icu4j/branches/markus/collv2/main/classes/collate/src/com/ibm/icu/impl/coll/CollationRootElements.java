@@ -383,7 +383,7 @@ public final class CollationRootElements {
             ++index;
             terLimit = getTertiaryBoundary();
         }
-        long st = ((long)s << 16) | t;
+        long st = (((long)s & 0xffffffffL) << 16) | t;
         for(;;) {
             long secTer = elements[index];
             // No tertiary greater than t for this primary+secondary.
