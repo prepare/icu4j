@@ -1322,6 +1322,7 @@ public class CollationTest extends TestFmwk {
         try {
             coll = new RuleBasedCollator(rules.toString());
         } catch (Exception e) {
+            logln(rules.toString());
             errln("RuleBasedCollator(rules) failed - " + e.getMessage());
             error = e;
         }
