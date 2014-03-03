@@ -37,9 +37,9 @@
         </unjar>
         <copy todir="${bin.dir}">
             <fileset dir="${icu4j.collate-tests.dir}/src">
-                <include name="com/ibm/icu/dev/data/riwords.txt"/>
+                <include name="com/ibm/icu/dev/data/collationtest.txt"/>
                 <include name="com/ibm/icu/dev/data/CollationTest_*.txt"/>
-                <include name="com/ibm/icu/dev/data/resources/*"/>
+                <include name="com/ibm/icu/dev/data/riwords.txt"/>
             </fileset>
         </copy>
     </target>
