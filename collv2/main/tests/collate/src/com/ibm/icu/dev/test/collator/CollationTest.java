@@ -11,13 +11,12 @@ package com.ibm.icu.dev.test.collator;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.util.HashSet;
 import java.util.Set;
 
 import com.ibm.icu.dev.test.TestFmwk;
+import com.ibm.icu.dev.test.TestUtil;
 import com.ibm.icu.impl.Norm2AllModes;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.impl.coll.Collation;
@@ -1590,12 +1589,10 @@ public class CollationTest extends TestFmwk {
         nfd = Normalizer2.getNFDInstance();
         fcd = Norm2AllModes.getFCDNormalizer2();
 
-        InputStream resource = null;
         BufferedReader in = null;
 
         try {
-            resource = CollationTest.class.getResourceAsStream("collationtest.txt");
-            in = new BufferedReader(new InputStreamReader(resource, "UTF-8"));
+            in = TestUtil.getDataReader("collationtest.txt", "UTF-8");
 
             // read first line and remove BOM if present
             readLine(in);
@@ -1644,8 +1641,6 @@ public class CollationTest extends TestFmwk {
             try {
                 if (in != null) {
                     in.close();
-                } else if (resource != null) {
-                    resource.close();
                 }
             } catch (IOException e) {
                 e.printStackTrace();
