@@ -62,6 +62,7 @@ public class PluralRulesTest extends TestFmwk {
         logln(String.valueOf(Long.MAX_VALUE + 1d));
         for (double[] testDouble : new double[][]{
                 {1E18, 0, 0, 1E18}, // check overflow
+                {10000000000000.1d, 1, 1, 10000000000000d},
                 {-0.00001d, 1, 5, 0},
                 {1d, 0, 0, 1},
                 {1.1d, 1, 1, 1},

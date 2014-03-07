@@ -548,7 +548,7 @@ public class PluralRules implements Serializable {
         }
 
         static final long MAX = (long)1E18;
-        
+
         /**
          * @internal
          * @deprecated This API is ICU internal only.
@@ -565,7 +565,7 @@ public class PluralRules implements Serializable {
             decimalDigits = f;
             integerValue = n > MAX 
                     ? MAX 
-                    : (long)n;
+                            : (long)n;
             hasIntegerValue = source == integerValue;
             // check values. TODO make into unit test.
             //            
@@ -636,6 +636,7 @@ public class PluralRules implements Serializable {
             this(n,0);
         }
 
+        private static final long MAX_INTEGER_PART = 1000000000;
         /**
          * Return a guess as to the number of decimals that would be displayed. This is only a guess; callers should
          * always supply the decimals explicitly if possible. Currently, it is up to 6 decimals (without trailing zeros).
@@ -653,27 +654,31 @@ public class PluralRules implements Serializable {
             if (n < 0) {
                 n = -n;
             }
-            n = n - Math.floor(n); // just retain the fractions
-            long temp = (long)(n * 1000000) % 1000000; // get 6 decimals
-            if ((temp % 10) != 0) {
-                return 6;
+            if (n < MAX_INTEGER_PART) {
+                long temp = (long)(n * 1000000) % 1000000; // get 6 decimals
+                for (int mask = 10, digits = 6; digits > 0; mask *= 10, --digits) {
+                    if ((temp % mask) != 0) {
+                        return digits;
+                    }
+                }
+                return 0;
+            } else {
+                String buf = String.format(Locale.ENGLISH, "%1.15e", n);
+                int ePos = buf.lastIndexOf('e');
+                String exponentStr = buf.substring(ePos+1);
+                int exponent = Integer.parseInt(exponentStr);
+                int numFractionDigits = ePos - 2 - exponent;
+                if (numFractionDigits < 0) {
+                    return 0;
+                }
+                for (int i=ePos-1; numFractionDigits > 0; --i) {
+                    if (buf.charAt(i) != '0') {
+                        break;
+                    }
+                    --numFractionDigits; 
+                }
+                return numFractionDigits;
             }
-            if ((temp % 100) != 0) {
-                return 5;
-            }
-            if ((temp % 1000) != 0) {
-                return 4;
-            }
-            if ((temp % 10000) != 0) {
-                return 3;
-            }
-            if ((temp % 100000) != 0) {
-                return 2;
-            }
-            if ((temp % 1000000) != 0) {
-                return 1;
-            }
-            return 0;
         }
 
         /**
