@@ -2142,43 +2142,37 @@ public class PluralRules implements Serializable {
     /**
      * Status of the keyword for the rules, given a set of explicit values.
      * 
-     * @draft ICU 50
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 50
      */
     public enum KeywordStatus {
         /**
          * The keyword is not valid for the rules.
          * 
-         * @draft ICU 50
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 50
          */
         INVALID,
         /**
          * The keyword is valid, but unused (it is covered by the explicit values, OR has no values for the given {@link SampleType}).
          * 
-         * @draft ICU 50
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 50
          */
         SUPPRESSED,
         /**
          * The keyword is valid, used, and has a single possible value (before considering explicit values).
          * 
-         * @draft ICU 50
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 50
          */
         UNIQUE,
         /**
          * The keyword is valid, used, not unique, and has a finite set of values.
          * 
-         * @draft ICU 50
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 50
          */
         BOUNDED,
         /**
          * The keyword is valid but not bounded; there indefinitely many matching values.
          * 
-         * @draft ICU 50
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 50
          */
         UNBOUNDED
     }
@@ -2196,8 +2190,7 @@ public class PluralRules implements Serializable {
      * @param uniqueValue
      *            If non null, set to the unique value.
      * @return the KeywordStatus
-     * @draft ICU 50
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 50
      */
     public KeywordStatus getKeywordStatus(String keyword, int offset, Set<Double> explicits,
             Output<Double> uniqueValue) {
