@@ -41,7 +41,7 @@ public class CollationServiceTest extends TestFmwk {
 
             // coverage
             Collator test = Collator.getInstance(ULocale.GERMANY); // CollatorFactory.handleCreate
-            if (!test.getLocale(ULocale.VALID_LOCALE).equals(ULocale.GERMANY)) {
+            if (!test.getLocale(ULocale.VALID_LOCALE).equals(ULocale.GERMAN)) {
                 errln("Collation from Germany is really " + test.getLocale(ULocale.VALID_LOCALE));
             }
 
