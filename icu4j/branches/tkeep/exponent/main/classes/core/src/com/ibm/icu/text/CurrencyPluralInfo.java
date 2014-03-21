@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2009-2013, International Business Machines Corporation and    *
+ * Copyright (C) 2009-2014, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -13,6 +13,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import com.ibm.icu.impl.CurrencyData;
+import com.ibm.icu.util.ICUCloneNotSupportedException;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.ULocale.Category;
 
@@ -201,7 +202,7 @@ public class CurrencyPluralInfo implements Cloneable, Serializable {
             }
             return other;
         } catch (CloneNotSupportedException e) {
-            throw new IllegalStateException();
+            throw new ICUCloneNotSupportedException(e);
         }
     }
 
@@ -225,6 +226,7 @@ public class CurrencyPluralInfo implements Cloneable, Serializable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public int hashCode() {
         assert false : "hashCode not designed";
         return 42;
@@ -236,6 +238,7 @@ public class CurrencyPluralInfo implements Cloneable, Serializable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     String select(double number) {
         return pluralRules.select(number);
     }
@@ -246,6 +249,7 @@ public class CurrencyPluralInfo implements Cloneable, Serializable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     String select(PluralRules.FixedDecimal numberInfo) {
         return pluralRules.select(numberInfo);
     }

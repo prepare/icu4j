@@ -1,5 +1,5 @@
 /*
-*   Copyright (C) 2008-2013, International Business Machines
+*   Copyright (C) 2008-2014, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 */
 
@@ -21,6 +21,7 @@ import com.ibm.icu.text.DateIntervalInfo.PatternInfo;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.DateInterval;
 import com.ibm.icu.util.Output;
+import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.ULocale.Category;
 
@@ -345,6 +346,7 @@ public class DateIntervalFormat extends UFormat {
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public DateIntervalFormat(String skeleton, DateIntervalInfo dtItvInfo,
                                SimpleDateFormat simpleDateFormat)
     {
@@ -610,6 +612,7 @@ public class DateIntervalFormat extends UFormat {
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public String getPatterns(Calendar fromCalendar,
             Calendar toCalendar, 
             Output<String> part2) {
@@ -833,6 +836,7 @@ public class DateIntervalFormat extends UFormat {
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public Object parseObject(String source, ParsePosition parse_pos)
     {
         throw new UnsupportedOperationException("parsing is not supported");
@@ -868,6 +872,47 @@ public class DateIntervalFormat extends UFormat {
         }
     }
 
+    /**
+     * Get the TimeZone
+     * @return A copy of the TimeZone associated with this date interval formatter.
+     * @draft ICU 53
+     * @provisional This API might change or be removed in a future release.
+     */
+    public TimeZone getTimeZone()
+    {
+        if ( fDateFormat != null ) {
+            // Here we clone, like other getters here, but unlike
+            // DateFormat.getTimeZone() and Calendar.getTimeZone()
+            // which return the TimeZone from the Calendar's zone variable
+            return (TimeZone)(fDateFormat.getTimeZone().clone());
+        }
+        // If fDateFormat is null (unexpected), return default timezone.
+        return TimeZone.getDefault();
+    }
+
+
+    /**
+     * Set the TimeZone for the calendar used by this DateIntervalFormat object.
+     * @param zone The new TimeZone, will be cloned for use by this DateIntervalFormat.
+     * @draft ICU 53
+     * @provisional This API might change or be removed in a future release.
+     */
+    public void setTimeZone(TimeZone zone)
+    {
+        // zone is cloned once for all three usages below:
+        TimeZone zoneToSet = (TimeZone)zone.clone();
+        if (fDateFormat != null) {
+            fDateFormat.setTimeZone(zoneToSet);
+        }
+        // fDateFormat has the master calendar for the DateIntervalFormat;
+        // fFromCalendar and fToCalendar are internal work clones of that calendar.
+        if (fFromCalendar != null) {
+            fFromCalendar.setTimeZone(zoneToSet);
+        }
+        if (fToCalendar != null) {
+            fToCalendar.setTimeZone(zoneToSet);
+        }
+    }
 
     /**
      * Gets the date formatter

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2006-2013, Google, International Business Machines Corporation *
+ * Copyright (C) 2006-2014, Google, International Business Machines Corporation *
  * and others. All Rights Reserved.                                            *
  *******************************************************************************
  */
@@ -449,7 +449,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"MMMd", "13 \u044F\u043D\u0432."},
         new String[] {"MMMMd", "13 \u044F\u043D\u0432\u0430\u0440\u044F"},
         new String[] {"yQQQ", "1-\u0439 \u043A\u0432. 1999 \u0433."},
-        new String[] {"hhmm", "11:58 \u043F\u043E\u0441\u043B\u0435 \u043F\u043E\u043B\u0443\u0434\u043D\u044F"},
+        new String[] {"hhmm", "11:58 PM"},
         new String[] {"HHmm", "23:58"},
         new String[] {"jjmm", "23:58"},
         new String[] {"mmss", "58:59"},
@@ -460,20 +460,20 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"JJmm", "23:58"},
 
         new ULocale("zh@calendar=chinese"),
-        new String[] {"yM", "\u620A\u5BC5\u5E7411\u6708"},
-        new String[] {"yMMM", "\u620A\u5BC5\u5E74\u5341\u4E00\u6708"},
-        new String[] {"yMd", "\u620A\u5BC5\u5E7411\u670826\u65E5"},
-        new String[] {"yMMMd", "\u620A\u5BC5\u5E74\u5341\u4E00\u670826\u65E5"},
+        new String[] {"yM", "\u620A\u5BC5\u5E74\u51AC\u6708"},
+        new String[] {"yMMM", "\u620A\u5BC5\u5E74\u51AC\u6708"},
+        new String[] {"yMd", "\u620A\u5BC5\u5E74\u51AC\u670826\u65E5"},
+        new String[] {"yMMMd", "\u620A\u5BC5\u5E74\u51AC\u670826\u65E5"},
         new String[] {"Md", "11-26"},
-        new String[] {"MMMd", "\u5341\u4E00\u670826\u65E5"},
-        new String[] {"MMMMd", "\u5341\u4E00\u670826\u65E5"},
+        new String[] {"MMMd", "\u51AC\u670826\u65E5"},
+        new String[] {"MMMMd", "\u51AC\u670826\u65E5"},
         new String[] {"yQQQ", "\u620A\u5BC5\u5E74\u7B2C\u56DB\u5B63\u5EA6"},
         new String[] {"hhmm", "\u4E0B\u534811:58"},
         new String[] {"HHmm", "23:58"},
         new String[] {"jjmm", "\u4E0B\u534811:58"},
         new String[] {"mmss", "58:59"},
-        new String[] {"yyyyMMMM", "\u620A\u5BC5\u5E74\u5341\u4E00\u6708"},
-        new String[] {"MMMEd", "\u5341\u4E00\u670826\u65E5\u5468\u4E09"},
+        new String[] {"yyyyMMMM", "\u620A\u5BC5\u5E74\u51AC\u6708"},
+        new String[] {"MMMEd", "\u51AC\u670826\u65E5\u5468\u4E09"},
         new String[] {"Ed", "26\u65E5\u5468\u4E09"},
         new String[] {"jmmssSSS", "\u4E0B\u534811:58:59.123"},
         new String[] {"JJmm", "11:58"},
@@ -1115,9 +1115,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
                   "{Hour:N}{Month:N}{Fractional_Second:N} {Month:N}{Day_Of_Year:N}{Year:N}",
                   "{Hour:N}{Month:N}{Fractional_Second:N} {Month:N}{Day_Of_Year:N}{Year:N}"};
           for(int i=0; i<cases.length; i++){
-              try{
-                  if(!dt.getFields(cases[i]).equals(results[i]));
-              } catch(Exception e){
+              if(!dt.getFields(cases[i]).equals(results[i])) {
                   errln("DateTimePatternGenerator.getFields(String) did not " +
                           "not return an expected result when passing " + cases[i] +
                           ". Got " + dt.getFields(cases[i]) + " but expected " +
@@ -1214,15 +1212,28 @@ public class DateTimeGeneratorTest extends TestFmwk {
               new TestOptionsItem( "be", "HHmm", "HH.mm",   DateTimePatternGenerator.MATCH_HOUR_FIELD_LENGTH ),
               new TestOptionsItem( "be", "hhmm", "hh.mm a", DateTimePatternGenerator.MATCH_HOUR_FIELD_LENGTH ),
               //
-              new TestOptionsItem( "en",                   "yyyy", "yyyy", DateTimePatternGenerator.MATCH_NO_OPTIONS ),
-              new TestOptionsItem( "en",                   "YYYY", "YYYY", DateTimePatternGenerator.MATCH_NO_OPTIONS ),
-              new TestOptionsItem( "en",                   "U",    "y",    DateTimePatternGenerator.MATCH_NO_OPTIONS ),
-              new TestOptionsItem( "en@calendar=japanese", "yyyy", "y G",  DateTimePatternGenerator.MATCH_NO_OPTIONS ),
-              new TestOptionsItem( "en@calendar=japanese", "YYYY", "Y G",  DateTimePatternGenerator.MATCH_NO_OPTIONS ),
-              new TestOptionsItem( "en@calendar=japanese", "U",    "y G",  DateTimePatternGenerator.MATCH_NO_OPTIONS ),
-              new TestOptionsItem( "en@calendar=chinese",  "yyyy", "U",    DateTimePatternGenerator.MATCH_NO_OPTIONS ),
-              new TestOptionsItem( "en@calendar=chinese",  "YYYY", "Y",    DateTimePatternGenerator.MATCH_NO_OPTIONS ),
-              new TestOptionsItem( "en@calendar=chinese",  "U",    "U",    DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en",                   "yyyy",  "yyyy",  DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en",                   "YYYY",  "YYYY",  DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en",                   "U",     "y",     DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en@calendar=japanese", "yyyy",  "y G",   DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en@calendar=japanese", "YYYY",  "Y G",   DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en@calendar=japanese", "U",     "y G",   DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en@calendar=chinese",  "yyyy",  "U",     DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en@calendar=chinese",  "YYYY",  "Y",     DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en@calendar=chinese",  "U",     "U",     DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en@calendar=chinese",  "Gy",    "U",     DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en@calendar=chinese",  "GU",    "U",     DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en@calendar=chinese",  "ULLL",  "MMM U", DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en@calendar=chinese",  "yMMM",  "MMM U", DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en@calendar=chinese",  "GUMMM", "MMM U", DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "zh@calendar=chinese",  "yyyy",  "U\u5E74",    DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "zh@calendar=chinese",  "YYYY",  "Y\u5E74",    DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "zh@calendar=chinese",  "U",     "U\u5E74",    DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "zh@calendar=chinese",  "Gy",    "U\u5E74",    DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "zh@calendar=chinese",  "GU",    "U\u5E74",    DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "zh@calendar=chinese",  "ULLL",  "U\u5E74MMM", DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "zh@calendar=chinese",  "yMMM",  "U\u5E74MMM", DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "zh@calendar=chinese",  "GUMMM", "U\u5E74MMM", DateTimePatternGenerator.MATCH_NO_OPTIONS ),
           };
 
           for (int i = 0; i < testOptionsData.length; ++i) {

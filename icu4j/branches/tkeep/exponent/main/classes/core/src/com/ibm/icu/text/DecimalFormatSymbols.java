@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2013, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2014, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -22,6 +22,7 @@ import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.util.Currency;
+import com.ibm.icu.util.ICUCloneNotSupportedException;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.ULocale.Category;
 import com.ibm.icu.util.UResourceBundle;
@@ -409,6 +410,7 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public String getMinusString() {
         return minusString;
     }
@@ -586,6 +588,7 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public String getPlusString() {
         return plusString;
     }
@@ -746,10 +749,60 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
             // other fields are bit-copied
         } catch (CloneNotSupportedException e) {
             ///CLOVER:OFF
-            throw new IllegalStateException();
+            throw new ICUCloneNotSupportedException(e);
             ///CLOVER:ON
         }
     }
+    
+    /**
+     * Returns defensive copy of the exponent digits 0-9
+     */
+    public String[] getExponentDigits() {
+        return getDigits();
+    }
+
+    /**
+      Returns defensive copy of mantissa digits 0-9
+    */
+    public String[] getMantissaDigits() {
+    }
+
+    /**
+      Gets the exponent minus sign.
+    */
+    public String getExponentMinusSign();
+
+    /**
+      Gets the mantissa minus sign.
+     */
+    public String getMantissaMinusSign();
+
+    /**
+      Sets digits 0-9 for both mantissa and exponent making a defensive
+      copy of digits.
+    */  
+    void setDigits(String[] digits);
+
+    /**
+      Sets digits 0-9 for both mantissa and exponent making a defensive copy of
+      the arguments. If caller passes null, it means leave those digits unchanged.
+    */
+    void setDigits(String[] mantissaDigits, String[] exponentDigits);
+
+    /**
+      Sets the exponent minus sign leaving the mantissa one unchanged.
+    */
+    void setExponentMinusSign(String minusSign);
+
+    /**
+      Sets the mantissa minus sign leaving the exponent one unchanged.
+    */
+    void setMantissaMinusSign(String minusSign);
+
+    /**
+      Sets the minus sign for both mantissa and exponent.
+    */
+    void setMinusSign(String minusSign);
 
     /**
      * {@inheritDoc}

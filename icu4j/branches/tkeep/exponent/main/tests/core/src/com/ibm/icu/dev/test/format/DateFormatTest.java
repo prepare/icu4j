@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2001-2013, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2014, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -12,6 +12,11 @@
 
 package com.ibm.icu.dev.test.format;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.text.AttributedCharacterIterator;
 import java.text.CharacterIterator;
 import java.text.FieldPosition;
@@ -4007,9 +4012,9 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             new MonthPatternItem( "en@calendar=gregorian",    -3,               "2012-4-22",             "2012-5-22",                "2012-6-20" ),
             new MonthPatternItem( "en@calendar=chinese",      DateFormat.LONG,  "Month4 2, ren-chen",    "Month4bis 2, ren-chen",    "Month5 2, ren-chen" ),
             new MonthPatternItem( "en@calendar=chinese",      DateFormat.SHORT, "4/2/29",                "4bis/2/29",                "5/2/29" ),
-            new MonthPatternItem( "zh@calendar=chinese",      DateFormat.LONG,  "\u58EC\u8FB0\u5E74\u56DB\u6708\u4E8C\u65E5",
-                                                                                "\u58EC\u8FB0\u5E74\u95F0\u56DB\u6708\u4E8C\u65E5",
-                                                                                "\u58EC\u8FB0\u5E74\u4E94\u6708\u4E8C\u65E5" ),
+            new MonthPatternItem( "zh@calendar=chinese",      DateFormat.LONG,  "\u58EC\u8FB0\u5E74\u56DB\u6708\u521D\u4E8C",
+                                                                                "\u58EC\u8FB0\u5E74\u95F0\u56DB\u6708\u521D\u4E8C",
+                                                                                "\u58EC\u8FB0\u5E74\u4E94\u6708\u521D\u4E8C" ),
             new MonthPatternItem( "zh@calendar=chinese",      DateFormat.SHORT, "\u58EC\u8FB0-4-2",      "\u58EC\u8FB0-\u95F04-2",   "\u58EC\u8FB0-5-2" ),
             new MonthPatternItem( "zh@calendar=chinese",      -3,               "\u58EC\u8FB0-4-2",
                                                                                 "\u58EC\u8FB0-\u95F04-2",
@@ -4017,9 +4022,9 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             new MonthPatternItem( "zh@calendar=chinese",      -4,               "\u58EC\u8FB0 \u56DB\u6708 2",
                                                                                 "\u58EC\u8FB0 \u95F0\u56DB\u6708 2",
                                                                                 "\u58EC\u8FB0 \u4E94\u6708 2" ),
-            new MonthPatternItem( "zh_Hant@calendar=chinese", DateFormat.LONG,  "\u58EC\u8FB0\u5E74\u56DB\u6708\u4E8C\u65E5",
-                                                                                "\u58EC\u8FB0\u5E74\u958F\u56DB\u6708\u4E8C\u65E5",
-                                                                                "\u58EC\u8FB0\u5E74\u4E94\u6708\u4E8C\u65E5" ),
+            new MonthPatternItem( "zh_Hant@calendar=chinese", DateFormat.LONG,  "\u58EC\u8FB0\u5E74\u56DB\u6708\u521D\u4E8C",
+                                                                                "\u58EC\u8FB0\u5E74\u958F\u56DB\u6708\u521D\u4E8C",
+                                                                                "\u58EC\u8FB0\u5E74\u4E94\u6708\u521D\u4E8C" ),
             new MonthPatternItem( "zh_Hant@calendar=chinese", DateFormat.SHORT, "\u58EC\u8FB0/4/2",            "\u58EC\u8FB0/\u958F4/2",         "\u58EC\u8FB0/5/2" ),
             new MonthPatternItem( "fr@calendar=chinese",      DateFormat.LONG,  "2 s\u00ECyu\u00E8 ren-chen",  "2 s\u00ECyu\u00E8bis ren-chen",  "2 w\u01D4yu\u00E8 ren-chen" ),
             new MonthPatternItem( "fr@calendar=chinese",      DateFormat.SHORT, "2/4/29",                      "2/4bis/29",                      "2/5/29" ),
@@ -4200,6 +4205,32 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             new TestContextItem( "cs", "LLLL y", DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,     "\u010Cervenec 2008" ),
             new TestContextItem( "cs", "LLLL y", DisplayContext.CAPITALIZATION_FOR_STANDALONE,          "\u010Dervenec 2008" ),
         };
+        class TestRelativeContextItem {
+            public String locale;
+            public DisplayContext capitalizationContext;
+            public String expectedFormatToday;
+            public String expectedFormatYesterday;
+             // Simple constructor
+            public TestRelativeContextItem(String loc, DisplayContext capCtxt, String expFmtToday, String expFmtYesterday) {
+                locale = loc;
+                capitalizationContext = capCtxt;
+                expectedFormatToday = expFmtToday;
+                expectedFormatYesterday = expFmtYesterday;
+            }
+        };
+        final TestRelativeContextItem[] relItems = {
+            new TestRelativeContextItem( "en", DisplayContext.CAPITALIZATION_NONE,                      "today", "yesterday" ),
+            new TestRelativeContextItem( "en", DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    "today", "yesterday" ),
+            new TestRelativeContextItem( "en", DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, "Today", "Yesterday" ),
+            new TestRelativeContextItem( "en", DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       "Today", "Yesterday" ),
+            new TestRelativeContextItem( "en", DisplayContext.CAPITALIZATION_FOR_STANDALONE,            "Today", "Yesterday" ),
+            new TestRelativeContextItem( "nb", DisplayContext.CAPITALIZATION_NONE,                      "i dag", "i g\u00E5r" ),
+            new TestRelativeContextItem( "nb", DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    "i dag", "i g\u00E5r" ),
+            new TestRelativeContextItem( "nb", DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, "I dag", "I g\u00E5r" ),
+            new TestRelativeContextItem( "nb", DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       "i dag", "i g\u00E5r" ),
+            new TestRelativeContextItem( "nb", DisplayContext.CAPITALIZATION_FOR_STANDALONE,            "I dag", "I g\u00E5r" ),
+        };
+
         Calendar cal = new GregorianCalendar(2008, Calendar.JULY, 2);
         for (TestContextItem item: items) {
             ULocale locale = new ULocale(item.locale);
@@ -4207,18 +4238,106 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
             // now try context & standard format call
             sdfmt.setContext(item.capitalizationContext);
+            SimpleDateFormat sdfmtClone = (SimpleDateFormat)sdfmt.clone();
+            if (!sdfmtClone.equals(sdfmt)) {
+                errln("FAIL: for locale " + item.locale +  ", capitalizationContext " + item.capitalizationContext +
+                        ", sdfmt.clone() != sdfmt (for SimpleDateFormat)");
+            }
+            
             StringBuffer result2 = new StringBuffer();
             FieldPosition fpos2 = new FieldPosition(0);
             sdfmt.format(cal, result2, fpos2);
             if (result2.toString().compareTo(item.expectedFormat) != 0) {
-                errln("FAIL: format (default context) for locale " + item.locale +  ", capitalizationContext " + item.capitalizationContext +
+                errln("FAIL: format for locale " + item.locale +  ", capitalizationContext " + item.capitalizationContext +
                         ", expected \"" + item.expectedFormat + "\", got \"" + result2 + "\"");
             }
 
-            // now read back context, make sure it is what we set
+            // now read back context, make sure it is what we set (testing with DateFormat subclass)
             DisplayContext capitalizationContext = sdfmt.getContext(DisplayContext.Type.CAPITALIZATION);
             if (capitalizationContext != item.capitalizationContext) {
-                errln("FAIL: getDefaultContext for locale " + item.locale +  ", capitalizationContext " + item.capitalizationContext +
+                errln("FAIL: getContext for locale " + item.locale +  ", capitalizationContext " + item.capitalizationContext +
+                        ", but got context " + capitalizationContext);
+            }
+        }
+        for (TestRelativeContextItem relItem: relItems) {
+            ULocale locale = new ULocale(relItem.locale);
+            DateFormat dfmt = DateFormat.getDateInstance(DateFormat.RELATIVE_LONG, locale);
+            Date today = new Date();
+
+            // now try context & standard format call
+            dfmt.setContext(relItem.capitalizationContext);
+
+            // write to stream, then read a copy from stream & compare
+            boolean serializeTestFail = false;
+            ByteArrayOutputStream baos = null;
+            DateFormat dfmtFromStream = null;
+            try {
+                baos = new ByteArrayOutputStream();
+                ObjectOutputStream oos = new ObjectOutputStream(baos);
+                oos.writeObject(dfmt);
+                oos.close();
+            } catch (IOException i) {
+                errln("FAIL: for locale " + relItem.locale +  ", capitalizationContext " + relItem.capitalizationContext +
+                        ", serialization of RELATIVE_LONG DateFormat fails with IOException");
+                serializeTestFail = true;
+            }
+            if (!serializeTestFail) {
+                byte[] buf = baos.toByteArray();
+                try {
+                    ByteArrayInputStream bais = new ByteArrayInputStream(buf);
+                    ObjectInputStream ois = new ObjectInputStream(bais);
+                    dfmtFromStream = (DateFormat)ois.readObject();
+                    ois.close();
+                } catch (IOException i) {
+                    errln("FAIL: for locale " + relItem.locale +  ", capitalizationContext " + relItem.capitalizationContext +
+                            ", deserialization of RELATIVE_LONG DateFormat fails with IOException");
+                    serializeTestFail = true;
+                } catch (ClassNotFoundException c) {
+                    errln("FAIL: for locale " + relItem.locale +  ", capitalizationContext " + relItem.capitalizationContext +
+                            ", deserialization of RELATIVE_LONG DateFormat fails with ClassNotFoundException");
+                    serializeTestFail = true;
+                }
+            }
+            if (!serializeTestFail && dfmtFromStream==null) {
+                errln("FAIL: for locale " + relItem.locale +  ", capitalizationContext " + relItem.capitalizationContext +
+                        ", dfmtFromStream is null (for RELATIVE_LONG)");
+                serializeTestFail = true;
+            }
+            if (!serializeTestFail && !dfmtFromStream.equals(dfmt)) {
+                errln("FAIL: for locale " + relItem.locale +  ", capitalizationContext " + relItem.capitalizationContext +
+                        ", dfmtFromStream != dfmt (for RELATIVE_LONG)");
+                serializeTestFail = true;
+            }
+
+            cal.setTime(today);
+            StringBuffer result2 = new StringBuffer();
+            FieldPosition fpos2 = new FieldPosition(0);
+            dfmt.format(cal, result2, fpos2);
+            if (result2.toString().compareTo(relItem.expectedFormatToday) != 0) {
+                errln("FAIL: format today for locale " + relItem.locale +  ", capitalizationContext " + relItem.capitalizationContext +
+                        ", expected \"" + relItem.expectedFormatToday + "\", got \"" + result2 + "\"");
+            }
+            if (!serializeTestFail) {
+                result2.setLength(0);
+                dfmtFromStream.format(cal, result2, fpos2);
+                if (result2.toString().compareTo(relItem.expectedFormatToday) != 0) {
+                    errln("FAIL: use dfmtFromStream to format today for locale " + relItem.locale +  ", capitalizationContext " +
+                            relItem.capitalizationContext + ", expected \"" + relItem.expectedFormatToday + "\", got \"" + result2 + "\"");
+                }
+            }
+
+            cal.add(Calendar.DATE, -1);
+            result2.setLength(0);
+            dfmt.format(cal, result2, fpos2);
+            if (result2.toString().compareTo(relItem.expectedFormatYesterday) != 0) {
+                errln("FAIL: format yesterday for locale " + relItem.locale +  ", capitalizationContext " + relItem.capitalizationContext +
+                        ", expected \"" + relItem.expectedFormatYesterday + "\", got \"" + result2 + "\"");
+            }
+
+            // now read back context, make sure it is what we set (testing with DateFormat itself)
+            DisplayContext capitalizationContext = dfmt.getContext(DisplayContext.Type.CAPITALIZATION);
+            if (capitalizationContext != relItem.capitalizationContext) {
+                errln("FAIL: getContext for locale " + relItem.locale +  ", capitalizationContext " + relItem.capitalizationContext +
                         ", but got context " + capitalizationContext);
             }
         }
@@ -4320,7 +4439,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 if(p.getErrorIndex() != -1)
                     continue;
                 else
-                    errln("error: unexpected parse success..."+item.parseString + " w/ lenient="+item.leniency+" should have faile");
+                    errln("error: unexpected parse success..."+item.parseString + " w/ lenient="+item.leniency+" should have failed");
             }
             if(p.getErrorIndex() != -1) {
                 errln("error: parse error for string " +item.parseString + " -- idx["+p.getIndex()+"] errIdx["+p.getErrorIndex()+"]");
@@ -4336,4 +4455,135 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         }
     }
 
+    // A regression test case for ticket#10632.
+    // Make sure RELATIVE style works for getInstance overloads taking
+    // Calendar instance.
+    public void Test10632() {
+        Date[] testDates = new Date[3];
+        Calendar cal = Calendar.getInstance();
+
+        // today
+        testDates[0] = cal.getTime();
+
+        // tomorrow
+        cal.add(Calendar.DATE, 1);
+        testDates[1] = cal.getTime();
+
+        // yesterday
+        cal.add(Calendar.DATE, -2);
+        testDates[2] = cal.getTime();
+
+
+        // Relative styles for testing
+        int[] dateStylesList = {
+                DateFormat.RELATIVE_FULL,
+                DateFormat.RELATIVE_LONG,
+                DateFormat.RELATIVE_MEDIUM,
+                DateFormat.RELATIVE_SHORT
+        };
+
+        Calendar fmtCal = DateFormat.getInstance().getCalendar();
+
+        for (int i = 0; i < dateStylesList.length; i++) {
+            DateFormat fmt0 = DateFormat.getDateTimeInstance(dateStylesList[i], DateFormat.DEFAULT);
+            DateFormat fmt1 = DateFormat.getDateTimeInstance(fmtCal, dateStylesList[i], DateFormat.DEFAULT);
+
+            for (int j = 0; j < testDates.length; j++) {
+                String s0 = fmt0.format(testDates[j]);
+                String s1 = fmt1.format(testDates[j]);
+
+                if (!s0.equals(s1)) {
+                    errln("FAIL: Different results returned by two equivalent relative formatters: s0="
+                            + s0 + ", s1=" + s1);
+                }
+            }
+        }
+    }
+    
+    public void TestParseMultiPatternMatch() {
+        // For details see http://bugs.icu-project.org/trac/ticket/10336
+        
+        class TestMultiPatternMatchItem {
+            public boolean leniency;
+            public String parseString;
+            public String pattern;
+            public String expectedResult;   // null indicates expected error
+             // Simple constructor
+            public TestMultiPatternMatchItem(boolean len, String parString, String patt, String expResult) {
+                leniency = len;
+                pattern = patt;
+                parseString = parString;
+                expectedResult = expResult;
+            }
+        };
+
+        final TestMultiPatternMatchItem[] items = {
+                //                            leniency    parse String                  pattern                 expected result
+                new TestMultiPatternMatchItem(true,       "2013-Sep 13",                "yyyy-MMM dd",          "2013-Sep 13"),
+                new TestMultiPatternMatchItem(true,       "2013-September 14",          "yyyy-MMM dd",          "2013-Sep 14"),
+                new TestMultiPatternMatchItem(false,      "2013-September 15",          "yyyy-MMM dd",          null),
+                new TestMultiPatternMatchItem(false,      "2013-September 16",          "yyyy-MMMM dd",         "2013-September 16"),
+                new TestMultiPatternMatchItem(true,       "2013-Sep 17",                "yyyy-LLL dd",          "2013-Sep 17"),
+                new TestMultiPatternMatchItem(true,       "2013-September 18",          "yyyy-LLL dd",          "2013-Sep 18"),
+                new TestMultiPatternMatchItem(false,      "2013-September 19",          "yyyy-LLL dd",          null),
+                new TestMultiPatternMatchItem(false,      "2013-September 20",          "yyyy-LLLL dd",         "2013-September 20"),
+                new TestMultiPatternMatchItem(true,       "2013 Sat Sep 21",            "yyyy EEE MMM dd",      "2013 Sat Sep 21"),
+                new TestMultiPatternMatchItem(true,       "2013 Sunday Sep 22",         "yyyy EEE MMM dd",      "2013 Sun Sep 22"),
+                new TestMultiPatternMatchItem(false,      "2013 Monday Sep 23",         "yyyy EEE MMM dd",      null),
+                new TestMultiPatternMatchItem(false,      "2013 Tuesday Sep 24",        "yyyy EEEE MMM dd",     "2013 Tuesday Sep 24"),
+                new TestMultiPatternMatchItem(true,       "2013 Wed Sep 25",            "yyyy eee MMM dd",      "2013 Wed Sep 25"),
+                new TestMultiPatternMatchItem(true,       "2013 Thu Sep 26",            "yyyy eee MMM dd",      "2013 Thu Sep 26"),
+                new TestMultiPatternMatchItem(false,      "2013 Friday Sep 27",         "yyyy eee MMM dd",      null),
+                new TestMultiPatternMatchItem(false,      "2013 Saturday Sep 28",       "yyyy eeee MMM dd",    "2013 Saturday Sep 28"),
+                new TestMultiPatternMatchItem(true,       "2013 Sun Sep 29",            "yyyy ccc MMM dd",      "2013 Sun Sep 29"),
+                new TestMultiPatternMatchItem(true,       "2013 Monday Sep 30",         "yyyy ccc MMM dd",      "2013 Mon Sep 30"),
+                new TestMultiPatternMatchItem(false,      "2013 Sunday Oct 13",         "yyyy ccc MMM dd",      null),
+                new TestMultiPatternMatchItem(false,      "2013 Monday Oct 14",         "yyyy cccc MMM dd",     "2013 Monday Oct 14"),
+                new TestMultiPatternMatchItem(true,       "2013 Oct 15 Q4",             "yyyy MMM dd QQQ",      "2013 Oct 15 Q4"),
+                new TestMultiPatternMatchItem(true,       "2013 Oct 16 4th quarter",    "yyyy MMM dd QQQ",      "2013 Oct 16 Q4"),
+                new TestMultiPatternMatchItem(false,      "2013 Oct 17 4th quarter",    "yyyy MMM dd QQQ",      null),
+                new TestMultiPatternMatchItem(false,      "2013 Oct 18 Q4",             "yyyy MMM dd QQQ",      "2013 Oct 18 Q4"),
+                new TestMultiPatternMatchItem(true,       "2013 Oct 19 Q4",             "yyyy MMM dd qqqq",      "2013 Oct 19 4th quarter"),
+                new TestMultiPatternMatchItem(true,       "2013 Oct 20 4th quarter",    "yyyy MMM dd qqqq",      "2013 Oct 20 4th quarter"),
+                new TestMultiPatternMatchItem(false,      "2013 Oct 21 Q4",             "yyyy MMM dd qqqq",      null),
+                new TestMultiPatternMatchItem(false,      "2013 Oct 22 4th quarter",    "yyyy MMM dd qqqq",      "2013 Oct 22 4th quarter"),
+        };
+
+        StringBuffer result = new StringBuffer();
+        Date d = new Date();
+        GregorianCalendar cal = new GregorianCalendar(TimeZone.getTimeZone("GMT"), Locale.US); 
+        SimpleDateFormat sdfmt = new SimpleDateFormat();
+        ParsePosition p = new ParsePosition(0);
+        for (TestMultiPatternMatchItem item: items) {
+            cal.clear();
+            sdfmt.setCalendar(cal);
+            sdfmt.applyPattern(item.pattern);
+            sdfmt.setLenient(item.leniency);
+            sdfmt.setBooleanAttribute(DateFormat.BooleanAttribute.PARSE_MULTIPLE_PATTERNS_FOR_MATCH, item.leniency);
+            result.setLength(0);
+            p.setIndex(0);
+            p.setErrorIndex(-1);
+            d = sdfmt.parse(item.parseString, p);
+            if(item.expectedResult == null) {
+                if(p.getErrorIndex() != -1)
+                    continue;
+                else
+                    errln("error: unexpected parse success..."+item.parseString + " w/ lenient="+item.leniency+" should have failed");
+            }
+            if(p.getErrorIndex() != -1) {
+                errln("error: parse error for string " +item.parseString + " -- idx["+p.getIndex()+"] errIdx["+p.getErrorIndex()+"]");
+                continue;
+            }
+            cal.setTime(d);
+            result = sdfmt.format(cal, result, new FieldPosition(0));
+            if(!result.toString().equalsIgnoreCase(item.expectedResult)) {
+                errln("error: unexpected format result. expected - " + item.expectedResult + "  but result was - " + result);
+            } else {
+                logln("formatted results match! - " + result.toString()); 
+            }
+        }
+        
+    }
+    
+    
 }

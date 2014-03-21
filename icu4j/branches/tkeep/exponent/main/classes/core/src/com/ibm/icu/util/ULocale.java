@@ -1,6 +1,6 @@
 /*
 ******************************************************************************
-* Copyright (C) 2003-2013, International Business Machines Corporation and
+* Copyright (C) 2003-2014, International Business Machines Corporation and
 * others. All Rights Reserved.
 ******************************************************************************
 */
@@ -107,7 +107,7 @@ import com.ibm.icu.text.LocaleDisplayNames.DialectHandling;
  * @author Ram Viswanadha
  * @stable ICU 2.8
  */
-public final class ULocale implements Serializable {
+public final class ULocale implements Serializable, Comparable<ULocale> {
     // using serialver from jdk1.4.2_05
     private static final long serialVersionUID = 3715177670352309217L;
 
@@ -776,6 +776,85 @@ public final class ULocale implements Serializable {
     }
 
     /**
+     * Compares two ULocale for ordering.
+     * <p><b>Note:</b> The order might change in future.</p>
+     * 
+     * @param other the ULocale to be compared.
+     * @return a negative integer, zero, or a positive integer as this ULocale is less than, equal to, or greater
+     * than the specified ULocale.
+     * @throws NullPointerException if <code>other</code> is null.
+     * 
+     * @draft ICU 53
+     * @provisional This API might change or be removed in a future release.
+     */
+    public int compareTo(ULocale other) {
+        if (this == other) {
+            return 0;
+        }
+
+        int cmp = 0;
+
+        // Language
+        cmp = getLanguage().compareTo(other.getLanguage());
+        if (cmp == 0) {
+            // Script
+            cmp = getScript().compareTo(other.getScript());
+            if (cmp == 0) {
+                // Region
+                cmp = getCountry().compareTo(other.getCountry());
+                if (cmp == 0) {
+                    // Variant
+                    cmp = getVariant().compareTo(other.getVariant());
+                    if (cmp == 0) {
+                        // Keywords
+                        Iterator<String> thisKwdItr = getKeywords();
+                        Iterator<String> otherKwdItr = other.getKeywords();
+
+                        if (thisKwdItr == null) {
+                            cmp = otherKwdItr == null ? 0 : -1;
+                        } else if (otherKwdItr == null) {
+                            cmp = 1;
+                        } else {
+                            // Both have keywords
+                            while (cmp == 0 && thisKwdItr.hasNext()) {
+                                if (!otherKwdItr.hasNext()) {
+                                    cmp = 1;
+                                    break;
+                                }
+                                // Compare keyword keys
+                                String thisKey = thisKwdItr.next();
+                                String otherKey = otherKwdItr.next();
+                                cmp = thisKey.compareTo(otherKey);
+                                if (cmp == 0) {
+                                    // Compare keyword values
+                                    String thisVal = getKeywordValue(thisKey);
+                                    String otherVal = other.getKeywordValue(otherKey);
+                                    if (thisVal == null) {
+                                        cmp = otherVal == null ? 0 : -1;
+                                    } else if (otherVal == null) {
+                                        cmp = 1;
+                                    } else {
+                                        cmp = thisVal.compareTo(otherVal);
+                                    }
+                                }
+                            }
+                            if (cmp == 0 && otherKwdItr.hasNext()) {
+                                cmp = -1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Normalize the result value:
+        // Note: String.compareTo() may return value other than -1, 0, 1.
+        // A value other than those are OK by the definition, but we don't want
+        // associate any semantics other than negative/zero/positive.
+        return (cmp < 0) ? -1 : ((cmp > 0) ? 1 : 0);
+    }
+
+    /**
      * {@icunote} Unlike the Locale API, this returns an array of <code>ULocale</code>,
      * not <code>Locale</code>.  Returns a list of all installed locales.
      * @stable ICU 3.0
@@ -813,7 +892,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getLanguage() {
-        return getLanguage(localeID);
+        return base().getLanguage();
     }
 
     /**
@@ -835,7 +914,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getScript() {
-        return getScript(localeID);
+        return base().getScript();
     }
 
     /**
@@ -857,7 +936,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getCountry() {
-        return getCountry(localeID);
+        return base().getRegion();
     }
 
     /**
@@ -879,7 +958,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getVariant() {
-        return getVariant(localeID);
+        return base().getVariant();
     }
 
     /**
@@ -1366,9 +1445,10 @@ public final class ULocale implements Serializable {
      * {@icu} Returns this locale's script localized for display in the default <code>DISPLAY</code> locale.
      * @return the localized script name.
      * @see Category#DISPLAY
-     * @internal ICU 49
+     * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public String getDisplayScriptInContext() {
         return getDisplayScriptInContextInternal(this, getDefault(Category.DISPLAY));
     }
@@ -1387,9 +1467,10 @@ public final class ULocale implements Serializable {
      * {@icu} Returns this locale's script localized for display in the provided locale.
      * @param displayLocale the locale in which to display the name.
      * @return the localized script name.
-     * @internal ICU 49
+     * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public String getDisplayScriptInContext(ULocale displayLocale) {
         return getDisplayScriptInContextInternal(this, displayLocale);
     }
@@ -1411,9 +1492,10 @@ public final class ULocale implements Serializable {
      * @param localeID the id of the locale whose script will be displayed
      * @param displayLocaleID the id of the locale in which to display the name.
      * @return the localized script name.
-     * @internal ICU 49
+     * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public static String getDisplayScriptInContext(String localeID, String displayLocaleID) {
         return getDisplayScriptInContextInternal(new ULocale(localeID), new ULocale(displayLocaleID));
     }
@@ -1433,9 +1515,10 @@ public final class ULocale implements Serializable {
      * @param localeID the id of the locale whose script will be displayed.
      * @param displayLocale the locale in which to display the name.
      * @return the localized script name.
-     * @internal ICU 49
+     * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public static String getDisplayScriptInContext(String localeID, ULocale displayLocale) {
         return getDisplayScriptInContextInternal(new ULocale(localeID), displayLocale);
     }
@@ -3558,11 +3641,16 @@ public final class ULocale implements Serializable {
 
     private BaseLocale base() {
         if (baseLocale == null) {
-            String language = getLanguage();
-            if (equals(ULocale.ROOT)) {
-                language = "";
+            String language, script, region, variant;
+            language = script = region = variant = "";
+            if (!equals(ULocale.ROOT)) {
+                LocaleIDParser lp = new LocaleIDParser(localeID);
+                language = lp.getLanguage();
+                script = lp.getScript();
+                region = lp.getCountry();
+                variant = lp.getVariant();
             }
-            baseLocale = BaseLocale.getInstance(language, getScript(), getCountry(), getVariant());
+            baseLocale = BaseLocale.getInstance(language, script, region, variant);
         }
         return baseLocale;
     }

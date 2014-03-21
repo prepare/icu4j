@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2008-2013, International Business Machines Corporation and    *
+ * Copyright (C) 2008-2014, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -23,6 +23,7 @@ import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Freezable;
+import com.ibm.icu.util.ICUCloneNotSupportedException;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 
@@ -304,6 +305,7 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public DateIntervalInfo() 
     {
         fIntervalPatterns = new HashMap<String, Map<String, PatternInfo>>();
@@ -786,7 +788,7 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
             return other;
         } catch ( CloneNotSupportedException e ) {
             ///CLOVER:OFF
-            throw new  IllegalStateException("clone is not supported");
+            throw new  ICUCloneNotSupportedException("clone is not supported", e);
             ///CLOVER:ON
         }
     }
@@ -985,6 +987,7 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
      * @internal CLDR
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public Map<String,Set<String>> getPatterns() {
         LinkedHashMap<String,Set<String>> result = new LinkedHashMap<String,Set<String>>();
         for (Entry<String, Map<String, PatternInfo>> entry : fIntervalPatterns.entrySet()) {
