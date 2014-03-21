@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2013, International Business Machines Corporation and
+ * Copyright (C) 1996-2014, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -161,6 +161,7 @@ public final class VersionInfo implements Comparable<VersionInfo>
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public static final String ICU_DATA_VERSION_PATH = "53b";
     
     /**
@@ -168,6 +169,7 @@ public final class VersionInfo implements Comparable<VersionInfo>
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public static final VersionInfo ICU_DATA_VERSION;
 
     /**
@@ -324,6 +326,7 @@ public final class VersionInfo implements Comparable<VersionInfo>
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public static VersionInfo javaVersion() {
         if (javaVersion == null) {
             synchronized(VersionInfo.class) {
@@ -513,12 +516,12 @@ public final class VersionInfo implements Comparable<VersionInfo>
         UNICODE_6_2   = getInstance(6, 2, 0, 0);
         UNICODE_6_3   = getInstance(6, 3, 0, 0);
 
-        ICU_VERSION   = getInstance(53, 0, 1, 0);
-        ICU_DATA_VERSION = getInstance(53, 0, 1, 0);
+        ICU_VERSION   = getInstance(53, 1, 0, 0);
+        ICU_DATA_VERSION = getInstance(53, 1, 0, 0);
         UNICODE_VERSION = UNICODE_6_3;
 
-        UCOL_RUNTIME_VERSION = getInstance(7);
-        UCOL_BUILDER_VERSION = getInstance(8);
+        UCOL_RUNTIME_VERSION = getInstance(8);
+        UCOL_BUILDER_VERSION = getInstance(9);
         UCOL_TAILORINGS_VERSION = getInstance(1);
     }
 

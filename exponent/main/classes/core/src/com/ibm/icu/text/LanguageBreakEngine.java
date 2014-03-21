@@ -1,13 +1,12 @@
 /*
  *******************************************************************************
- * Copyright (C) 2012, International Business Machines Corporation and         *
+ * Copyright (C) 2014, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.text;
 
 import java.text.CharacterIterator;
-import java.util.Stack;
 
 /**
  * The LanguageBreakEngine interface is to be used to implement any 
@@ -20,7 +19,7 @@ interface LanguageBreakEngine {
      *  of this engine - character, word, line, sentence
      * @return true if the engine can handle this character, false otherwise
      */
-    public boolean handles(int c, int breakType);
+    boolean handles(int c, int breakType);
 
     /**
      * Implements the actual breaking logic.
@@ -35,6 +34,9 @@ interface LanguageBreakEngine {
      * @param foundBreaks A Stack that the breaks found will be added to
      * @return the number of words found
      */
-    public int findBreaks(CharacterIterator text, int startPos, int endPos,
-            boolean reverse, int breakType, Stack<Integer> foundBreaks);
+    int findBreaks(CharacterIterator text, int startPos, int endPos,
+            boolean reverse, int breakType, DictionaryBreakEngine.DequeI foundBreaks);
 }
+    
+    
+    

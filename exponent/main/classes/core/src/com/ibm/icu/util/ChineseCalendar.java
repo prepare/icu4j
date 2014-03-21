@@ -1,5 +1,5 @@
 /*********************************************************************
- * Copyright (C) 2000-2012, International Business Machines
+ * Copyright (C) 2000-2014, International Business Machines
  * Corporation and others. All Rights Reserved.
  *********************************************************************
  */
@@ -336,6 +336,7 @@ public class ChineseCalendar extends Calendar {
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     protected ChineseCalendar(TimeZone zone, ULocale locale, int epochYear, TimeZone zoneAstroCalc) {
         super(zone, locale);
         this.epochYear = epochYear;
@@ -1015,6 +1016,16 @@ public class ChineseCalendar extends Calendar {
      */
     public String getType() {
         return "chinese";
+    }
+
+    /**
+     * {@inheritDoc}
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    @Deprecated
+    public boolean haveDefaultCentury() {
+        return false;
     }
 
     /**

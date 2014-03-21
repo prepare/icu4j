@@ -1,11 +1,13 @@
 /*
- *   Copyright (C) 1996-2013, International Business Machines
+ *   Copyright (C) 1996-2014, International Business Machines
  *   Corporation and others.  All Rights Reserved.
  */
 
 package com.ibm.icu.text;
 
+import java.io.IOException;
 import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
 import java.text.FieldPosition;
 import java.text.Format;
 import java.text.ParseException;
@@ -412,8 +414,7 @@ public abstract class DateFormat extends UFormat {
      * corresponding to the {@link Calendar#ZONE_OFFSET} and
      * {@link Calendar#DST_OFFSET} fields.  This displays the
      * localized GMT format.
-     * @draft ICU 51
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 51
      */
     public final static int TIMEZONE_LOCALIZED_GMT_OFFSET_FIELD = 31;
 
@@ -422,8 +423,7 @@ public abstract class DateFormat extends UFormat {
      * corresponding to the {@link Calendar#ZONE_OFFSET} and
      * {@link Calendar#DST_OFFSET} fields.  This displays the
      * ISO 8601 local time offset format or UTC indicator ("Z").
-     * @draft ICU 51
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 51
      */
     public final static int TIMEZONE_ISO_FIELD = 32;
 
@@ -432,8 +432,7 @@ public abstract class DateFormat extends UFormat {
      * corresponding to the {@link Calendar#ZONE_OFFSET} and
      * {@link Calendar#DST_OFFSET} fields.  This displays the
      * ISO 8601 local time offset format.
-     * @draft ICU 51
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 51
      */
     public final static int TIMEZONE_ISO_LOCAL_FIELD = 33;
 
@@ -448,30 +447,69 @@ public abstract class DateFormat extends UFormat {
     
     /**
      * boolean attributes
-     * <br/>
-     * PARSE_ALLOW_WHITESPACE - indicates whitespace tolerance. Also included is trailing dot tolerance.
-     * <br/>
-     * PARSE_ALLOW_NUMERIC - indicates tolerance of numeric data when String data may be assumed. eg: YEAR_NAME_FIELD
      * 
-     * @internal ICU technology preview
+     * @draft ICU 53
+     * @provisional This API might change or be removed in a future release.
      */
     public enum BooleanAttribute { 
         /** 
          * indicates whitespace tolerance. Also included is trailing dot tolerance. 
-         * @internal ICU technology preview
+         * @draft ICU 53
+         * @provisional This API might change or be removed in a future release.
          */
         PARSE_ALLOW_WHITESPACE,
         /** 
-         * indicates tolerance of numeric data when String data may be assumed. eg: YEAR_NAME_FIELD 
-         * @internal ICU technology preview
+         * indicates tolerance of numeric data when String data may be assumed. 
+         * e.g. YEAR_NAME_FIELD 
+         * @draft ICU 53
+         * @provisional This API might change or be removed in a future release.
          */
-        PARSE_ALLOW_NUMERIC 
+        PARSE_ALLOW_NUMERIC, 
+        /** 
+         * indicates tolerance of pattern mismatch between input data and specified format pattern.
+         * e.g. accepting "September" for a month pattern of MMM ("Sep")  
+         * @draft ICU 53
+         * @provisional This API might change or be removed in a future release.
+         */
+        PARSE_MULTIPLE_PATTERNS_FOR_MATCH, 
+        /**
+         * indicates tolerance of a partial literal match
+         * @draft ICU 53
+         * @provisional This API might change or be removed in a future release.
+         */
+        PARSE_PARTIAL_MATCH
     };
     
     /**
      * boolean attributes for this instance. Inclusion in this is indicates a true condition.
      */
     private EnumSet<BooleanAttribute> booleanAttributes = EnumSet.allOf(BooleanAttribute.class); 
+
+    /*
+     * Capitalization setting, hoisted to DateFormat ICU 53
+     * Note that SimpleDateFormat serialization may call getContext/setContext to read/write
+     * this for compatibility with serialization for its old copy of capitalizationSetting.
+     * @serial
+     */
+    private DisplayContext capitalizationSetting = DisplayContext.CAPITALIZATION_NONE;
+
+    static final int currentSerialVersion = 1;
+
+    /**
+     * Describes the version of <code>DateFormat</code> present on the stream.
+     * Possible values are:
+     * <ul>
+     * <li><b>0</b> (or uninitialized): the pre-ICU-53 version
+     *
+     * <li><b>1</b>: ICU 53, adds serialVersionOnStream and capitalizationSetting
+     * </ul>
+     * When streaming out a <code>DateFormat</code>, the most recent format
+     * (corresponding to the highest allowable <code>serialVersionOnStream</code>)
+     * is always written.
+     *
+     * @serial
+     */
+    private int serialVersionOnStream = currentSerialVersion;
 
     // Proclaim serial compatibility with 1.1 FCS
     private static final long serialVersionUID = 7218322306649953788L;
@@ -1115,36 +1153,42 @@ public abstract class DateFormat extends UFormat {
      * {@icu} Constant for date skeleton with standalone month.
      * @deprecated ICU 50 Use {@link #MONTH} instead.
      */
+    @Deprecated
     public static final String STANDALONE_MONTH = "LLLL";
 
     /**
      * {@icu} Constant for date skeleton with standalone abbreviated month.
      * @deprecated ICU 50 Use {@link #ABBR_MONTH} instead.
      */
+    @Deprecated
     public static final String ABBR_STANDALONE_MONTH = "LLL";
 
     /**
      * {@icu} Constant for date skeleton with hour, minute, and generic timezone.
      * @deprecated ICU 50 Use instead {@link #HOUR_MINUTE}+{@link #ABBR_GENERIC_TZ} or some other timezone presentation.
      */
+    @Deprecated
     public static final String HOUR_MINUTE_GENERIC_TZ = "jmv";
 
     /**
      * {@icu} Constant for date skeleton with hour, minute, and timezone.
      * @deprecated ICU 50 Use instead {@link #HOUR_MINUTE}+{@link #ABBR_SPECIFIC_TZ} or some other timezone presentation.
      */
+    @Deprecated
     public static final String HOUR_MINUTE_TZ = "jmz";
 
     /**
      * {@icu} Constant for date skeleton with hour and generic timezone.
      * @deprecated ICU 50 Use instead {@link #HOUR}+{@link #ABBR_GENERIC_TZ} or some other timezone presentation.
      */
+    @Deprecated
     public static final String HOUR_GENERIC_TZ = "jv";
 
     /**
      * {@icu} Constant for date skeleton with hour and timezone.
      * @deprecated ICU 50 Use instead {@link #HOUR}+{@link #ABBR_SPECIFIC_TZ} or some other timezone presentation.
      */
+    @Deprecated
     public static final String HOUR_TZ = "jz";
 
 
@@ -1157,7 +1201,7 @@ public abstract class DateFormat extends UFormat {
      */
     public final static DateFormat getTimeInstance()
     {
-        return get(-1, DEFAULT, ULocale.getDefault(Category.FORMAT));
+        return get(-1, DEFAULT, ULocale.getDefault(Category.FORMAT), null);
     }
 
     /**
@@ -1172,7 +1216,7 @@ public abstract class DateFormat extends UFormat {
      */
     public final static DateFormat getTimeInstance(int style)
     {
-        return get(-1, style, ULocale.getDefault(Category.FORMAT));
+        return get(-1, style, ULocale.getDefault(Category.FORMAT), null);
     }
 
     /**
@@ -1188,7 +1232,7 @@ public abstract class DateFormat extends UFormat {
     public final static DateFormat getTimeInstance(int style,
                                                  Locale aLocale)
     {
-        return get(-1, style, ULocale.forLocale(aLocale));
+        return get(-1, style, ULocale.forLocale(aLocale), null);
     }
 
     /**
@@ -1204,7 +1248,7 @@ public abstract class DateFormat extends UFormat {
     public final static DateFormat getTimeInstance(int style,
                                                  ULocale locale)
     {
-        return get(-1, style, locale);
+        return get(-1, style, locale, null);
     }
 
     /**
@@ -1216,7 +1260,7 @@ public abstract class DateFormat extends UFormat {
      */
     public final static DateFormat getDateInstance()
     {
-        return get(DEFAULT, -1, ULocale.getDefault(Category.FORMAT));
+        return get(DEFAULT, -1, ULocale.getDefault(Category.FORMAT), null);
     }
 
     /**
@@ -1234,7 +1278,7 @@ public abstract class DateFormat extends UFormat {
      */
     public final static DateFormat getDateInstance(int style)
     {
-        return get(style, -1, ULocale.getDefault(Category.FORMAT));
+        return get(style, -1, ULocale.getDefault(Category.FORMAT), null);
     }
 
     /**
@@ -1253,7 +1297,7 @@ public abstract class DateFormat extends UFormat {
     public final static DateFormat getDateInstance(int style,
                                                  Locale aLocale)
     {
-        return get(style, -1, ULocale.forLocale(aLocale));
+        return get(style, -1, ULocale.forLocale(aLocale), null);
     }
 
     /**
@@ -1272,7 +1316,7 @@ public abstract class DateFormat extends UFormat {
     public final static DateFormat getDateInstance(int style,
                                                  ULocale locale)
     {
-        return get(style, -1, locale);
+        return get(style, -1, locale, null);
     }
 
     /**
@@ -1284,7 +1328,7 @@ public abstract class DateFormat extends UFormat {
      */
     public final static DateFormat getDateTimeInstance()
     {
-        return get(DEFAULT, DEFAULT, ULocale.getDefault(Category.FORMAT));
+        return get(DEFAULT, DEFAULT, ULocale.getDefault(Category.FORMAT), null);
     }
 
     /**
@@ -1306,7 +1350,7 @@ public abstract class DateFormat extends UFormat {
     public final static DateFormat getDateTimeInstance(int dateStyle,
                                                        int timeStyle)
     {
-        return get(dateStyle, timeStyle, ULocale.getDefault(Category.FORMAT));
+        return get(dateStyle, timeStyle, ULocale.getDefault(Category.FORMAT), null);
     }
 
     /**
@@ -1326,7 +1370,7 @@ public abstract class DateFormat extends UFormat {
     public final static DateFormat getDateTimeInstance(
         int dateStyle, int timeStyle, Locale aLocale)
     {
-        return get(dateStyle, timeStyle, ULocale.forLocale(aLocale));
+        return get(dateStyle, timeStyle, ULocale.forLocale(aLocale), null);
     }
 
     /**
@@ -1346,7 +1390,7 @@ public abstract class DateFormat extends UFormat {
     public final static DateFormat getDateTimeInstance(
         int dateStyle, int timeStyle, ULocale locale)
     {
-        return get(dateStyle, timeStyle, locale);
+        return get(dateStyle, timeStyle, locale, null);
     }
 
     /**
@@ -1448,55 +1492,100 @@ public abstract class DateFormat extends UFormat {
     /**
      * Specifies whether date/time parsing is to be lenient.  With
      * lenient parsing, the parser may use heuristics to interpret inputs that
-     * do not precisely match this object's format.  With strict parsing,
-     * inputs must match this object's format.
+     * do not precisely match this object's format.  Without lenient parsing,
+     * inputs must match this object's format more closely.
      * <br/><br/> 
-     * <b>Note:</b> This method is specific to the encapsulated Calendar object. DateFormat 
-     * leniency aspects are controlled by setBooleanAttribute.
-     * @param lenient when true, parsing is lenient
+     * <b>Note:</b> ICU 53 introduced finer grained control of leniency (and added 
+     * new control points) making the preferred method a combination of 
+     * setCalendarLenient() & setBooleanAttribute() calls. 
+     * This method supports prior functionality but may not support all 
+     * future leniency control & behavior of DateFormat. For control of pre 53 leniency,  
+     * Calendar and DateFormat whitespace & numeric tolerance, this method is safe to 
+     * use. However, mixing leniency control via this method and modification of the 
+     * newer attributes via setBooleanAttribute() may produce undesirable 
+     * results.
+     *
+     * @param lenient True specifies date/time interpretation to be lenient.
      * @see com.ibm.icu.util.Calendar#setLenient
      * @see #setBooleanAttribute(BooleanAttribute, boolean)
+     * @see #setCalendarLenient(boolean)
      * @stable ICU 2.0
      */
     public void setLenient(boolean lenient)
     {
         calendar.setLenient(lenient);
+        setBooleanAttribute(BooleanAttribute.PARSE_ALLOW_NUMERIC, lenient);
+        setBooleanAttribute(BooleanAttribute.PARSE_ALLOW_WHITESPACE, lenient);
     }
 
     /**
-     * Returns whether date/time parsing in the encapsulated Calendar object is lenient.
+     * Returns whether both date/time parsing in the encapsulated Calendar object and DateFormat whitespace &
+     * numeric processing is lenient.
      * @stable ICU 2.0
      */
     public boolean isLenient()
     {
-        return calendar.isLenient();
+        return calendar.isLenient() 
+                && getBooleanAttribute(BooleanAttribute.PARSE_ALLOW_NUMERIC)
+                && getBooleanAttribute(BooleanAttribute.PARSE_ALLOW_WHITESPACE);
     }
 
-    /**
-     * set a boolean attribute for this instance. Aspects of DateFormat leniency are controlled by
+    /** 
+     * Specifies whether date/time parsing in the encapsulated Calendar object should be lenient.  
+     * With lenient parsing, the parser may use heuristics to interpret inputs that
+     * do not precisely match this object's format.  Without lenient parsing,
+     * inputs must match this object's format more closely.
+     * @param lenient when true, Calendar parsing is lenient 
+     * @see com.ibm.icu.util.Calendar#setLenient 
+     * @draft ICU 53
+     * @provisional This API might change or be removed in a future release.
+     */ 
+    public void setCalendarLenient(boolean lenient)
+    {
+        calendar.setLenient(lenient);
+    }
+
+    
+    /** 
+     * Returns whether date/time parsing in the encapsulated Calendar object is lenient. 
+     * @draft ICU 53
+     * @provisional This API might change or be removed in a future release.
+     */ 
+    public boolean isCalendarLenient()
+    {
+        return calendar.isLenient();
+    }
+    
+    /** 
+     * Sets a boolean attribute for this instance. Aspects of DateFormat leniency are controlled by
      * boolean attributes. 
      * 
      * @see BooleanAttribute
-     * @internal ICU technology preview
+     * @draft ICU 53
+     * @provisional This API might change or be removed in a future release.
      */
     public DateFormat setBooleanAttribute(BooleanAttribute key, boolean value) 
     {
-        if(booleanAttributes.contains(key) && value == false)
-            booleanAttributes.remove(key);
-        
-        if(value == true && !booleanAttributes.contains(key))
+        if(value)
+        {
             booleanAttributes.add(key);
+        }
+        else
+        {
+            booleanAttributes.remove(key);
+        }
         
         return this;
     }
     
     /**
-     * get the current value for the specified BooleanAttribute for this instance
+     * Returns the current value for the specified BooleanAttribute for this instance
      *
      * if attribute is missing false is returned.
      * 
      * @see BooleanAttribute
-     * @internal ICU technology preview
+     * @draft ICU 53
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean getBooleanAttribute(BooleanAttribute key) 
     {
@@ -1504,6 +1593,34 @@ public abstract class DateFormat extends UFormat {
     }
     
     
+    /**
+     * {@icu} Set a particular DisplayContext value in the formatter,
+     * such as CAPITALIZATION_FOR_STANDALONE. 
+     * 
+     * @param context The DisplayContext value to set. 
+     * @draft ICU 53
+     * @provisional This API might change or be removed in a future release.
+     */
+    public void setContext(DisplayContext context) {
+        if (context.type() == DisplayContext.Type.CAPITALIZATION) {
+            capitalizationSetting = context;
+        }
+    }
+
+    /**
+     * {@icu} Get the formatter's DisplayContext value for the specified DisplayContext.Type,
+     * such as CAPITALIZATION.
+     * 
+     * @param type the DisplayContext.Type whose value to return
+     * @return the current DisplayContext setting for the specified type
+     * @draft ICU 53
+     * @provisional This API might change or be removed in a future release.
+     */
+    public DisplayContext getContext(DisplayContext.Type type) {
+        return (type == DisplayContext.Type.CAPITALIZATION && capitalizationSetting != null)?
+                capitalizationSetting: DisplayContext.CAPITALIZATION_NONE;
+    }
+
     /**
      * Overrides hashCode.
      * @stable ICU 2.0
@@ -1524,8 +1641,11 @@ public abstract class DateFormat extends UFormat {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         DateFormat other = (DateFormat) obj;
-        return (calendar.isEquivalentTo(other.calendar) &&
-                numberFormat.equals(other.numberFormat));
+        return (((calendar==null && other.calendar==null) ||
+                    (calendar!=null && other.calendar!=null && calendar.isEquivalentTo(other.calendar))) &&
+                ((numberFormat==null && other.numberFormat==null) ||
+                    (numberFormat!=null && other.numberFormat!=null && numberFormat.equals(other.numberFormat))) &&
+                capitalizationSetting == other.capitalizationSetting);
     }
 
     /**
@@ -1536,7 +1656,9 @@ public abstract class DateFormat extends UFormat {
     {
         DateFormat other = (DateFormat) super.clone();
         other.calendar = (Calendar) calendar.clone();
-        other.numberFormat = (NumberFormat) numberFormat.clone();
+        if (numberFormat != null) {
+            other.numberFormat = (NumberFormat) numberFormat.clone();
+        }
         return other;
     }
 
@@ -1548,22 +1670,27 @@ public abstract class DateFormat extends UFormat {
      * @param timeStyle a value from 0 to 3 indicating the time format,
      * or -1 to indicate no time
      * @param loc the locale for the format
+     * @param cal the calendar to be used, or null
      */
-    private static DateFormat get(int dateStyle, int timeStyle, ULocale loc) {
-        if((timeStyle != -1 && (timeStyle & RELATIVE)>0) ||
-           (dateStyle != -1 && (dateStyle & RELATIVE)>0)) {
-            RelativeDateFormat r = new RelativeDateFormat(timeStyle, dateStyle /* offset? */, loc);
+    private static DateFormat get(int dateStyle, int timeStyle, ULocale loc, Calendar cal) {
+        if((timeStyle != DateFormat.NONE && (timeStyle & RELATIVE)>0) ||
+           (dateStyle != DateFormat.NONE && (dateStyle & RELATIVE)>0)) {
+            RelativeDateFormat r = new RelativeDateFormat(timeStyle, dateStyle /* offset? */, loc, cal);
             return r;
         }
 
-        if (timeStyle < -1 || timeStyle > 3) {
+        if (timeStyle < DateFormat.NONE || timeStyle > DateFormat.SHORT) {
             throw new IllegalArgumentException("Illegal time style " + timeStyle);
         }
-        if (dateStyle < -1 || dateStyle > 3) {
+        if (dateStyle < DateFormat.NONE || dateStyle > DateFormat.SHORT) {
             throw new IllegalArgumentException("Illegal date style " + dateStyle);
         }
+
+        if (cal == null) {
+            cal = Calendar.getInstance(loc);
+        }
+
         try {
-            Calendar cal = Calendar.getInstance(loc);
             DateFormat result = cal.getDateTimeFormat(dateStyle, timeStyle, loc);
             result.setLocale(cal.getLocale(ULocale.VALID_LOCALE),
                  cal.getLocale(ULocale.ACTUAL_LOCALE));
@@ -1574,6 +1701,26 @@ public abstract class DateFormat extends UFormat {
             return new SimpleDateFormat("M/d/yy h:mm a");
             ///CLOVER:ON
         }
+    }
+
+    /**
+     * First, read in the default serializable data.
+     *
+     * Then, if <code>serialVersionOnStream</code> is less than 1, indicating that
+     * the stream was written by a pre-ICU-53 version,
+     * set capitalizationSetting to a default value.
+     * Finally, set serialVersionOnStream back to the maximum allowed value so that
+     * default serialization will work properly if this object is streamed out again.
+     */
+    private void readObject(ObjectInputStream stream)
+         throws IOException, ClassNotFoundException
+    {
+        stream.defaultReadObject();
+        if (serialVersionOnStream < 1) {
+            // Didn't have capitalizationSetting, set it to default
+            capitalizationSetting = DisplayContext.CAPITALIZATION_NONE;
+        }
+        serialVersionOnStream = currentSerialVersion;
     }
 
     /**
@@ -1696,7 +1843,7 @@ public abstract class DateFormat extends UFormat {
     static final public DateFormat getDateTimeInstance(Calendar cal, int dateStyle,
                                                  int timeStyle, Locale locale)
     {
-        return cal.getDateTimeFormat(dateStyle, timeStyle, ULocale.forLocale(locale));
+        return getDateTimeInstance(dateStyle, timeStyle, ULocale.forLocale(locale));
     }
 
     /**
@@ -1724,7 +1871,10 @@ public abstract class DateFormat extends UFormat {
     static final public DateFormat getDateTimeInstance(Calendar cal, int dateStyle,
                                                  int timeStyle, ULocale locale)
     {
-        return cal.getDateTimeFormat(dateStyle, timeStyle, locale);
+        if (cal == null) {
+            throw new IllegalArgumentException("Calendar must be supplied");
+        }
+        return get(dateStyle, timeStyle, locale, cal);
     }
 
     /**

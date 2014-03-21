@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2013, International Business Machines Corporation and    *
+ * Copyright (C) 2007-2014, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -14,7 +14,10 @@ import java.util.MissingResourceException;
 import java.util.Set;
 import java.util.TreeSet;
 
+import com.ibm.icu.lang.UCharacter;
+import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.DateFormat;
+import com.ibm.icu.text.DisplayContext;
 import com.ibm.icu.text.MessageFormat;
 import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.util.Calendar;
@@ -51,8 +54,11 @@ public class RelativeDateFormat extends DateFormat {
      * @param timeStyle The time style for the date and time.
      * @param dateStyle The date style for the date and time.
      * @param locale The locale for the date.
+     * @param cal The calendar to be used
      */
-    public RelativeDateFormat(int timeStyle, int dateStyle, ULocale locale) {
+    public RelativeDateFormat(int timeStyle, int dateStyle, ULocale locale, Calendar cal) {
+        calendar = cal;
+
         fLocale = locale;
         fTimeStyle = timeStyle;
         fDateStyle = dateStyle;
@@ -89,7 +95,7 @@ public class RelativeDateFormat extends DateFormat {
         loadDates();
         initializeCombinedFormat(calendar, fLocale);
     }
-    
+
     /**
      * serial version (generated)
      */
@@ -102,12 +108,34 @@ public class RelativeDateFormat extends DateFormat {
             FieldPosition fieldPosition) {
 
         String relativeDayString = null;
+        DisplayContext capitalizationContext = getContext(DisplayContext.Type.CAPITALIZATION);
+
         if (fDateStyle != DateFormat.NONE) {
             // calculate the difference, in days, between 'cal' and now.
             int dayDiff = dayDifference(cal);
 
             // look up string
             relativeDayString = getStringForDay(dayDiff);
+        }
+
+        if ( relativeDayString != null && fDatePattern != null &&
+                (fTimePattern == null || fCombinedFormat == null || combinedFormatHasDateAtStart) ) {
+            // capitalize relativeDayString according to context for relative, set formatter no context
+            if ( relativeDayString.length() > 0 && UCharacter.isLowerCase(relativeDayString.codePointAt(0)) &&
+                 (capitalizationContext == DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE ||
+                    (capitalizationContext == DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU && capitalizationOfRelativeUnitsForListOrMenu) ||
+                    (capitalizationContext == DisplayContext.CAPITALIZATION_FOR_STANDALONE && capitalizationOfRelativeUnitsForStandAlone) )) {
+                if (capitalizationBrkIter == null) {
+                    // should only happen when deserializing, etc.
+                    capitalizationBrkIter = BreakIterator.getSentenceInstance(fLocale);
+                }
+                relativeDayString = UCharacter.toTitleCase(fLocale, relativeDayString, capitalizationBrkIter,
+                                UCharacter.TITLECASE_NO_LOWERCASE | UCharacter.TITLECASE_NO_BREAK_ADJUSTMENT);
+            }
+            fDateTimeFormat.setContext(DisplayContext.CAPITALIZATION_NONE);
+        } else {
+            // set our context for the formatter
+            fDateTimeFormat.setContext(capitalizationContext);
         }
 
         if (fDateTimeFormat != null && (fDatePattern != null || fTimePattern != null)) {
@@ -155,6 +183,25 @@ public class RelativeDateFormat extends DateFormat {
         throw new UnsupportedOperationException("Relative Date parse is not implemented yet");
     }
 
+    /* (non-Javadoc)
+     * @see com.ibm.icu.text.DateFormat#setContext(com.ibm.icu.text.DisplayContext)
+     * Here we override the DateFormat implementation in order to
+     * lazily initialize relevant items 
+     */
+    public void setContext(DisplayContext context) {
+        super.setContext(context);
+        if (!capitalizationInfoIsSet &&
+              (context==DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU || context==DisplayContext.CAPITALIZATION_FOR_STANDALONE)) {
+            initCapitalizationContextInfo(fLocale);
+            capitalizationInfoIsSet = true;
+        }
+        if (capitalizationBrkIter == null && (context==DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE ||
+              (context==DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU && capitalizationOfRelativeUnitsForListOrMenu) ||
+              (context==DisplayContext.CAPITALIZATION_FOR_STANDALONE && capitalizationOfRelativeUnitsForStandAlone) )) {
+            capitalizationBrkIter = BreakIterator.getSentenceInstance(fLocale);
+        }
+    }
+
     private DateFormat fDateFormat; // keep for serialization compatibility
     @SuppressWarnings("unused")
     private DateFormat fTimeFormat; // now unused, keep for serialization compatibility
@@ -169,6 +216,12 @@ public class RelativeDateFormat extends DateFormat {
     
     private transient URelativeString fDates[] = null; // array of strings
     
+    private boolean combinedFormatHasDateAtStart = false;
+    private boolean capitalizationInfoIsSet = false;
+    private boolean capitalizationOfRelativeUnitsForListOrMenu = false;
+    private boolean capitalizationOfRelativeUnitsForStandAlone = false;
+    private transient BreakIterator capitalizationBrkIter = null;
+   
     
     /**
      * Get the string at a specific offset.
@@ -218,6 +271,23 @@ public class RelativeDateFormat extends DateFormat {
         fDates = datesSet.toArray(new URelativeString[0]);
     }
     
+    /**
+     * Set capitalizationOfRelativeUnitsForListOrMenu, capitalizationOfRelativeUnitsForStandAlone 
+     */
+    private void initCapitalizationContextInfo(ULocale locale) {
+        ICUResourceBundle rb = (ICUResourceBundle) UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
+        try {
+            ICUResourceBundle rdb = rb.getWithFallback("contextTransforms/relative");
+            int[] intVector = rdb.getIntVector();
+            if (intVector.length >= 2) {
+                capitalizationOfRelativeUnitsForListOrMenu = (intVector[0] != 0);
+                capitalizationOfRelativeUnitsForStandAlone = (intVector[1] != 0);
+            }
+        } catch (MissingResourceException e) {
+            // use default
+        }
+    }
+
     /**
      * @return the number of days in "until-now"
      */
@@ -284,6 +354,7 @@ public class RelativeDateFormat extends DateFormat {
         } catch (MissingResourceException e) {
             // use default
         }
+        combinedFormatHasDateAtStart = pattern.startsWith("{1}");
         fCombinedFormat = new MessageFormat(pattern, locale);
         return fCombinedFormat;
     }

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2013, Google, International Business Machines Corporation and
+ * Copyright (C) 1996-2014, Google, International Business Machines Corporation and
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -66,20 +66,17 @@ public class CompactDecimalFormat extends DecimalFormat {
 
     /**
      * Style parameter for CompactDecimalFormat.
-     * @draft ICU 50
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 50
      */
     public enum CompactStyle {
         /**
          * Short version, like "1.2T"
-         * @draft ICU 50
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 50
          */
         SHORT,
         /**
          * Longer version, like "1.2 trillion", if available. May return same result as SHORT if not.
-         * @draft ICU 50
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 50
          */
         LONG
     }
@@ -161,6 +158,7 @@ public class CompactDecimalFormat extends DecimalFormat {
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public CompactDecimalFormat(String pattern, DecimalFormatSymbols formatSymbols, 
             CompactStyle style, PluralRules pluralRules,
             long[] divisor, Map<String,String[][]> pluralAffixes, Map<String, String[]> currencyAffixes, 

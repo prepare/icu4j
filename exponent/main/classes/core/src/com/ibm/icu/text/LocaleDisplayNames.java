@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2009-2012, International Business Machines Corporation and    *
+ * Copyright (C) 2009-2014, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -68,8 +68,7 @@ public abstract class LocaleDisplayNames {
      * @param contexts one or more context settings (e.g. for dialect
      *              handling, capitalization, etc.
      * @return a LocaleDisplayNames instance
-     * @draft ICU 51
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 51
      */
     public static LocaleDisplayNames getInstance(ULocale locale, DisplayContext... contexts) {
         return LocaleDisplayNamesImpl.getInstance(locale, contexts);
@@ -95,8 +94,7 @@ public abstract class LocaleDisplayNames {
      * Returns the current value for a specified DisplayContext.Type.
      * @param type the DisplayContext.Type whose value to return
      * @return the current DisplayContext setting for the specified type
-     * @draft ICU 51
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 51
      */
     public abstract DisplayContext getContext(DisplayContext.Type type);
 
@@ -150,6 +148,7 @@ public abstract class LocaleDisplayNames {
      * @internal ICU 49
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public String scriptDisplayNameInContext(String script) {
         return scriptDisplayName(script);
     }
@@ -202,6 +201,7 @@ public abstract class LocaleDisplayNames {
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     protected LocaleDisplayNames() {
     }
 }

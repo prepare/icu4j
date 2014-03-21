@@ -1,13 +1,12 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2013, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2014, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.util;
 
 import java.io.ObjectStreamException;
-import java.io.Serializable;
 import java.lang.ref.SoftReference;
 import java.text.ParsePosition;
 import java.util.ArrayList;
@@ -53,7 +52,7 @@ import com.ibm.icu.util.ULocale.Category;
  * @author Alan Liu
  * @stable ICU 2.2
  */
-public class Currency extends MeasureUnit implements Serializable {
+public class Currency extends MeasureUnit {
     private static final long serialVersionUID = -5839973855554750484L;
     private static final boolean DEBUG = ICUDebug.enabled("currency");
 
@@ -245,7 +244,7 @@ public class Currency extends MeasureUnit implements Serializable {
             throw new IllegalArgumentException(
                     "The input currency code is not 3-letter alphabetic code.");
         }
-        return (Currency) MeasureUnit.addUnit("currency", theISOCode.toUpperCase(Locale.ENGLISH), CURRENCY_FACTORY);
+        return (Currency) MeasureUnit.internalGetInstance("currency", theISOCode.toUpperCase(Locale.ENGLISH));
     }
     
     
@@ -266,6 +265,11 @@ public class Currency extends MeasureUnit implements Serializable {
     /**
      * Registers a new currency for the provided locale.  The returned object
      * is a key that can be used to unregister this currency object.
+     * 
+     * <p>Because ICU may choose to cache Currency objects internally, this must
+     * be called at application startup, prior to any calls to
+     * Currency.getInstance to avoid undefined behavior.
+     * 
      * @param currency the currency to register
      * @param locale the ulocale under which to register the currency
      * @return a registry key that can be used to unregister this currency
@@ -397,7 +401,7 @@ public class Currency extends MeasureUnit implements Serializable {
      * @stable ICU 2.2
      */
     public String getCurrencyCode() {
-        return code;
+        return subType;
     }
 
     /**
@@ -415,7 +419,7 @@ public class Currency extends MeasureUnit implements Serializable {
                     "currencyNumericCodes",
                     ICUResourceBundle.ICU_DATA_CLASS_LOADER);
             UResourceBundle codeMap = bundle.get("codeMap");
-            UResourceBundle numCode = codeMap.get(code);
+            UResourceBundle numCode = codeMap.get(subType);
             result = numCode.getInt();
         } catch (MissingResourceException e) {
             // fall through
@@ -504,7 +508,7 @@ public class Currency extends MeasureUnit implements Serializable {
         }
 
         CurrencyDisplayNames names = CurrencyDisplayNames.getInstance(locale);
-        return nameStyle == SYMBOL_NAME ? names.getSymbol(code) : names.getName(code);
+        return nameStyle == SYMBOL_NAME ? names.getSymbol(subType) : names.getName(subType);
     }
 
     /**
@@ -553,7 +557,7 @@ public class Currency extends MeasureUnit implements Serializable {
         }
         
         CurrencyDisplayNames names = CurrencyDisplayNames.getInstance(locale);
-        return names.getPluralName(code, pluralCount);
+        return names.getPluralName(subType, pluralCount);
     }
 
     /**
@@ -612,6 +616,7 @@ public class Currency extends MeasureUnit implements Serializable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public static String parse(ULocale locale, String text, int type, ParsePosition pos) {
         List<TextTrieMap<CurrencyStringInfo>> currencyTrieVec = CURRENCY_NAME_CACHE.get(locale);
         if (currencyTrieVec == null) {
@@ -730,7 +735,7 @@ public class Currency extends MeasureUnit implements Serializable {
      */
     public int getDefaultFractionDigits() {
         CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
-        CurrencyDigits digits = info.currencyDigits(code);
+        CurrencyDigits digits = info.currencyDigits(subType);
         return digits.fractionDigits;
     }
 
@@ -742,7 +747,7 @@ public class Currency extends MeasureUnit implements Serializable {
      */
     public double getRoundingIncrement() {
         CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
-        CurrencyDigits digits = info.currencyDigits(code);
+        CurrencyDigits digits = info.currencyDigits(subType);
 
         int data1 = digits.roundingIncrement;
 
@@ -769,7 +774,7 @@ public class Currency extends MeasureUnit implements Serializable {
      * @stable ICU 2.2
      */
     public String toString() {
-        return code;
+        return subType;
     }
 
     /**
@@ -784,7 +789,7 @@ public class Currency extends MeasureUnit implements Serializable {
 
         // isoCode is kept for readResolve() and Currency class no longer
         // use it. So this statement actually does not have any effect.
-        isoCode = code; 
+        isoCode = theISOCode;
     }
 
     // POW10[i] = 10^i
@@ -904,7 +909,7 @@ public class Currency extends MeasureUnit implements Serializable {
     }
     
     private Object writeReplace() throws ObjectStreamException {
-        return new MeasureUnitProxy(type, code);
+        return new MeasureUnitProxy(type, subType);
     }
 
     // For backward compatibility only
@@ -914,6 +919,7 @@ public class Currency extends MeasureUnit implements Serializable {
     private final String isoCode;
 
     private Object readResolve() throws ObjectStreamException {
+        // The old isoCode field used to determine the currency.
         return Currency.getInstance(isoCode);
     }
 }

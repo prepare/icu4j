@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-* Copyright (C) 2009-2010, International Business Machines Corporation and    *
+* Copyright (C) 2009-2014, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -10,6 +10,7 @@ package com.ibm.icu.text;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.util.ULocale;
 
 /**
@@ -18,13 +19,16 @@ import com.ibm.icu.util.ULocale;
  * @internal
  * @deprecated This API is ICU internal only.
  */
+@Deprecated
 public class RbnfScannerProviderImpl implements RbnfLenientScannerProvider {
+    private static final boolean DEBUG = ICUDebug.enabled("rbnf");
     private Map<String, RbnfLenientScanner> cache;
 
     /**
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public RbnfScannerProviderImpl() {
         cache = new HashMap<String, RbnfLenientScanner>();
     }
@@ -60,6 +64,7 @@ public class RbnfScannerProviderImpl implements RbnfLenientScannerProvider {
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     public RbnfLenientScanner get(ULocale locale, String extras) {
         RbnfLenientScanner result = null;
         String key = locale.toString() + "/" + extras;
@@ -80,6 +85,7 @@ public class RbnfScannerProviderImpl implements RbnfLenientScannerProvider {
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @Deprecated
     protected RbnfLenientScanner createScanner(ULocale locale, String extras) {
         RuleBasedCollator collator = null;
         try {
@@ -98,7 +104,7 @@ public class RbnfScannerProviderImpl implements RbnfLenientScannerProvider {
             // If we get here, it means we have a malformed set of
             // collation rules, which hopefully won't happen
             ///CLOVER:OFF
-            if (true){ // debug hook
+            if (DEBUG){ // debug hook
                 e.printStackTrace(); System.out.println("++++");
             }
             collator = null;
