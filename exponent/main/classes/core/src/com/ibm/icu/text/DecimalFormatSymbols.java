@@ -754,55 +754,7 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
         }
     }
     
-    /**
-     * Returns defensive copy of the exponent digits 0-9
-     */
-    public String[] getExponentDigits() {
-        return getDigits();
-    }
-
-    /**
-      Returns defensive copy of mantissa digits 0-9
-    */
-    public String[] getMantissaDigits() {
-    }
-
-    /**
-      Gets the exponent minus sign.
-    */
-    public String getExponentMinusSign();
-
-    /**
-      Gets the mantissa minus sign.
-     */
-    public String getMantissaMinusSign();
-
-    /**
-      Sets digits 0-9 for both mantissa and exponent making a defensive
-      copy of digits.
-    */  
-    void setDigits(String[] digits);
-
-    /**
-      Sets digits 0-9 for both mantissa and exponent making a defensive copy of
-      the arguments. If caller passes null, it means leave those digits unchanged.
-    */
-    void setDigits(String[] mantissaDigits, String[] exponentDigits);
-
-    /**
-      Sets the exponent minus sign leaving the mantissa one unchanged.
-    */
-    void setExponentMinusSign(String minusSign);
-
-    /**
-      Sets the mantissa minus sign leaving the exponent one unchanged.
-    */
-    void setMantissaMinusSign(String minusSign);
-
-    /**
-      Sets the minus sign for both mantissa and exponent.
-    */
-    void setMinusSign(String minusSign);
+   
 
     /**
      * {@inheritDoc}
