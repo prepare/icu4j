@@ -8,6 +8,7 @@ package com.ibm.icu.samples.iuc;
 
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -15,7 +16,6 @@ import java.util.TreeSet;
 import com.ibm.icu.samples.iuc.PopulationData.TerritoryEntry;
 import com.ibm.icu.text.Collator;
 import com.ibm.icu.text.MessageFormat;
-import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 
 /**
@@ -25,7 +25,7 @@ import com.ibm.icu.util.UResourceBundle;
 public class Sample50_PopSort {
     public static void main(String... args) {
         // setup
-        final ULocale locale = ULocale.getDefault();
+        final Locale locale = Locale.getDefault();
         Set<PopulationData.TerritoryEntry> territoryList;
         final Collator collator = Collator.getInstance(locale);
         territoryList = PopulationData.getTerritoryEntries(locale,

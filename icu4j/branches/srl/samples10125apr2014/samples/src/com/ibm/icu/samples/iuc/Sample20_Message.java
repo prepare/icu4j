@@ -7,6 +7,7 @@
 package com.ibm.icu.samples.iuc;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import com.ibm.icu.text.LocaleDisplayNames;
@@ -20,8 +21,9 @@ import com.ibm.icu.util.ULocale;
  */
 public class Sample20_Message {
     public static void main(String... args) {
-        ULocale defaultLocaleID = ULocale.getDefault();
-        LocaleDisplayNames ldn = LocaleDisplayNames.getInstance(defaultLocaleID, DialectHandling.DIALECT_NAMES);
+        Locale defaultLocaleID = Locale.getDefault();
+        LocaleDisplayNames ldn = LocaleDisplayNames.getInstance(ULocale.forLocale(defaultLocaleID),
+                    DialectHandling.DIALECT_NAMES);
         String defaultLocaleName = ldn.localeDisplayName(defaultLocaleID);
         String world = ldn.regionDisplayName("001");
         MessageFormat fmt = new MessageFormat("A hello to {part, number, percent} of the {world}, in {mylocale}, on {today, date}!",

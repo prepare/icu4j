@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2013, International Business Machines Corporation and         *
+ * Copyright (C) 2013-2014, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -8,12 +8,12 @@ package com.ibm.icu.samples.iuc;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 import com.ibm.icu.samples.iuc.PopulationData.TerritoryEntry;
 import com.ibm.icu.text.MessageFormat;
-import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 
 /**
@@ -23,7 +23,7 @@ import com.ibm.icu.util.UResourceBundle;
 public class Sample40_PopMsg {
     public static void main(String... args) {
         // setup
-        ULocale locale = ULocale.getDefault();
+        Locale locale = Locale.getDefault();
         Set<PopulationData.TerritoryEntry> territoryList;
         territoryList = PopulationData.getTerritoryEntries(locale,
                     new HashSet<TerritoryEntry>());

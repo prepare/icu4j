@@ -6,7 +6,8 @@
  */
 package com.ibm.icu.samples.iuc;
 
-import com.ibm.icu.util.ULocale;
+import java.util.Locale;
+
 import com.ibm.icu.util.UResourceBundle;
 
 /**
@@ -15,7 +16,7 @@ import com.ibm.icu.util.UResourceBundle;
  */
 public class Sample30_ResHello {
     public static void main(String... args) {
-        ULocale locale = ULocale.getDefault();
+        Locale locale = Locale.getDefault();
         UResourceBundle bundle = 
                 UResourceBundle.getBundleInstance(
                         Sample30_ResHello.class.getPackage().getName().replace('.', '/')+"/data/reshello",

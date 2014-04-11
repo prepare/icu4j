@@ -8,6 +8,7 @@ package com.ibm.icu.samples.iuc;
 
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -21,13 +22,15 @@ import com.ibm.icu.util.UResourceBundle;
 
 /**
  * @author srl
+ * 
+ * Run this with one arg, the display locale (i.e. 'ru' for Russian).
  *
  */
 public class Sample55_PopTranslit {
     public static void main(String... args) {
         // setup
-        final ULocale fromLocale = new ULocale(args[0]);
-        final ULocale locale = ULocale.getDefault();
+        final Locale fromLocale = new ULocale(args[0]).toLocale();
+        final Locale locale = Locale.getDefault();
         Set<PopulationData.TerritoryEntry> territoryList;
         final Collator collator = Collator.getInstance(locale);
         territoryList = PopulationData.getTerritoryEntries(fromLocale,
