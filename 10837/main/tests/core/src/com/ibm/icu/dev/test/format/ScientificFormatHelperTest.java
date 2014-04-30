@@ -39,5 +39,17 @@ public class ScientificFormatHelperTest extends TestFmwk {
                 "1.23456\u00d710\u207b\u2077\u2078",
                 helper.toSuperscriptExponentDigits(iterator));
     }
-
+    
+    public void TestPlusSignInExponent() {
+        ULocale en = new ULocale("en");
+        DecimalFormat decfmt = (DecimalFormat) NumberFormat.getScientificInstance(en);
+        decfmt.applyPattern("0.00E+0");
+        AttributedCharacterIterator iterator = decfmt.formatToCharacterIterator(6.02e23);
+        ScientificFormatHelper helper = ScientificFormatHelper.getInstance(
+                decfmt.getDecimalFormatSymbols());
+        assertEquals(
+                "",
+                "6.02\u00d710\u207a\u00b2\u00b3",
+                helper.toSuperscriptExponentDigits(iterator));
+    }
 }
