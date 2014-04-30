@@ -28,8 +28,7 @@ import com.ibm.icu.lang.UCharacter;
                 decfmt.getDecimalFormatSymbols());
  * <pre>
  * // Output: "1.23456×10<sup>-78</sup>"
- *  System.out.println(
- *          helper.insetMarkup(iterator, "<sup>", "</sup>", new StringBuilder()).toString()));
+ *  System.out.println(helper.insertMarkup(iterator, "<sup>", "</sup>"));
  * </pre>
  *
  * @see NumberFormat
@@ -77,17 +76,16 @@ public final class ScientificFormatHelper {
      * @param iterator the value that DecimalFormat.formatToCharacterIterator() returned.
      * @param beginMarkup the start html for the exponent e.g "<sup>"
      * @param endMarkup the end html for the exponent e.g "</sup>"
-     * @param result user-friendly scientific notation stored here.
-     * @return the result parameter
+     * @return the user-friendly scientific notation.
      * @provisional
      * @draft ICU 54
      */
-    public StringBuilder insetMarkup(
+    public String insertMarkup(
             AttributedCharacterIterator iterator,
             CharSequence beginMarkup,
-            CharSequence endMarkup,
-            StringBuilder result) {
+            CharSequence endMarkup) {
         int copyFromOffset = 0;
+        StringBuilder result = new StringBuilder();
         for (
                 iterator.first();
                 iterator.current() != CharacterIterator.DONE;
@@ -118,7 +116,7 @@ public final class ScientificFormatHelper {
             }
         } 
         append(iterator, copyFromOffset, iterator.getEndIndex(), result);
-        return result;
+        return result.toString();
     }
 
     
@@ -141,15 +139,13 @@ public final class ScientificFormatHelper {
      * for superscript 0..9, -, and + in the exponent rather than by using
      * html.
      * @param iterator the value that DecimalFormat.formatToCharacterIterator() returned.
-     * @param result user-friendly scientific notation stored here.
-     * @return the result parameter
+     * @return the user-friendly scientific notation.
      * @provisional
      * @draft ICU 54
      */
-    public StringBuilder toSuperscriptExponentDigits(
-            AttributedCharacterIterator iterator,
-            StringBuilder result) {
+    public String toSuperscriptExponentDigits(AttributedCharacterIterator iterator) {
         int copyFromOffset = 0;
+        StringBuilder result = new StringBuilder();
         for (
                 iterator.first();
                 iterator.current() != CharacterIterator.DONE;
@@ -203,7 +199,7 @@ public final class ScientificFormatHelper {
             }
         } 
         append(iterator, copyFromOffset, iterator.getEndIndex(), result);
-        return result;
+        return result.toString();
     }
 
     private static void copyAsSuperscript(

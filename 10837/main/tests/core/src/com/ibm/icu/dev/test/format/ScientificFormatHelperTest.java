@@ -32,12 +32,12 @@ public class ScientificFormatHelperTest extends TestFmwk {
                 decfmt.getDecimalFormatSymbols());
         assertEquals(
                 "insetMarkup",
-                "String: 1.23456\u00d710<sup>-78</sup>",
-                helper.insetMarkup(iterator, "<sup>", "</sup>", new StringBuilder("String: ")).toString());
+                "1.23456\u00d710<sup>-78</sup>",
+                helper.insertMarkup(iterator, "<sup>", "</sup>"));
         assertEquals(
                 "toSuperscriptExponentDigits",
-                "String: 1.23456\u00d710\u207b\u2077\u2078",
-                helper.toSuperscriptExponentDigits(iterator, new StringBuilder("String: ")).toString());
+                "1.23456\u00d710\u207b\u2077\u2078",
+                helper.toSuperscriptExponentDigits(iterator));
     }
 
 }
