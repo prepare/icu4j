@@ -51,7 +51,7 @@ public final class CollectionUtilities {
      * @param separator
      * @return string
      */
-    public static <T, U extends Collection<T>>String join(U collection, String separator) {
+    public static <T, U extends Iterable<T>>String join(U collection, String separator) {
         StringBuffer result = new StringBuffer();
         boolean first = true;
         for (Iterator it = collection.iterator(); it.hasNext();) {

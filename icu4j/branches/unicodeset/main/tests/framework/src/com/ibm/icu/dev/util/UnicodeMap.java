@@ -7,12 +7,14 @@
 package com.ibm.icu.dev.util;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -572,6 +574,7 @@ public final class UnicodeMap<T> implements Cloneable, Freezable, StringTransfor
             staleAvailableValues = false;
         }
         if (result == null) {
+            List<T> x = Arrays.asList(values);
             result = (U) new ArrayList<T>(availableValues.size());
         }
         result.addAll(availableValues);

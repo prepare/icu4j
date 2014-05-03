@@ -2612,6 +2612,53 @@ public final class UTF16 {
         }
     }
 
+    /**
+     * Utility for getting code point from single code point CharSequence.
+     * @return a code point IF the string consists of a single one.
+     * otherwise returns -1.
+     * @param s to test
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    public static int getSingleCP(CharSequence s) {
+        if (s.length() == 0) {
+            return -1;
+        } else if (s.length() == 1) {
+            return s.charAt(0);
+        } else if (s.length() > 2) {
+            return -1;
+        }
+
+        // at this point, len = 2
+        int cp = UTF16.charAt(s, 0); 
+        if (cp > 0xFFFF) { // is surrogate pair
+            return cp;
+        }
+        return -1;
+    }
+
+    /**
+     * Utility for comparing a code point to a string without having to create a new string.
+     * @param codePoint to test
+     * @param s to test
+     * @return equivalent of valueOf(codePoint).compareTo(s)
+     * @internal 
+     * @deprecated This API is ICU internal only.
+     */
+    public static int compare(int codePoint, CharSequence s) {
+        final int strLen = s.length();
+        if (strLen == 0) {
+            return 1;
+        }
+        int second = Character.codePointAt(s, 0);
+        int diff = codePoint - second;
+        if (diff != 0) {
+            return diff;
+        }
+        return strLen == Character.charCount(codePoint) ? 0 : -1;
+    }
+
+
     // private data members -------------------------------------------------
 
     /**

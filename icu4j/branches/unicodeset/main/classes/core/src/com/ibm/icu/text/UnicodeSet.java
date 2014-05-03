@@ -283,7 +283,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @stable ICU 4.8
      */
     public static final UnicodeSet ALL_CODE_POINTS = new UnicodeSet(0, 0x10FFFF).freeze();
-    
+
     private static XSymbolTable XSYMBOL_TABLE = null; // for overriding the the function processing
 
     private static final int LOW = 0x000000; // LOW <= all valid values. ZERO for codepoints
@@ -588,27 +588,30 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
     /**
      * Append the <code>toPattern()</code> representation of a
      * string to the given <code>StringBuffer</code>.
+     * @return 
      */
-    private static void _appendToPat(StringBuffer buf, String s, boolean escapeUnprintable) {
+    private static StringBuffer _appendToPat(StringBuffer buf, String s, boolean escapeUnprintable) {
         int cp;
         for (int i = 0; i < s.length(); i += Character.charCount(cp)) {
             cp = s.codePointAt(i);
             _appendToPat(buf, cp, escapeUnprintable);
         }
+        return buf;
     }
 
     /**
      * Append the <code>toPattern()</code> representation of a
      * character to the given <code>StringBuffer</code>.
+     * @return 
      */
-    private static void _appendToPat(StringBuffer buf, int c, boolean escapeUnprintable) {
+    private static StringBuffer _appendToPat(StringBuffer buf, int c, boolean escapeUnprintable) {
         // "Utility.isUnprintable(c)" seems redundant since the the call
         //      "Utility.escapeUnprintable(buf, c)" does it again inside the if statement
         if (escapeUnprintable && Utility.isUnprintable(c)) {
             // Use hex escape notation (<backslash>uxxxx or <backslash>Uxxxxxxxx) for anything
             // unprintable
             if (Utility.escapeUnprintable(buf, c)) {
-                return;
+                return buf;
             }
         }
         // Okay to let ':' pass through
@@ -633,6 +636,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
             break;
         }
         UTF16.append(buf, c);
+        return buf;
     }
 
     /**
@@ -1279,9 +1283,12 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
     }
 
     /**
+     * Utility for getting code point from single code point CharSequence.
      * @return a code point IF the string consists of a single one.
      * otherwise returns -1.
-     * @param string to test
+     * @param s to test
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     private static int getSingleCP(CharSequence s) {
         if (s.length() < 1) {
@@ -1322,7 +1329,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @return this object, for chaining
      * @stable ICU 2.0
      */
-    public final UnicodeSet retainAll(String s) {
+    public final UnicodeSet retainAll(CharSequence s) {
         return retainAll(fromAll(s));
     }
 
@@ -1333,7 +1340,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @return this object, for chaining
      * @stable ICU 2.0
      */
-    public final UnicodeSet complementAll(String s) {
+    public final UnicodeSet complementAll(CharSequence s) {
         return complementAll(fromAll(s));
     }
 
@@ -1344,7 +1351,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @return this object, for chaining
      * @stable ICU 2.0
      */
-    public final UnicodeSet removeAll(String s) {
+    public final UnicodeSet removeAll(CharSequence s) {
         return removeAll(fromAll(s));
     }
 
@@ -1369,7 +1376,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @return a newly created set containing the given string
      * @stable ICU 2.0
      */
-    public static UnicodeSet from(String s) {
+    public static UnicodeSet from(CharSequence s) {
         return new UnicodeSet().add(s);
     }
 
@@ -1380,7 +1387,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @return a newly created set containing the given characters
      * @stable ICU 2.0
      */
-    public static UnicodeSet fromAll(String s) {
+    public static UnicodeSet fromAll(CharSequence s) {
         return new UnicodeSet().addAll(s);
     }
 
@@ -1428,13 +1435,15 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * Retain the specified string in this set if it is present.
      * Upon return this set will be empty if it did not contain s, or
      * will only contain s if it did contain s.
-     * @param s the string to be retained
+     * @param cs the string to be retained
      * @return this object, for chaining
      * @stable ICU 2.0
      */
-    public final UnicodeSet retain(String s) {
-        int cp = getSingleCP(s); 
+    public final UnicodeSet retain(CharSequence cs) {
+
+        int cp = getSingleCP(cs); 
         if (cp < 0) {
+            String s = cs.toString();
             boolean isIn = strings.contains(s);
             if (isIn && size() == 1) {
                 return this;
@@ -1494,7 +1503,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @return this object, for chaining
      * @stable ICU 2.0
      */
-    public final UnicodeSet remove(String s) {
+    public final UnicodeSet remove(CharSequence s) {
         int cp = getSingleCP(s);
         if (cp < 0) {
             strings.remove(s);
@@ -1571,14 +1580,14 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @return this object, for chaining
      * @stable ICU 2.0
      */
-    public final UnicodeSet complement(String s) {
+    public final UnicodeSet complement(CharSequence s) {
         checkFrozen();
         int cp = getSingleCP(s);
         if (cp < 0) {
             if (strings.contains(s)) {
                 strings.remove(s);
             } else {
-                strings.add(s);
+                strings.add(s.toString());
             }
             pat = null;
         } else {
@@ -1804,11 +1813,11 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @return <tt>true</tt> if this set contains the specified string
      * @stable ICU 2.0
      */
-    public final boolean contains(String s) {
+    public final boolean contains(CharSequence s) {
 
         int cp = getSingleCP(s);
         if (cp < 0) {
-            return strings.contains(s);
+            return strings.contains(s.toString());
         } else {
             return contains(cp);
         }
@@ -2072,7 +2081,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @return true if the test condition is met
      * @stable ICU 2.0
      */
-    public boolean containsNone(String s) {
+    public boolean containsNone(CharSequence s) {
         return span(s, SpanCondition.NOT_CONTAINED) == s.length();
     }
 
@@ -2106,7 +2115,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @return true if the condition is met
      * @stable ICU 2.0
      */
-    public final boolean containsSome(String s) {
+    public final boolean containsSome(CharSequence s) {
         return !containsNone(s);
     }
 
@@ -2344,7 +2353,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
 
         StringBuffer rebuiltPat = new StringBuffer();
         RuleCharacterIterator chars =
-            new RuleCharacterIterator(pattern, symbols, pos);
+                new RuleCharacterIterator(pattern, symbols, pos);
         applyPattern(chars, symbols, rebuiltPat, options);
         if (chars.inVariable()) {
             syntaxError(chars, "Extra chars in variable value");
@@ -2388,7 +2397,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
         // Recognized special forms for chars, sets: c-c s-s s&s
 
         int opts = RuleCharacterIterator.PARSE_VARIABLES |
-        RuleCharacterIterator.PARSE_ESCAPES;
+                RuleCharacterIterator.PARSE_ESCAPES;
         if ((options & IGNORE_SPACE) != 0) {
             opts |= RuleCharacterIterator.SKIP_WHITESPACE;
         }
@@ -2740,7 +2749,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
     private static void syntaxError(RuleCharacterIterator chars, String msg) {
         throw new IllegalArgumentException("Error: " + msg + " at \"" +
                 Utility.escape(chars.toString()) +
-        '"');
+                '"');
     }
 
     /**
@@ -2771,23 +2780,24 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
     }
 
     /**
-     * Add the contents of the collection (as strings) into this UnicodeSet.
+     * Add the contents of the collection (as strings) into this UnicodeSet. 
+     * The collection must not contain null.
      * @param source the collection to add
      * @return a reference to this object
      * @stable ICU 4.4
      */
-    public UnicodeSet add(Collection<?> source) {
+    public UnicodeSet add(Iterable<?> source) {
         return addAll(source);
     }
 
     /**
-     * Add the contents of the UnicodeSet (as strings) into a collection.
+     * Add a collection (as strings) into this UnicodeSet.
      * Uses standard naming convention.
      * @param source collection to add into
      * @return a reference to this object
      * @stable ICU 4.4
      */
-    public UnicodeSet addAll(Collection<?> source) {
+    public UnicodeSet addAll(Iterable<?> source) {
         checkFrozen();
         for (Object o : source) {
             add(o.toString());
@@ -3104,7 +3114,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
             // Reference comparison ok; VersionInfo caches and reuses
             // unique objects.
             return v != NO_VERSION &&
-            v.compareTo(version) <= 0;
+                    v.compareTo(version) <= 0;
         }
     }
 
@@ -3297,7 +3307,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
     public UnicodeSet applyPropertyAlias(String propertyAlias, String valueAlias) {
         return applyPropertyAlias(propertyAlias, valueAlias, null);
     }
-    
+
     /**
      * Modifies this set to contain those code points which have the
      * given value for the given property.  Prior contents of this
@@ -3321,7 +3331,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
                 && ((XSymbolTable)symbols).applyPropertyAlias(propertyAlias, valueAlias, this)) {
             return this;
         }
-        
+
         if (XSYMBOL_TABLE != null) {
             if (XSYMBOL_TABLE.applyPropertyAlias(propertyAlias, valueAlias, this)) {
                 return this;
@@ -3476,8 +3486,8 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
 
         // Look for an opening [:, [:^, \p, or \P
         return pattern.regionMatches(pos, "[:", 0, 2) ||
-        pattern.regionMatches(true, pos, "\\p", 0, 2) ||
-        pattern.regionMatches(pos, "\\N", 0, 2);
+                pattern.regionMatches(true, pos, "\\p", 0, 2) ||
+                pattern.regionMatches(pos, "\\N", 0, 2);
     }
 
     /**
@@ -3965,7 +3975,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @stable ICU 4.4
      */
     public int spanBack(CharSequence s, SpanCondition spanCondition) {
-      return spanBack(s, s.length(), spanCondition);
+        return spanBack(s, s.length(), spanCondition);
     }
 
     /**
@@ -3994,7 +4004,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
         } else if (!strings.isEmpty()) {
             int which = (spanCondition == SpanCondition.NOT_CONTAINED)
                     ? UnicodeSetStringSpan.BACK_UTF16_NOT_CONTAINED
-                    : UnicodeSetStringSpan.BACK_UTF16_CONTAINED;
+                            : UnicodeSetStringSpan.BACK_UTF16_CONTAINED;
             UnicodeSetStringSpan strSpan = new UnicodeSetStringSpan(this, new ArrayList<String>(strings), which);
             if (strSpan.needsStringSpanUTF16()) {
                 return strSpan.spanBack(s, fromIndex, spanCondition);
@@ -4038,6 +4048,76 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
     // ************************
     // Additional methods for integration with Generics and Collections
     // ************************
+
+    /**
+     * Provide for faster iteration than by String. Returns a range of values or a string.
+     * If the start or end of the range is -1, the value is in a string. 
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    public static class EntryRange {
+        public int codepoint;
+        public int codepointEnd;
+        public String string;
+        public String toString() {
+            StringBuffer b = new StringBuffer();
+            return (codepoint == -1 ? _appendToPat(b.append('{'), string, false).append('}')
+                    : codepoint == codepointEnd ? _appendToPat(b, codepoint, false)
+                            : _appendToPat(_appendToPat(b, codepoint, false).append('-'), codepointEnd, false))
+                            .toString();
+        }
+    }
+
+    /**
+     * Provide for faster iteration than by String. Returns an iterator over a range values or a string. The UnicodeSet
+     * must not be altered during the iteration. The EntryRange is the same each time; the contents are just reset.
+     * 
+     * <pre>
+     * // Sample code
+     * for (EntryRange range : us1.entryRanges()) {
+     *     if (range.codepoint > 0) {
+     *         // do something with code points between range.codepointEnd and range.codepointEnd;
+     *     } else {
+     *         // do something with code points between range.string;
+     *     }
+     * }
+     * </pre>
+     * 
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    public Iterable<EntryRange> entryRanges() {
+        return new EntryRanges();
+    }
+
+    private class EntryRanges implements Iterable<EntryRange>, Iterator<EntryRange> {
+        int pos;
+        EntryRange result = new EntryRange();
+        Iterator<String> stringIterator = strings == null ? null : strings.iterator();
+
+        public Iterator<EntryRange> iterator() {
+            return this;
+        }
+        public boolean hasNext() {
+            return pos < len-1 
+                    || (stringIterator != null && stringIterator.hasNext());
+        }
+        public EntryRange next() {
+            if (pos < len-1) {
+                result.codepoint = list[pos++];
+                result.codepointEnd = list[pos++]-1;
+                result.string = null;
+            } else {
+                result.codepoint = -1;
+                result.string = stringIterator.next();
+            }
+            return result;
+        }
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+    }
+
 
     /**
      * Returns a string iterator. Uses the same order of iteration as {@link UnicodeSetIterator}.
@@ -4129,8 +4209,8 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @see #containsAll(com.ibm.icu.text.UnicodeSet)
      * @stable ICU 4.4
      */
-    public boolean containsAll(Collection<String> collection) {
-        for (String o : collection) {
+    public <T extends CharSequence> boolean containsAll(Iterable<T> collection) {
+        for (T o : collection) {
             if (!contains(o)) {
                 return false;
             }
@@ -4142,8 +4222,8 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @see #containsNone(com.ibm.icu.text.UnicodeSet)
      * @stable ICU 4.4
      */
-    public boolean containsNone(Collection<String> collection) {
-        for (String o : collection) {
+    public <T extends CharSequence> boolean containsNone(Iterable<T> collection) {
+        for (T o : collection) {
             if (contains(o)) {
                 return false;
             }
@@ -4155,7 +4235,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @see #containsAll(com.ibm.icu.text.UnicodeSet)
      * @stable ICU 4.4
      */
-    public final boolean containsSome(Collection<String> collection) {
+    public final <T extends CharSequence> boolean containsSome(Iterable<T> collection) {
         return !containsNone(collection);
     }
 
@@ -4163,9 +4243,9 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @see #addAll(com.ibm.icu.text.UnicodeSet)
      * @stable ICU 4.4
      */
-    public UnicodeSet addAll(String... collection) {
+    public UnicodeSet addAll(CharSequence... collection) {
         checkFrozen();
-        for (String str : collection) {
+        for (CharSequence str : collection) {
             add(str);
         }
         return this;
@@ -4176,9 +4256,9 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @see #removeAll(com.ibm.icu.text.UnicodeSet)
      * @stable ICU 4.4
      */
-    public UnicodeSet removeAll(Collection<String> collection) {
+    public <T extends CharSequence> UnicodeSet removeAll(Iterable<T> collection) {
         checkFrozen();
-        for (String o : collection) {
+        for (T o : collection) {
             remove(o);
         }
         return this;
@@ -4188,7 +4268,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @see #retainAll(com.ibm.icu.text.UnicodeSet)
      * @stable ICU 4.4
      */
-    public UnicodeSet retainAll(Collection<String> collection) {
+    public <T extends CharSequence> UnicodeSet retainAll(Iterable<T> collection) {
         checkFrozen();
         // TODO optimize
         UnicodeSet toRetain = new UnicodeSet();
@@ -4277,7 +4357,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @stable ICU 4.4
      */
 
-    public static int compare(String string, int codePoint) {
+    public static int compare(CharSequence string, int codePoint) {
         return CharSequences.compare(string, codePoint);
     }
 
@@ -4288,7 +4368,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * Note that this (=String) order is UTF-16 order -- *not* code point order.
      * @stable ICU 4.4
      */
-    public static int compare(int codePoint, String string) {
+    public static int compare(int codePoint, CharSequence string) {
         return -CharSequences.compare(string, codePoint);
     }
 
@@ -4304,7 +4384,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
     public static <T extends Comparable<T>> int compare(Iterable<T> collection1, Iterable<T> collection2) {
         return compare(collection1.iterator(), collection2.iterator());
     }
-    
+
     /**
      * Utility to compare two iterators. Warning: the ordering in iterables is important. For Collections that are ordered,
      * like Lists, that is expected. However, Sets in Java violate Leibniz's law when it comes to iteration.
@@ -4378,7 +4458,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * </pre>
      * @stable ICU 4.4
      */
-    public Iterable<String> strings() {
+    public Collection<String> strings() {
         return Collections.unmodifiableSortedSet(strings);
     }
 
@@ -4417,7 +4497,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * If findNot is true, then reverse the sense of the match: find the first place where the UnicodeSet doesn't match.
      * If there is no match, length is returned.
      * @internal
-     * @deprecated This API is ICU internal only.
+     * @deprecated This API is ICU internal only. Use span instead.
      */
     @Deprecated
     public int findIn(CharSequence value, int fromIndex, boolean findNot) {
@@ -4438,7 +4518,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * If there is no match, -1 is returned.
      * BEFORE index is not in the UnicodeSet.
      * @internal
-     * @deprecated This API is ICU internal only.
+     * @deprecated This API is ICU internal only. Use spanBack instead.
      */
     @Deprecated
     public int findLastIn(CharSequence value, int fromIndex, boolean findNot) {
@@ -4460,7 +4540,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @param matches A boolean to either strip all that matches or don't match with the current UnicodeSet object.
      * @return The string after it has been stripped.
      * @internal
-     * @deprecated This API is ICU internal only.
+     * @deprecated This API is ICU internal only. Use replaceFrom.
      */
     @Deprecated
     public String stripFrom(CharSequence source, boolean matches) {
@@ -4579,17 +4659,26 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
     /**
      * Set the default symbol table. Null means ordinary processing. For internal use only. Will affect all subsequent parsing
      * of UnicodeSets.
- * <p>
- * WARNING: If this function is used with a UnicodeProperty, and the
- * Unassigned characters (gc=Cn) are different than in ICU other than in ICU, you MUST call
- * {@code UnicodeProperty.ResetCacheProperties} afterwards. If you then call {@code UnicodeSet.setDefaultXSymbolTable}
- * with null to clear the value, you MUST also call {@code UnicodeProperty.ResetCacheProperties}.
- * 
+     * <p>
+     * WARNING: If this function is used with a UnicodeProperty, and the
+     * Unassigned characters (gc=Cn) are different than in ICU other than in ICU, you MUST call
+     * {@code UnicodeProperty.ResetCacheProperties} afterwards. If you then call {@code UnicodeSet.setDefaultXSymbolTable}
+     * with null to clear the value, you MUST also call {@code UnicodeProperty.ResetCacheProperties}.
+     * 
      * @param xSymbolTable the new default symbol table.
      * @internal
      */
     public static void setDefaultXSymbolTable(XSymbolTable xSymbolTable) {
+        INCLUSIONS = null; // If the properties override inclusions, these have to be regenerated. 
         XSYMBOL_TABLE = xSymbolTable;
+    }
+
+    /**
+     * Convenience method for getting UnicodeSetSpanner
+     * @return UnicodeSetSpanner
+     */
+    public UnicodeSetSpanner spanner() {
+        return new UnicodeSetSpanner(this);
     }
 }
 //eof
