@@ -233,6 +233,22 @@ public abstract class NumberFormat extends UFormat {
     public static final int FRACTION_FIELD = 1;
 
     /**
+     * {@icu} Constant to specify currency context which determines currency digit and rounding
+     * for official purpose, for example: "50.00 NT$"
+     * @draft ICU 53
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final int Official_Purpose = 0;
+
+    /**
+     * {@icu} Constant to specify currency context which determines currency digit and rounding
+     * for cash purpose, for example: "50 NT$"
+     * @draft ICU 53
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final int Cash_Purpose = 1;
+    
+    /**
      * Formats a number and appends the resulting text to the given string buffer.
      * {@icunote} recognizes <code>BigInteger</code>
      * and <code>BigDecimal</code> objects.
@@ -1240,6 +1256,23 @@ public abstract class NumberFormat extends UFormat {
     public Currency getCurrency() {
         return currency;
     }
+    
+    /**
+     * Sets the <tt>Currency Context</tt> object used to display currency.
+     * This takes effect immediately, if this format is a
+     * currency format.  
+     * @param currencyContext new currency context object to use.  
+     * @stable ICU 53
+     */
+    public void setCurrencyContext(int currencyContext){};
+
+    /**
+     * Returns the <tt>Currency Context</tt> object used to display currency
+     * @stable ICU 53
+     */
+    public int getCurrencyContext(){
+        return currencyContext;
+    };
 
     /**
      * Returns the currency in effect for this formatter.  Subclasses
@@ -1726,6 +1759,13 @@ public abstract class NumberFormat extends UFormat {
 
     static final int currentSerialVersion = 2;
 
+    /**
+     * The currency context for the NumberFormat(official or cash purpose).
+     * It is used as Official_Purpose by default
+     * @since ICU 53
+     */
+    protected int currencyContext = Official_Purpose;
+    
     /**
      * Describes the version of <code>NumberFormat</code> present on the stream.
      * Possible values are:

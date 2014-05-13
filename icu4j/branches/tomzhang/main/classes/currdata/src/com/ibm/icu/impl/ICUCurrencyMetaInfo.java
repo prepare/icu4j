@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.ibm.icu.text.CurrencyMetaInfo;
+import com.ibm.icu.text.CurrencyMetaInfo.CurrencyDigits;
 
 /**
  * ICU's currency meta info data.
@@ -54,6 +55,16 @@ public class ICUCurrencyMetaInfo extends CurrencyMetaInfo {
         return new CurrencyDigits(data[0], data[1]);
     }
 
+    @ Override
+    public CurrencyDigits currencyDigits(String isoCode, int currencyContext) {
+        ICUResourceBundle b = digitInfo.findWithFallback(isoCode);
+        if (b == null) {
+            b = digitInfo.findWithFallback("DEFAULT");
+        }
+        int[] data = b.getIntVector();
+        return new CurrencyDigits(data[2], data[3]);
+    }
+    
     private <T> List<T> collect(Collector<T> collector, CurrencyFilter filter) {
         // We rely on the fact that the data lists the regions in order, and the
         // priorities in order within region.  This means we don't need

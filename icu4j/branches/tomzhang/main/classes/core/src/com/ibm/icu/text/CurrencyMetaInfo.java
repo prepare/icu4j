@@ -543,6 +543,17 @@ public class CurrencyMetaInfo {
     }
 
     /**
+     * Returns the CurrencyDigits for the currency code with Context purpose.
+     * @param isoCode the currency code
+     * @param currencyContext the currency purpose
+     * @return the CurrencyDigits
+     * @stable ICU 53
+     */
+    public CurrencyDigits currencyDigits(String isoCode, int currencyContext) {
+        return defaultDigits;
+    }
+
+    /**
      * @internal
      * @deprecated This API is ICU internal only.
      */
