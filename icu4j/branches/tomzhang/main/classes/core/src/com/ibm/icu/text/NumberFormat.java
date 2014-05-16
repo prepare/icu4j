@@ -1069,7 +1069,8 @@ public abstract class NumberFormat extends UFormat {
             && groupingUsed == other.groupingUsed
             && parseIntegerOnly == other.parseIntegerOnly
             && parseStrict == other.parseStrict
-            && capitalizationSetting == other.capitalizationSetting;
+            && capitalizationSetting == other.capitalizationSetting
+            && currencyContext == other.currencyContext;
     }
 
     /**
