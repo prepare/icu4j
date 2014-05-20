@@ -1095,21 +1095,14 @@ public class RuleBasedBreakIterator extends BreakIterator {
                     break;
                 case UScript.HAN:
                     if (getBreakType() == KIND_WORD) {
-                        eng = new CjkBreakEngine(false);
+                        eng = new CjBreakEngine();
                     }
                     else {
                         fUnhandledBreakEngine.handleChar(c, getBreakType());
                         eng = fUnhandledBreakEngine;
                     }
                     break;
-                case UScript.HANGUL:
-                    if (getBreakType() == KIND_WORD) {
-                        eng = new CjkBreakEngine(true);
-                    } else {
-                        fUnhandledBreakEngine.handleChar(c, getBreakType());
-                        eng = fUnhandledBreakEngine;
-                    }
-                    break;
+                // Hangul isn't currently supported because it doesn't have a dictionary.
                 default:
                     fUnhandledBreakEngine.handleChar(c, getBreakType());
                     eng = fUnhandledBreakEngine;
