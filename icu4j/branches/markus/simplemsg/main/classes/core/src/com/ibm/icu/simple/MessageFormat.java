@@ -8,39 +8,40 @@
 * Since: ICU 3.0
 **********************************************************************
 */
-package com.ibm.icu.text;
+package com.ibm.icu.simple;
 
 import java.io.IOException;
 import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
 import java.text.AttributedCharacterIterator;
 import java.text.AttributedCharacterIterator.Attribute;
 import java.text.AttributedString;
 import java.text.CharacterIterator;
 import java.text.ChoiceFormat;
+import java.text.DateFormat;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.FieldPosition;
 import java.text.Format;
+import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.ParsePosition;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 import com.ibm.icu.impl.PatternProps;
-import com.ibm.icu.impl.Utility;
+import com.ibm.icu.simple.PluralRules.PluralType;
+import com.ibm.icu.text.MessagePattern;
 import com.ibm.icu.text.MessagePattern.ArgType;
 import com.ibm.icu.text.MessagePattern.Part;
-import com.ibm.icu.text.PluralRules.FixedDecimal;
-import com.ibm.icu.text.PluralRules.PluralType;
+import com.ibm.icu.text.SelectFormat;
 import com.ibm.icu.util.ICUUncheckedIOException;
-import com.ibm.icu.util.ULocale;
-import com.ibm.icu.util.ULocale.Category;
 
 /**
  * {@icuenhanced java.text.MessageFormat}.{@icu _usage_}
@@ -331,10 +332,23 @@ import com.ibm.icu.util.ULocale.Category;
  * @author       Markus Scherer
  * @stable ICU 3.0
  */
-public class MessageFormat extends UFormat {
+public class MessageFormat extends Format {
 
     // Incremented by 1 for ICU 4.8's new format.
     static final long serialVersionUID = 7136212545847378652L;
+
+    /**
+     * Simple API using Locale.
+     *
+     * @param msg an ICU-MessageFormat-syntax string
+     * @param nameValuePairs (placeholder name, placeholder value) pairs
+     */
+    public static final String formatMessageNamedArgs(Locale locale, String msg, Object... nameValuePairs) {
+        StringBuilder result = new StringBuilder(msg.length());
+        new MessageFormat(msg, locale).format(0, null, null, null, nameValuePairs,
+                new AppendableWrapper(result), null);
+        return result.toString();
+    }
 
     /**
      * Constructs a MessageFormat for the default <code>FORMAT</code> locale and the
@@ -347,7 +361,7 @@ public class MessageFormat extends UFormat {
      * @stable ICU 3.0
      */
     public MessageFormat(String pattern) {
-        this.ulocale = ULocale.getDefault(Category.FORMAT);
+        locale_ = Locale.getDefault();  // Category.FORMAT
         applyPattern(pattern);
     }
 
@@ -362,7 +376,8 @@ public class MessageFormat extends UFormat {
      * @stable ICU 3.0
      */
     public MessageFormat(String pattern, Locale locale) {
-        this(pattern, ULocale.forLocale(locale));
+        locale_ = locale;
+        applyPattern(pattern);
     }
 
     /**
@@ -374,11 +389,11 @@ public class MessageFormat extends UFormat {
      * @param locale the locale for this message format
      * @exception IllegalArgumentException if the pattern is invalid
      * @stable ICU 3.2
-     */
     public MessageFormat(String pattern, ULocale locale) {
         this.ulocale = locale;
         applyPattern(pattern);
     }
+     */
 
     /**
      * Sets the locale to be used for creating argument Format objects.
@@ -388,10 +403,10 @@ public class MessageFormat extends UFormat {
      *
      * @param locale the locale to be used when creating or comparing subformats
      * @stable ICU 3.0
-     */
     public void setLocale(Locale locale) {
         setLocale(ULocale.forLocale(locale));
     }
+     */
 
     /**
      * Sets the locale to be used for creating argument Format objects.
@@ -401,12 +416,11 @@ public class MessageFormat extends UFormat {
      *
      * @param locale the locale to be used when creating or comparing subformats
      * @stable ICU 3.2
-     */
     public void setLocale(ULocale locale) {
-        /* Save the pattern, and then reapply so that */
-        /* we pick up any changes in locale specific */
-        /* elements */
-        String existingPattern = toPattern();                       /*ibm.3550*/
+        // Save the pattern, and then reapply so that
+        // we pick up any changes in locale specific
+        // elements
+        String existingPattern = toPattern();
         this.ulocale = locale;
         // Invalidate all stock formatters. They are no longer valid since
         // the locale has changed.
@@ -414,8 +428,9 @@ public class MessageFormat extends UFormat {
         stockNumberFormatter = null;
         pluralProvider = null;
         ordinalProvider = null;
-        applyPattern(existingPattern);                              /*ibm.3550*/
+        applyPattern(existingPattern);
     }
+     */
 
     /**
      * Returns the locale that's used when creating or comparing subformats.
@@ -424,7 +439,7 @@ public class MessageFormat extends UFormat {
      * @stable ICU 3.0
      */
     public Locale getLocale() {
-        return ulocale.toLocale();
+        return locale_;
     }
 
     /**
@@ -432,10 +447,10 @@ public class MessageFormat extends UFormat {
      *
      * @return the locale used when creating or comparing subformats
      * @stable ICU 3.2
-     */
     public ULocale getULocale() {
         return ulocale;
     }
+     */
     
     /**
      * Sets the pattern used by this message format.
@@ -1415,7 +1430,6 @@ public class MessageFormat extends UFormat {
     /**
      * {@inheritDoc}
      * @stable ICU 3.0
-     */
     @Override
     public Object clone() {
         MessageFormat other = (MessageFormat) super.clone();
@@ -1450,11 +1464,11 @@ public class MessageFormat extends UFormat {
         other.ordinalProvider = null;
         return other;
     }
+     */
 
     /**
      * {@inheritDoc}
      * @stable ICU 3.0
-     */
     @Override
     public boolean equals(Object obj) {
         if (this == obj)                      // quick check
@@ -1469,6 +1483,7 @@ public class MessageFormat extends UFormat {
         // Note: It might suffice to only compare custom formatters
         // rather than all formatters.
     }
+     */
 
     /**
      * {@inheritDoc}
@@ -1542,7 +1557,7 @@ public class MessageFormat extends UFormat {
     /**
      * The locale to use for formatting numbers and dates.
      */
-    private transient ULocale ulocale;
+    private transient Locale locale_;
 
     /**
      * The MessagePattern which contains the parsed structure of the pattern string.
@@ -1572,13 +1587,13 @@ public class MessageFormat extends UFormat {
     private DateFormat getStockDateFormatter() {
         if (stockDateFormatter == null) {
             stockDateFormatter = DateFormat.getDateTimeInstance(
-                    DateFormat.SHORT, DateFormat.SHORT, ulocale);//fix
+                    DateFormat.SHORT, DateFormat.SHORT, locale_);//fix
         }
         return stockDateFormatter;
     }
     private NumberFormat getStockNumberFormatter() {
         if (stockNumberFormatter == null) {
-            stockNumberFormatter = NumberFormat.getInstance(ulocale);
+            stockNumberFormatter = NumberFormat.getInstance(locale_);
         }
         return stockNumberFormatter;
     }
@@ -1602,7 +1617,7 @@ public class MessageFormat extends UFormat {
      * @param fp            Field position status.
      */
     private void format(int msgStart, PluralSelectorContext pluralNumber,
-                        Object[] args, Map<String, Object> argsMap,
+                        Object[] args, Map<String, Object> argsMap, Object[] nameValuePairs,
                         AppendableWrapper dest, FieldPosition fp) {
         String msgString=msgPattern.getPatternString();
         int prevIndex=msgPattern.getPart(msgStart).getLimit();
@@ -1647,6 +1662,20 @@ public class MessageFormat extends UFormat {
                     arg=null;
                     noArg=true;
                 }
+            } else if(nameValuePairs!=null) {
+                argId = argName;
+                for(int nvIndex=0;; nvIndex+=2) {
+                    if(nvIndex<nameValuePairs.length) {
+                        if(argName.equals(nameValuePairs[nvIndex].toString())) {
+                            arg=nameValuePairs[nvIndex+1];
+                            break;
+                        }
+                    } else {
+                        arg=null;
+                        noArg=true;
+                        break;
+                    }
+                }
             } else {
                 argId = argName;
                 if(argsMap!=null && argsMap.containsKey(argName)) {
@@ -1674,28 +1703,7 @@ public class MessageFormat extends UFormat {
                 }
             } else if(cachedFormatters!=null && (formatter=cachedFormatters.get(i - 2))!=null) {
                 // Handles all ArgType.SIMPLE, and formatters from setFormat() and its siblings.
-                if (    formatter instanceof ChoiceFormat ||
-                        formatter instanceof PluralFormat ||
-                        formatter instanceof SelectFormat) {
-                    // We only handle nested formats here if they were provided via setFormat() or its siblings.
-                    // Otherwise they are not cached and instead handled below according to argType.
-                    String subMsgString = formatter.format(arg);
-                    if (subMsgString.indexOf('{') >= 0 ||
-                            (subMsgString.indexOf('\'') >= 0 && !msgPattern.jdkAposMode())) {
-                        MessageFormat subMsgFormat = new MessageFormat(subMsgString, ulocale);
-                        subMsgFormat.format(0, null, args, argsMap, dest, null);
-                    } else if (dest.attributes == null) {
-                        dest.append(subMsgString);
-                    } else {
-                        // This formats the argument twice, once above to get the subMsgString
-                        // and then once more here.
-                        // It only happens in formatToCharacterIterator()
-                        // on a complex Format set via setFormat(),
-                        // and only when the selected subMsgString does not need further formatting.
-                        // This imitates ICU 4.6 behavior.
-                        dest.formatAndAppend(formatter, arg);
-                    }
-                } else {
+                {
                     dest.formatAndAppend(formatter, arg);
                 }
             } else if(
@@ -1718,7 +1726,7 @@ public class MessageFormat extends UFormat {
                 }
                 double number = ((Number)arg).doubleValue();
                 int subMsgStart=findChoiceSubMessage(msgPattern, i, number);
-                formatComplexSubMessage(subMsgStart, null, args, argsMap, dest);
+                formatComplexSubMessage(subMsgStart, null, args, argsMap, nameValuePairs, dest);
             } else if(argType.hasPluralStyle()) {
                 if (!(arg instanceof Number)) {
                     throw new IllegalArgumentException("'" + arg + "' is not a Number");
@@ -1741,10 +1749,10 @@ public class MessageFormat extends UFormat {
                         new PluralSelectorContext(i, argName, number, offset);
                 int subMsgStart=PluralFormat.findSubMessage(
                         msgPattern, i, selector, context, number.doubleValue());
-                formatComplexSubMessage(subMsgStart, context, args, argsMap, dest);
+                formatComplexSubMessage(subMsgStart, context, args, argsMap, nameValuePairs, dest);
             } else if(argType==ArgType.SELECT) {
                 int subMsgStart=SelectFormat.findSubMessage(msgPattern, i, arg.toString());
-                formatComplexSubMessage(subMsgStart, null, args, argsMap, dest);
+                formatComplexSubMessage(subMsgStart, null, args, argsMap, nameValuePairs, dest);
             } else {
                 // This should never happen.
                 throw new IllegalStateException("unexpected argType "+argType);
@@ -1757,13 +1765,15 @@ public class MessageFormat extends UFormat {
 
     private void formatComplexSubMessage(
             int msgStart, PluralSelectorContext pluralNumber,
-            Object[] args, Map<String, Object> argsMap,
+            Object[] args, Map<String, Object> argsMap, Object[] nameValuePairs,
             AppendableWrapper dest) {
         if (!msgPattern.jdkAposMode()) {
-            format(msgStart, pluralNumber, args, argsMap, dest, null);
+            format(msgStart, pluralNumber, args, argsMap, nameValuePairs, dest, null);
             return;
         }
         // JDK compatibility mode: (see JDK MessageFormat.format() API docs)
+        throw new UnsupportedOperationException("JDK apostrophe mode not supported");
+        /*
         // - remove SKIP_SYNTAX; that is, remove half of the apostrophes
         // - if the result string contains an open curly brace '{' then
         //   instantiate a temporary MessageFormat object and format again;
@@ -1816,6 +1826,7 @@ public class MessageFormat extends UFormat {
         } else {
             dest.append(subMsgString);
         }
+        */
     }
 
     /**
@@ -2081,7 +2092,7 @@ public class MessageFormat extends UFormat {
         }
         public String select(Object ctx, double number) {
             if(rules == null) {
-                rules = PluralRules.forLocale(msgFormat.ulocale, type);
+                rules = PluralRules.forLocale(msgFormat.locale_, type);
             }
             // Select a sub-message according to how the number is formatted,
             // which is specified in the selected sub-message.
@@ -2101,10 +2112,11 @@ public class MessageFormat extends UFormat {
             }
             assert context.number.doubleValue() == number;  // argument number minus the offset
             context.numberString = context.formatter.format(context.number);
+            /* TODO: Try to get FixedDecimal from formatted string.
             if(context.formatter instanceof DecimalFormat) {
                 FixedDecimal dec = ((DecimalFormat)context.formatter).getFixedDecimal(number);
                 return rules.select(dec);
-            } else {
+            } else */ {
                 return rules.select(number);
             }
         }
@@ -2136,7 +2148,7 @@ public class MessageFormat extends UFormat {
                 "This method is not available in MessageFormat objects " +
                 "that use alphanumeric argument names.");
         }
-        format(0, null, arguments, argsMap, dest, fp);
+        format(0, null, arguments, argsMap, null, dest, fp);
     }
 
     private void resetPattern() {
@@ -2187,67 +2199,68 @@ public class MessageFormat extends UFormat {
         case TYPE_NUMBER:
             switch (findKeyword(style, modifierList)) {
             case MODIFIER_EMPTY:
-                newFormat = NumberFormat.getInstance(ulocale);
+                newFormat = NumberFormat.getInstance(locale_);
                 break;
             case MODIFIER_CURRENCY:
-                newFormat = NumberFormat.getCurrencyInstance(ulocale);
+                newFormat = NumberFormat.getCurrencyInstance(locale_);
                 break;
             case MODIFIER_PERCENT:
-                newFormat = NumberFormat.getPercentInstance(ulocale);
+                newFormat = NumberFormat.getPercentInstance(locale_);
                 break;
             case MODIFIER_INTEGER:
-                newFormat = NumberFormat.getIntegerInstance(ulocale);
+                newFormat = NumberFormat.getIntegerInstance(locale_);
                 break;
             default: // pattern
                 newFormat = new DecimalFormat(style,
-                        new DecimalFormatSymbols(ulocale));
+                        new DecimalFormatSymbols(locale_));
                 break;
             }
             break;
         case TYPE_DATE:
             switch (findKeyword(style, dateModifierList)) {
             case DATE_MODIFIER_EMPTY:
-                newFormat = DateFormat.getDateInstance(DateFormat.DEFAULT, ulocale);
+                newFormat = DateFormat.getDateInstance(DateFormat.DEFAULT, locale_);
                 break;
             case DATE_MODIFIER_SHORT:
-                newFormat = DateFormat.getDateInstance(DateFormat.SHORT, ulocale);
+                newFormat = DateFormat.getDateInstance(DateFormat.SHORT, locale_);
                 break;
             case DATE_MODIFIER_MEDIUM:
-                newFormat = DateFormat.getDateInstance(DateFormat.DEFAULT, ulocale);
+                newFormat = DateFormat.getDateInstance(DateFormat.DEFAULT, locale_);
                 break;
             case DATE_MODIFIER_LONG:
-                newFormat = DateFormat.getDateInstance(DateFormat.LONG, ulocale);
+                newFormat = DateFormat.getDateInstance(DateFormat.LONG, locale_);
                 break;
             case DATE_MODIFIER_FULL:
-                newFormat = DateFormat.getDateInstance(DateFormat.FULL, ulocale);
+                newFormat = DateFormat.getDateInstance(DateFormat.FULL, locale_);
                 break;
             default:
-                newFormat = new SimpleDateFormat(style, ulocale);
+                newFormat = new SimpleDateFormat(style, locale_);
                 break;
             }
             break;
         case TYPE_TIME:
             switch (findKeyword(style, dateModifierList)) {
             case DATE_MODIFIER_EMPTY:
-                newFormat = DateFormat.getTimeInstance(DateFormat.DEFAULT, ulocale);
+                newFormat = DateFormat.getTimeInstance(DateFormat.DEFAULT, locale_);
                 break;
             case DATE_MODIFIER_SHORT:
-                newFormat = DateFormat.getTimeInstance(DateFormat.SHORT, ulocale);
+                newFormat = DateFormat.getTimeInstance(DateFormat.SHORT, locale_);
                 break;
             case DATE_MODIFIER_MEDIUM:
-                newFormat = DateFormat.getTimeInstance(DateFormat.DEFAULT, ulocale);
+                newFormat = DateFormat.getTimeInstance(DateFormat.DEFAULT, locale_);
                 break;
             case DATE_MODIFIER_LONG:
-                newFormat = DateFormat.getTimeInstance(DateFormat.LONG, ulocale);
+                newFormat = DateFormat.getTimeInstance(DateFormat.LONG, locale_);
                 break;
             case DATE_MODIFIER_FULL:
-                newFormat = DateFormat.getTimeInstance(DateFormat.FULL, ulocale);
+                newFormat = DateFormat.getTimeInstance(DateFormat.FULL, locale_);
                 break;
             default:
-                newFormat = new SimpleDateFormat(style, ulocale);
+                newFormat = new SimpleDateFormat(style, locale_);
                 break;
             }
             break;
+        /* There is no java.text.RuleBasedNumberFormat --
         case TYPE_SPELLOUT:
             {
                 RuleBasedNumberFormat rbnf = new RuleBasedNumberFormat(ulocale,
@@ -2296,6 +2309,7 @@ public class MessageFormat extends UFormat {
                 newFormat = rbnf;
             }
             break;
+        */
         default:
             throw new IllegalArgumentException("Unknown format type \"" + type + "\"");
         }
@@ -2326,7 +2340,6 @@ public class MessageFormat extends UFormat {
      * and that many such pairs, corresponding to previous setFormat() calls for custom formats.
      * Followed by an int with the number of (int, Object) pairs,
      * and that many such pairs, for future (post-ICU 4.8) extension of the serialization format.
-     */
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
         out.defaultWriteObject();
         // ICU 4.8 custom serialization.
@@ -2356,11 +2369,11 @@ public class MessageFormat extends UFormat {
         // number of future (int, Object) pairs
         out.writeInt(0);
     }
+     */
 
     /**
      * Custom deserialization, new in ICU 4.8. See comments on writeObject().
      * @throws InvalidObjectException if the objects read from the stream is invalid.
-     */
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
         // ICU 4.8 custom deserialization.
@@ -2386,6 +2399,7 @@ public class MessageFormat extends UFormat {
             in.readObject();
         }
     }
+     */
 
     private void cacheExplicitFormats() {
         if (cachedFormatters != null) {
