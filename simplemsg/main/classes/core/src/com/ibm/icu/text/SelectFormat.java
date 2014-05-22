@@ -219,7 +219,7 @@ public class SelectFormat extends Format{
      * @param keyword a keyword to be matched to one of the SelectFormat argument's keywords.
      * @return the sub-message start part index.
      */
-    /*package*/ static int findSubMessage(MessagePattern pattern, int partIndex, String keyword) {
+    public static int findSubMessage(MessagePattern pattern, int partIndex, String keyword) {
         int count=pattern.countParts();
         int msgStart=0;
         // Iterate over (ARG_SELECTOR, message) pairs until ARG_LIMIT or end of select-only pattern.

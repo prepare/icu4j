@@ -309,7 +309,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @return true if getApostropheMode() == ApostropheMode.DOUBLE_REQUIRED
      * @internal
      */
-    /* package */ boolean jdkAposMode() {
+    public boolean jdkAposMode() {
         return aposMode == ApostropheMode.DOUBLE_REQUIRED;
     }
 
