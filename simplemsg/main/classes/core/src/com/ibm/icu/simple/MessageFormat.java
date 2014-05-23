@@ -338,12 +338,15 @@ public class MessageFormat extends Format {
     static final long serialVersionUID = 7136212545847378652L;
 
     /**
-     * Simple API using Locale.
+     * Formats a message pattern string with a variable number of name/value pair arguments.
+     * Creates an ICU MessageFormat for the locale and pattern,
+     * and formats with the arguments.
      *
+     * @param locale Locale for number formatting and plural selection etc.
      * @param msg an ICU-MessageFormat-syntax string
-     * @param nameValuePairs (placeholder name, placeholder value) pairs
+     * @param nameValuePairs (argument name, argument value) pairs
      */
-    public static final String formatMessageNamedArgs(Locale locale, String msg, Object... nameValuePairs) {
+    public static final String formatNamedArgs(Locale locale, String msg, Object... nameValuePairs) {
         StringBuilder result = new StringBuilder(msg.length());
         new MessageFormat(msg, locale).format(0, null, null, null, nameValuePairs,
                 new AppendableWrapper(result), null);
