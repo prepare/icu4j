@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2013, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2014, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -2148,6 +2148,12 @@ public class DecimalFormat extends NumberFormat {
                 0xFF0E, 0xFF0E,
                 0xFF61, 0xFF61).freeze();
 
+    // equivalent grouping and decimal support
+    static final boolean skipExtendedSeparatorParsing = ICUConfig.get(
+        "com.ibm.icu.text.DecimalFormat.SkipExtendedSeparatorParsing", "false")
+        .equals("true");
+
+
     // When parsing a number with big exponential value, it requires to transform the
     // value into a string representation to construct BigInteger instance.  We want to
     // set the maximum size because it can easily trigger OutOfMemoryException.
@@ -2244,11 +2250,6 @@ public class DecimalFormat extends NumberFormat {
             int lastGroup = -1; // where did we last see a grouping separator?
             int digitStart = position; // where did the digit start?
             int gs2 = groupingSize2 == 0 ? groupingSize : groupingSize2;
-
-            // equivalent grouping and decimal support
-            boolean skipExtendedSeparatorParsing = ICUConfig.get(
-                "com.ibm.icu.text.DecimalFormat.SkipExtendedSeparatorParsing", "false")
-                .equals("true");
 
             UnicodeSet decimalEquiv = skipExtendedSeparatorParsing ? UnicodeSet.EMPTY :
                 getEquivalentDecimals(decimal, strictParse);
