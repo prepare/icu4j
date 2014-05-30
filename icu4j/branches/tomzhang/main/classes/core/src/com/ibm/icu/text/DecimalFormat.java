@@ -30,6 +30,7 @@ import com.ibm.icu.math.MathContext;
 import com.ibm.icu.text.CurrencyMetaInfo.CurrencyDigits;
 import com.ibm.icu.text.PluralRules.FixedDecimal;
 import com.ibm.icu.util.Currency;
+import com.ibm.icu.util.Currency.CurrencyUsage;
 import com.ibm.icu.util.CurrencyAmount;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.ULocale.Category;
@@ -5029,14 +5030,13 @@ public class DecimalFormat extends NumberFormat {
         if (currencySignCount != CURRENCY_SIGN_COUNT_ZERO) {
             // reset rounding increment and max/min fractional digits
             // by the currency
-            setCurrencyWithContext();
-//            Currency theCurrency = getCurrency();
-//            if (theCurrency != null) {
-//                setRoundingIncrement(theCurrency.getRoundingIncrement());
-//                int d = theCurrency.getDefaultFractionDigits();
-//                setMinimumFractionDigits(d);
-//                _setMaximumFractionDigits(d);
-//            }
+            Currency theCurrency = getCurrency();
+            if (theCurrency != null) {
+                setRoundingIncrement(theCurrency.getRoundingIncrement(currencyUsage));
+                int d = theCurrency.getDefaultFractionDigits(currencyUsage);
+                setMinimumFractionDigits(d);
+                setMaximumFractionDigits(d);
+            }
 
             // initialize currencyPluralInfo if needed
             if (currencySignCount == CURRENCY_SIGN_COUNT_IN_PLURAL_FORMAT
@@ -5194,13 +5194,12 @@ public class DecimalFormat extends NumberFormat {
         }
 
         if (currencySignCount != CURRENCY_SIGN_COUNT_ZERO) {
-            setCurrencyWithContext();
-//            if (theCurrency != null) {
-//                setRoundingIncrement(theCurrency.getRoundingIncrement());
-//                int d = theCurrency.getDefaultFractionDigits();
-//                setMinimumFractionDigits(d);
-//                setMaximumFractionDigits(d);
-//            }
+            if (theCurrency != null) {
+                setRoundingIncrement(theCurrency.getRoundingIncrement(currencyUsage));
+                int d = theCurrency.getDefaultFractionDigits(currencyUsage);
+                setMinimumFractionDigits(d);
+                setMaximumFractionDigits(d);
+            }
             if (currencySignCount != CURRENCY_SIGN_COUNT_IN_PLURAL_FORMAT) {
                 // This is not necessary for plural format type
                 // because affixes will be resolved in subformat
@@ -5208,87 +5207,33 @@ public class DecimalFormat extends NumberFormat {
             }
         }
     }
-
-    private double getCurrencyRounding(){
-        CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
-        String isoCode = this.getCurrency().toString();
-        CurrencyDigits digits = info.currencyDigits(isoCode, currencyContext);
-
-        int data1 = digits.roundingIncrement;
-
-        // If there is no rounding return 0.0 to indicate no rounding.
-        // This is the high-runner case, by far.
-        if (data1 == 0) {
-            return 0.0;
-        }
-
-        int data0 = digits.fractionDigits;
-
-        // directly copied from Currency
-        int[] POW10 = { 
-            1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000 
-        };
-        
-        // If the meta data is invalid, return 0.0 to indicate no rounding.
-        if (data0 < 0 || data0 >= POW10.length) {
-            return 0.0;
-        }
-
-        // Return data[1] / 10^(data[0]).  The only actual rounding data,
-        // as of this writing, is CHF { 2, 25 }.
-        return (double) data1 / POW10[(int) data0];
-        
-    }
     
-    private int getCurrencyFractionDigits(){
-        CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
-        String isoCode = this.getCurrency().toString();
-        CurrencyDigits digits = info.currencyDigits(isoCode, currencyContext);
-        return digits.fractionDigits;
-    }
-
     /**
-     * Sets the rounding/digits with respect to currency context
+     * Sets the <tt>Currency Usage</tt> object used to display currency.
+     * This takes effect immediately, if this format is a
+     * currency format.  
+     * @param newUsage new currency context object to use.  
+     * @draft ICU 54
      */
-    private void setCurrencyWithContext(){
+    public void setCurrencyUsage(CurrencyUsage newUsage) {
+        currencyUsage = newUsage;
         Currency theCurrency = this.getCurrency();
         
         // We set rounding/digit based on currency context
-        // For Official_Purpose, we use default setting from Currency
-        // For Cash_Purpose, we use local helpers to get rounding/digits
         if (theCurrency != null) {
-            if(currencyContext == Cash_Purpose){
-                setRoundingIncrement(getCurrencyRounding());
-                int d = getCurrencyFractionDigits();
-                setMinimumFractionDigits(d);
-                _setMaximumFractionDigits(d);
-            }else if(currencyContext == Official_Purpose){
-                setRoundingIncrement(theCurrency.getRoundingIncrement());
-                int d = theCurrency.getDefaultFractionDigits();
-                setMinimumFractionDigits(d);
-                _setMaximumFractionDigits(d);
-            }
+            setRoundingIncrement(theCurrency.getRoundingIncrement(currencyUsage));
+            int d = theCurrency.getDefaultFractionDigits(currencyUsage);
+            setMinimumFractionDigits(d);
+            _setMaximumFractionDigits(d);
         }
-    }
-    
-    /**
-     * Sets the <tt>Currency Context</tt> object used to display currency.
-     * This takes effect immediately, if this format is a
-     * currency format.  
-     * @param newContext new currency context object to use.  
-     * @stable ICU 53
-     */
-    public void setCurrencyContext(int newContext) {
-        currencyContext = newContext;
-        setCurrencyWithContext();
     }
 
     /**
-     * Returns the <tt>Currency Context</tt> object used to display currency
-     * @stable ICU 53
+     * Returns the <tt>Currency Usage</tt> object used to display currency
+     * @draft ICU 54
      */
-    public int getCurrencyContext() {
-        return currencyContext;
+    public CurrencyUsage getCurrencyUsage() {
+        return currencyUsage;
     }
     
     /**

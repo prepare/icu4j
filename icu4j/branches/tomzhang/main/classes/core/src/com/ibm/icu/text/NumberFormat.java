@@ -23,6 +23,7 @@ import java.util.Set;
 
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.util.Currency;
+import com.ibm.icu.util.Currency.CurrencyUsage;
 import com.ibm.icu.util.CurrencyAmount;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.ULocale.Category;
@@ -239,7 +240,7 @@ public abstract class NumberFormat extends UFormat {
      * @provisional This API might change or be removed in a future release.
      */
     public static final int Official_Purpose = 0;
-
+    
     /**
      * {@icu} Constant to specify currency context which determines currency digit and rounding
      * for cash purpose, for example: "50 NT$"
@@ -247,6 +248,7 @@ public abstract class NumberFormat extends UFormat {
      * @provisional This API might change or be removed in a future release.
      */
     public static final int Cash_Purpose = 1;
+   
     
     /**
      * Formats a number and appends the resulting text to the given string buffer.
@@ -1070,7 +1072,7 @@ public abstract class NumberFormat extends UFormat {
             && parseIntegerOnly == other.parseIntegerOnly
             && parseStrict == other.parseStrict
             && capitalizationSetting == other.capitalizationSetting
-            && currencyContext == other.currencyContext;
+            && currencyUsage == other.currencyUsage;
     }
 
     /**
@@ -1259,20 +1261,20 @@ public abstract class NumberFormat extends UFormat {
     }
     
     /**
-     * Sets the <tt>Currency Context</tt> object used to display currency.
+     * Sets the <tt>Currency Usage</tt> object used to display currency.
      * This takes effect immediately, if this format is a
      * currency format.  
-     * @param currencyContext new currency context object to use.  
-     * @stable ICU 53
+     * @param newUsage new currency context object to use.  
+     * @draft ICU 54
      */
-    public void setCurrencyContext(int currencyContext){};
+    public void setCurrencyUsage(CurrencyUsage currencyUsage){};
 
     /**
-     * Returns the <tt>Currency Context</tt> object used to display currency
-     * @stable ICU 53
+     * Returns the <tt>Currency Usage</tt> object used to display currency
+     * @draft ICU 54
      */
-    public int getCurrencyContext(){
-        return currencyContext;
+    public CurrencyUsage getCurrencyUsage(){
+        return currencyUsage;
     };
 
     /**
@@ -1761,11 +1763,11 @@ public abstract class NumberFormat extends UFormat {
     static final int currentSerialVersion = 2;
 
     /**
-     * The currency context for the NumberFormat(official or cash purpose).
-     * It is used as Official_Purpose by default
-     * @since ICU 53
+     * The currency usage for the NumberFormat(standard or cash usage).
+     * It is used as STANDARD by default
+     * @since ICU 54
      */
-    protected int currencyContext = Official_Purpose;
+    protected CurrencyUsage currencyUsage = CurrencyUsage.STANDARD;
     
     /**
      * Describes the version of <code>NumberFormat</code> present on the stream.

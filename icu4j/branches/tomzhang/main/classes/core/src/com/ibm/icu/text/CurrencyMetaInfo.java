@@ -12,6 +12,7 @@ import java.util.Date;
 import java.util.List;
 
 import com.ibm.icu.util.Calendar;
+import com.ibm.icu.util.Currency.CurrencyUsage;
 import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.TimeZone;
 
@@ -543,13 +544,13 @@ public class CurrencyMetaInfo {
     }
 
     /**
-     * Returns the CurrencyDigits for the currency code with Context purpose.
+     * Returns the CurrencyDigits for the currency code with Context Usage.
      * @param isoCode the currency code
-     * @param currencyContext the currency purpose
+     * @param currencyUsage the currency usage
      * @return the CurrencyDigits
-     * @stable ICU 53
+     * @draft ICU 54
      */
-    public CurrencyDigits currencyDigits(String isoCode, int currencyContext) {
+    public CurrencyDigits currencyDigits(String isoCode, CurrencyUsage currencyUsage) {
         return defaultDigits;
     }
 

@@ -3610,7 +3610,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         }
     }
     
-    public void TestCurrencyContext() {
+    public void TestCurrencyUsage() {
         // compare the Currency and Currency Cash Digits
         NumberFormat custom = NumberFormat.getInstance(new ULocale("en_US@currency=TWD"), NumberFormat.CURRENCYSTYLE);
 
@@ -3618,7 +3618,11 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         String original_expected = "NT$123.57";
         assertEquals("Test Currency Context", original_expected, original);
 
-        custom.setCurrencyContext(NumberFormat.Cash_Purpose);
+        // test the getter
+        assertEquals("Test Currency Context Purpose", custom.getCurrencyUsage(), Currency.CurrencyUsage.STANDARD);
+        custom.setCurrencyUsage(Currency.CurrencyUsage.CASH);
+        assertEquals("Test Currency Context Purpose", custom.getCurrencyUsage(), Currency.CurrencyUsage.CASH);
+        
         String cash_currency = custom.format(123.567);
         String cash_currency_expected = "NT$124";
         assertEquals("Test Currency Context", cash_currency_expected, cash_currency);
@@ -3630,14 +3634,14 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         String original_rounding_expected = "CA$123.57";
         assertEquals("Test Currency Context", original_rounding_expected, original_rounding);
 
-        fmt.setCurrencyContext(NumberFormat.Cash_Purpose);
+        fmt.setCurrencyUsage(Currency.CurrencyUsage.CASH);
         String cash_rounding_currency = fmt.format(123.567);
         String cash__rounding_currency_expected = "CA$123.55";
         assertEquals("Test Currency Context", cash__rounding_currency_expected, cash_rounding_currency);
 
         // Test the currency change
         NumberFormat fmt2 = NumberFormat.getInstance(new ULocale("en_US@currency=JPY"), NumberFormat.CURRENCYSTYLE);
-        fmt2.setCurrencyContext(NumberFormat.Cash_Purpose);
+        fmt2.setCurrencyUsage(Currency.CurrencyUsage.CASH);
         
         fmt2.setCurrency(Currency.getInstance("TWD"));
         String TWD_changed = fmt2.format(123.567);

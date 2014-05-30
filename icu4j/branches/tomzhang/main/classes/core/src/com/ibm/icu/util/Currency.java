@@ -88,7 +88,25 @@ public class Currency extends MeasureUnit {
             .add("$", "\ufe69", "\uff04")
             .add("\u20a8", "\u20b9")
             .add("\u00a3", "\u20a4");
-
+    
+    public enum CurrencyUsage{
+        /**
+         * a setting to specify currency usage which determines currency digit and rounding
+         * for official purpose, for example: "50.00 NT$"
+         * @draft ICU 54
+         * @provisional This API might change or be removed in a future release.
+         */
+        STANDARD,
+        
+        /**
+         * a setting to specify currency usage which determines currency digit and rounding
+         * for cash purpose, for example: "50 NT$"
+         * @draft ICU 54
+         * @provisional This API might change or be removed in a future release.
+         */
+        CASH
+    }
+    
     // begin registry stuff
 
     // shim for service code
@@ -740,6 +758,20 @@ public class Currency extends MeasureUnit {
     }
 
     /**
+     * Returns the number of the number of fraction digits that should
+     * be displayed for this currency with Usage.
+     * @param Usage the usage of currency(Standard or Cash)
+     * @return a non-negative number of fraction digits to be
+     * displayed
+     * @draft ICU 54
+     */
+    public int getDefaultFractionDigits(CurrencyUsage Usage){
+        CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
+        CurrencyDigits digits = info.currencyDigits(subType, Usage);
+        return digits.fractionDigits;
+    }
+
+    /**
      * Returns the rounding increment for this currency, or 0.0 if no
      * rounding is done by this currency.
      * @return the non-negative rounding increment, or 0.0 if none
@@ -748,6 +780,37 @@ public class Currency extends MeasureUnit {
     public double getRoundingIncrement() {
         CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
         CurrencyDigits digits = info.currencyDigits(subType);
+
+        int data1 = digits.roundingIncrement;
+
+        // If there is no rounding return 0.0 to indicate no rounding.
+        // This is the high-runner case, by far.
+        if (data1 == 0) {
+            return 0.0;
+        }
+
+        int data0 = digits.fractionDigits;
+
+        // If the meta data is invalid, return 0.0 to indicate no rounding.
+        if (data0 < 0 || data0 >= POW10.length) {
+            return 0.0;
+        }
+
+        // Return data[1] / 10^(data[0]).  The only actual rounding data,
+        // as of this writing, is CHF { 2, 25 }.
+        return (double) data1 / POW10[data0];
+    }
+
+    /**
+     * Returns the rounding increment for this currency, or 0.0 if no
+     * rounding is done by this currency with the Usage.
+     * @param Usage the usage of currency(Standard or Cash)
+     * @return the non-negative rounding increment, or 0.0 if none
+     * @draft ICU 54
+     */
+    public double getRoundingIncrement(CurrencyUsage Usage) {
+        CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
+        CurrencyDigits digits = info.currencyDigits(subType, Usage);
 
         int data1 = digits.roundingIncrement;
 
