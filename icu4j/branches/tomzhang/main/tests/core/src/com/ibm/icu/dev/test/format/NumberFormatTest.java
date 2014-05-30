@@ -2734,7 +2734,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
      */
     public void TestGetInstance() {
         // Tests "public final static NumberFormat getInstance(int style)"
-        int maxStyle = NumberFormat.ACCOUNTINGCURRENCYSTYLE;
+        int maxStyle = NumberFormat.CASHCURRENCYSTYLE;
 
         int[] invalid_cases = { NumberFormat.NUMBERSTYLE - 1, NumberFormat.NUMBERSTYLE - 2,
                 maxStyle + 1, maxStyle + 2 };
@@ -3611,41 +3611,70 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
     }
     
     public void TestCurrencyUsage() {
+        // the 1st one is checking setter/getter, while the 2nd one checks for getInstance
         // compare the Currency and Currency Cash Digits
-        NumberFormat custom = NumberFormat.getInstance(new ULocale("en_US@currency=TWD"), NumberFormat.CURRENCYSTYLE);
+        for(int i=0; i<2; i++){
+            String original_expected = "NT$123.57";
+            NumberFormat custom = null;
+            if(i == 0){
+                custom = NumberFormat.getInstance(new ULocale("en_US@currency=TWD"), NumberFormat.CURRENCYSTYLE);
 
-        String original = custom.format(123.567);
-        String original_expected = "NT$123.57";
-        assertEquals("Test Currency Context", original_expected, original);
+                String original = custom.format(123.567);
+                assertEquals("Test Currency Context", original_expected, original);
 
-        // test the getter
-        assertEquals("Test Currency Context Purpose", custom.getCurrencyUsage(), Currency.CurrencyUsage.STANDARD);
-        custom.setCurrencyUsage(Currency.CurrencyUsage.CASH);
-        assertEquals("Test Currency Context Purpose", custom.getCurrencyUsage(), Currency.CurrencyUsage.CASH);
-        
-        String cash_currency = custom.format(123.567);
-        String cash_currency_expected = "NT$124";
-        assertEquals("Test Currency Context", cash_currency_expected, cash_currency);
+                // test the getter
+                assertEquals("Test Currency Context Purpose", custom.getCurrencyUsage(), Currency.CurrencyUsage.STANDARD);
+                custom.setCurrencyUsage(Currency.CurrencyUsage.CASH);
+                assertEquals("Test Currency Context Purpose", custom.getCurrencyUsage(), Currency.CurrencyUsage.CASH);
+            }else{
+                custom = NumberFormat.getInstance(new ULocale("en_US@currency=TWD"), NumberFormat.CASHCURRENCYSTYLE);
+                
+                // test the getter
+                assertEquals("Test Currency Context Purpose", custom.getCurrencyUsage(), Currency.CurrencyUsage.CASH);
+            }
+            
+            String cash_currency = custom.format(123.567);
+            String cash_currency_expected = "NT$124";
+            assertEquals("Test Currency Context", cash_currency_expected, cash_currency);
+        }
 
+        // the 1st one is checking setter/getter, while the 2nd one checks for getInstance
         // compare the Currency and Currency Cash Rounding
-        NumberFormat fmt = NumberFormat.getInstance(new ULocale("en_US@currency=CAD"), NumberFormat.CURRENCYSTYLE);
-
-        String original_rounding = fmt.format(123.566);
-        String original_rounding_expected = "CA$123.57";
-        assertEquals("Test Currency Context", original_rounding_expected, original_rounding);
-
-        fmt.setCurrencyUsage(Currency.CurrencyUsage.CASH);
-        String cash_rounding_currency = fmt.format(123.567);
-        String cash__rounding_currency_expected = "CA$123.55";
-        assertEquals("Test Currency Context", cash__rounding_currency_expected, cash_rounding_currency);
-
-        // Test the currency change
-        NumberFormat fmt2 = NumberFormat.getInstance(new ULocale("en_US@currency=JPY"), NumberFormat.CURRENCYSTYLE);
-        fmt2.setCurrencyUsage(Currency.CurrencyUsage.CASH);
+        for(int i=0; i<2; i++){
+            String original_rounding_expected = "CA$123.57";
+            NumberFormat fmt = null;
+            if(i == 0){
+                fmt = NumberFormat.getInstance(new ULocale("en_US@currency=CAD"), NumberFormat.CURRENCYSTYLE);
+                
+                String original_rounding = fmt.format(123.566);
+                assertEquals("Test Currency Context", original_rounding_expected, original_rounding);
+                
+                fmt.setCurrencyUsage(Currency.CurrencyUsage.CASH);
+            }else{
+                fmt = NumberFormat.getInstance(new ULocale("en_US@currency=CAD"), NumberFormat.CASHCURRENCYSTYLE);
+            }
+            
+            String cash_rounding_currency = fmt.format(123.567);
+            String cash__rounding_currency_expected = "CA$123.55";
+            assertEquals("Test Currency Context", cash__rounding_currency_expected, cash_rounding_currency);
+        }
         
-        fmt2.setCurrency(Currency.getInstance("TWD"));
-        String TWD_changed = fmt2.format(123.567);
-        String TWD_changed_expected = "NT$124";
-        assertEquals("Test Currency Context", TWD_changed_expected, TWD_changed);
+
+        // the 1st one is checking setter/getter, while the 2nd one checks for getInstance
+        // Test the currency change
+        for(int i=0; i<2; i++){
+            NumberFormat fmt2 = null;
+            if(i == 0){
+                fmt2 = NumberFormat.getInstance(new ULocale("en_US@currency=JPY"), NumberFormat.CURRENCYSTYLE);
+                fmt2.setCurrencyUsage(Currency.CurrencyUsage.CASH);
+            }else{
+                fmt2 = NumberFormat.getInstance(new ULocale("en_US@currency=JPY"), NumberFormat.CASHCURRENCYSTYLE);
+            }
+            
+            fmt2.setCurrency(Currency.getInstance("TWD"));
+            String TWD_changed = fmt2.format(123.567);
+            String TWD_changed_expected = "NT$124";
+            assertEquals("Test Currency Context", TWD_changed_expected, TWD_changed);
+        }
     }
 }
