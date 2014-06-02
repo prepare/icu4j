@@ -1569,6 +1569,11 @@ public abstract class NumberFormat extends UFormat {
             // Didn't have capitalizationSetting, set it to default
             capitalizationSetting = DisplayContext.CAPITALIZATION_NONE;
         }
+        if (serialVersionOnStream < 3) {
+            // Didn't have capitalizationSetting, set it to default
+            currencyUsage = CurrencyUsage.STANDARD;
+        }
+        
         ///CLOVER:ON
         /*Bug 4185761
           Validate the min and max fields [Richard/GCL]
@@ -1578,6 +1583,7 @@ public abstract class NumberFormat extends UFormat {
             minimumIntegerDigits < 0 || minimumFractionDigits < 0) {
             throw new InvalidObjectException("Digit count range invalid");
         }
+
         serialVersionOnStream = currentSerialVersion;
     }
 
@@ -1755,7 +1761,7 @@ public abstract class NumberFormat extends UFormat {
      */
     private Currency currency;
 
-    static final int currentSerialVersion = 2;
+    static final int currentSerialVersion = 3;
 
     /**
      * The currency usage for the NumberFormat(standard or cash usage).
