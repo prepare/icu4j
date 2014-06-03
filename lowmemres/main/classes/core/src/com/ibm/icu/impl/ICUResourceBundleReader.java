@@ -480,6 +480,8 @@ public final class ICUResourceBundleReader {
     private static final char[] emptyChars = new char[0];
     private static final int[] emptyInts = new int[0];
     private static final String emptyString = "";
+    private static final Container EMPTY_ARRAY = new Container();
+    private static final Table EMPTY_TABLE = new Table();
 
     private char getChar(int offset) {
         return bytes.getChar(offset);
@@ -732,19 +734,9 @@ public final class ICUResourceBundleReader {
         int offset=RES_GET_OFFSET(res);
         switch(type) {
         case UResourceBundle.ARRAY:
+            return offset == 0 ? EMPTY_ARRAY : new Array(this, offset);
         case ICUResourceBundle.ARRAY16:
-            if(offset==0) {
-                return new Container(this);
-            }
-            break;
-        default:
-            return null;
-        }
-        switch(type) {
-        case UResourceBundle.ARRAY:
-            return new Array(this, offset);
-        case ICUResourceBundle.ARRAY16:
-            return new Array16(this, offset);
+            return offset == 0 ? EMPTY_ARRAY : new Array16(this, offset);
         default:
             return null;
         }
@@ -755,22 +747,11 @@ public final class ICUResourceBundleReader {
         int offset=RES_GET_OFFSET(res);
         switch(type) {
         case UResourceBundle.TABLE:
+            return offset == 0 ? EMPTY_TABLE : new Table1632(this, offset);
         case ICUResourceBundle.TABLE16:
+            return offset == 0 ? EMPTY_TABLE : new Table16(this, offset);
         case ICUResourceBundle.TABLE32:
-            if(offset==0) {
-                return new Table(this);
-            }
-            break;
-        default:
-            return null;
-        }
-        switch(type) {
-        case UResourceBundle.TABLE:
-            return new Table1632(this, offset);
-        case ICUResourceBundle.TABLE16:
-            return new Table16(this, offset);
-        case ICUResourceBundle.TABLE32:
-            return new Table32(this, offset);
+            return offset == 0 ? EMPTY_TABLE : new Table32(this, offset);
         default:
             return null;
         }
@@ -779,50 +760,48 @@ public final class ICUResourceBundleReader {
     // Container value classes --------------------------------------------- ***
 
     static class Container {
-        protected ICUResourceBundleReader reader;
         protected int size;
         protected int itemsOffset;
 
         int getSize() {
             return size;
         }
-        int getContainerResource(int index) {
+        int getContainerResource(ICUResourceBundleReader reader, int index) {
             return ICUResourceBundle.RES_BOGUS;
         }
-        protected int getContainer16Resource(int index) {
+        protected int getContainer16Resource(ICUResourceBundleReader reader, int index) {
             if (index < 0 || size <= index) {
                 return ICUResourceBundle.RES_BOGUS;
             }
             return (ICUResourceBundle.STRING_V2 << 28) |
                    reader.b16BitUnits.charAt(itemsOffset + index);
         }
-        protected int getContainer32Resource(int index) {
+        protected int getContainer32Resource(ICUResourceBundleReader reader, int index) {
             if (index < 0 || size <= index) {
                 return ICUResourceBundle.RES_BOGUS;
             }
             return reader.getInt(itemsOffset + 4 * index);
         }
-        Container(ICUResourceBundleReader reader) {
-            this.reader = reader;
+        Container() {
         }
     }
     private static final class Array extends Container {
-        int getContainerResource(int index) {
-            return getContainer32Resource(index);
+        @Override
+        int getContainerResource(ICUResourceBundleReader reader, int index) {
+            return getContainer32Resource(reader, index);
         }
         Array(ICUResourceBundleReader reader, int offset) {
-            super(reader);
             offset = reader.getResourceByteOffset(offset);
             size = reader.getInt(offset);
             itemsOffset = offset + 4;
         }
     }
     private static final class Array16 extends Container {
-        int getContainerResource(int index) {
-            return getContainer16Resource(index);
+        @Override
+        int getContainerResource(ICUResourceBundleReader reader, int index) {
+            return getContainer16Resource(reader, index);
         }
         Array16(ICUResourceBundleReader reader, int offset) {
-            super(reader);
             size = reader.b16BitUnits.charAt(offset);
             itemsOffset = offset + 1;
         }
@@ -831,7 +810,7 @@ public final class ICUResourceBundleReader {
         protected char[] keyOffsets;
         protected int[] key32Offsets;
 
-        String getKey(int index) {
+        String getKey(ICUResourceBundleReader reader, int index) {
             if (index < 0 || size <= index) {
                 return null;
             }
@@ -840,7 +819,7 @@ public final class ICUResourceBundleReader {
                         reader.getKey32String(key32Offsets[index]);
         }
         private static final int URESDATA_ITEM_NOT_FOUND = -1;
-        int findTableItem(CharSequence key) {
+        int findTableItem(ICUResourceBundleReader reader, CharSequence key) {
             int mid, start, limit;
             int result;
 
@@ -865,19 +844,18 @@ public final class ICUResourceBundleReader {
             }
             return URESDATA_ITEM_NOT_FOUND;  /* not found or table is empty. */
         }
-        int getTableResource(String resKey) {
-            return getContainerResource(findTableItem(resKey));
+        int getTableResource(ICUResourceBundleReader reader, String resKey) {
+            return getContainerResource(reader, findTableItem(reader, resKey));
         }
-        Table(ICUResourceBundleReader reader) {
-            super(reader);
+        Table() {
         }
     }
     private static final class Table1632 extends Table {
-        int getContainerResource(int index) {
-            return getContainer32Resource(index);
+        @Override
+        int getContainerResource(ICUResourceBundleReader reader, int index) {
+            return getContainer32Resource(reader, index);
         }
         Table1632(ICUResourceBundleReader reader, int offset) {
-            super(reader);
             offset = reader.getResourceByteOffset(offset);
             keyOffsets = reader.getTableKeyOffsets(offset);
             size = keyOffsets.length;
@@ -885,22 +863,22 @@ public final class ICUResourceBundleReader {
         }
     }
     private static final class Table16 extends Table {
-        int getContainerResource(int index) {
-            return getContainer16Resource(index);
+        @Override
+        int getContainerResource(ICUResourceBundleReader reader, int index) {
+            return getContainer16Resource(reader, index);
         }
         Table16(ICUResourceBundleReader reader, int offset) {
-            super(reader);
             keyOffsets = reader.getTable16KeyOffsets(offset);
             size = keyOffsets.length;
             itemsOffset = offset + 1 + size;
         }
     }
     private static final class Table32 extends Table {
-        int getContainerResource(int index) {
-            return getContainer32Resource(index);
+        @Override
+        int getContainerResource(ICUResourceBundleReader reader, int index) {
+            return getContainer32Resource(reader, index);
         }
         Table32(ICUResourceBundleReader reader, int offset) {
-            super(reader);
             offset = reader.getResourceByteOffset(offset);
             key32Offsets = reader.getTable32KeyOffsets(offset);
             size = key32Offsets.length;

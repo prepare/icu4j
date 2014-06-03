@@ -1,7 +1,7 @@
 /*
  *******************************************************************************
- * Copyright (C) 2004-2011, International Business Machines Corporation and    *
- * others. All Rights Reserved.                                                *
+ * Copyright (C) 2004-2014, International Business Machines Corporation and
+ * others. All Rights Reserved.
  *******************************************************************************
  */
 package com.ibm.icu.impl;
@@ -114,7 +114,7 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
             return value.getSize();
         }
         protected int getContainerResource(int index) {
-            return value.getContainerResource(index);
+            return value.getContainerResource(reader, index);
         }
         protected UResourceBundle createBundleObject(int index, String resKey, HashMap<String, String> table,
                                                      UResourceBundle requested, boolean[] isAlias) {
@@ -167,18 +167,18 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
     }
     static class ResourceTable extends ResourceContainer {
         protected String getKey(int index) {
-            return ((ICUResourceBundleReader.Table)value).getKey(index);
+            return ((ICUResourceBundleReader.Table)value).getKey(reader, index);
         }
         protected Set<String> handleKeySet() {
             TreeSet<String> keySet = new TreeSet<String>();
             ICUResourceBundleReader.Table table = (ICUResourceBundleReader.Table)value;
             for (int i = 0; i < table.getSize(); ++i) {
-                keySet.add(table.getKey(i));
+                keySet.add(table.getKey(reader, i));
             }
             return keySet;
         }
         protected int getTableResource(String resKey) {
-            return ((ICUResourceBundleReader.Table)value).getTableResource(resKey);
+            return ((ICUResourceBundleReader.Table)value).getTableResource(reader, resKey);
         }
         protected int getTableResource(int index) {
             return getContainerResource(index);
@@ -186,7 +186,7 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
         protected UResourceBundle handleGetImpl(String resKey, HashMap<String, String> table,
                                                 UResourceBundle requested,
                                                 int[] index, boolean[] isAlias) {
-            int i = ((ICUResourceBundleReader.Table)value).findTableItem(resKey);
+            int i = ((ICUResourceBundleReader.Table)value).findTableItem(reader, resKey);
             if(index != null) {
                 index[0] = i;
             }
@@ -197,7 +197,7 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
         }
         protected UResourceBundle handleGetImpl(int index, HashMap<String, String> table,
                                                 UResourceBundle requested, boolean[] isAlias) {
-            String itemKey = ((ICUResourceBundleReader.Table)value).getKey(index);
+            String itemKey = ((ICUResourceBundleReader.Table)value).getKey(reader, index);
             if (itemKey == null) {
                 throw new IndexOutOfBoundsException();
             }
