@@ -1239,8 +1239,7 @@ public class LocaleElements_plurals extends ListResourceBundle {
                                 {
                                     "other",
                                     " @integer 2~9, 22~29, 102, 1002, â€¦ @decim" +
-                                    "al 0.2~0.9, 1.2~1.9, 10.2, 100.2, 1000.2, â" +
-                                    "€¦",
+                                    "al 0.2~0.9, 1.2~1.9, 10.2, 100.2, 1000.2, â€¦",
                                 },
                                 {
                                     "zero",
@@ -1587,8 +1586,7 @@ public class LocaleElements_plurals extends ListResourceBundle {
                                 {
                                     "one",
                                     "n % 10 = 1 and n % 100 != 11..19 @integer 1" +
-                                    ", 21, 31, 41, 51, 61, 71, 81, 101, 1001, â€" +
-                                    "¦ @decimal 1.0, 21.0, 31.0, 41.0, 51.0, 61." +
+                                    ", 21, 31, 41, 51, 61, 71, 81, 101, 1001, â€¦ @decimal 1.0, 21.0, 31.0, 41.0, 51.0, 61." +
                                     "0, 71.0, 81.0, 101.0, 1001.0, â€¦",
                                 },
                                 {
@@ -1671,8 +1669,7 @@ public class LocaleElements_plurals extends ListResourceBundle {
                                     "other",
                                     " @integer 0, 2~16, 100, 1000, 10000, 100000" +
                                     ", 1000000, â€¦ @decimal 0.0~1.5, 10.0, 100." +
-                                    "0, 1000.0, 10000.0, 100000.0, 1000000.0, â€" +
-                                    "¦",
+                                    "0, 1000.0, 10000.0, 100000.0, 1000000.0, â€¦",
                                 },
                             },
                         },
@@ -2133,8 +2130,7 @@ public class LocaleElements_plurals extends ListResourceBundle {
                                 {
                                     "other",
                                     " @integer 9, 10, 19, 29, 30, 39, 49, 59, 69" +
-                                    ", 79, 109, 1000, 10000, 100000, 1000000, â€" +
-                                    "¦",
+                                    ", 79, 109, 1000, 10000, 100000, 1000000, â€¦",
                                 },
                             },
                         },
@@ -2302,8 +2298,7 @@ public class LocaleElements_plurals extends ListResourceBundle {
                                     "other",
                                     " @integer 0, 2~16, 100, 1000, 10000, 100000" +
                                     ", 1000000, â€¦ @decimal 0.0~1.5, 10.0, 100." +
-                                    "0, 1000.0, 10000.0, 100000.0, 1000000.0, â€" +
-                                    "¦",
+                                    "0, 1000.0, 10000.0, 100000.0, 1000000.0, â€¦",
                                 },
                             },
                         },
