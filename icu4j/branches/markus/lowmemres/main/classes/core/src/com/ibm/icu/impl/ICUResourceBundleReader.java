@@ -8,8 +8,10 @@ package com.ibm.icu.impl;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.ref.SoftReference;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.util.Arrays;
 
 import com.ibm.icu.util.ICUException;
 import com.ibm.icu.util.ICUUncheckedIOException;
@@ -279,6 +281,8 @@ public final class ICUResourceBundleReader {
     private boolean usesPoolBundle;
     private int poolCheckSum;
 
+    private ResourceCache resourceCache;
+
     private static ReaderCache CACHE = new ReaderCache();
     private static final ICUResourceBundleReader NULL_READER = new ICUResourceBundleReader();
 
@@ -377,6 +381,7 @@ public final class ICUResourceBundleReader {
 
         if(isFormatVersion10) {
             localKeyLimit = 0x10000;  /* greater than any 16-bit key string offset */
+            resourceCache = new ResourceCache(dataLength / 4 - 1);
             return;
         }
 
@@ -386,10 +391,12 @@ public final class ICUResourceBundleReader {
         if(indexLength <= URES_INDEX_MAX_TABLE_LENGTH) {
             throw new ICUException("not enough indexes");
         }
+        int bundleTop;
         if(dataLength < ((1 + indexLength) << 2) ||
-                dataLength < (getIndexesInt(URES_INDEX_BUNDLE_TOP) << 2)) {
+                dataLength < ((bundleTop = getIndexesInt(URES_INDEX_BUNDLE_TOP)) << 2)) {
             throw new ICUException("not enough bytes");
         }
+        int maxOffset = bundleTop - 1;
 
         if(indexLength > URES_INDEX_ATTRIBUTES) {
             // determine if this resource bundle falls back to a parent bundle
@@ -409,6 +416,7 @@ public final class ICUResourceBundleReader {
                 bytes.position(keysTop << 2);
                 b16BitUnits = bytes.slice().asCharBuffer();
                 b16BitUnits.limit(num16BitUnits);
+                maxOffset |= num16BitUnits - 1;
             } else {
                 b16BitUnits = EMPTY_16_BIT_UNITS;
             }
@@ -434,6 +442,10 @@ public final class ICUResourceBundleReader {
             } else {
                 localKeyLimit = getIndexesInt(URES_INDEX_KEYS_TOP) << 2;
             }
+        }
+
+        if(!isPoolBundle) {
+            resourceCache = new ResourceCache(maxOffset);
         }
     }
 
@@ -470,6 +482,9 @@ public final class ICUResourceBundleReader {
     }
     static int RES_GET_UINT(int res) {
         return res & 0x0fffffff;
+    }
+    private static boolean URES_IS_ARRAY(int type) {
+        return type == UResourceBundle.ARRAY || type == ICUResourceBundle.ARRAY16;
     }
     static boolean URES_IS_TABLE(int type) {
         return type==UResourceBundle.TABLE || type==ICUResourceBundle.TABLE16 || type==ICUResourceBundle.TABLE32;
@@ -598,12 +613,23 @@ public final class ICUResourceBundleReader {
 
     String getString(int res) {
         int offset=RES_GET_OFFSET(res);
-        int length;
-        if(RES_GET_TYPE(res)==ICUResourceBundle.STRING_V2) {
+        if(res != offset /* RES_GET_TYPE(res) != URES_STRING */ &&
+                RES_GET_TYPE(res) != ICUResourceBundle.STRING_V2) {
+            return null;
+        }
+        if(offset == 0) {
+            return emptyString;
+        }
+        Object value = resourceCache.get(res);
+        if(value != null) {
+            return (String)value;
+        }
+        String s;
+        if(res != offset) {  // STRING_V2
             int first = b16BitUnits.charAt(offset);
             if((first&0xfffffc00)!=0xdc00) {  // C: if(!U16_IS_TRAIL(first)) {
                 if(first==0) {
-                    return emptyString;
+                    return emptyString;  // Should not occur, but is not forbidden.
                 }
                 StringBuilder sb = new StringBuilder();
                 sb.append((char)first);
@@ -611,29 +637,27 @@ public final class ICUResourceBundleReader {
                 while((c = b16BitUnits.charAt(++offset)) != 0) {
                     sb.append(c);
                 }
-                return sb.toString();
-            } else if(first<0xdfef) {
-                length=first&0x3ff;
-                ++offset;
-            } else if(first<0xdfff) {
-                length=((first-0xdfef)<<16)|b16BitUnits.charAt(offset+1);
-                offset+=2;
+                s = sb.toString();
             } else {
-                length=((int)b16BitUnits.charAt(offset+1)<<16)|b16BitUnits.charAt(offset+2);
-                offset+=3;
-            }
-            return b16BitUnits.subSequence(offset, offset+length).toString();
-        } else if(res==offset) /* RES_GET_TYPE(res)==URES_STRING */ {
-            if(res==0) {
-                return emptyString;
-            } else {
-                offset=getResourceByteOffset(offset);
-                length=getInt(offset);
-                return new String(getChars(offset+4, length));
+                int length;
+                if(first<0xdfef) {
+                    length=first&0x3ff;
+                    ++offset;
+                } else if(first<0xdfff) {
+                    length=((first-0xdfef)<<16)|b16BitUnits.charAt(offset+1);
+                    offset+=2;
+                } else {
+                    length=((int)b16BitUnits.charAt(offset+1)<<16)|b16BitUnits.charAt(offset+2);
+                    offset+=3;
+                }
+                s = b16BitUnits.subSequence(offset, offset + length).toString();
             }
         } else {
-            return null;
+            offset=getResourceByteOffset(offset);
+            int length = getInt(offset);
+            s = new String(getChars(offset+4, length));
         }
+        return (String)resourceCache.putIfAbsent(res, s, s.length() * 2);
     }
 
     String getAlias(int res) {
@@ -643,9 +667,14 @@ public final class ICUResourceBundleReader {
             if(offset==0) {
                 return emptyString;
             } else {
+                Object value = resourceCache.get(res);
+                if(value != null) {
+                    return (String)value;
+                }
                 offset=getResourceByteOffset(offset);
                 length=getInt(offset);
-                return new String(getChars(offset+4, length));
+                String s = new String(getChars(offset + 4, length));
+                return (String)resourceCache.putIfAbsent(res, s, length * 2);
             }
         } else {
             return null;
@@ -664,6 +693,8 @@ public final class ICUResourceBundleReader {
                 if(length==0) {
                     return emptyBytes;
                 }
+                // Not cached: The array would have to be cloned anyway because
+                // the cache must not be writable via the returned reference.
                 if(ba==null || ba.length!=length) {
                     ba=new byte[length];
                 }
@@ -694,6 +725,10 @@ public final class ICUResourceBundleReader {
                 // in case it matters whether the buffer's mark is defined or undefined.
                 return emptyByteBuffer.duplicate();
             } else {
+                // Not cached: The returned buffer is small (shares its bytes with the bundle)
+                // and usually quickly discarded after use.
+                // Also, even a cached buffer would have to be cloned because it is mutable
+                // (position & mark).
                 offset=getResourceByteOffset(offset);
                 length=getInt(offset);
                 if(length == 0) {
@@ -720,6 +755,8 @@ public final class ICUResourceBundleReader {
             if(offset==0) {
                 return emptyInts;
             } else {
+                // Not cached: The array would have to be cloned anyway because
+                // the cache must not be writable via the returned reference.
                 offset=getResourceByteOffset(offset);
                 length=getInt(offset);
                 return getInts(offset+4, length);
@@ -731,30 +768,48 @@ public final class ICUResourceBundleReader {
 
     Container getArray(int res) {
         int type=RES_GET_TYPE(res);
-        int offset=RES_GET_OFFSET(res);
-        switch(type) {
-        case UResourceBundle.ARRAY:
-            return offset == 0 ? EMPTY_ARRAY : new Array(this, offset);
-        case ICUResourceBundle.ARRAY16:
-            return offset == 0 ? EMPTY_ARRAY : new Array16(this, offset);
-        default:
+        if(!URES_IS_ARRAY(type)) {
             return null;
         }
+        int offset=RES_GET_OFFSET(res);
+        if(offset == 0) {
+            return EMPTY_ARRAY;
+        }
+        Object value = resourceCache.get(res);
+        if(value != null) {
+            return (Container)value;
+        }
+        Container array = (type == UResourceBundle.ARRAY) ?
+                new Array(this, offset) : new Array16(this, offset);
+        return (Container)resourceCache.putIfAbsent(res, array, 0);
     }
 
     Table getTable(int res) {
-        int type=RES_GET_TYPE(res);
-        int offset=RES_GET_OFFSET(res);
-        switch(type) {
-        case UResourceBundle.TABLE:
-            return offset == 0 ? EMPTY_TABLE : new Table1632(this, offset);
-        case ICUResourceBundle.TABLE16:
-            return offset == 0 ? EMPTY_TABLE : new Table16(this, offset);
-        case ICUResourceBundle.TABLE32:
-            return offset == 0 ? EMPTY_TABLE : new Table32(this, offset);
-        default:
+        int type = RES_GET_TYPE(res);
+        if(!URES_IS_TABLE(type)) {
             return null;
         }
+        int offset = RES_GET_OFFSET(res);
+        if(offset == 0) {
+            return EMPTY_TABLE;
+        }
+        Object value = resourceCache.get(res);
+        if(value != null) {
+            return (Table)value;
+        }
+        Table table;
+        int size;  // Use size = 0 to never use SoftReferences for Tables?
+        if(type == UResourceBundle.TABLE) {
+            table = new Table1632(this, offset);
+            size = table.getSize() * 2;
+        } else if(type == ICUResourceBundle.TABLE16) {
+            table = new Table16(this, offset);
+            size = table.getSize() * 2;
+        } else /* type == ICUResourceBundle.TABLE32 */ {
+            table = new Table32(this, offset);
+            size = table.getSize() * 4;
+        }
+        return (Table)resourceCache.putIfAbsent(res, table, size);
     }
 
     // Container value classes --------------------------------------------- ***
@@ -883,6 +938,242 @@ public final class ICUResourceBundleReader {
             key32Offsets = reader.getTable32KeyOffsets(offset);
             size = key32Offsets.length;
             itemsOffset = offset + 4 * (1 + size);
+        }
+    }
+
+    // Resource cache ------------------------------------------------------ ***
+
+    /**
+     * Cache of some of one resource bundle's resources.
+     * Avoids creating multiple Java objects for the same resource items,
+     * including multiple copies of their contents.
+     *
+     * <p>Mutable objects must not be cached and then returned to the caller
+     * because the cache must not be writable via the returned reference.
+     *
+     * <p>Resources are mapped by their resource integers.
+     * Empty resources with offset 0 cannot be mapped.
+     * Integers need not and should not be cached.
+     * Multiple .res items may share resource offsets (genrb eliminates some duplicates).
+     *
+     * <p>This cache uses int[] and Object[] arrays to minimize object creation
+     * and avoid auto-boxing.
+     *
+     * <p>Large resource objects are stored in SoftReferences.
+     *
+     * <p>For few resources, a small table is used with binary search.
+     * When more resources are cached, then the data structure changes to be faster
+     * but also use more memory.
+     */
+    private static final class ResourceCache {
+        /**
+         * Objects with more value bytes are stored in SoftReferences.
+         * Smaller objects (which are not much larger than a SoftReference)
+         * are stored directly, avoiding the overhead of the reference.
+         */
+        private static final int LARGE_SIZE = 24;
+
+        // Number of items to be stored in a simple array with binary search and insertion sort.
+        private static final int SIMPLE_LENGTH = 32;
+
+        // When more than SIMPLE_LENGTH items are cached,
+        // then switch to a trie-like tree of levels with different array lengths.
+        private static final int ROOT_BITS = 7;
+        private static final int NEXT_BITS = 6;
+
+        // Simple table, used when length >= 0.
+        private int[] keys = new int[SIMPLE_LENGTH];
+        private Object[] values = new Object[SIMPLE_LENGTH];
+        private int length;
+
+        // Trie-like tree of levels, used when length < 0.
+        private int maxOffsetBits;
+        /**
+         * Number of bits in each level, each stored in a nibble.
+         */
+        private int levelBitsList;
+        private Level rootLevel;
+
+        @SuppressWarnings("unchecked")
+        private static final Object putIfCleared(Object[] values, int index, Object item, int size) {
+            Object value = values[index];
+            if(!(value instanceof SoftReference)) {
+                assert size < LARGE_SIZE;  // Caller should be consistent for each resource.
+                return value;
+            }
+            assert size >= LARGE_SIZE;
+            value = ((SoftReference<Object>)value).get();
+            if(value != null) {
+                return value;
+            }
+            values[index] = new SoftReference<Object>(item);
+            return item;
+        }
+
+        private static final class Level {
+            int levelBitsList;
+            int shift;
+            int mask;
+            int[] keys;
+            Object[] values;
+
+            Level(int levelBitsList, int shift) {
+                this.levelBitsList = levelBitsList;
+                this.shift = shift;
+                int bits = levelBitsList & 0xf;
+                assert bits != 0;
+                int length = 1 << bits;
+                mask = length - 1;
+                keys = new int[length];
+                values = new Object[length];
+            }
+
+            Object get(int key) {
+                int index = (key >> shift) & mask;
+                int k = keys[index];
+                if(k == key) {
+                    return values[index];
+                }
+                if(k == 0) {
+                    Level level = (Level)values[index];
+                    if(level != null) {
+                        return level.get(key);
+                    }
+                }
+                return null;
+            }
+
+            Object putIfAbsent(int key, Object item, int size) {
+                int index = (key >> shift) & mask;
+                int k = keys[index];
+                if(k == key) {
+                    return putIfCleared(values, index, item, size);
+                }
+                if(k == 0) {
+                    Level level = (Level)values[index];
+                    if(level != null) {
+                        return level.putIfAbsent(key, item, size);
+                    }
+                    keys[index] = key;
+                    values[index] = (size >= LARGE_SIZE) ? new SoftReference<Object>(item) : item;
+                    return item;
+                }
+                // Collision: Add a child level, move the old item there,
+                // and then insert the current item.
+                Level level = new Level(levelBitsList >> 4, shift + (levelBitsList & 0xf));
+                int i = (k >> level.shift) & level.mask;
+                level.keys[i] = k;
+                level.values[i] = values[index];
+                keys[index] = 0;
+                values[index] = level;
+                return level.putIfAbsent(key, item, size);
+            }
+        }
+
+        ResourceCache(int maxOffset) {
+            assert maxOffset != 0;
+            maxOffsetBits = 28;
+            while(maxOffset <= 0x7ffffff) {
+                maxOffset <<= 1;
+                --maxOffsetBits;
+            }
+            int keyBits = maxOffsetBits + 2;  // +2 for mini type: at most 30 bits used in a key
+            // Precompute for each level the number of bits it handles.
+            if(keyBits <= ROOT_BITS) {
+                levelBitsList = keyBits;
+            } else if(keyBits < (ROOT_BITS + 3)) {
+                levelBitsList = 0x30 | (keyBits - 3);
+            } else {
+                levelBitsList = ROOT_BITS;
+                keyBits -= ROOT_BITS;
+                int shift = 4;
+                for(;;) {
+                    if(keyBits <= NEXT_BITS) {
+                        levelBitsList |= keyBits << shift;
+                        break;
+                    } else if(keyBits < (NEXT_BITS + 3)) {
+                        levelBitsList |= (0x30 | (keyBits - 3)) << shift;
+                        break;
+                    } else {
+                        levelBitsList |= NEXT_BITS << shift;
+                        keyBits -= NEXT_BITS;
+                        shift += 4;
+                    }
+                }
+            }
+        }
+
+        /**
+         * Turns a resource integer (with unused bits in the middle)
+         * into a key with fewer bits (at most keyBits).
+         */
+        private int makeKey(int res) {
+            // It is possible for resources of different types in the 16-bit array
+            // to share a start offset; distinguish between those with a 2-bit value,
+            // as a tie-breaker in the bits just above the highest possible offset.
+            // It is not possible for "regular" resources to share a start offset with each other,
+            // but offsets for 16-bit and "regular" resources overlap;
+            // use 2-bit value 0 for "regular" resources.
+            int type = RES_GET_TYPE(res);
+            int miniType =
+                    (type == ICUResourceBundle.STRING_V2) ? 1 :
+                        (type == ICUResourceBundle.TABLE16) ? 3 :
+                            (type == ICUResourceBundle.ARRAY16) ? 2 : 0;
+            return RES_GET_OFFSET(res) | (miniType << maxOffsetBits);
+        }
+
+        @SuppressWarnings("unchecked")
+        synchronized Object get(int res) {
+            // Integers and empty resources need not be cached.
+            // The cache itself uses res=0 for "no match".
+            assert RES_GET_OFFSET(res) != 0;
+            Object value;
+            if(length >= 0) {
+                int index = Arrays.binarySearch(keys, 0, length, res);
+                if(index >= 0) {
+                    value = values[index];
+                } else {
+                    return null;
+                }
+            } else {
+                value = rootLevel.get(makeKey(res));
+                if(value == null) {
+                    return null;
+                }
+            }
+            if(value instanceof SoftReference) {
+                value = ((SoftReference<Object>)value).get();
+            }
+            return value;  // null if the reference was cleared
+        }
+
+        synchronized Object putIfAbsent(int res, Object item, int size) {
+            if(length >= 0) {
+                int index = Arrays.binarySearch(keys, 0, length, res);
+                if(index >= 0) {
+                    return putIfCleared(values, index, item, size);
+                } else if(length < SIMPLE_LENGTH) {
+                    index = ~index;
+                    if(index < length) {
+                        System.arraycopy(keys, index, keys, index + 1, length - index);
+                        System.arraycopy(values, index, values, index + 1, length - index);
+                    }
+                    ++length;
+                    keys[index] = res;
+                    values[index] = (size >= LARGE_SIZE) ? new SoftReference<Object>(item) : item;
+                    return item;
+                } else /* not found && length == SIMPLE_LENGTH */ {
+                    // Grow to become trie-like.
+                    rootLevel = new Level(levelBitsList, 0);
+                    for(int i = 0; i < SIMPLE_LENGTH; ++i) {
+                        rootLevel.putIfAbsent(makeKey(keys[i]), values[i], 0);
+                    }
+                    keys = null;
+                    values = null;
+                    length = -1;
+                }
+            }
+            return rootLevel.putIfAbsent(makeKey(res), item, size);
         }
     }
 
