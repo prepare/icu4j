@@ -3834,6 +3834,7 @@ public class DecimalFormat extends NumberFormat {
                 other.currencyPluralInfo = (CurrencyPluralInfo) currencyPluralInfo.clone();
             }
             other.attributes = new ArrayList<FieldPosition>(); // #9240
+            other.currencyUsage = currencyUsage;
 
             // TODO: We need to figure out whether we share a single copy of DigitList by
             // multiple cloned copies.  format/subformat are designed to use a single
@@ -3875,7 +3876,8 @@ public class DecimalFormat extends NumberFormat {
                 && (!useSignificantDigits || minSignificantDigits == other.minSignificantDigits
                         && maxSignificantDigits == other.maxSignificantDigits)
                 && symbols.equals(other.symbols)
-                && Utility.objectEquals(currencyPluralInfo, other.currencyPluralInfo);
+                && Utility.objectEquals(currencyPluralInfo, other.currencyPluralInfo)
+                && currencyUsage.equals(other.currencyUsage);
     }
 
     // method to unquote the strings and compare
@@ -5391,6 +5393,9 @@ public class DecimalFormat extends NumberFormat {
             // the DecimalFormatSymbols object.
             setCurrencyForSymbols();
         }
+        if (serialVersionOnStream < 4){
+            currencyUsage = CurrencyUsage.STANDARD;
+        }
         serialVersionOnStream = currentSerialVersion;
         digitList = new DigitList();
 
@@ -5398,6 +5403,7 @@ public class DecimalFormat extends NumberFormat {
             setInternalRoundingIncrement(new BigDecimal(roundingIncrement));
         }
         resetActualRounding();
+        
     }
 
     private void setInternalRoundingIncrement(BigDecimal value) {
@@ -5697,9 +5703,16 @@ public class DecimalFormat extends NumberFormat {
      */
     private boolean parseBigDecimal = false;
 
+    /**
+     * The currency usage for the NumberFormat(standard or cash usage).
+     * It is used as STANDARD by default
+     * @since ICU 54
+     */
+    private CurrencyUsage currencyUsage = CurrencyUsage.STANDARD;
+    
     // ----------------------------------------------------------------------
 
-    static final int currentSerialVersion = 3;
+    static final int currentSerialVersion = 4;
 
     /**
      * The internal serial version which says which version was written Possible values
@@ -5717,6 +5730,8 @@ public class DecimalFormat extends NumberFormat {
      *
      * <li><b>3</b>: ICU 2.2. Adds currency object.
      *
+     * <li><b>4</b>: ICU 54. Adds currency usage(standard vs cash)
+     * 
      * </ul>
      *
      * @serial

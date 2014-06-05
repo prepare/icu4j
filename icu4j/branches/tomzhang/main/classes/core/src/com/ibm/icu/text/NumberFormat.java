@@ -1061,8 +1061,7 @@ public abstract class NumberFormat extends UFormat {
             && groupingUsed == other.groupingUsed
             && parseIntegerOnly == other.parseIntegerOnly
             && parseStrict == other.parseStrict
-            && capitalizationSetting == other.capitalizationSetting
-            && currencyUsage == other.currencyUsage;
+            && capitalizationSetting == other.capitalizationSetting;
     }
 
     /**
@@ -1250,23 +1249,6 @@ public abstract class NumberFormat extends UFormat {
         return currency;
     }
     
-    /**
-     * Sets the <tt>Currency Usage</tt> object used to display currency.
-     * This takes effect immediately, if this format is a
-     * currency format.  
-     * @param newUsage new currency context object to use.  
-     * @draft ICU 54
-     */
-    public void setCurrencyUsage(CurrencyUsage currencyUsage){};
-
-    /**
-     * Returns the <tt>Currency Usage</tt> object used to display currency
-     * @draft ICU 54
-     */
-    public CurrencyUsage getCurrencyUsage(){
-        return currencyUsage;
-    };
-
     /**
      * Returns the currency in effect for this formatter.  Subclasses
      * should override this method as needed.  Unlike getCurrency(),
@@ -1569,10 +1551,6 @@ public abstract class NumberFormat extends UFormat {
             // Didn't have capitalizationSetting, set it to default
             capitalizationSetting = DisplayContext.CAPITALIZATION_NONE;
         }
-        if (serialVersionOnStream < 3) {
-            // Didn't have capitalizationSetting, set it to default
-            currencyUsage = CurrencyUsage.STANDARD;
-        }
         
         ///CLOVER:ON
         /*Bug 4185761
@@ -1761,15 +1739,8 @@ public abstract class NumberFormat extends UFormat {
      */
     private Currency currency;
 
-    static final int currentSerialVersion = 3;
+    static final int currentSerialVersion = 2;
 
-    /**
-     * The currency usage for the NumberFormat(standard or cash usage).
-     * It is used as STANDARD by default
-     * @since ICU 54
-     */
-    protected CurrencyUsage currencyUsage = CurrencyUsage.STANDARD;
-    
     /**
      * Describes the version of <code>NumberFormat</code> present on the stream.
      * Possible values are:

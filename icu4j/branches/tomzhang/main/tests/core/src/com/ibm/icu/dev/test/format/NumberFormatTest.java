@@ -3615,9 +3615,9 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         // compare the Currency and Currency Cash Digits
         for(int i=0; i<2; i++){
             String original_expected = "NT$123.57";
-            NumberFormat custom = null;
+            DecimalFormat custom = null;
             if(i == 0){
-                custom = NumberFormat.getInstance(new ULocale("en_US@currency=TWD"), NumberFormat.CURRENCYSTYLE);
+                custom = (DecimalFormat)DecimalFormat.getInstance(new ULocale("en_US@currency=TWD"), DecimalFormat.CURRENCYSTYLE);
 
                 String original = custom.format(123.567);
                 assertEquals("Test Currency Context", original_expected, original);
@@ -3627,7 +3627,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 custom.setCurrencyUsage(Currency.CurrencyUsage.CASH);
                 assertEquals("Test Currency Context Purpose", custom.getCurrencyUsage(), Currency.CurrencyUsage.CASH);
             }else{
-                custom = NumberFormat.getInstance(new ULocale("en_US@currency=TWD"), NumberFormat.CASHCURRENCYSTYLE);
+                custom = (DecimalFormat)DecimalFormat.getInstance(new ULocale("en_US@currency=TWD"), DecimalFormat.CASHCURRENCYSTYLE);
                 
                 // test the getter
                 assertEquals("Test Currency Context Purpose", custom.getCurrencyUsage(), Currency.CurrencyUsage.CASH);
@@ -3642,16 +3642,16 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         // compare the Currency and Currency Cash Rounding
         for(int i=0; i<2; i++){
             String original_rounding_expected = "CA$123.57";
-            NumberFormat fmt = null;
+            DecimalFormat fmt = null;
             if(i == 0){
-                fmt = NumberFormat.getInstance(new ULocale("en_US@currency=CAD"), NumberFormat.CURRENCYSTYLE);
+                fmt = (DecimalFormat)DecimalFormat.getInstance(new ULocale("en_US@currency=CAD"), DecimalFormat.CURRENCYSTYLE);
                 
                 String original_rounding = fmt.format(123.566);
                 assertEquals("Test Currency Context", original_rounding_expected, original_rounding);
                 
                 fmt.setCurrencyUsage(Currency.CurrencyUsage.CASH);
             }else{
-                fmt = NumberFormat.getInstance(new ULocale("en_US@currency=CAD"), NumberFormat.CASHCURRENCYSTYLE);
+                fmt = (DecimalFormat)DecimalFormat.getInstance(new ULocale("en_US@currency=CAD"), DecimalFormat.CASHCURRENCYSTYLE);
             }
             
             String cash_rounding_currency = fmt.format(123.567);
@@ -3663,12 +3663,12 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         // the 1st one is checking setter/getter, while the 2nd one checks for getInstance
         // Test the currency change
         for(int i=0; i<2; i++){
-            NumberFormat fmt2 = null;
-            if(i == 0){
-                fmt2 = NumberFormat.getInstance(new ULocale("en_US@currency=JPY"), NumberFormat.CURRENCYSTYLE);
+            DecimalFormat fmt2 = null;
+            if(i == 1){
+                fmt2 = (DecimalFormat)NumberFormat.getInstance(new ULocale("en_US@currency=JPY"), NumberFormat.CURRENCYSTYLE);
                 fmt2.setCurrencyUsage(Currency.CurrencyUsage.CASH);
             }else{
-                fmt2 = NumberFormat.getInstance(new ULocale("en_US@currency=JPY"), NumberFormat.CASHCURRENCYSTYLE);
+                fmt2 = (DecimalFormat)NumberFormat.getInstance(new ULocale("en_US@currency=JPY"), NumberFormat.CASHCURRENCYSTYLE);
             }
             
             fmt2.setCurrency(Currency.getInstance("TWD"));
