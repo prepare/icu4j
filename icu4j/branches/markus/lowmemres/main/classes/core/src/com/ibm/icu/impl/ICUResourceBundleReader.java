@@ -11,7 +11,6 @@ import java.io.InputStream;
 import java.lang.ref.SoftReference;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.util.Arrays;
 
 import com.ibm.icu.util.ICUException;
 import com.ibm.icu.util.ICUUncheckedIOException;
@@ -1129,7 +1128,7 @@ public final class ICUResourceBundleReader {
             assert RES_GET_OFFSET(res) != 0;
             Object value;
             if(length >= 0) {
-                int index = Arrays.binarySearch(keys, 0, length, res);
+                int index = binarySearch(keys, 0, length, res);
                 if(index >= 0) {
                     value = values[index];
                 } else {
@@ -1149,7 +1148,7 @@ public final class ICUResourceBundleReader {
 
         synchronized Object putIfAbsent(int res, Object item, int size) {
             if(length >= 0) {
-                int index = Arrays.binarySearch(keys, 0, length, res);
+                int index = binarySearch(keys, 0, length, res);
                 if(index >= 0) {
                     return putIfCleared(values, index, item, size);
                 } else if(length < SIMPLE_LENGTH) {
@@ -1204,5 +1203,23 @@ public final class ICUResourceBundleReader {
                 }
             }
         }
+    }
+
+    // Equivalent to Arrays#binarySearch(int[],int,int,int) in JDK6+
+    static int binarySearch(int[] a, int fromIndex, int toIndex, int key) {
+        int low = fromIndex;
+        int high = toIndex - 1;
+
+        while (low <= high) {
+            int mid = (low + high) / 2;
+            if (a[mid] < key) {
+                low = mid + 1;
+            } else if (a[mid] > key) {
+                high = mid - 1;
+            } else {
+                return mid;
+            }
+        }
+        return -(low + 1);
     }
 }
