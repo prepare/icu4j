@@ -262,6 +262,13 @@ public final class ICUResourceBundleReader {
 
     private static final CharBuffer EMPTY_16_BIT_UNITS = CharBuffer.wrap("\0");  // read-only
 
+    /**
+     * Objects with more value bytes are stored in SoftReferences.
+     * Smaller objects (which are not much larger than a SoftReference)
+     * are stored directly, avoiding the overhead of the reference.
+     */
+    static final int LARGE_SIZE = 24;
+
     private static final boolean DEBUG = false;
 
     private int /* formatVersion, */ dataVersion;
@@ -966,13 +973,6 @@ public final class ICUResourceBundleReader {
      * but also use more memory.
      */
     private static final class ResourceCache {
-        /**
-         * Objects with more value bytes are stored in SoftReferences.
-         * Smaller objects (which are not much larger than a SoftReference)
-         * are stored directly, avoiding the overhead of the reference.
-         */
-        private static final int LARGE_SIZE = 24;
-
         // Number of items to be stored in a simple array with binary search and insertion sort.
         private static final int SIMPLE_LENGTH = 32;
 
