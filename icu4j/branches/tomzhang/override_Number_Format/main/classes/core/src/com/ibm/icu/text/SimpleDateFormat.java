@@ -1971,6 +1971,7 @@ public class SimpleDateFormat extends DateFormat {
      * @stable ICU 2.0
      */
     public void setNumberFormat(NumberFormat newNumberFormat) {
+        newNumberFormat.setGroupingUsed(false);
         // Override this method to update local zero padding number formatter
         super.setNumberFormat(newNumberFormat);
         initLocalZeroPaddingNumberFormat();
@@ -3896,13 +3897,46 @@ public class SimpleDateFormat extends DateFormat {
         return false;
     }
 
+    private static int numberFormatCounter = 0;
     /**
-     * @internal
-     * @deprecated This API is ICU internal only.
+     * allow the user to set the NumberFormat for specific field(e.g. y/Y)
+     *
+     * @param ch the field to override(like y)
+     * @param nf the NumbeferFormat used
+     * @draft ICU 54
      */
-    @Deprecated
-    protected NumberFormat getNumberFormat(char ch) {
+    public void setNumberFormat(char ch, NumberFormat nf){
+        nf.setGroupingUsed(false);
+        // unique name used for mapping
+        String nsName = "$" + Integer.toString(numberFormatCounter);
+        numberFormatCounter++;
 
+        if(numberFormatters == null){
+            numberFormatters = new HashMap<String, NumberFormat>();
+        }
+        if(overrideMap == null){
+            overrideMap = new HashMap<Character, String>();
+        }
+
+        if(overrideMap.containsKey(ch)){
+            overrideMap.remove(ch);
+            overrideMap.put(ch, nsName);
+        }
+        overrideMap.put(ch, nsName);
+        numberFormatters.put(nsName,nf);
+
+        // Since one or more of the override number formatters might be complex,
+        // we can't rely on the fast numfmt where we have a partial field override.
+        useLocalZeroPaddingNumberFormat = false;
+    }
+    
+    /**
+     * give the NumberFormat used for the field ch
+     *
+     * @param ch the field the user want
+     * @draft ICU 54
+     */
+    public NumberFormat getNumberFormat(char ch) {
        Character ovrField;
        ovrField = Character.valueOf(ch);
        if (overrideMap != null && overrideMap.containsKey(ovrField)) {

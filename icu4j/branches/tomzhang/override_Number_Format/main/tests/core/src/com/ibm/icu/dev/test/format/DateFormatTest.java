@@ -2318,6 +2318,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         ULocale uloc = f.getLocale(ULocale.ACTUAL_LOCALE);
         
         DateFormat sdfmt = new SimpleDateFormat();
+
         
         if (f.hashCode() != f.hashCode()) {
             errln("hashCode is not stable");
@@ -2589,7 +2590,6 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 throw new IllegalStateException(e.getMessage());
             }
         }
-
         {
             //cover getAvailableULocales
             final ULocale[] locales = DateFormat.getAvailableULocales();
@@ -3898,6 +3898,46 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             errln("FAIL: parsed -> " + parsedate.toString() + " expected -> " + cal.toString()); 
         }
     } 
+    
+    public void TestOverrideNumberForamt() { 
+        // test override get/set NumberFormat
+        SimpleDateFormat fmt = new SimpleDateFormat("MM/dd/yy z");
+        for(int i=0; i<100; i++){
+            NumberFormat check_nf = NumberFormat.getInstance(new ULocale("en_US"));
+            fmt.setNumberFormat('y', check_nf);
+            NumberFormat get_nf = fmt.getNumberFormat('y');
+            if (!get_nf.equals(check_nf)) 
+                errln("FAIL: getter and setter do not work");
+        }
+
+        // 1st to check 1 field, 2nd is full override
+        for(int i=0; i<2; i++){
+            fmt = new SimpleDateFormat("MM d", new ULocale("en_US"));
+            
+            NumberFormat override= NumberFormat.getInstance(new ULocale("zh@numbers=hanidays"));
+            if(i == 0){
+                fmt.setNumberFormat('M', override);
+            }else{
+                fmt.setNumberFormat(override);
+            }
+            
+            Calendar cal = Calendar.getInstance();
+            cal.clear();
+            cal.set(1997, Calendar.JUNE, 15);
+            Date june = cal.getTime();
+            String juneStr = fmt.format(june);
+            String expected;
+            if(i == 0){
+                expected = "\u521D\u516D 15";
+            }else{
+                expected = "\u521D\u516D \u5341\u4E94";
+            }
+
+            if (! juneStr.equals(expected)) { 
+                errln((String)"FAIL: -> " + juneStr.toString() + " expected -> " + expected); 
+            } 
+        }
+    }
 
     public void TestParsePosition() {
         class ParseTestData {
