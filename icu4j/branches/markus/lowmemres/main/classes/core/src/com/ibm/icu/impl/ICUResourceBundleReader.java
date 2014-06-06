@@ -1121,6 +1121,32 @@ public final class ICUResourceBundleReader {
             return RES_GET_OFFSET(res) | (miniType << maxOffsetBits);
         }
 
+        private int findSimple(int key) {
+            // With Java 6, return Arrays.binarySearch(keys, 0, length, key).
+            int start = 0;
+            int limit = length;
+            while((limit - start) > 8) {
+                int mid = (start + limit) / 2;
+                if(key < keys[mid]) {
+                    limit = mid;
+                } else {
+                    start = mid;
+                }
+            }
+            // For a small number of items, linear search should be a little faster.
+            while(start < limit) {
+                int k = keys[start];
+                if(key < k) {
+                    return ~start;
+                }
+                if(key == k) {
+                    return start;
+                }
+                ++start;
+            }
+            return ~start;
+        }
+
         @SuppressWarnings("unchecked")
         synchronized Object get(int res) {
             // Integers and empty resources need not be cached.
@@ -1128,7 +1154,7 @@ public final class ICUResourceBundleReader {
             assert RES_GET_OFFSET(res) != 0;
             Object value;
             if(length >= 0) {
-                int index = binarySearch(keys, 0, length, res);
+                int index = findSimple(res);
                 if(index >= 0) {
                     value = values[index];
                 } else {
@@ -1148,7 +1174,7 @@ public final class ICUResourceBundleReader {
 
         synchronized Object putIfAbsent(int res, Object item, int size) {
             if(length >= 0) {
-                int index = binarySearch(keys, 0, length, res);
+                int index = findSimple(res);
                 if(index >= 0) {
                     return putIfCleared(values, index, item, size);
                 } else if(length < SIMPLE_LENGTH) {
@@ -1203,23 +1229,5 @@ public final class ICUResourceBundleReader {
                 }
             }
         }
-    }
-
-    // Equivalent to Arrays#binarySearch(int[],int,int,int) in JDK6+
-    static int binarySearch(int[] a, int fromIndex, int toIndex, int key) {
-        int low = fromIndex;
-        int high = toIndex - 1;
-
-        while (low <= high) {
-            int mid = (low + high) / 2;
-            if (a[mid] < key) {
-                low = mid + 1;
-            } else if (a[mid] > key) {
-                high = mid - 1;
-            } else {
-                return mid;
-            }
-        }
-        return -(low + 1);
     }
 }
