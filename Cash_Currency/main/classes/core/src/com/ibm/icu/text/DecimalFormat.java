@@ -27,8 +27,10 @@ import com.ibm.icu.impl.Utility;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.math.MathContext;
+import com.ibm.icu.text.CurrencyMetaInfo.CurrencyDigits;
 import com.ibm.icu.text.PluralRules.FixedDecimal;
 import com.ibm.icu.util.Currency;
+import com.ibm.icu.util.Currency.CurrencyUsage;
 import com.ibm.icu.util.CurrencyAmount;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.ULocale.Category;
@@ -2298,12 +2300,7 @@ public class DecimalFormat extends NumberFormat {
                 0xFB29, 0xFB29,
                 0xFE62, 0xFE62,
                 0xFF0B, 0xFF0B).freeze();
-
-    // equivalent grouping and decimal support
-    static final boolean skipExtendedSeparatorParsing = ICUConfig.get(
-        "com.ibm.icu.text.DecimalFormat.SkipExtendedSeparatorParsing", "false")
-        .equals("true");
-
+    
 
     // When parsing a number with big exponential value, it requires to transform the
     // value into a string representation to construct BigInteger instance.  We want to
@@ -2403,6 +2400,11 @@ public class DecimalFormat extends NumberFormat {
             int lastGroup = -1; // where did we last see a grouping separator?
             int digitStart = position; // where did the digit start?
             int gs2 = groupingSize2 == 0 ? groupingSize : groupingSize2;
+
+            // equivalent grouping and decimal support
+            boolean skipExtendedSeparatorParsing = ICUConfig.get(
+                "com.ibm.icu.text.DecimalFormat.SkipExtendedSeparatorParsing", "false")
+                .equals("true");
 
             UnicodeSet decimalEquiv = skipExtendedSeparatorParsing ? UnicodeSet.EMPTY :
                 getEquivalentDecimals(decimal, strictParse);
@@ -3832,6 +3834,7 @@ public class DecimalFormat extends NumberFormat {
                 other.currencyPluralInfo = (CurrencyPluralInfo) currencyPluralInfo.clone();
             }
             other.attributes = new ArrayList<FieldPosition>(); // #9240
+            other.currencyUsage = currencyUsage;
 
             // TODO: We need to figure out whether we share a single copy of DigitList by
             // multiple cloned copies.  format/subformat are designed to use a single
@@ -3873,7 +3876,8 @@ public class DecimalFormat extends NumberFormat {
                 && (!useSignificantDigits || minSignificantDigits == other.minSignificantDigits
                         && maxSignificantDigits == other.maxSignificantDigits)
                 && symbols.equals(other.symbols)
-                && Utility.objectEquals(currencyPluralInfo, other.currencyPluralInfo);
+                && Utility.objectEquals(currencyPluralInfo, other.currencyPluralInfo)
+                && currencyUsage.equals(other.currencyUsage);
     }
 
     // method to unquote the strings and compare
@@ -5030,10 +5034,10 @@ public class DecimalFormat extends NumberFormat {
             // by the currency
             Currency theCurrency = getCurrency();
             if (theCurrency != null) {
-                setRoundingIncrement(theCurrency.getRoundingIncrement());
-                int d = theCurrency.getDefaultFractionDigits();
+                setRoundingIncrement(theCurrency.getRoundingIncrement(currencyUsage));
+                int d = theCurrency.getDefaultFractionDigits(currencyUsage);
                 setMinimumFractionDigits(d);
-                _setMaximumFractionDigits(d);
+                setMaximumFractionDigits(d);
             }
 
             // initialize currencyPluralInfo if needed
@@ -5182,7 +5186,6 @@ public class DecimalFormat extends NumberFormat {
         // encode the currency symbol for the given currency in our
         // locale, and adjust the decimal digits and rounding for the
         // given currency.
-
         super.setCurrency(theCurrency);
         if (theCurrency != null) {
             boolean[] isChoiceFormat = new boolean[1];
@@ -5194,8 +5197,8 @@ public class DecimalFormat extends NumberFormat {
 
         if (currencySignCount != CURRENCY_SIGN_COUNT_ZERO) {
             if (theCurrency != null) {
-                setRoundingIncrement(theCurrency.getRoundingIncrement());
-                int d = theCurrency.getDefaultFractionDigits();
+                setRoundingIncrement(theCurrency.getRoundingIncrement(currencyUsage));
+                int d = theCurrency.getDefaultFractionDigits(currencyUsage);
                 setMinimumFractionDigits(d);
                 setMaximumFractionDigits(d);
             }
@@ -5206,7 +5209,35 @@ public class DecimalFormat extends NumberFormat {
             }
         }
     }
+    
+    /**
+     * Sets the <tt>Currency Usage</tt> object used to display currency.
+     * This takes effect immediately, if this format is a
+     * currency format.  
+     * @param newUsage new currency context object to use.  
+     * @draft ICU 54
+     */
+    public void setCurrencyUsage(CurrencyUsage newUsage) {
+        currencyUsage = newUsage;
+        Currency theCurrency = this.getCurrency();
+        
+        // We set rounding/digit based on currency context
+        if (theCurrency != null) {
+            setRoundingIncrement(theCurrency.getRoundingIncrement(currencyUsage));
+            int d = theCurrency.getDefaultFractionDigits(currencyUsage);
+            setMinimumFractionDigits(d);
+            _setMaximumFractionDigits(d);
+        }
+    }
 
+    /**
+     * Returns the <tt>Currency Usage</tt> object used to display currency
+     * @draft ICU 54
+     */
+    public CurrencyUsage getCurrencyUsage() {
+        return currencyUsage;
+    }
+    
     /**
      * Returns the currency in effect for this formatter. Subclasses should override this
      * method as needed. Unlike getCurrency(), this method should never return null.
@@ -5362,6 +5393,9 @@ public class DecimalFormat extends NumberFormat {
             // the DecimalFormatSymbols object.
             setCurrencyForSymbols();
         }
+        if (serialVersionOnStream < 4){
+            currencyUsage = CurrencyUsage.STANDARD;
+        }
         serialVersionOnStream = currentSerialVersion;
         digitList = new DigitList();
 
@@ -5369,6 +5403,7 @@ public class DecimalFormat extends NumberFormat {
             setInternalRoundingIncrement(new BigDecimal(roundingIncrement));
         }
         resetActualRounding();
+        
     }
 
     private void setInternalRoundingIncrement(BigDecimal value) {
@@ -5668,9 +5703,16 @@ public class DecimalFormat extends NumberFormat {
      */
     private boolean parseBigDecimal = false;
 
+    /**
+     * The currency usage for the NumberFormat(standard or cash usage).
+     * It is used as STANDARD by default
+     * @since ICU 54
+     */
+    private CurrencyUsage currencyUsage = CurrencyUsage.STANDARD;
+    
     // ----------------------------------------------------------------------
 
-    static final int currentSerialVersion = 3;
+    static final int currentSerialVersion = 4;
 
     /**
      * The internal serial version which says which version was written Possible values
@@ -5688,6 +5730,8 @@ public class DecimalFormat extends NumberFormat {
      *
      * <li><b>3</b>: ICU 2.2. Adds currency object.
      *
+     * <li><b>4</b>: ICU 54. Adds currency usage(standard vs cash)
+     * 
      * </ul>
      *
      * @serial
