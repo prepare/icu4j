@@ -88,7 +88,11 @@ public class Currency extends MeasureUnit {
             .add("$", "\ufe69", "\uff04")
             .add("\u20a8", "\u20b9")
             .add("\u00a3", "\u20a4");
-    
+
+    /**
+     * Currency Usage used for Decimal Format
+     * @draft ICU 54
+     */
     public enum CurrencyUsage{
         /**
          * a setting to specify currency usage which determines currency digit and rounding
@@ -747,14 +751,13 @@ public class Currency extends MeasureUnit {
     /**
      * Returns the number of the number of fraction digits that should
      * be displayed for this currency.
+     * This is equivalent to getDefaultFractionDigits(CurrencyUsage.STANDARD);
      * @return a non-negative number of fraction digits to be
      * displayed
      * @stable ICU 2.2
      */
     public int getDefaultFractionDigits() {
-        CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
-        CurrencyDigits digits = info.currencyDigits(subType);
-        return digits.fractionDigits;
+        return getDefaultFractionDigits(CurrencyUsage.STANDARD);
     }
 
     /**
@@ -765,7 +768,7 @@ public class Currency extends MeasureUnit {
      * displayed
      * @draft ICU 54
      */
-    public int getDefaultFractionDigits(CurrencyUsage Usage){
+    public int getDefaultFractionDigits(CurrencyUsage Usage) {
         CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
         CurrencyDigits digits = info.currencyDigits(subType, Usage);
         return digits.fractionDigits;
@@ -774,31 +777,12 @@ public class Currency extends MeasureUnit {
     /**
      * Returns the rounding increment for this currency, or 0.0 if no
      * rounding is done by this currency.
+     * This is equivalent to getRoundingIncrement(CurrencyUsage.STANDARD);
      * @return the non-negative rounding increment, or 0.0 if none
      * @stable ICU 2.2
      */
     public double getRoundingIncrement() {
-        CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
-        CurrencyDigits digits = info.currencyDigits(subType);
-
-        int data1 = digits.roundingIncrement;
-
-        // If there is no rounding return 0.0 to indicate no rounding.
-        // This is the high-runner case, by far.
-        if (data1 == 0) {
-            return 0.0;
-        }
-
-        int data0 = digits.fractionDigits;
-
-        // If the meta data is invalid, return 0.0 to indicate no rounding.
-        if (data0 < 0 || data0 >= POW10.length) {
-            return 0.0;
-        }
-
-        // Return data[1] / 10^(data[0]).  The only actual rounding data,
-        // as of this writing, is CHF { 2, 25 }.
-        return (double) data1 / POW10[data0];
+        return getRoundingIncrement(CurrencyUsage.STANDARD);
     }
 
     /**
@@ -827,7 +811,7 @@ public class Currency extends MeasureUnit {
             return 0.0;
         }
 
-        // Return data[1] / 10^(data[0]).  The only actual rounding data,
+        // Return data[1] / 10^(data[0]). The only actual rounding data,
         // as of this writing, is CHF { 2, 25 }.
         return (double) data1 / POW10[data0];
     }

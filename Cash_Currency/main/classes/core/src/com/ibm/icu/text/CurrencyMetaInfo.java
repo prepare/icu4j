@@ -535,12 +535,13 @@ public class CurrencyMetaInfo {
 
     /**
      * Returns the CurrencyDigits for the currency code.
+     * This is equivalent to currencyDigits(isoCode, CurrencyUsage.STANDARD);
      * @param isoCode the currency code
      * @return the CurrencyDigits
      * @stable ICU 4.4
      */
     public CurrencyDigits currencyDigits(String isoCode) {
-        return defaultDigits;
+        return currencyDigits(isoCode, CurrencyUsage.STANDARD);
     }
 
     /**

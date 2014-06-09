@@ -47,12 +47,7 @@ public class ICUCurrencyMetaInfo extends CurrencyMetaInfo {
 
     @Override
     public CurrencyDigits currencyDigits(String isoCode) {
-        ICUResourceBundle b = digitInfo.findWithFallback(isoCode);
-        if (b == null) {
-            b = digitInfo.findWithFallback("DEFAULT");
-        }
-        int[] data = b.getIntVector();
-        return new CurrencyDigits(data[0], data[1]);
+        return currencyDigits(isoCode, CurrencyUsage.STANDARD);
     }
 
     @Override
@@ -62,11 +57,11 @@ public class ICUCurrencyMetaInfo extends CurrencyMetaInfo {
             b = digitInfo.findWithFallback("DEFAULT");
         }
         int[] data = b.getIntVector();
-        if(currencyPurpose == CurrencyUsage.CASH){
+        if (currencyPurpose == CurrencyUsage.CASH) {
             return new CurrencyDigits(data[2], data[3]);
-        }else if(currencyPurpose == CurrencyUsage.STANDARD){
+        } else if (currencyPurpose == CurrencyUsage.STANDARD) {
             return new CurrencyDigits(data[0], data[1]);
-        }else{
+        } else {
             return new CurrencyDigits(data[0], data[1]);
         }
     }
