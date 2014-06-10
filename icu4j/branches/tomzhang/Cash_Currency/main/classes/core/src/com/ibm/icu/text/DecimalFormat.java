@@ -5216,6 +5216,7 @@ public class DecimalFormat extends NumberFormat {
      * currency format.  
      * @param newUsage new currency context object to use.  
      * @draft ICU 54
+     * @provisional This API might change or be removed in a future release. 
      */
     public void setCurrencyUsage(CurrencyUsage newUsage) {
         if (newUsage == null) {
@@ -5236,6 +5237,7 @@ public class DecimalFormat extends NumberFormat {
     /**
      * Returns the <tt>Currency Usage</tt> object used to display currency
      * @draft ICU 54
+     * @provisional This API might change or be removed in a future release. 
      */
     public CurrencyUsage getCurrencyUsage() {
         return currencyUsage;

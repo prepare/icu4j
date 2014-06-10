@@ -92,6 +92,7 @@ public class Currency extends MeasureUnit {
     /**
      * Currency Usage used for Decimal Format
      * @draft ICU 54
+     * @provisional This API might change or be removed in a future release. 
      */
     public enum CurrencyUsage{
         /**
@@ -767,6 +768,7 @@ public class Currency extends MeasureUnit {
      * @return a non-negative number of fraction digits to be
      * displayed
      * @draft ICU 54
+     * @provisional This API might change or be removed in a future release. 
      */
     public int getDefaultFractionDigits(CurrencyUsage Usage) {
         CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
@@ -791,6 +793,7 @@ public class Currency extends MeasureUnit {
      * @param Usage the usage of currency(Standard or Cash)
      * @return the non-negative rounding increment, or 0.0 if none
      * @draft ICU 54
+     * @provisional This API might change or be removed in a future release. 
      */
     public double getRoundingIncrement(CurrencyUsage Usage) {
         CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
