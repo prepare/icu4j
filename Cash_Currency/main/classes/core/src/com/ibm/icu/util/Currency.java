@@ -97,7 +97,7 @@ public class Currency extends MeasureUnit {
     public enum CurrencyUsage{
         /**
          * a setting to specify currency usage which determines currency digit and rounding
-         * for official purpose, for example: "50.00 NT$"
+         * for standard usage, for example: "50.00 NT$"
          * @draft ICU 54
          * @provisional This API might change or be removed in a future release.
          */
@@ -105,7 +105,7 @@ public class Currency extends MeasureUnit {
         
         /**
          * a setting to specify currency usage which determines currency digit and rounding
-         * for cash purpose, for example: "50 NT$"
+         * for cash usage, for example: "50 NT$"
          * @draft ICU 54
          * @provisional This API might change or be removed in a future release.
          */
