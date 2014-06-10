@@ -1398,14 +1398,14 @@ public abstract class NumberFormat extends UFormat {
             */
             // TODO: revisit this -- this is almost certainly not the way we want
             // to do this.  aliu 1/6/2004
-            if (choice == CASHCURRENCYSTYLE) {
-                f.setCurrencyUsage(CurrencyUsage.CASH);
-            }
-            
             if (choice == INTEGERSTYLE) {
                 f.setMaximumFractionDigits(0);
                 f.setDecimalSeparatorAlwaysShown(false);
                 f.setParseIntegerOnly(true);
+            }
+            
+            if (choice == CASHCURRENCYSTYLE) {
+                f.setCurrencyUsage(CurrencyUsage.CASH);
             }
             format = f;
        }

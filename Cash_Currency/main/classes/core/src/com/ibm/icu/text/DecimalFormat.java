@@ -5218,6 +5218,9 @@ public class DecimalFormat extends NumberFormat {
      * @draft ICU 54
      */
     public void setCurrencyUsage(CurrencyUsage newUsage) {
+        if (newUsage == null) {
+            throw new NullPointerException("return value is null at method AAA");
+        }
         currencyUsage = newUsage;
         Currency theCurrency = this.getCurrency();
 
