@@ -548,6 +548,7 @@ public class CurrencyMetaInfo {
      * @param currencyUsage the currency usage
      * @return the CurrencyDigits
      * @draft ICU 54
+     * @provisional This API might change or be removed in a future release. 
      */
     public CurrencyDigits currencyDigits(String isoCode, CurrencyUsage currencyUsage) {
         return defaultDigits;

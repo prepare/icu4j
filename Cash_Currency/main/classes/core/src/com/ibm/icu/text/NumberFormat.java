@@ -220,6 +220,7 @@ public abstract class NumberFormat extends UFormat {
      * {@icu} Constant to specify currency cash style of format which uses currency
      * ISO code to represent currency, for example: "NT$3" instead of "NT$3.23".
      * @draft ICU 54
+     * @provisional This API might change or be removed in a future release. 
      */
     public static final int CASHCURRENCYSTYLE = 8;
     /**
