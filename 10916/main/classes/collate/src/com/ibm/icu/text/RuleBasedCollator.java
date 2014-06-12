@@ -240,17 +240,6 @@ public final class RuleBasedCollator extends Collator {
         } catch(InvocationTargetException e) {
             throw (Exception)e.getTargetException();
         }
-        CollationSettings ts = t.settings.readOnly();
-        char[] fastLatinPrimaries = new char[CollationFastLatin.LATIN_LIMIT];
-        int fastLatinOptions = CollationFastLatin.getOptions(t.data, ts, fastLatinPrimaries);
-        if(fastLatinOptions != ts.fastLatinOptions ||
-                (fastLatinOptions >= 0 &&
-                    !Arrays.equals(fastLatinPrimaries, ts.fastLatinPrimaries))) {
-            CollationSettings ownedSettings = t.settings.copyOnWrite();
-            ownedSettings.fastLatinOptions = CollationFastLatin.getOptions(
-                t.data, ownedSettings,
-                ownedSettings.fastLatinPrimaries);
-        }
         t.actualLocale = null;
         adoptTailoring(t);
     }
@@ -1828,11 +1817,11 @@ public final class RuleBasedCollator extends Collator {
      */
     @Override
     public VersionInfo getVersion() {
-        VersionInfo version = tailoring.version;
+        int version = tailoring.version;
         int rtVersion = VersionInfo.UCOL_RUNTIME_VERSION.getMajor();
         return VersionInfo.getInstance(
-                version.getMajor() + (rtVersion << 4) + (rtVersion >> 4),
-                version.getMinor(), version.getMilli(), version.getMicro());
+                (version >>> 24) + (rtVersion << 4) + (rtVersion >> 4),
+                ((version >> 16) & 0xff), ((version >> 8) & 0xff), (version & 0xff));
     }
 
     /**
