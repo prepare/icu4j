@@ -823,6 +823,19 @@ public abstract class UResourceBundle extends ResourceBundle {
      */
     @Deprecated
     public Set<String> keySet() {
+        // TODO: Java 6 ResourceBundle has keySet() which calls handleKeySet()
+        // and caches the results.
+        // When we upgrade to Java 6, we still need to check for isTopLevelResource().
+        // Keep the else branch as is. The if body should just return super.keySet().
+        // Remove then-redundant caching of the keys.
+        Set<String> keys = null;
+        ICUResourceBundle icurb = null;
+        if(isTopLevelResource() && this instanceof ICUResourceBundle) {
+            // We do not cache the top-level keys in this base class so that
+            // not every string/int/binary... resource has to have a keys cache field.
+            icurb = (ICUResourceBundle)this;
+            keys = icurb.getTopLevelKeySet();
+        }
         if(keys == null) {
             if(isTopLevelResource()) {
                 TreeSet<String> newKeySet;
@@ -841,6 +854,9 @@ public abstract class UResourceBundle extends ResourceBundle {
                 }
                 newKeySet.addAll(handleKeySet());
                 keys = Collections.unmodifiableSet(newKeySet);
+                if(icurb != null) {
+                    icurb.setTopLevelKeySet(keys);
+                }
             } else {
                 return handleKeySet();
             }
@@ -848,7 +864,6 @@ public abstract class UResourceBundle extends ResourceBundle {
         return keys;
     }
 
-    private Set<String> keys = null;
     /**
      * Returns a Set of the keys contained <i>only</i> in this ResourceBundle.
      * This does not include further keys from parent bundles.

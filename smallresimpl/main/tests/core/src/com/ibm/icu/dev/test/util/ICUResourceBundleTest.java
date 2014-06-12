@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2013, International Business Machines Corporation and    *
- * others. All Rights Reserved.                                                *
+ * Copyright (C) 2001-2014, International Business Machines Corporation and
+ * others. All Rights Reserved.
  *******************************************************************************
  */
 package com.ibm.icu.dev.test.util;
@@ -39,7 +39,6 @@ public final class ICUResourceBundleTest extends TestFmwk {
     public static void main(String args[]) throws Exception {
         ICUResourceBundleTest test = new ICUResourceBundleTest();
         test.run(args);
-
     }
     public void TestGetResources(){
         try{
@@ -1140,9 +1139,6 @@ public final class ICUResourceBundleTest extends TestFmwk {
         }
         if (rb7.getKey() != null) {
             errln("getKey() call should have returned null.");
-        }
-        if (((ICUResourceBundle)rb1).getResPath() == null) {
-            errln("Error calling getResPath().");
         }
         if (((ICUResourceBundle)rb1).findTopLevel(0) == null) {
             errln("Error calling findTopLevel().");
