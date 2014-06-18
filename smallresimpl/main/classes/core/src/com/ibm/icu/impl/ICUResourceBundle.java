@@ -818,68 +818,127 @@ public  class ICUResourceBundle extends UResourceBundle {
     protected static final ICUResourceBundle findResourceWithFallback(String path,
             UResourceBundle actualBundle, UResourceBundle requested,
             Output<String> outString) {
+        if (path.length() == 0) {
+            return null;
+        }
         ICUResourceBundle sub = null;
         if (requested == null) {
             requested = actualBundle;
         }
 
         ICUResourceBundle base = (ICUResourceBundle) actualBundle;
-        String basePath =
-                ((ICUResourceBundle)actualBundle).getResPath(new StringBuilder()).toString();
+        // Collect existing and parsed key objects into an array of keys,
+        // rather than assembling and parsing paths.
+        int baseDepth = base.getResDepth();
+        int depth = baseDepth;
+        int numPathKeys = countPathKeys(path);
+        assert numPathKeys > 0;
+        String[] keys = new String[depth + numPathKeys];
+        getResPathKeys(path, numPathKeys, keys, depth);
 
-        while (base != null) {
-            if (path.indexOf('/') == -1) { // skip the tokenizer
-                if (outString != null && base instanceof ICUResourceBundleImpl.ResourceTable) {
-                    String s = ((ICUResourceBundleImpl.ResourceTable)base).getStringOrNull(path);
+        for (;;) {  // Iterate over the parent bundles.
+            ICUResourceBundle currentBase = base;
+            for (;;) {  // Iterate over the keys on the requested path, within a bundle.
+                String subKey = keys[depth++];
+                if (outString != null && depth == keys.length && currentBase instanceof ICUResourceBundleImpl.ResourceTable) {
+                    String s = ((ICUResourceBundleImpl.ResourceTable)currentBase).findString(subKey);
                     if (s != null) {
                         outString.value = s;
                         return null;
                     }
                 }
-                sub = (ICUResourceBundle) base.handleGet(path, null, requested);
-                if (sub != null) {
+                sub = (ICUResourceBundle) currentBase.handleGet(subKey, null, requested);
+                if (sub == null) {
+                    break;
+                }
+                if (depth == keys.length) {
+                    // We found it.
                     if (outString != null && sub.getType() == STRING) {
                         outString.value = sub.getString();  // string from alias handling
                         return null;
                     }
-                    break;
+                    sub.setLoadingStatus(((ICUResourceBundle)requested).getLocaleID());
+                    return sub;
                 }
-            } else {
-                ICUResourceBundle currentBase = base;
-                StringTokenizer st = new StringTokenizer(path, "/");
-                while (st.hasMoreTokens()) {
-                    String subKey = st.nextToken();
-                    sub = ICUResourceBundle.findResourceWithFallback(subKey, currentBase, requested,
-                            st.hasMoreTokens() ? null : outString);
-                    if (sub == null) {
-                        if (outString != null && outString.value != null) {
-                            return null;
-                        }
-                        break;
-                    }
-                    currentBase = sub;
-                }
-                if (sub != null) {
-                    //we found it
-                    break;
-                }
+                currentBase = sub;
             }
-            // if not try the parent bundle - note, getParent() returns the bundle root
-            base = (ICUResourceBundle)base.getParent();
-            path = basePath.length() > 0 ? basePath + "/" + path : path;
-            basePath = "";
+            // Try the parent bundle - note, getParent() returns the bundle root.
+            ICUResourceBundle nextBase = (ICUResourceBundle)base.getParent();
+            if (nextBase == null) {
+                return null;
+            }
+            if (baseDepth > 0) {
+                base.getResPathKeys(keys, baseDepth);
+                baseDepth = 0;
+            }
+            base = nextBase;
+            depth = 0;
         }
-        if(sub != null){
-            sub.setLoadingStatus(((ICUResourceBundle)requested).getLocaleID());
-        }
-        return sub;
     }
 
-    protected StringBuilder getResPath(StringBuilder sb) {
-        if (container != null) {
-            container.getResPath(sb).append(RES_PATH_SEP_CHAR).append(key);
+    private int getResDepth() {
+        return (container == null) ? 0 : container.getResDepth() + 1;
+    }
+
+    /**
+     * Fills some of the keys array with the keys on the path to this resource object.
+     * Writes the top-level key into index 0 and increments from there.
+     *
+     * @param keys
+     * @param depth must be {@link #getResDepth()}
+     */
+    private void getResPathKeys(String[] keys, int depth) {
+        ICUResourceBundle b = this;
+        while (depth > 0) {
+            keys[--depth] = b.key;
+            b = b.container;
+            assert (depth == 0) == (b.container == null);
         }
-        return sb;
+    }
+
+    private static int countPathKeys(String path) {
+        if (path.length() == 0) {
+            return 0;
+        }
+        int num = 1;
+        for (int i = 0; i < path.length(); ++i) {
+            if (path.charAt(i) == RES_PATH_SEP_CHAR) {
+                ++num;
+            }
+        }
+        return num;
+    }
+
+    /**
+     * Fills some of the keys array (from start) with the num keys from the path string.
+     *
+     * @param path path string
+     * @param num must be {@link #countPathKeys(String)}
+     * @param keys
+     * @param start index where the first path key is stored
+     */
+    private static void getResPathKeys(String path, int num, String[] keys, int start) {
+        if (num == 0) {
+            return;
+        }
+        if (num == 1) {
+            keys[start] = path;
+            return;
+        }
+        int i = 0;
+        for (;;) {
+            int j = path.indexOf(RES_PATH_SEP_CHAR, i);
+            assert j >= i;
+            keys[start++] = path.substring(i, j);
+            if (num == 2) {
+                assert path.indexOf(RES_PATH_SEP_CHAR, j + 1) < 0;
+                keys[start] = path.substring(j + 1);
+                break;
+            } else {
+                i = j + 1;
+                --num;
+            }
+        }
     }
 
     public boolean equals(Object other) {
@@ -973,7 +1032,7 @@ public  class ICUResourceBundle extends UResourceBundle {
 
                 b = (ICUResourceBundle)addToCache(root, fullName, defaultLocale, b);
 
-                String parentLocaleName = ((ICUResourceBundleImpl.ResourceTable)b).getStringOrNull("%%Parent");
+                String parentLocaleName = ((ICUResourceBundleImpl.ResourceTable)b).findString("%%Parent");
                 if (parentLocaleName != null) {
                     parent = instantiateBundle(baseName, parentLocaleName, root, disableFallback);
                 } else if (i != -1) {
@@ -989,13 +1048,13 @@ public  class ICUResourceBundle extends UResourceBundle {
         }
         return b;
     }
-    UResourceBundle get(String aKey, HashMap<String, String> table, UResourceBundle requested) {
-        ICUResourceBundle obj = (ICUResourceBundle)handleGet(aKey, table, requested);
+    UResourceBundle get(String aKey, HashMap<String, String> aliasesVisited, UResourceBundle requested) {
+        ICUResourceBundle obj = (ICUResourceBundle)handleGet(aKey, aliasesVisited, requested);
         if (obj == null) {
             obj = (ICUResourceBundle)getParent();
             if (obj != null) {
                 //call the get method to recursively fetch the resource
-                obj = (ICUResourceBundle)obj.get(aKey, table, requested);
+                obj = (ICUResourceBundle)obj.get(aKey, aliasesVisited, requested);
             }
             if (obj == null) {
                 String fullName = ICUResourceBundleReader.getFullName(getBaseName(), getLocaleID());
@@ -1106,7 +1165,7 @@ public  class ICUResourceBundle extends UResourceBundle {
         } else {
             throw new IllegalStateException("Invalid format error");
         }
-        String aliasString = rootTable.getStringOrNull("%%ALIAS");
+        String aliasString = rootTable.findString("%%ALIAS");
         if(aliasString != null) {
             return (ICUResourceBundle)UResourceBundle.getBundleInstance(baseName, aliasString);
         } else {
@@ -1131,38 +1190,47 @@ public  class ICUResourceBundle extends UResourceBundle {
         String result = wholeBundle.reader.getAlias(res);
         return result != null ? result : "";
     }
-    protected static final char RES_PATH_SEP_CHAR = '/';
+    private static final char RES_PATH_SEP_CHAR = '/';
     private static final String RES_PATH_SEP_STR = "/";
     private static final String ICUDATA = "ICUDATA";
     private static final char HYPHEN = '-';
     private static final String LOCALE = "LOCALE";
 
-    protected ICUResourceBundle findResource(String key,
-                                             String resPath,
+    /**
+     * Returns the resource object referred to from the alias _resource int's path string.
+     * Throws MissingResourceException if not found.
+     *
+     * @param key The alias' own key within this current container.
+     * @param _resource The alias resource int.
+     * @param aliasesVisited Set of alias path strings already visited, for detecting loops.
+     *        We cannot change the type (e.g., to Set<String>) because it is used
+     *        in protected/@stable UResourceBundle methods.
+     * @param requested The original resource object from which the lookup started,
+     *        which is the starting point for "/LOCALE/..." aliases.
+     * @return the aliased resource object
+     */
+    protected ICUResourceBundle getAliasedResource(String key,
                                              int _resource,
-                                             HashMap<String, String> table,
+                                             HashMap<String, String> aliasesVisited,
                                              UResourceBundle requested) {
         ClassLoader loaderToUse = wholeBundle.loader;
         String locale = null, keyPath = null;
         String bundleName;
         String rpath = getAliasValue(_resource);
-        if (table == null) {
-            table = new HashMap<String, String>();
+        if (aliasesVisited == null) {
+            aliasesVisited = new HashMap<String, String>();
         }
-        if (table.get(rpath) != null) {
+        if (aliasesVisited.get(rpath) != null) {
             throw new IllegalArgumentException(
                     "Circular references in the resource bundles");
         }
-        table.put(rpath, "");
+        aliasesVisited.put(rpath, "");
         if (rpath.indexOf(RES_PATH_SEP_CHAR) == 0) {
             int i = rpath.indexOf(RES_PATH_SEP_CHAR, 1);
             int j = rpath.indexOf(RES_PATH_SEP_CHAR, i + 1);
             bundleName = rpath.substring(1, i);
             if (j < 0) {
                 locale = rpath.substring(i + 1);
-                // if key path is not available,
-                // use the given key path
-                keyPath = resPath;
             } else {
                 locale = rpath.substring(i + 1, j);
                 keyPath = rpath.substring(j + 1, rpath.length());
@@ -1186,9 +1254,6 @@ public  class ICUResourceBundle extends UResourceBundle {
                 keyPath = rpath.substring(i + 1);
             } else {
                 locale = rpath;
-                // if key path is not available,
-                // use the given key path
-                keyPath = resPath;
             }
             bundleName = wholeBundle.baseName;
         }
@@ -1197,13 +1262,13 @@ public  class ICUResourceBundle extends UResourceBundle {
         if(bundleName.equals(LOCALE)){
             bundleName = wholeBundle.baseName;
             keyPath = rpath.substring(LOCALE.length() + 2/* prepending and appending / */, rpath.length());
-            locale = ((ICUResourceBundle)requested).getLocaleID();
 
             // Get the top bundle of the requested bundle
-            bundle = (ICUResourceBundle)getBundleInstance(bundleName, locale, loaderToUse, false);
-            if (bundle != null) {
-                sub = ICUResourceBundle.findResourceWithFallback(keyPath, bundle, null, null);
+            bundle = (ICUResourceBundle)requested;
+            while (bundle.container != null) {
+                bundle = bundle.container;
             }
+            sub = ICUResourceBundle.findResourceWithFallback(keyPath, bundle, null, null);
         }else{
             if (locale == null) {
                 // {dlf} must use requestor's class loader to get resources from same jar
@@ -1214,20 +1279,33 @@ public  class ICUResourceBundle extends UResourceBundle {
                          loaderToUse, false);
             }
 
-            StringTokenizer st = new StringTokenizer(keyPath, "/");
-            ICUResourceBundle current = bundle;
-            while (st.hasMoreTokens()) {
-                String subKey = st.nextToken();
-                sub = (ICUResourceBundle)current.get(subKey, table, requested);
-                if (sub == null) {
-                    break;
+            if (keyPath != null) {
+                StringTokenizer st = new StringTokenizer(keyPath, "/");
+                ICUResourceBundle current = bundle;
+                while (st.hasMoreTokens()) {
+                    String subKey = st.nextToken();
+                    sub = (ICUResourceBundle)current.get(subKey, aliasesVisited, requested);
+                    if (sub == null) {
+                        break;
+                    }
+                    current = sub;
                 }
-                current = sub;
+            } else {
+                int depth = getResDepth();
+                String keys[] = new String[depth + 1];
+                getResPathKeys(keys, depth);
+                keys[depth] = key;
+                sub = bundle;
+                for (int i = 0; sub != null && i <= depth; ++i) {
+                    sub = (ICUResourceBundle)sub.get(keys[i], aliasesVisited, requested);
+                }
             }
         }
         if (sub == null) {
             throw new MissingResourceException(wholeBundle.localeID, wholeBundle.baseName, key);
         }
+        // TODO: If we know that sub is not cached,
+        // then we should set its container and key to the alias' location.
         return sub;
     }
 
