@@ -1968,13 +1968,22 @@ public class SimpleDateFormat extends DateFormat {
 
     /**
      * Overrides superclass method
-     * @stable ICU 2.0
+     * Modified at ICU 54, to clear all override Number Format used before
+     * @draft ICU 54
      */
     public void setNumberFormat(NumberFormat newNumberFormat) {
+        newNumberFormat.setGroupingUsed(false);
         // Override this method to update local zero padding number formatter
         super.setNumberFormat(newNumberFormat);
         initLocalZeroPaddingNumberFormat();
         initializeTimeZoneFormat(true);
+
+        if (numberFormatters != null) {
+            numberFormatters.clear();
+        }
+        if (overrideMap != null) {
+            overrideMap.clear();
+        }
     }
 
     private void initLocalZeroPaddingNumberFormat() {
@@ -3900,22 +3909,69 @@ public class SimpleDateFormat extends DateFormat {
         return false;
     }
 
-    /**
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    @Deprecated
-    protected NumberFormat getNumberFormat(char ch) {
+    private static int numberFormatCounter = 0;
 
-       Character ovrField;
-       ovrField = Character.valueOf(ch);
-       if (overrideMap != null && overrideMap.containsKey(ovrField)) {
-           String nsName = overrideMap.get(ovrField).toString();
-           NumberFormat nf = numberFormatters.get(nsName);
-           return nf;
-       } else {
-           return numberFormat;
-       }
+    /**
+     * allow the user to set the NumberFormat for several fields
+     * It can be a single field like: "y"(year) or "M"(month)
+     * It can be several field combined together: "yMd"(year, month and date)
+     * Note: 
+     * 1 symbol field is enough for multiple symbol fields (so "y" will override "yy", "yyy")
+     * If the field is not numeric, then override has no effect (like "MMM" will use abbreviation, not numerical field)
+     * 
+     * To see the full explanations of all supported symbols:
+     * http://unicode.org/repos/cldr/trunk/specs/ldml/tr35-dates.html#Date_Field_Symbol_Table
+     * 
+     * @param fields the fields to override
+     * @param nf the NumbeferFormat used
+     * @draft ICU 54
+     */
+    public void setNumberFormat(String fields, NumberFormat nf) {
+        nf.setGroupingUsed(false);
+        // unique name used for mapping
+        String nsName = "$" + Integer.toString(numberFormatCounter);
+        numberFormatCounter++;
+
+        // initialize mapping if not there
+        if (numberFormatters == null) {
+            numberFormatters = new HashMap<String, NumberFormat>();
+        }
+        if (overrideMap == null) {
+            overrideMap = new HashMap<Character, String>();
+        }
+
+        // separate string into char and add to maps
+        char[] singleField = fields.toCharArray();
+        for (int i = 0; i < singleField.length; i++) {
+            char field = singleField[i];
+            if (overrideMap.containsKey(field)) {
+                overrideMap.remove(field);
+            }
+            overrideMap.put(field, nsName);
+            numberFormatters.put(nsName, nf);
+        }
+
+        // Since one or more of the override number formatters might be complex,
+        // we can't rely on the fast numfmt where we have a partial field override.
+        useLocalZeroPaddingNumberFormat = false;
+    }
+    
+    /**
+     * give the NumberFormat used for the field like 'y'(year) and 'M'(year)
+     *
+     * @param field the field the user wants
+     * @draft ICU 54
+     */
+    public NumberFormat getNumberFormat(char field) {
+        Character ovrField;
+        ovrField = Character.valueOf(field);
+        if (overrideMap != null && overrideMap.containsKey(ovrField)) {
+            String nsName = overrideMap.get(ovrField).toString();
+            NumberFormat nf = numberFormatters.get(nsName);
+            return nf;
+        } else {
+            return numberFormat;
+        }
     }
 
     private void initNumberFormatters(ULocale loc) {
