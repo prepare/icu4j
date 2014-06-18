@@ -23,7 +23,7 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
     }
     protected final ICUResourceBundle createBundleObject(String _key,
                                                          int _resource,
-                                                         HashMap<String, String> table,
+                                                         HashMap<String, String> aliasesVisited,
                                                          UResourceBundle requested,
                                                          boolean[] isAlias) {
         if (isAlias != null) {
@@ -39,9 +39,7 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
             if (isAlias != null) {
                 isAlias[0] = true;
             }
-            String _resPath = getResPath(new StringBuilder()).
-                    append(RES_PATH_SEP_CHAR).append(_key).toString();
-            return findResource(_key, _resPath, _resource, table, requested);
+            return getAliasedResource(_key, _resource, aliasesVisited, requested);
         case INT:
             return new ICUResourceBundleImpl.ResourceInt(this, _key, _resource);
         case INT_VECTOR:
@@ -151,13 +149,13 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
         protected int getContainerResource(int index) {
             return value.getContainerResource(wholeBundle.reader, index);
         }
-        protected UResourceBundle createBundleObject(int index, String resKey, HashMap<String, String> table,
+        protected UResourceBundle createBundleObject(int index, String resKey, HashMap<String, String> aliasesVisited,
                                                      UResourceBundle requested, boolean[] isAlias) {
             int item = getContainerResource(index);
             if (item == RES_BOGUS) {
                 throw new IndexOutOfBoundsException();
             }
-            return createBundleObject(resKey, item, table, requested, isAlias);
+            return createBundleObject(resKey, item, aliasesVisited, requested, isAlias);
         }
 
         // Resource bundle lookup cache, which may be used by subclasses
@@ -169,7 +167,7 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
             lookup = new SimpleCache<Object, UResourceBundle>(ICUCache.WEAK, Math.max(getSize()*2, MAX_INITIAL_LOOKUP_SIZE));
         }
 
-        protected UResourceBundle handleGet(String resKey, HashMap<String, String> table, UResourceBundle requested) {
+        protected UResourceBundle handleGet(String resKey, HashMap<String, String> aliasesVisited, UResourceBundle requested) {
             UResourceBundle res = null;
             if (lookup != null) {
                 res = lookup.get(resKey);
@@ -177,7 +175,7 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
             if (res == null) {
                 int[] index = new int[1];
                 boolean[] alias = new boolean[1];
-                res = handleGetImpl(resKey, table, requested, index, alias);
+                res = handleGetImpl(resKey, aliasesVisited, requested, index, alias);
                 if (res != null && lookup != null && !alias[0]) {
                     // We do not want to cache a result from alias entry
                     lookup.put(resKey, res);
@@ -187,7 +185,7 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
             return res;
         }
 
-        protected UResourceBundle handleGet(int index, HashMap<String, String> table, UResourceBundle requested) {
+        protected UResourceBundle handleGet(int index, HashMap<String, String> aliasesVisited, UResourceBundle requested) {
             UResourceBundle res = null;
             Integer indexKey = null;
             if (lookup != null) {
@@ -196,7 +194,7 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
             } 
             if (res == null) {
                 boolean[] alias = new boolean[1];
-                res = handleGetImpl(index, table, requested, alias);
+                res = handleGetImpl(index, aliasesVisited, requested, alias);
                 if (res != null && lookup != null && !alias[0]) {
                     // We do not want to cache a result from alias entry
                     lookup.put(res.getKey(), res);
@@ -208,12 +206,12 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
 
         // Subclass which supports key based resource access to implement this method
         protected abstract UResourceBundle handleGetImpl(
-                String resKey, HashMap<String, String> table, UResourceBundle requested,
+                String resKey, HashMap<String, String> aliasesVisited, UResourceBundle requested,
                 int[] index, boolean[] isAlias);
 
         // Subclass which supports index based resource access to implement this method
         protected abstract UResourceBundle handleGetImpl(
-                int index, HashMap<String, String> table, UResourceBundle requested,
+                int index, HashMap<String, String> aliasesVisited, UResourceBundle requested,
                 boolean[] isAlias);
 
         ResourceContainer(ICUResourceBundleImpl container, String key) {
@@ -243,7 +241,7 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
         public String[] getStringArray() {
             return handleGetStringArray();
         }
-        protected UResourceBundle handleGetImpl(String indexStr, HashMap<String, String> table,
+        protected UResourceBundle handleGetImpl(String indexStr, HashMap<String, String> aliasesVisited,
                                                 UResourceBundle requested,
                                                 int[] index, boolean[] isAlias) {
             int i = indexStr.length() > 0 ? Integer.valueOf(indexStr).intValue() : -1;
@@ -253,11 +251,11 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
             if (i < 0) {
                 throw new UResourceTypeMismatchException("Could not get the correct value for index: "+ indexStr);
             }
-            return createBundleObject(i, indexStr, table, requested, isAlias);
+            return createBundleObject(i, indexStr, aliasesVisited, requested, isAlias);
         }
-        protected UResourceBundle handleGetImpl(int index, HashMap<String, String> table,
+        protected UResourceBundle handleGetImpl(int index, HashMap<String, String> aliasesVisited,
                                                 UResourceBundle requested, boolean[] isAlias) {
-            return createBundleObject(index, Integer.toString(index), table, requested, isAlias);
+            return createBundleObject(index, Integer.toString(index), aliasesVisited, requested, isAlias);
         }
         ResourceArray(ICUResourceBundleImpl container, String key, int resource) {
             super(container, key);
@@ -281,7 +279,7 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
             }
             return keySet;
         }
-        protected UResourceBundle handleGetImpl(String resKey, HashMap<String, String> table,
+        protected UResourceBundle handleGetImpl(String resKey, HashMap<String, String> aliasesVisited,
                                                 UResourceBundle requested,
                                                 int[] index, boolean[] isAlias) {
             int i = ((ICUResourceBundleReader.Table)value).findTableItem(wholeBundle.reader, resKey);
@@ -291,15 +289,15 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
             if (i < 0) {
                 return null;
             }
-            return createBundleObject(i, resKey, table, requested, isAlias);
+            return createBundleObject(i, resKey, aliasesVisited, requested, isAlias);
         }
-        protected UResourceBundle handleGetImpl(int index, HashMap<String, String> table,
+        protected UResourceBundle handleGetImpl(int index, HashMap<String, String> aliasesVisited,
                                                 UResourceBundle requested, boolean[] isAlias) {
             String itemKey = ((ICUResourceBundleReader.Table)value).getKey(wholeBundle.reader, index);
             if (itemKey == null) {
                 throw new IndexOutOfBoundsException();
             }
-            return createBundleObject(index, itemKey, table, requested, isAlias);
+            return createBundleObject(index, itemKey, aliasesVisited, requested, isAlias);
         }
         @Override
         protected Object handleGetObject(String key) {
@@ -341,7 +339,7 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
         /**
          * Returns a String if found, or null if not found or if the key item is not a string.
          */
-        String getStringOrNull(String key) {
+        String findString(String key) {
             ICUResourceBundleReader reader = wholeBundle.reader;
             int index = ((ICUResourceBundleReader.Table)value).findTableItem(reader, key);
             if (index < 0) {
