@@ -3919,9 +3919,6 @@ public class SimpleDateFormat extends DateFormat {
      * 1 symbol field is enough for multiple symbol fields (so "y" will override "yy", "yyy")
      * If the field is not numeric, then override has no effect (like "MMM" will use abbreviation, not numerical field)
      * 
-     * To see the full explanations of all supported symbols:
-     * http://unicode.org/repos/cldr/trunk/specs/ldml/tr35-dates.html#Date_Field_Symbol_Table
-     * 
      * @param fields the fields to override
      * @param nf the NumbeferFormat used
      * @draft ICU 54
