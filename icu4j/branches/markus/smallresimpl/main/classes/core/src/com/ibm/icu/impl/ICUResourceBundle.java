@@ -23,7 +23,6 @@ import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.Set;
-import java.util.StringTokenizer;
 
 import com.ibm.icu.impl.URLHandler.URLVisitor;
 import com.ibm.icu.util.Output;
@@ -837,42 +836,51 @@ public  class ICUResourceBundle extends UResourceBundle {
         getResPathKeys(path, numPathKeys, keys, depth);
 
         for (;;) {  // Iterate over the parent bundles.
-            ICUResourceBundle currentBase = base;
             for (;;) {  // Iterate over the keys on the requested path, within a bundle.
                 String subKey = keys[depth++];
-                if (outString != null && depth == keys.length && currentBase instanceof ICUResourceBundleImpl.ResourceTable) {
-                    String s = ((ICUResourceBundleImpl.ResourceTable)currentBase).findString(subKey);
+                if (outString != null && depth == keys.length && base instanceof ICUResourceBundleImpl.ResourceTable) {
+                    String s = ((ICUResourceBundleImpl.ResourceTable)base).findString(subKey);
                     if (s != null) {
                         outString.value = s;
                         return null;
                     }
                 }
-                sub = (ICUResourceBundle) currentBase.handleGet(subKey, null, requested);
+                sub = (ICUResourceBundle) base.handleGet(subKey, null, requested);
                 if (sub == null) {
+                    --depth;
                     break;
                 }
                 if (depth == keys.length) {
                     // We found it.
-                    if (outString != null && sub.getType() == STRING) {
-                        outString.value = sub.getString();  // string from alias handling
+                    if (outString != null) {
+                        if (sub.getType() == STRING) {
+                            outString.value = sub.getString();  // string from alias handling
+                        }
                         return null;
                     }
                     sub.setLoadingStatus(((ICUResourceBundle)requested).getLocaleID());
                     return sub;
                 }
-                currentBase = sub;
+                base = sub;
             }
-            // Try the parent bundle - note, getParent() returns the bundle root.
+            // Try the parent bundle of the last-found resource.
             ICUResourceBundle nextBase = (ICUResourceBundle)base.getParent();
             if (nextBase == null) {
                 return null;
             }
-            if (baseDepth > 0) {
-                base.getResPathKeys(keys, baseDepth);
-                baseDepth = 0;
+            // If we followed an alias, then we may have switched bundle (locale) and key path.
+            // Set the lower parts of the path according to the last-found resource.
+            // This relies on a resource found via alias to have its original location information,
+            // rather than the location of the alias.
+            int realDepth = base.getResDepth();
+            if (depth != realDepth) {
+                String[] newKeys = new String[realDepth + (keys.length - depth)];
+                System.arraycopy(keys, depth, newKeys, realDepth, keys.length - depth);
+                keys = newKeys;
             }
+            base.getResPathKeys(keys, realDepth);
             base = nextBase;
-            depth = 0;
+            depth = 0;  // getParent() returned a top level table resource.
         }
     }
 
@@ -1279,24 +1287,24 @@ public  class ICUResourceBundle extends UResourceBundle {
                          loaderToUse, false);
             }
 
+            int numKeys;
+            String[] keys = null;
             if (keyPath != null) {
-                StringTokenizer st = new StringTokenizer(keyPath, "/");
-                ICUResourceBundle current = bundle;
-                while (st.hasMoreTokens()) {
-                    String subKey = st.nextToken();
-                    sub = (ICUResourceBundle)current.get(subKey, aliasesVisited, requested);
-                    if (sub == null) {
-                        break;
-                    }
-                    current = sub;
+                numKeys = countPathKeys(keyPath);
+                if (numKeys > 0) {
+                    keys = new String[numKeys];
+                    getResPathKeys(keyPath, numKeys, keys, 0);
                 }
             } else {
                 int depth = getResDepth();
-                String keys[] = new String[depth + 1];
+                numKeys = depth + 1;
+                keys = new String[numKeys];
                 getResPathKeys(keys, depth);
                 keys[depth] = key;
+            }
+            if (numKeys > 0) {
                 sub = bundle;
-                for (int i = 0; sub != null && i <= depth; ++i) {
+                for (int i = 0; sub != null && i < numKeys; ++i) {
                     sub = (ICUResourceBundle)sub.get(keys[i], aliasesVisited, requested);
                 }
             }
@@ -1305,7 +1313,10 @@ public  class ICUResourceBundle extends UResourceBundle {
             throw new MissingResourceException(wholeBundle.localeID, wholeBundle.baseName, key);
         }
         // TODO: If we know that sub is not cached,
-        // then we should set its container and key to the alias' location.
+        // then we should set its container and key to the alias' location,
+        // so that it behaves as if its value had been copied into the alias location.
+        // However, findResourceWithFallback() must reroute its bundle and key path
+        // to where the alias data comes from.
         return sub;
     }
 
