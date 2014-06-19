@@ -1967,12 +1967,13 @@ public class SimpleDateFormat extends DateFormat {
     }
 
     /**
-     * Overrides superclass method
-     * Modified at ICU 54, to clear all override Number Format used before
-     * @draft ICU 54
+     * Overrides superclass method and
+     * This method also clears per field NumberFormat instances 
+     * previously set by {@link #setNumberFormat(String, NumberFormat} 
+     * 
+     * @stable ICU 2.0
      */
     public void setNumberFormat(NumberFormat newNumberFormat) {
-        newNumberFormat.setGroupingUsed(false);
         // Override this method to update local zero padding number formatter
         super.setNumberFormat(newNumberFormat);
         initLocalZeroPaddingNumberFormat();
