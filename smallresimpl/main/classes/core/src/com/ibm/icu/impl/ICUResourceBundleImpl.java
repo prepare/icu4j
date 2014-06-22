@@ -39,7 +39,7 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
             if (isAlias != null) {
                 isAlias[0] = true;
             }
-            return getAliasedResource(_key, _resource, aliasesVisited, requested);
+            return getAliasedResource(this, null, 0, _key, _resource, aliasesVisited, requested);
         case INT:
             return new ICUResourceBundleImpl.ResourceInt(this, _key, _resource);
         case INT_VECTOR:
@@ -244,12 +244,9 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
         protected UResourceBundle handleGetImpl(String indexStr, HashMap<String, String> aliasesVisited,
                                                 UResourceBundle requested,
                                                 int[] index, boolean[] isAlias) {
-            int i = indexStr.length() > 0 ? Integer.valueOf(indexStr).intValue() : -1;
+            int i = indexStr.length() > 0 ? Integer.parseInt(indexStr) : -1;
             if(index != null) {
                 index[0] = i;
-            }
-            if (i < 0) {
-                throw new UResourceTypeMismatchException("Could not get the correct value for index: "+ indexStr);
             }
             return createBundleObject(i, indexStr, aliasesVisited, requested, isAlias);
         }
