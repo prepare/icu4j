@@ -680,20 +680,20 @@ public final class ICUResourceBundleTest extends TestFmwk {
         ULocale[] locales = ULocale.getAvailableLocales();
         for (int i = 0; i < locales.length; ++i) {
             if (!hasLocalizedCountryFor(ULocale.ENGLISH, locales[i]) && (locales[i].getLanguage().compareTo("ti") != 0)){ // TODO: restore test for ti_* when cldrbug 3058 is fixed
-                 errln("Could not get localized country for "+ locales[i]);
+                 errln("Could not get English localized country for " + locales[i]);
             }
             if(!hasLocalizedLanguageFor(ULocale.ENGLISH, locales[i])){
-                errln("Could not get localized language for "+ locales[i]);
+                errln("Could not get English localized language for " + locales[i]);
             }
             if(!hasLocalizedCountryFor(locales[i], locales[i]) &&
                     (locales[i].getLanguage().compareTo("ti") != 0) && // TODO: restore test for ti_* when cldrbug 3058 is fixed
                     (locales[i].getBaseName().compareTo("nl_CW") != 0) && // TODO: restore test for nl_CW when cldrbug 4306 is fixed
                     (locales[i].getBaseName().compareTo("nl_SX") != 0) ){ // TODO: restore test for nl_SX when cldrbug 4306 is fixed
-                errln("Could not get localized country for "+ locales[i]);
+                errln("Could not get native localized country for " + locales[i]);
                 hasLocalizedCountryFor(locales[i], locales[i]);
             }
             if(!hasLocalizedLanguageFor(locales[i], locales[i]) && (locales[i].getLanguage().compareTo("nmg") != 0)){
-                errln("Could not get localized language for "+ locales[i]);
+                errln("Could not get native localized language for " + locales[i]);
             }
 
             logln(locales[i] + "\t" + locales[i].getDisplayName(ULocale.ENGLISH) + "\t" + locales[i].getDisplayName(locales[i]));
