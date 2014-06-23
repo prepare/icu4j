@@ -290,7 +290,7 @@ public class MeasureFormat extends UFormat {
      * @provisional This API might change or be removed in a future release.
      */
     public static MeasureFormat getInstance(Locale locale, FormatWidth formatWidth, NumberFormat format) {
-        return getInstance(locale, formatWidth, format);
+        return getInstance(ULocale.forLocale(locale), formatWidth, format);
     }
 
     /**

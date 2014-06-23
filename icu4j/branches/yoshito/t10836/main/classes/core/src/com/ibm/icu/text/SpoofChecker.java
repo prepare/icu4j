@@ -587,8 +587,11 @@ public class SpoofChecker {
          * @provisional This API might change or be removed in a future release.
          */
         public Builder setAllowedJavaLocales(Set<Locale> locales) {
-            // TODO
-            return this;
+            HashSet<ULocale> ulocales = new HashSet<ULocale>(locales.size());
+            for (Locale locale : locales) {
+                ulocales.add(ULocale.forLocale(locale));
+            }
+            return setAllowedLocales(ulocales);
         }
 
         // Add (union) to the UnicodeSet all of the characters for the scripts
@@ -1477,8 +1480,11 @@ public class SpoofChecker {
      * @provisional This API might change or be removed in a future release.
      */
     public Set<Locale> getAllowedJavaLocales() {
-        // TODO
-        return null;
+        HashSet<Locale> locales = new HashSet<Locale>(fAllowedLocales.size());
+        for (ULocale uloc : fAllowedLocales) {
+            locales.add(uloc.toLocale());
+        }
+        return locales;
     }
 
     /**
