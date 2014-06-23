@@ -94,7 +94,7 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
      * @provisional This API might change or be removed in a future release.
      */
     public static DateTimePatternGenerator getInstance(Locale locale) {
-        return getFrozenInstance(ULocale.forLocale(locale));
+        return getInstance(ULocale.forLocale(locale));
     }
 
     /**
