@@ -1969,7 +1969,7 @@ public class SimpleDateFormat extends DateFormat {
     /**
      * Overrides superclass method and
      * This method also clears per field NumberFormat instances 
-     * previously set by {@link #setNumberFormat(String, NumberFormat} 
+     * previously set by {@link #setNumberFormat(String, NumberFormat)} 
      * 
      * @stable ICU 2.0
      */
