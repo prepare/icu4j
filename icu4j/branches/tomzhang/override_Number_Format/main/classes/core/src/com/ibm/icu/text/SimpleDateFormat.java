@@ -3921,11 +3921,11 @@ public class SimpleDateFormat extends DateFormat {
      * If the field is not numeric, then override has no effect (like "MMM" will use abbreviation, not numerical field)
      * 
      * @param fields the fields to override
-     * @param nf the NumbeferFormat used
+     * @param overrideNF the NumbeferFormat used
      * @draft ICU 54
      */
-    public void setNumberFormat(String fields, NumberFormat nf) {
-        nf.setGroupingUsed(false);
+    public void setNumberFormat(String fields, NumberFormat overrideNF) {
+        overrideNF.setGroupingUsed(false);
         // unique name used for mapping
         String nsName = "$" + Integer.toString(numberFormatCounter);
         numberFormatCounter++;
@@ -3946,7 +3946,7 @@ public class SimpleDateFormat extends DateFormat {
                 overrideMap.remove(field);
             }
             overrideMap.put(field, nsName);
-            numberFormatters.put(nsName, nf);
+            numberFormatters.put(nsName, overrideNF);
         }
 
         // Since one or more of the override number formatters might be complex,
