@@ -2318,7 +2318,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         ULocale uloc = f.getLocale(ULocale.ACTUAL_LOCALE);
         
         DateFormat sdfmt = new SimpleDateFormat();
-
+        
         if (f.hashCode() != f.hashCode()) {
             errln("hashCode is not stable");
         }
