@@ -1980,10 +1980,10 @@ public class SimpleDateFormat extends DateFormat {
         initializeTimeZoneFormat(true);
 
         if (numberFormatters != null) {
-            numberFormatters.clear();
+            numberFormatters = null;
         }
         if (overrideMap != null) {
-            overrideMap.clear();
+            overrideMap = null;
         }
     }
 
@@ -3910,7 +3910,13 @@ public class SimpleDateFormat extends DateFormat {
         return false;
     }
 
-    private static int numberFormatCounter = 0;
+    private int numberFormatCounter = 0;
+    private char[] validFields = {'G', 'y', 'Y', 'u', 'U', 'r', 'Q', 
+                                  'q', 'M', 'L', 'w', 'W', 'd', 'D',
+                                  'F', 'g', 'E', 'e', 'c', 'a', 'h',
+                                  'H', 'K', 'k', 'j', 'J', 'm', 's',
+                                  'S', 'A', 'z', 'Z', 'O', 'v', 'V',
+                                  'X', 'x'};
 
     /**
      * allow the user to set the NumberFormat for several fields
@@ -3921,8 +3927,10 @@ public class SimpleDateFormat extends DateFormat {
      * If the field is not numeric, then override has no effect (like "MMM" will use abbreviation, not numerical field)
      * 
      * @param fields the fields to override
-     * @param overrideNF the NumbeferFormat used
+     * @param overrideNF the NumbeferFormat used 
+     * @exception IllegalArgumentException when the fields contain invalid field
      * @draft ICU 54
+     * @provisional This API might change or be removed in a future release.
      */
     public void setNumberFormat(String fields, NumberFormat overrideNF) {
         overrideNF.setGroupingUsed(false);
@@ -3939,11 +3947,11 @@ public class SimpleDateFormat extends DateFormat {
         }
 
         // separate string into char and add to maps
-        char[] singleField = fields.toCharArray();
-        for (int i = 0; i < singleField.length; i++) {
-            char field = singleField[i];
-            if (overrideMap.containsKey(field)) {
-                overrideMap.remove(field);
+        for (int i = 0; i < fields.length(); i++) {
+            char field = fields.charAt(i);
+            if (new String(validFields).indexOf(field) == -1) {
+                throw new IllegalArgumentException("Illegal field character " +
+                                                   "'" + field + "' in setNumberFormat." );
             }
             overrideMap.put(field, nsName);
             numberFormatters.put(nsName, overrideNF);
@@ -3958,7 +3966,9 @@ public class SimpleDateFormat extends DateFormat {
      * give the NumberFormat used for the field like 'y'(year) and 'M'(year)
      *
      * @param field the field the user wants
+     * @return override NumberFormat used for the field
      * @draft ICU 54
+     * @provisional This API might change or be removed in a future release.
      */
     public NumberFormat getNumberFormat(char field) {
         Character ovrField;
@@ -4025,7 +4035,7 @@ public class SimpleDateFormat extends DateFormat {
                 useLocalZeroPaddingNumberFormat = false;
             }
 
-            if (!numberFormatters.containsKey(nsName)) {
+            if (!fullOverride && !numberFormatters.containsKey(nsName)) {
                   numberFormatters.put(nsName,nf);
             }
 
