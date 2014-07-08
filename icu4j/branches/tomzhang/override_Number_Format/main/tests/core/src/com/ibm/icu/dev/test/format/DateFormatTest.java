@@ -3903,20 +3903,25 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         SimpleDateFormat fmt = new SimpleDateFormat("MM/dd/yy z");
 
         // test override get/set NumberFormat
-        NumberFormat check_nf = NumberFormat.getInstance(new ULocale("en_US"));
         for (int i = 0; i < 100; i++) {
+            NumberFormat check_nf = NumberFormat.getInstance(new ULocale("en_US"));
             fmt.setNumberFormat("y", check_nf);
             NumberFormat get_nf = fmt.getNumberFormat('y');
             if (!get_nf.equals(check_nf))
                 errln("FAIL: getter and setter do not work");
         }
-        fmt.setNumberFormat(check_nf); // test the same override NF will not crash
+
+        NumberFormat reused_nf = NumberFormat.getInstance(new ULocale("en_US"));
+        fmt.setNumberFormat("y", reused_nf);
+        fmt.setNumberFormat(reused_nf); // test the same override NF will not crash
 
         // DATA[i][0] is to tell which field to set, DATA[i][1] is the expected result
         String[][] DATA = { 
                 { "", "\u521D\u516D \u5341\u4E94" }, 
                 { "M", "\u521D\u516D 15" },
+                { "Mo", "\u521D\u516D \u5341\u4E94" }, 
                 { "Md", "\u521D\u516D \u5341\u4E94" }, 
+                { "MdMMd", "\u521D\u516D \u5341\u4E94" }, 
                 { "mixed", "\u521D\u516D \u5341\u4E94" }, 
         };
 
@@ -3935,6 +3940,13 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 NumberFormat single_override = NumberFormat.getInstance(new ULocale("en@numbers=hebr"));
                 fmt.setNumberFormat("M", single_override);
                 fmt.setNumberFormat(override);
+            } else if (field == "Mo"){ // o is invalid field
+                try {
+                    fmt.setNumberFormat(field, override);
+                } catch (IllegalArgumentException e) {
+                    logln("IllegalArgumentException is thrown for invalid fields");
+                    continue;
+                }
             } else {
                 fmt.setNumberFormat(field, override);
             }
