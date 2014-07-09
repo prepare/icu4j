@@ -3911,12 +3911,8 @@ public class SimpleDateFormat extends DateFormat {
     }
 
     private int numberFormatCounter = 0;
-    private char[] validFields = {'G', 'y', 'Y', 'u', 'U', 'r', 'Q', 
-                                  'q', 'M', 'L', 'w', 'W', 'd', 'D',
-                                  'F', 'g', 'E', 'e', 'c', 'a', 'h',
-                                  'H', 'K', 'k', 'j', 'J', 'm', 's',
-                                  'S', 'A', 'z', 'Z', 'O', 'v', 'V',
-                                  'X', 'x'};
+    private char[] validFields = { 'G', 'y', 'Y', 'u', 'U', 'r', 'Q', 'q', 'M', 'L', 'w', 'W', 'd', 'D', 'F', 'g', 'E',
+            'e', 'c', 'a', 'h', 'H', 'K', 'k', 'j', 'J', 'm', 's', 'S', 'A', 'z', 'Z', 'O', 'v', 'V', 'X', 'x' };
 
     /**
      * allow the user to set the NumberFormat for several fields
@@ -3950,8 +3946,7 @@ public class SimpleDateFormat extends DateFormat {
         for (int i = 0; i < fields.length(); i++) {
             char field = fields.charAt(i);
             if (new String(validFields).indexOf(field) == -1) {
-                throw new IllegalArgumentException("Illegal field character " +
-                                                   "'" + field + "' in setNumberFormat." );
+                throw new IllegalArgumentException("Illegal field character " + "'" + field + "' in setNumberFormat.");
             }
             overrideMap.put(field, nsName);
             numberFormatters.put(nsName, overrideNF);
