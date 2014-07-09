@@ -3940,7 +3940,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 NumberFormat single_override = NumberFormat.getInstance(new ULocale("en@numbers=hebr"));
                 fmt.setNumberFormat("M", single_override);
                 fmt.setNumberFormat(override);
-            } else if (field == "Mo"){ // o is invalid field
+            } else if (field == "Mo") { // o is invalid field
                 try {
                     fmt.setNumberFormat(field, override);
                 } catch (IllegalArgumentException e) {
