@@ -29,6 +29,7 @@ import java.util.Set;
 
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.SoftCache;
+import com.ibm.icu.impl.TZDBTimeZoneNames;
 import com.ibm.icu.impl.TextTrieMap;
 import com.ibm.icu.impl.TimeZoneGenericNames;
 import com.ibm.icu.impl.TimeZoneGenericNames.GenericMatchInfo;
@@ -308,8 +309,17 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
          * by other styles.
          * @stable ICU 49
          */
-        ALL_STYLES;
-    }    
+        ALL_STYLES,
+        /**
+         * When parsing a time zone display name in {@link Style#SPECIFIC_SHORT},
+         * look for the IANA tz database compatible zone abbreviations in addition
+         * to the localized names coming from the {@link TimeZoneNames} currently
+         * used by the {@link TimeZoneFormat}. 
+         * @draft ICU 54
+         * @provisional This API might change or be removed in a future release.
+         */
+        TZ_DATABASE_ABBREVIATIONS;
+    }
 
     /*
      * fields to be serialized
@@ -321,6 +331,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     private String[] _gmtOffsetDigits;
     private String _gmtZeroFormat;
     private boolean _parseAllStyles;
+    private boolean _parseTZDBNames;
 
     /*
      * Transient fields
@@ -337,6 +348,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
 
     private transient boolean _frozen;
 
+    private transient volatile TimeZoneNames _tzdbNames;
 
     /*
      * Static final fields
@@ -506,6 +518,23 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             }
         }
         return _gnames;
+    }
+
+    /**
+     * Private method returning the instance of TZDBTimeZoneNames.
+     * The instance if used only for parsing when {@link ParseOption#TZ_DATABASE_ABBREVIATIONS}
+     * is enabled.
+     * @return an instance of TZDBTimeZoneNames.
+     */
+    private TimeZoneNames getTZDBTimeZoneNames() {
+        if (_tzdbNames == null) {
+            synchronized(this) {
+                if (_tzdbNames == null) {
+                    _tzdbNames = new TZDBTimeZoneNames(_locale);
+                }
+            }
+        }
+        return _tzdbNames;
     }
 
     /**
@@ -683,8 +712,8 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @stable ICU 49
      */
     public TimeZoneFormat setDefaultParseOptions(EnumSet<ParseOption> options) {
-        // Currently, only ALL_STYLES is supported
         _parseAllStyles = options.contains(ParseOption.ALL_STYLES);
+        _parseTZDBNames = options.contains(ParseOption.TZ_DATABASE_ABBREVIATIONS);
         return this;
     }
 
@@ -695,8 +724,12 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @stable ICU 49
      */
     public EnumSet<ParseOption> getDefaultParseOptions() {
-        if (_parseAllStyles) {
+        if (_parseAllStyles && _parseTZDBNames) {
+            return EnumSet.of(ParseOption.ALL_STYLES, ParseOption.TZ_DATABASE_ABBREVIATIONS);
+        } else if (_parseAllStyles) {
             return EnumSet.of(ParseOption.ALL_STYLES);
+        } else if (_parseTZDBNames) {
+            return EnumSet.of(ParseOption.TZ_DATABASE_ABBREVIATIONS);
         }
         return EnumSet.noneOf(ParseOption.class);
     }
@@ -1062,6 +1095,10 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             evaluated |= (Style.LOCALIZED_GMT.flag | Style.LOCALIZED_GMT_SHORT.flag);
         }
 
+        boolean parseTZDBAbbrev = (options == null) ?
+                getDefaultParseOptions().contains(ParseOption.TZ_DATABASE_ABBREVIATIONS)
+                : options.contains(ParseOption.TZ_DATABASE_ABBREVIATIONS);
+
         // Try the specified style
         switch (style) {
             case LOCALIZED_GMT:
@@ -1155,6 +1192,28 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                         timeType.value = getTimeType(specificMatch.nameType());
                         pos.setIndex(parsedPos);
                         return TimeZone.getTimeZone(getTimeZoneID(specificMatch.tzID(), specificMatch.mzID()));
+                    }
+                }
+
+                if (parseTZDBAbbrev && style == Style.SPECIFIC_SHORT) {
+                    assert nameTypes.contains(NameType.SHORT_STANDARD);
+                    assert nameTypes.contains(NameType.SHORT_DAYLIGHT);
+
+                    Collection<MatchInfo> tzdbNameMatches =
+                            getTZDBTimeZoneNames().find(text, startIdx, nameTypes);
+                    if (tzdbNameMatches != null) {
+                        MatchInfo tzdbNameMatch = null;
+                        for (MatchInfo match : tzdbNameMatches) {
+                            if (startIdx + match.matchLength() > parsedPos) {
+                                tzdbNameMatch = match;
+                                parsedPos = startIdx + match.matchLength();
+                            }
+                        }
+                        if (tzdbNameMatch != null) {
+                            timeType.value = getTimeType(tzdbNameMatch.nameType());
+                            pos.setIndex(parsedPos);
+                            return TimeZone.getTimeZone(getTimeZoneID(tzdbNameMatch.tzID(), tzdbNameMatch.mzID()));
+                        }
                     }
                 }
                 break;
@@ -1351,7 +1410,28 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                     parsedTimeType = getTimeType(specificMatch.nameType());
                     parsedOffset = UNKNOWN_OFFSET;
                 }
-                
+            }
+            if (parseTZDBAbbrev && parsedPos < maxPos && (evaluated & Style.SPECIFIC_SHORT.flag) == 0) {
+                //TODO
+                Collection<MatchInfo> tzdbNameMatches =
+                        getTZDBTimeZoneNames().find(text, startIdx, ALL_SIMPLE_NAME_TYPES);
+                MatchInfo tzdbNameMatch = null;
+                int matchPos = -1;
+                if (tzdbNameMatches != null) {
+                    for (MatchInfo match : tzdbNameMatches) {
+                        if (startIdx + match.matchLength() > matchPos) {
+                            tzdbNameMatch = match;
+                            matchPos = startIdx + match.matchLength();
+                        }
+                    }
+                    if (parsedPos < matchPos) {
+                        parsedPos = matchPos;
+                        parsedID = getTimeZoneID(tzdbNameMatch.tzID(), tzdbNameMatch.mzID());
+                        parsedTimeType = getTimeType(tzdbNameMatch.nameType());
+                        parsedOffset = UNKNOWN_OFFSET;
+                    }
+                }
+
             }
             // Try generic names
             if (parsedPos < maxPos) {
