@@ -1143,6 +1143,8 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                 abc.spanAndCount(s, 2, s.length(), SpanCondition.NOT_CONTAINED));
         assertEquals("3 line endings across 4 chars", 0x300000006L,
                 crlf.spanAndCount(s, 2, s.length(), SpanCondition.CONTAINED));
+        assertEquals("4 line ending chars & 1 supplementary", 0x500000008L,
+                ab_cd.spanAndCount(s, 2, s.length(), SpanCondition.NOT_CONTAINED));
         assertEquals("ab+cd", 0x20000000cL,
                 ab_cd.spanAndCount(s, 8, s.length(), SpanCondition.CONTAINED));
         assertEquals("1x abc", 0x10000000bL,
@@ -1157,6 +1159,8 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                 abc.spanAndCount(s, 2, s.length(), SpanCondition.NOT_CONTAINED));
         assertEquals("3 line endings across 4 chars (frozen)", 0x300000006L,
                 crlf.spanAndCount(s, 2, s.length(), SpanCondition.CONTAINED));
+        assertEquals("4 line ending chars & 1 supplementary (frozen)", 0x500000008L,
+                ab_cd.spanAndCount(s, 2, s.length(), SpanCondition.NOT_CONTAINED));
         assertEquals("ab+cd (frozen)", 0x20000000cL,
                 ab_cd.spanAndCount(s, 8, s.length(), SpanCondition.CONTAINED));
         assertEquals("1x abc (frozen)", 0x10000000bL,
