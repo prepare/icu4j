@@ -128,7 +128,7 @@ public final class BMPSet {
      * 
      * @param start The start index
      * @param outCount If not null: Receives the number of code points in the span.
-     * @return The length of the span.
+     * @return the limit (exclusive end) of the span
      *
      * NOTE: to reduce the overhead of function call to contains(c), it is manually inlined here. Check for
      * sufficient length for trail unit for each surrogate pair. Handle single surrogates as surrogate code points
@@ -219,11 +219,11 @@ public final class BMPSet {
                 ++i;
             }
         }
-        int spanLength = i - start;
         if (outCount != null) {
+            int spanLength = i - start;
             outCount.value = spanLength - numSupplementary;  // number of code points
         }
-        return spanLength;
+        return i;
     }
 
     /**
