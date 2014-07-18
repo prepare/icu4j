@@ -29,6 +29,7 @@ import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
 import com.ibm.icu.lang.UScript;
 import com.ibm.icu.util.Freezable;
+import com.ibm.icu.util.OutputInt;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.VersionInfo;
 
@@ -3938,35 +3939,36 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
         }
         if (bmpSet != null) {
             // Frozen set without strings, or no string is relevant for span().
-            return start + bmpSet.span(s, start, end, spanCondition);
+            return start + bmpSet.span(s, start, spanCondition, null);
         }
-        int len = end - start;
         if (stringSpan != null) {
-            return start + stringSpan.span(s, start, len, spanCondition);
+            return start + stringSpan.span(s, start, spanCondition);
         } else if (!strings.isEmpty()) {
             int which = spanCondition == SpanCondition.NOT_CONTAINED ? UnicodeSetStringSpan.FWD_UTF16_NOT_CONTAINED
                     : UnicodeSetStringSpan.FWD_UTF16_CONTAINED;
             UnicodeSetStringSpan strSpan = new UnicodeSetStringSpan(this, new ArrayList<String>(strings), which);
             if (strSpan.needsStringSpanUTF16()) {
-                return start + strSpan.span(s, start, len, spanCondition);
+                return start + strSpan.span(s, start, spanCondition);
             }
         }
 
-        return (int)spanCodePointsAndCount(s, start, end, spanCondition);
+        return spanCodePointsAndCount(s, start, spanCondition, null);
     }
 
     /**
      * Same as span() but also counts the smallest number of set elements on any path across the span.
      *
-     * @return the count in bits 63..32, and the limit (exclusive end) of the span in bits 31..0
+     * @param outCount An output-only object (must not be null) for returning the count.
+     * @return the limit (exclusive end) of the span
      * @internal
      * @deprecated This API is ICU internal only.
      */
     @Deprecated
-    public long spanAndCount(CharSequence s, int start, int end, SpanCondition spanCondition) {
-        if (end > s.length()) {
-            end = s.length();
+    public int spanAndCount(CharSequence s, int start, SpanCondition spanCondition, OutputInt outCount) {
+        if (outCount == null) {
+            throw new IllegalArgumentException("outCount must not be null");
         }
+        int end = s.length();
         if (start < 0) {
             start = 0;
         } else if (start >= end) {
@@ -3975,26 +3977,28 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
         if (stringSpan != null) {
             // We might also have bmpSet != null,
             // but fully-contained strings are relevant for counting elements.
-            return start + stringSpan.spanAndCount(s, start, end - start, spanCondition);
+            return start + stringSpan.spanAndCount(s, start, spanCondition, outCount);
         } else if (bmpSet != null) {
-            return start + bmpSet.spanAndCount(s, start, end, spanCondition);
+            return start + bmpSet.span(s, start, spanCondition, outCount);
         } else if (!strings.isEmpty()) {
             int which = spanCondition == SpanCondition.NOT_CONTAINED ? UnicodeSetStringSpan.FWD_UTF16_NOT_CONTAINED
                     : UnicodeSetStringSpan.FWD_UTF16_CONTAINED;
             which |= UnicodeSetStringSpan.WITH_COUNT;
             UnicodeSetStringSpan strSpan = new UnicodeSetStringSpan(this, new ArrayList<String>(strings), which);
-            return start + strSpan.spanAndCount(s, start, end - start, spanCondition);
+            return start + strSpan.spanAndCount(s, start, spanCondition, outCount);
         }
 
-        return spanCodePointsAndCount(s, start, end, spanCondition);
+        return spanCodePointsAndCount(s, start, spanCondition, outCount);
     }
 
-    private long spanCodePointsAndCount(CharSequence s, int start, int end, SpanCondition spanCondition) {
+    private int spanCodePointsAndCount(CharSequence s, int start,
+            SpanCondition spanCondition, OutputInt outCount) {
         // Pin to 0/1 values.
         boolean spanContained = (spanCondition != SpanCondition.NOT_CONTAINED);
 
         int c;
         int next = start;
+        int length = s.length();
         int count = 0;
         do {
             c = Character.codePointAt(s, next);
@@ -4003,8 +4007,9 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
             }
             ++count;
             next += Character.charCount(c);
-        } while (next < end);
-        return ((long)count << 32) | next;
+        } while (next < length);
+        if (outCount != null) { outCount.value = count; }
+        return next;
     }
 
     /**
@@ -4063,7 +4068,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
             if (spanContained != contains(c)) {
                 break;
             }
-            prev = Character.offsetByCodePoints(s, prev, -1);
+            prev -= Character.charCount(c);
         } while (prev > 0);
         return prev;
     }

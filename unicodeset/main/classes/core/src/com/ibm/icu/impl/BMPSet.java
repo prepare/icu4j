@@ -10,6 +10,7 @@
 package com.ibm.icu.impl;
 
 import com.ibm.icu.text.UnicodeSet.SpanCondition;
+import com.ibm.icu.util.OutputInt;
 
 /**
  * Helper class for frozen UnicodeSets, implements contains() and span() optimized for BMP code points.
@@ -126,26 +127,18 @@ public final class BMPSet {
      * spanCondition==0 or 1.
      * 
      * @param start The start index
-     * @param end   The end   index
+     * @param outCount If not null: Receives the number of code points in the span.
      * @return The length of the span.
      *
      * NOTE: to reduce the overhead of function call to contains(c), it is manually inlined here. Check for
      * sufficient length for trail unit for each surrogate pair. Handle single surrogates as surrogate code points
      * as usual in ICU.
      */
-    public final int span(CharSequence s, int start, int end, SpanCondition spanCondition) {
-        return (int)spanAndCount(s, start, end, spanCondition);
-    }
-
-    /**
-     * Same as span() but also counts the code points across the span.
-     *
-     * @return the count in bits 63..32, and the length of the span in bits 31..0
-     */
-    public final long spanAndCount(CharSequence s, int start, int end, SpanCondition spanCondition) {
+    public final int span(CharSequence s, int start, SpanCondition spanCondition,
+            OutputInt outCount) {
         char c, c2;
         int i = start;
-        int limit = Math.min(s.length(), end);
+        int limit = s.length();
         int numSupplementary = 0;
         if (SpanCondition.NOT_CONTAINED != spanCondition) {
             // span
@@ -227,8 +220,10 @@ public final class BMPSet {
             }
         }
         int spanLength = i - start;
-        long numCodePoints = spanLength - numSupplementary;
-        return (numCodePoints << 32) | spanLength;
+        if (outCount != null) {
+            outCount.value = spanLength - numSupplementary;  // number of code points
+        }
+        return spanLength;
     }
 
     /**
@@ -241,7 +236,6 @@ public final class BMPSet {
     public final int spanBack(CharSequence s, int limit, SpanCondition spanCondition) {
         char c, c2;
 
-        limit = Math.min(s.length(), limit);
         if (SpanCondition.NOT_CONTAINED != spanCondition) {
             // span
             for (;;) {
