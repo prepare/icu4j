@@ -338,7 +338,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      */
     private static UnicodeSet INCLUSIONS[] = null;
 
-    private BMPSet bmpSet; // The set is frozen iff either bmpSet or stringSpan is not null.
+    private BMPSet bmpSet; // The set is frozen if bmpSet or stringSpan is not null.
     private UnicodeSetStringSpan stringSpan;
     //----------------------------------------------------------------
     // Public API
@@ -492,6 +492,9 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @stable ICU 2.0
      */
     public Object clone() {
+        if (isFrozen()) {
+            return this;
+        }
         UnicodeSet result = new UnicodeSet(this);
         result.bmpSet = this.bmpSet;
         result.stringSpan = this.stringSpan;
@@ -3889,17 +3892,14 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
             // Optimize contains() and span() and similar functions.
             if (!strings.isEmpty()) {
                 stringSpan = new UnicodeSetStringSpan(this, new ArrayList<String>(strings), UnicodeSetStringSpan.ALL);
-                if (!stringSpan.needsStringSpanUTF16()) {
-                    // All strings are irrelevant for span() etc. because
-                    // all of each string's code points are contained in this set.
-                    // Do not check needsStringSpanUTF8() because UTF-8 has at most as
-                    // many relevant strings as UTF-16.
-                    // (Thus needsStringSpanUTF8() implies needsStringSpanUTF16().)
-                    stringSpan = null;
-                }
             }
-            if (stringSpan == null) {
-                // No span-relevant strings: Optimize for code point spans.
+            if (stringSpan == null || !stringSpan.needsStringSpanUTF16()) {
+                // Optimize for code point spans.
+                // There are no strings, or
+                // all strings are irrelevant for span() etc. because
+                // all of each string's code points are contained in this set.
+                // However, fully contained strings are relevant for spanAndCount(),
+                // so we create both objects.
                 bmpSet = new BMPSet(list, len);
             }
         }
@@ -3937,6 +3937,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
             return end;
         }
         if (bmpSet != null) {
+            // Frozen set without strings, or no string is relevant for span().
             return start + bmpSet.span(s, start, end, spanCondition);
         }
         int len = end - start;
@@ -3951,19 +3952,59 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
             }
         }
 
+        return (int)spanCodePointsAndCount(s, start, end, spanCondition);
+    }
+
+    /**
+     * Same as span() but also counts the smallest number of set elements on any path across the span.
+     *
+     * @return the count in bits 63..32, and the limit (exclusive end) of the span in bits 31..0
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    @Deprecated
+    public long spanAndCount(CharSequence s, int start, int end, SpanCondition spanCondition) {
+        if (end > s.length()) {
+            end = s.length();
+        }
+        if (start < 0) {
+            start = 0;
+        } else if (start >= end) {
+            return end;
+        }
+        if (stringSpan != null) {
+            // We might also have bmpSet != null,
+            // but fully-contained strings are relevant for counting elements.
+            return start + stringSpan.spanAndCount(s, start, end - start, spanCondition);
+        } else if (bmpSet != null) {
+            return start + bmpSet.spanAndCount(s, start, end, spanCondition);
+        } else if (!strings.isEmpty()) {
+            int which = spanCondition == SpanCondition.NOT_CONTAINED ? UnicodeSetStringSpan.FWD_UTF16_NOT_CONTAINED
+                    : UnicodeSetStringSpan.FWD_UTF16_CONTAINED;
+            which |= UnicodeSetStringSpan.WITH_COUNT;
+            UnicodeSetStringSpan strSpan = new UnicodeSetStringSpan(this, new ArrayList<String>(strings), which);
+            return start + strSpan.spanAndCount(s, start, end - start, spanCondition);
+        }
+
+        return spanCodePointsAndCount(s, start, end, spanCondition);
+    }
+
+    private long spanCodePointsAndCount(CharSequence s, int start, int end, SpanCondition spanCondition) {
         // Pin to 0/1 values.
         boolean spanContained = (spanCondition != SpanCondition.NOT_CONTAINED);
 
         int c;
         int next = start;
+        int count = 0;
         do {
             c = Character.codePointAt(s, next);
             if (spanContained != contains(c)) {
                 break;
             }
-            next = Character.offsetByCodePoints(s, next, 1);
+            ++count;
+            next += Character.charCount(c);
         } while (next < end);
-        return next;
+        return ((long)count << 32) | next;
     }
 
     /**
@@ -3997,6 +4038,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
             fromIndex = s.length();
         }
         if (bmpSet != null) {
+            // Frozen set without strings, or no string is relevant for spanBack().
             return bmpSet.spanBack(s, fromIndex, spanCondition);
         }
         if (stringSpan != null) {
@@ -4028,13 +4070,12 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
 
     /**
      * Clone a thawed version of this class, according to the Freezable interface.
-     * @return this
+     * @return the clone, not frozen
      * @stable ICU 4.4
      */
     public UnicodeSet cloneAsThawed() {
-        UnicodeSet result = (UnicodeSet) clone();
-        result.bmpSet = null;
-        result.stringSpan = null;
+        UnicodeSet result = new UnicodeSet(this);
+        assert !result.isFrozen();
         return result;
     }
 
