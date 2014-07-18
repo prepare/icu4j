@@ -12,6 +12,7 @@ import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
 import com.ibm.icu.text.UnicodeSet.SpanCondition;
 import com.ibm.icu.text.UnicodeSetIterator;
+import com.ibm.icu.util.OutputInt;
 
 /**
  * @test
@@ -41,7 +42,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
         }
         pos = set.span(string, 1, SpanCondition.SIMPLE);
         if (pos != 3) {
-            errln(String.format("FAIL: UnicodeSet(%s).span(%s) returns the wrong value pos %d (!= 3)",
+            errln(String.format("FAIL: UnicodeSet(%s).span(%s, 1) returns the wrong value pos %d (!= 3)",
                     set.toString(), string, pos));
         }
     }
@@ -1137,33 +1138,46 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
         // a set with no "irrelevant" string but some interesting overlaps
         UnicodeSet ab_cd = new UnicodeSet().add('a').add("ab").add("abc").add("cd");
         String s = "ab\n\r\r\n" + UTF16.valueOf(0x50000) + "abcde";
-        assertEquals("abc", 0x30000000bL,
-                abc.spanAndCount(s, 8, s.length(), SpanCondition.SIMPLE));
-        assertEquals("5 code points", 0x500000008L,
-                abc.spanAndCount(s, 2, s.length(), SpanCondition.NOT_CONTAINED));
-        assertEquals("3 line endings across 4 chars", 0x300000006L,
-                crlf.spanAndCount(s, 2, s.length(), SpanCondition.CONTAINED));
-        assertEquals("4 line ending chars & 1 supplementary", 0x500000008L,
-                ab_cd.spanAndCount(s, 2, s.length(), SpanCondition.NOT_CONTAINED));
-        assertEquals("ab+cd", 0x20000000cL,
-                ab_cd.spanAndCount(s, 8, s.length(), SpanCondition.CONTAINED));
-        assertEquals("1x abc", 0x10000000bL,
-                ab_cd.spanAndCount(s, 8, s.length(), SpanCondition.SIMPLE));
+        OutputInt count = new OutputInt();
+        assertEquals("abc span[8, 11[", 11,
+                abc.spanAndCount(s, 8, SpanCondition.SIMPLE, count));
+        assertEquals("abc count=3", 3, count.value);
+        assertEquals("no abc span[2, 8[", 8,
+                abc.spanAndCount(s, 2, SpanCondition.NOT_CONTAINED, count));
+        assertEquals("no abc count=5", 5, count.value);
+        assertEquals("line endings span[2, 6[", 6,
+                crlf.spanAndCount(s, 2, SpanCondition.CONTAINED, count));
+        assertEquals("line endings count=3", 3, count.value);
+        assertEquals("no ab+cd span[2, 8[", 8,
+                ab_cd.spanAndCount(s, 2, SpanCondition.NOT_CONTAINED, count));
+        assertEquals("no ab+cd count=5", 5, count.value);
+        assertEquals("ab+cd span[8, 12[", 12,
+                ab_cd.spanAndCount(s, 8, SpanCondition.CONTAINED, count));
+        assertEquals("ab+cd count=2", 2, count.value);
+        assertEquals("1x abc span[8, 11[", 11,
+                ab_cd.spanAndCount(s, 8, SpanCondition.SIMPLE, count));
+        assertEquals("1x abc count=1", 1, count.value);
 
         abc.freeze();
         crlf.freeze();
         ab_cd.freeze();
-        assertEquals("abc (frozen)", 0x30000000bL,
-                abc.spanAndCount(s, 8, s.length(), SpanCondition.SIMPLE));
-        assertEquals("5 code points (frozen)", 0x500000008L,
-                abc.spanAndCount(s, 2, s.length(), SpanCondition.NOT_CONTAINED));
-        assertEquals("3 line endings across 4 chars (frozen)", 0x300000006L,
-                crlf.spanAndCount(s, 2, s.length(), SpanCondition.CONTAINED));
-        assertEquals("4 line ending chars & 1 supplementary (frozen)", 0x500000008L,
-                ab_cd.spanAndCount(s, 2, s.length(), SpanCondition.NOT_CONTAINED));
-        assertEquals("ab+cd (frozen)", 0x20000000cL,
-                ab_cd.spanAndCount(s, 8, s.length(), SpanCondition.CONTAINED));
-        assertEquals("1x abc (frozen)", 0x10000000bL,
-                ab_cd.spanAndCount(s, 8, s.length(), SpanCondition.SIMPLE));
+        assertEquals("abc span[8, 11[ (frozen)", 11,
+                abc.spanAndCount(s, 8, SpanCondition.SIMPLE, count));
+        assertEquals("abc count=3 (frozen)", 3, count.value);
+        assertEquals("no abc span[2, 8[ (frozen)", 8,
+                abc.spanAndCount(s, 2, SpanCondition.NOT_CONTAINED, count));
+        assertEquals("no abc count=5 (frozen)", 5, count.value);
+        assertEquals("line endings span[2, 6[ (frozen)", 6,
+                crlf.spanAndCount(s, 2, SpanCondition.CONTAINED, count));
+        assertEquals("line endings count=3 (frozen)", 3, count.value);
+        assertEquals("no ab+cd span[2, 8[ (frozen)", 8,
+                ab_cd.spanAndCount(s, 2, SpanCondition.NOT_CONTAINED, count));
+        assertEquals("no ab+cd count=5 (frozen)", 5, count.value);
+        assertEquals("ab+cd span[8, 12[ (frozen)", 12,
+                ab_cd.spanAndCount(s, 8, SpanCondition.CONTAINED, count));
+        assertEquals("ab+cd count=2 (frozen)", 2, count.value);
+        assertEquals("1x abc span[8, 11[ (frozen)", 11,
+                ab_cd.spanAndCount(s, 8, SpanCondition.SIMPLE, count));
+        assertEquals("1x abc count=1 (frozen)", 1, count.value);
     }
 }

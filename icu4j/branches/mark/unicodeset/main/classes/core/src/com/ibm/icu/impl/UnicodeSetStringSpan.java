@@ -13,6 +13,7 @@ import java.util.ArrayList;
 
 import com.ibm.icu.text.UnicodeSet;
 import com.ibm.icu.text.UnicodeSet.SpanCondition;
+import com.ibm.icu.util.OutputInt;
 
 /*
  * Implement span() etc. for a set with strings.
@@ -354,24 +355,25 @@ public class UnicodeSetStringSpan {
      * @param spanCondition The span condition
      * @return the length of the span
      */
-    public int span(CharSequence s, int start, int length, SpanCondition spanCondition) {
+    public int span(CharSequence s, int start, SpanCondition spanCondition) {
         if (spanCondition == SpanCondition.NOT_CONTAINED) {
-            return spanNot(s, start, length);
+            return spanNot(s, start, null);
         }
-        int spanLength = spanSet.span(s.subSequence(start, start + length), SpanCondition.CONTAINED);
-        if (spanLength == length) {
-            return length;
+        int spanLimit = spanSet.span(s, start, SpanCondition.CONTAINED);
+        int spanLength = spanLimit - start;
+        if (spanLimit == s.length()) {
+            return spanLength;
         }
-        return spanWithStrings(s, start, length, spanLength, spanCondition);
+        return spanWithStrings(s, start, spanLength, spanCondition);
     }
 
     /**
      * Synchronized method for complicated spans using the offsets.
      * Avoids synchronization for simple cases.
      *
-     * @param spanLength = spanSet.span(s, start, CONTAINED) less than length
+     * @param spanLength = spanSet.span(s, start, CONTAINED)
      */
-    private synchronized int spanWithStrings(CharSequence s, int start, int length, int spanLength,
+    private synchronized int spanWithStrings(CharSequence s, int start, int spanLength,
             SpanCondition spanCondition) {
         // Consider strings; they may overlap with the span.
         int initSize = 0;
@@ -380,8 +382,9 @@ public class UnicodeSetStringSpan {
             initSize = maxLength16;
         }
         offsets.setMaxLength(initSize);
+        int limit = s.length();
+        int length = limit - start;
         int pos = start + spanLength, rest = length - spanLength;
-        int limit = start + length;
         int i, stringsLength = strings.size();
         for (;;) {
             if (spanCondition == SpanCondition.CONTAINED) {
@@ -489,7 +492,8 @@ public class UnicodeSetStringSpan {
                 if (offsets.isEmpty()) {
                     // No more strings matched after a previous string match.
                     // Try another code point span from after the last string match.
-                    spanLength = spanSet.span(s.subSequence(pos, pos + rest), SpanCondition.CONTAINED);
+                    int spanLimit = spanSet.span(s, pos, SpanCondition.CONTAINED);
+                    spanLength = spanLimit - pos;
                     if (spanLength == rest || // Reached the end of the string, or
                             spanLength == 0 // neither strings nor span progressed.
                     ) {
@@ -519,7 +523,7 @@ public class UnicodeSetStringSpan {
                     // Match strings from after the next string match.
                 }
             }
-            int minOffset = offsets.popMinimum();
+            int minOffset = offsets.popMinimum(null);
             pos += minOffset;
             rest -= minOffset;
             spanLength = 0; // Match strings from after a string match.
@@ -537,22 +541,24 @@ public class UnicodeSetStringSpan {
      * @param s The string to be spanned
      * @param start The start index that the span begins
      * @param spanCondition The span condition
-     * @return the count in bits 63..32, and the length of the span in bits 31..0
+     * @param outCount The count
+     * @return the length of the span
      */
-    public long spanAndCount(CharSequence s, int start, int length, SpanCondition spanCondition) {
+    public int spanAndCount(CharSequence s, int start, SpanCondition spanCondition,
+            OutputInt outCount) {
         if (spanCondition == SpanCondition.NOT_CONTAINED) {
-            return spanNotAndCount(s, start, length);
+            return spanNot(s, start, outCount);
         }
         // Consider strings; they may overlap with the span,
         // and they may result in a smaller count that with just code points.
         if (spanCondition == SpanCondition.CONTAINED) {
-            return spanContainedAndCount(s, start, length);
+            return spanContainedAndCount(s, start, outCount);
         }
         // SIMPLE (not synchronized, does not use offsets)
         int stringsLength = strings.size();
+        int limit = s.length();
         int pos = start;
-        int rest = length;
-        int limit = start + length;
+        int rest = limit - start;
         int count = 0;
         while (rest != 0) {
             // Try to match the next code point.
@@ -569,23 +575,25 @@ public class UnicodeSetStringSpan {
             }
             // We are done if there is no match beyond pos.
             if (maxInc == 0) {
-                return makeCountAndLength(count, pos - start);
+                outCount.value = count;
+                return pos - start;
             }
             // Continue from the longest match.
             ++count;
             pos += maxInc;
             rest -= maxInc;
         }
-        return makeCountAndLength(count, length);
+        outCount.value = count;
+        return pos - start;
     }
 
-    private synchronized long spanContainedAndCount(CharSequence s, int start, int length) {
+    private synchronized int spanContainedAndCount(CharSequence s, int start, OutputInt outCount) {
         // Use offset list to try all possibilities.
         offsets.setMaxLength(maxLength16);
         int stringsLength = strings.size();
+        int limit = s.length();
         int pos = start;
-        int rest = length;
-        int limit = start + length;
+        int rest = limit - start;
         int count = 0;
         while (rest != 0) {
             // Try to match the next code point.
@@ -606,16 +614,17 @@ public class UnicodeSetStringSpan {
             }
             // We are done if there is no match beyond pos.
             if (offsets.isEmpty()) {
-                return makeCountAndLength(count, pos - start);
+                outCount.value = count;
+                return pos - start;
             }
             // Continue from the nearest match.
-            long countAndMin = offsets.popCountAndMinimum();
-            count = (int)(countAndMin >> 32);
-            int minOffset = (int)countAndMin;
+            int minOffset = offsets.popMinimum(outCount);
+            count = outCount.value;
             pos += minOffset;
             rest -= minOffset;
         }
-        return makeCountAndLength(count, length);
+        outCount.value = count;
+        return pos - start;
     }
 
     /**
@@ -782,7 +791,7 @@ public class UnicodeSetStringSpan {
                     // Match strings from before the next string match.
                 }
             }
-            pos -= offsets.popMinimum();
+            pos -= offsets.popMinimum(null);
             spanLength = 0; // Match strings from before a string match.
         }
     }
@@ -813,42 +822,38 @@ public class UnicodeSetStringSpan {
      *     This happens for set-string-initial code points that were added to spanNotSet
      *     when there is not actually a match for such a set string.
      *
-     * @return the length of the span
-     */
-    private int spanNot(CharSequence s, int start, int length) {
-        return (int)spanNotAndCount(s, start, length);
-    }
-
-    /**
-     * Same as spanNot() but also counts the code points across the span.
-     *
      * @param s The string to be spanned
      * @param start The start index that the span begins
-     * @param length The maximum length of the span
-     * @return the count in bits 63..32, and the length of the span in bits 31..0
+     * @param outCount If not null: Receives the number of code points across the span.
+     * @return the length of the span
      */
-    private long spanNotAndCount(CharSequence s, int start, int length) {
+    private int spanNot(CharSequence s, int start, OutputInt outCount) {
+        int limit = s.length();
+        int length = limit - start;
         int pos = start, rest = length;
-        int limit = start + length;
         int stringsLength = strings.size();
         int count = 0;
         do {
             // Span until we find a code point from the set,
             // or a code point that starts or ends some string.
-            long countAndLimit = spanNotSet.spanAndCount(s, pos, pos + rest, SpanCondition.NOT_CONTAINED);
-            count += (int)(countAndLimit >> 32);
-            int spanLength = (int)countAndLimit - pos;
-            if (spanLength == rest) {
-                return makeCountAndLength(count, length); // Reached the end of the string.
+            int spanLimit;
+            if (outCount == null) {
+                spanLimit = spanNotSet.span(s, pos, SpanCondition.NOT_CONTAINED);
+            } else {
+                spanLimit = spanNotSet.spanAndCount(s, pos, SpanCondition.NOT_CONTAINED, outCount);
+                outCount.value = count = count + outCount.value;
             }
-            pos += spanLength;
-            rest -= spanLength;
+            if (spanLimit == limit) {
+                return length; // Reached the end of the string.
+            }
+            pos = spanLimit;
+            rest = limit - spanLimit;
 
             // Check whether the current code point is in the original set,
             // without the string starts and ends.
             int cpLength = spanOne(spanSet, s, pos, rest);
             if (cpLength > 0) {
-                return makeCountAndLength(count, pos - start); // There is a set element at pos.
+                return pos - start; // There is a set element at pos.
             }
 
             // Try to match the strings at pos.
@@ -860,7 +865,7 @@ public class UnicodeSetStringSpan {
 
                 int length16 = string.length();
                 if (length16 <= rest && matches16CPB(s, pos, limit, string, length16)) {
-                    return makeCountAndLength(count, pos - start); // There is a set element at pos.
+                    return pos - start; // There is a set element at pos.
                 }
             }
 
@@ -871,7 +876,10 @@ public class UnicodeSetStringSpan {
             rest += cpLength;
             ++count;
         } while (rest != 0);
-        return makeCountAndLength(count, length); // Reached the end of the string.
+        if (outCount != null) {
+            outCount.value = count;
+        }
+        return length; // Reached the end of the string.
     }
 
     private int spanNotBack(CharSequence s, int length) {
@@ -976,10 +984,6 @@ public class UnicodeSetStringSpan {
             }
         }
         return set.contains(c) ? 1 : -1;
-    }
-
-    private static final long makeCountAndLength(int count, int length) {
-        return ((long)count << 32) | length;
     }
 
     /**
@@ -1121,16 +1125,7 @@ public class UnicodeSetStringSpan {
          * and reduces all other offsets by this minimum.
          * @return min=[1..maxLength]
          */
-        public int popMinimum() {
-            return (int)popCountAndMinimum();
-        }
-
-        /**
-         * Finds the lowest stored offset from a non-empty list, removes it,
-         * and reduces all other offsets by this minimum.
-         * @return the count in bits 63..32, and min=[1..maxLength] in bits 31..0
-         */
-        public long popCountAndMinimum() {
+        public int popMinimum(OutputInt outCount) {
             // Look for the next offset in list[start+1..list.length-1].
             int i = start, result;
             while (++i < list.length) {
@@ -1140,7 +1135,8 @@ public class UnicodeSetStringSpan {
                     --length;
                     result = i - start;
                     start = i;
-                    return ((long)count << 32) | result;
+                    if (outCount != null) { outCount.value = count; }
+                    return result;
                 }
             }
             // i==list.length
@@ -1156,7 +1152,8 @@ public class UnicodeSetStringSpan {
             list[i] = 0;
             --length;
             start = i;
-            return ((long)count << 32) | (result + i);
+            if (outCount != null) { outCount.value = count; }
+            return result + i;
         }
     }
 }
