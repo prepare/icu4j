@@ -6,12 +6,13 @@
  */
 package com.ibm.icu.dev.test.lang;
 
+import java.util.Collection;
+
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
 import com.ibm.icu.text.UnicodeSet.SpanCondition;
-import com.ibm.icu.text.UnicodeSetIterator;
 import com.ibm.icu.util.OutputInt;
 
 /**
@@ -130,33 +131,15 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
     // more complex test. --------------------------------------------------------
 
     // Make the strings in a UnicodeSet easily accessible.
-    static class UnicodeSetWithStrings {
-
+    private static class UnicodeSetWithStrings {
         private UnicodeSet set;
-
-        private String strings[];
+        private Collection<String> setStrings;
         private int stringsLength;
-        private boolean hasSurrogates;
 
         public UnicodeSetWithStrings(final UnicodeSet normalSet) {
             set = normalSet;
-            stringsLength = 0;
-            hasSurrogates = false;
-            strings = new String[20];
-            int size = set.size();
-            if (size > 0 && set.charAt(size - 1) < 0) {
-                // If a set's last element is not a code point, then it must contain strings.
-                // Iterate over the set, skip all code point ranges, and cache the strings.
-                UnicodeSetIterator iter = new UnicodeSetIterator(set);
-                while (iter.nextRange() && stringsLength < strings.length) {
-                    if (iter.codepoint == UnicodeSetIterator.IS_STRING) {
-                        // Store the pointer to the set's string element
-                        // which we happen to know is a stable pointer.
-                        strings[stringsLength] = iter.getString();
-                        ++stringsLength;
-                    }
-                }
-            }
+            setStrings = normalSet.strings();
+            stringsLength = setStrings.size();
         }
 
         public final UnicodeSet getSet() {
@@ -167,34 +150,9 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
             return (stringsLength > 0);
         }
 
-        public boolean hasStringsWithSurrogates() {
-            return hasSurrogates;
+        public Iterable<String> strings() {
+            return setStrings;
         }
-
-    }
-
-    static class UnicodeSetWithStringsIterator {
-
-        private UnicodeSetWithStrings fSet;
-        private int nextStringIndex;
-
-        public UnicodeSetWithStringsIterator(final UnicodeSetWithStrings set) {
-            fSet = set;
-            nextStringIndex = 0;
-        }
-
-        public void reset() {
-            nextStringIndex = 0;
-        }
-
-        public final String nextString() {
-            if (nextStringIndex < fSet.stringsLength) {
-                return fSet.strings[nextStringIndex++];
-            } else {
-                return null;
-            }
-        }
-
     }
 
     // Compare 16-bit Unicode strings (which may be malformed UTF-16)
@@ -232,7 +190,6 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
             }
             return prev;
         } else if (spanCondition == SpanCondition.NOT_CONTAINED) {
-            UnicodeSetWithStringsIterator iter = new UnicodeSetWithStringsIterator(set);
             int c;
             int start, next;
             for (start = next = 0; start < length;) {
@@ -241,9 +198,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                 if (realSet.contains(c)) {
                     break;
                 }
-                String str;
-                iter.reset();
-                while ((str = iter.nextString()) != null) {
+                for (String str : set.strings()) {
                     if (str.length() <= (length - start) && matches16CPB(s, start, length, str)) {
                         // spanNeedsStrings=true;
                         return start;
@@ -253,7 +208,6 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
             }
             return start;
         } else /* CONTAINED or SIMPLE */{
-            UnicodeSetWithStringsIterator iter = new UnicodeSetWithStringsIterator(set);
             int c;
             int start, next, maxSpanLimit = 0;
             for (start = next = 0; start < length;) {
@@ -262,9 +216,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                 if (!realSet.contains(c)) {
                     next = start; // Do not span this single, not-contained code point.
                 }
-                String str;
-                iter.reset();
-                while ((str = iter.nextString()) != null) {
+                for (String str : set.strings()) {
                     if (str.length() <= (length - start) && matches16CPB(s, start, length, str)) {
                         // spanNeedsStrings=true;
                         int matchLimit = start + str.length();
@@ -337,7 +289,6 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
             } while (prev > 0);
             return prev;
         } else if (spanCondition == SpanCondition.NOT_CONTAINED) {
-            UnicodeSetWithStringsIterator iter = new UnicodeSetWithStringsIterator(set);
             int c;
             int prev = length, length0 = length;
             do {
@@ -345,9 +296,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                 if (realSet.contains(c)) {
                     break;
                 }
-                String str;
-                iter.reset();
-                while ((str = iter.nextString()) != null) {
+                for (String str : set.strings()) {
                     if (str.length() <= prev && matches16CPB(s, prev - str.length(), length0, str)) {
                         // spanNeedsStrings=true;
                         return prev;
@@ -357,7 +306,6 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
             } while (prev > 0);
             return prev;
         } else /* SpanCondition.CONTAINED or SIMPLE */{
-            UnicodeSetWithStringsIterator iter = new UnicodeSetWithStringsIterator(set);
             int c;
             int prev = length, minSpanStart = length, length0 = length;
             do {
@@ -366,9 +314,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                 if (!realSet.contains(c)) {
                     length = prev; // Do not span this single, not-contained code point.
                 }
-                String str;
-                iter.reset();
-                while ((str = iter.nextString()) != null) {
+                for (String str : set.strings()) {
                     if (str.length() <= prev && matches16CPB(s, prev - str.length(), length0, str)) {
                         // spanNeedsStrings=true;
                         int matchStart = prev - str.length();
@@ -617,7 +563,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
      * input expectCount<0).
      */
     void verifySpan(final UnicodeSetWithStrings sets[], final String s, int whichSpans,
-            int expectLimits[], int expectCount, // TODO
+            int expectLimits[], int expectCount,
             final String testName, int index) {
         int[] limits = new int[500];
         int limitsCount;
