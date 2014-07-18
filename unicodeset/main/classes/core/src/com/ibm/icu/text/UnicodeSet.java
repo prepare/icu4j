@@ -3939,16 +3939,16 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
         }
         if (bmpSet != null) {
             // Frozen set without strings, or no string is relevant for span().
-            return start + bmpSet.span(s, start, spanCondition, null);
+            return bmpSet.span(s, start, spanCondition, null);
         }
         if (stringSpan != null) {
-            return start + stringSpan.span(s, start, spanCondition);
+            return stringSpan.span(s, start, spanCondition);
         } else if (!strings.isEmpty()) {
             int which = spanCondition == SpanCondition.NOT_CONTAINED ? UnicodeSetStringSpan.FWD_UTF16_NOT_CONTAINED
                     : UnicodeSetStringSpan.FWD_UTF16_CONTAINED;
             UnicodeSetStringSpan strSpan = new UnicodeSetStringSpan(this, new ArrayList<String>(strings), which);
             if (strSpan.needsStringSpanUTF16()) {
-                return start + strSpan.span(s, start, spanCondition);
+                return strSpan.span(s, start, spanCondition);
             }
         }
 
@@ -3977,15 +3977,15 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
         if (stringSpan != null) {
             // We might also have bmpSet != null,
             // but fully-contained strings are relevant for counting elements.
-            return start + stringSpan.spanAndCount(s, start, spanCondition, outCount);
+            return stringSpan.spanAndCount(s, start, spanCondition, outCount);
         } else if (bmpSet != null) {
-            return start + bmpSet.span(s, start, spanCondition, outCount);
+            return bmpSet.span(s, start, spanCondition, outCount);
         } else if (!strings.isEmpty()) {
             int which = spanCondition == SpanCondition.NOT_CONTAINED ? UnicodeSetStringSpan.FWD_UTF16_NOT_CONTAINED
                     : UnicodeSetStringSpan.FWD_UTF16_CONTAINED;
             which |= UnicodeSetStringSpan.WITH_COUNT;
             UnicodeSetStringSpan strSpan = new UnicodeSetStringSpan(this, new ArrayList<String>(strings), which);
-            return start + strSpan.spanAndCount(s, start, spanCondition, outCount);
+            return strSpan.spanAndCount(s, start, spanCondition, outCount);
         }
 
         return spanCodePointsAndCount(s, start, spanCondition, outCount);
