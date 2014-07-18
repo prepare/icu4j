@@ -81,6 +81,11 @@ public class UnicodeSetStringSpan {
      */
     public UnicodeSetStringSpan(final UnicodeSet set, final ArrayList<String> setStrings, int which) {
         spanSet = new UnicodeSet(0, 0x10ffff);
+        // TODO: With Java 6, just take the parent set's strings as is,
+        // as a NavigableSet<String>, rather than as an ArrayList copy of the set of strings.
+        // Then iterate via the first() and higher() methods.
+        // (We do not want to create multiple Iterator objects in each span().)
+        // See ICU ticket #7454.
         strings = setStrings;
         all = (which == ALL);
         spanSet.retainAll(set);
