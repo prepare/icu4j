@@ -1,7 +1,7 @@
 /*
  *******************************************************************************
- * Copyright (C) 2009-2011, International Business Machines Corporation and    *
- * others. All Rights Reserved.                                                *
+ * Copyright (C) 2009-2014, International Business Machines Corporation and
+ * others. All Rights Reserved.
  *******************************************************************************
  */
 package com.ibm.icu.dev.test.lang;
@@ -1129,4 +1129,37 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
         }
     }
 
+    public void TestSpanAndCount() {
+        // a set with no strings
+        UnicodeSet abc = new UnicodeSet('a', 'c');
+        // a set with an "irrelevant" string (fully contained in the code point set)
+        UnicodeSet crlf = new UnicodeSet().add('\n').add('\r').add("\r\n");
+        // a set with no "irrelevant" string but some interesting overlaps
+        UnicodeSet ab_cd = new UnicodeSet().add('a').add("ab").add("abc").add("cd");
+        String s = "ab\n\r\r\n" + UTF16.valueOf(0x50000) + "abcde";
+        assertEquals("abc", 0x30000000bL,
+                abc.spanAndCount(s, 8, s.length(), SpanCondition.SIMPLE));
+        assertEquals("5 code points", 0x500000008L,
+                abc.spanAndCount(s, 2, s.length(), SpanCondition.NOT_CONTAINED));
+        assertEquals("3 line endings across 4 chars", 0x300000006L,
+                crlf.spanAndCount(s, 2, s.length(), SpanCondition.CONTAINED));
+        assertEquals("ab+cd", 0x20000000cL,
+                ab_cd.spanAndCount(s, 8, s.length(), SpanCondition.CONTAINED));
+        assertEquals("1x abc", 0x10000000bL,
+                ab_cd.spanAndCount(s, 8, s.length(), SpanCondition.SIMPLE));
+
+        abc.freeze();
+        crlf.freeze();
+        ab_cd.freeze();
+        assertEquals("abc (frozen)", 0x30000000bL,
+                abc.spanAndCount(s, 8, s.length(), SpanCondition.SIMPLE));
+        assertEquals("5 code points (frozen)", 0x500000008L,
+                abc.spanAndCount(s, 2, s.length(), SpanCondition.NOT_CONTAINED));
+        assertEquals("3 line endings across 4 chars (frozen)", 0x300000006L,
+                crlf.spanAndCount(s, 2, s.length(), SpanCondition.CONTAINED));
+        assertEquals("ab+cd (frozen)", 0x20000000cL,
+                ab_cd.spanAndCount(s, 8, s.length(), SpanCondition.CONTAINED));
+        assertEquals("1x abc (frozen)", 0x10000000bL,
+                ab_cd.spanAndCount(s, 8, s.length(), SpanCondition.SIMPLE));
+    }
 }
