@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.MissingResourceException;
+import java.util.UUID;
 
 import com.ibm.icu.impl.CalendarData;
 import com.ibm.icu.impl.DateNumberFormat;
@@ -3910,10 +3911,6 @@ public class SimpleDateFormat extends DateFormat {
         return false;
     }
 
-    private int numberFormatCounter = 0;
-    private char[] validFields = { 'G', 'y', 'Y', 'u', 'U', 'r', 'Q', 'q', 'M', 'L', 'w', 'W', 'd', 'D', 'F', 'g', 'E',
-            'e', 'c', 'a', 'h', 'H', 'K', 'k', 'j', 'J', 'm', 's', 'S', 'A', 'z', 'Z', 'O', 'v', 'V', 'X', 'x' };
-
     /**
      * allow the user to set the NumberFormat for several fields
      * It can be a single field like: "y"(year) or "M"(month)
@@ -3930,10 +3927,8 @@ public class SimpleDateFormat extends DateFormat {
      */
     public void setNumberFormat(String fields, NumberFormat overrideNF) {
         overrideNF.setGroupingUsed(false);
-        // unique name used for mapping
-        String nsName = "$" + Integer.toString(numberFormatCounter);
-        numberFormatCounter++;
-
+        String nsName = "$" + UUID.randomUUID().toString();
+        
         // initialize mapping if not there
         if (numberFormatters == null) {
             numberFormatters = new HashMap<String, NumberFormat>();
@@ -3945,7 +3940,7 @@ public class SimpleDateFormat extends DateFormat {
         // separate string into char and add to maps
         for (int i = 0; i < fields.length(); i++) {
             char field = fields.charAt(i);
-            if (new String(validFields).indexOf(field) == -1) {
+            if (DateFormatSymbols.patternChars.indexOf(field) == -1) {
                 throw new IllegalArgumentException("Illegal field character " + "'" + field + "' in setNumberFormat.");
             }
             overrideMap.put(field, nsName);
