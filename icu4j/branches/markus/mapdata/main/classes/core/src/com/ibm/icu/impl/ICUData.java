@@ -1,7 +1,7 @@
 /*
  *******************************************************************************
- * Copyright (C) 2004-2009, International Business Machines Corporation and    *
- * others. All Rights Reserved.                                                *
+ * Copyright (C) 2004-2014, International Business Machines Corporation and
+ * others. All Rights Reserved.
  *******************************************************************************
  *
  * Created on Feb 4, 2004
@@ -15,16 +15,56 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.MissingResourceException;
 
+import com.ibm.icu.util.VersionInfo;
+
 /**
  * Provides access to ICU data files as InputStreams.  Implements security checking.
  */
 public final class ICUData {
-    /*
-     * Return a URL to the ICU resource names resourceName.  The
-     * resource name should either be an absolute path, or a path relative to
-     * com.ibm.icu.impl (e.g., most likely it is 'data/foo').  If required
-     * is true, throw an MissingResourceException instead of returning a null result.
+    /**
+     * The data path to be used with getBundleInstance API
      */
+    static final String ICU_DATA_PATH = "com/ibm/icu/impl/";
+    /**
+     * The data path to be used with getBundleInstance API
+     */
+    public static final String ICU_BUNDLE = "data/icudt" + VersionInfo.ICU_DATA_VERSION_PATH;
+
+    /**
+     * The base name of ICU data to be used with getBundleInstance API
+     */
+    public static final String ICU_BASE_NAME = ICU_DATA_PATH + ICU_BUNDLE;
+
+    /**
+     * The base name of collation data to be used with getBundleInstance API
+     */
+    public static final String ICU_COLLATION_BASE_NAME = ICU_BASE_NAME + "/coll";
+
+    /**
+     * The base name of rbbi data to be used with getData API
+     */
+    public static final String ICU_BRKITR_NAME = "/brkitr";
+
+    /**
+     * The base name of rbbi data to be used with getBundleInstance API
+     */
+    public static final String ICU_BRKITR_BASE_NAME = ICU_BASE_NAME + ICU_BRKITR_NAME;
+
+    /**
+     * The base name of rbnf data to be used with getBundleInstance API
+     */
+    public static final String ICU_RBNF_BASE_NAME = ICU_BASE_NAME + "/rbnf";
+
+    /**
+     * The base name of transliterator data to be used with getBundleInstance API
+     */
+    public static final String ICU_TRANSLIT_BASE_NAME = ICU_BASE_NAME + "/translit";
+
+    public static final String ICU_LANG_BASE_NAME = ICU_BASE_NAME + "/lang";
+    public static final String ICU_CURR_BASE_NAME = ICU_BASE_NAME + "/curr";
+    public static final String ICU_REGION_BASE_NAME = ICU_BASE_NAME + "/region";
+    public static final String ICU_ZONE_BASE_NAME = ICU_BASE_NAME + "/zone";
+
     public static boolean exists(final String resourceName) {
         URL i = null;
         if (System.getSecurityManager() != null) {
@@ -38,10 +78,9 @@ public final class ICUData {
         }
         return i != null;
     }
-        
-    private static InputStream getStream(final Class<?> root, final String resourceName, boolean required) {
+
+    static InputStream getStream(final Class<?> root, final String resourceName, boolean required) {
         InputStream i = null;
-        
         if (System.getSecurityManager() != null) {
             i = AccessController.doPrivileged(new PrivilegedAction<InputStream>() {
                     public InputStream run() {
@@ -58,7 +97,7 @@ public final class ICUData {
         return i;
     }
 
-    private static InputStream getStream(final ClassLoader loader, final String resourceName, boolean required) {
+    static InputStream getStream(final ClassLoader loader, final String resourceName, boolean required) {
         InputStream i = null;
         if (System.getSecurityManager() != null) {
             i = AccessController.doPrivileged(new PrivilegedAction<InputStream>() {
@@ -83,29 +122,33 @@ public final class ICUData {
         return getStream(loader, resourceName, true);
     }
 
-    /*
+    /**
      * Convenience override that calls getStream(ICUData.class, resourceName, false);
+     * Returns null if the resource could not be found.
      */
     public static InputStream getStream(String resourceName) {
         return getStream(ICUData.class, resourceName, false);
     }
-        
-    /*
+
+    /**
      * Convenience method that calls getStream(ICUData.class, resourceName, true).
+     * @throws MissingResourceException if the resource could not be found
      */
     public static InputStream getRequiredStream(String resourceName) {
         return getStream(ICUData.class, resourceName, true);
     }
 
-    /*
+    /**
      * Convenience override that calls getStream(root, resourceName, false);
+     * Returns null if the resource could not be found.
      */
     public static InputStream getStream(Class<?> root, String resourceName) {
         return getStream(root, resourceName, false);
     }
-    
-    /*
+
+    /**
      * Convenience method that calls getStream(root, resourceName, true).
+     * @throws MissingResourceException if the resource could not be found
      */
     public static InputStream getRequiredStream(Class<?> root, String resourceName) {
         return getStream(root, resourceName, true);
