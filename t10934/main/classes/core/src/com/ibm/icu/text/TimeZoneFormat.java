@@ -1412,7 +1412,6 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                 }
             }
             if (parseTZDBAbbrev && parsedPos < maxPos && (evaluated & Style.SPECIFIC_SHORT.flag) == 0) {
-                //TODO
                 Collection<MatchInfo> tzdbNameMatches =
                         getTZDBTimeZoneNames().find(text, startIdx, ALL_SIMPLE_NAME_TYPES);
                 MatchInfo tzdbNameMatch = null;

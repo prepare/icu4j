@@ -497,25 +497,91 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
     public void TestParse() {
         final Object[][] DATA = {
-        //   text                   inpos       locale      style                       parseAll?   expected            outpos      time type
-            {"Z",                   0,          "en_US",    Style.ISO_EXTENDED_FULL,    false,      "Etc/GMT",          1,          TimeType.UNKNOWN},
-            {"Z",                   0,          "en_US",    Style.SPECIFIC_LONG,        false,      "Etc/GMT",          1,          TimeType.UNKNOWN},
-            {"Zambia time",         0,          "en_US",    Style.ISO_EXTENDED_FULL,    true,       "Etc/GMT",          1,          TimeType.UNKNOWN},
-            {"Zambia time",         0,          "en_US",    Style.GENERIC_LOCATION,     false,      "Africa/Lusaka",    11,         TimeType.UNKNOWN},
-            {"Zambia time",         0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL, true,       "Africa/Lusaka",    11,         TimeType.UNKNOWN},
-            {"+00:00",              0,          "en_US",    Style.ISO_EXTENDED_FULL,    false,      "Etc/GMT",          6,          TimeType.UNKNOWN},
-            {"-01:30:45",           0,          "en_US",    Style.ISO_EXTENDED_FULL,    false,      "GMT-01:30:45",     9,          TimeType.UNKNOWN},
-            {"-7",                  0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL, false,      "GMT-07:00",        2,          TimeType.UNKNOWN},
-            {"-2222",               0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL, false,      "GMT-22:22",        5,          TimeType.UNKNOWN},
-            {"-3333",               0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL, false,      "GMT-03:33",        4,          TimeType.UNKNOWN},
-            {"XXX+01:30YYY",        3,          "en_US",    Style.LOCALIZED_GMT,        false,      "GMT+01:30",        9,          TimeType.UNKNOWN},
-            {"GMT0",                0,          "en_US",    Style.SPECIFIC_SHORT,       false,      "Etc/GMT",          3,          TimeType.UNKNOWN},
-            {"EST",                 0,          "en_US",    Style.SPECIFIC_SHORT,       false,      "America/New_York", 3,          TimeType.STANDARD},
-            {"ESTx",                0,          "en_US",    Style.SPECIFIC_SHORT,       false,      "America/New_York", 3,          TimeType.STANDARD},
-            {"EDTx",                0,          "en_US",    Style.SPECIFIC_SHORT,       false,      "America/New_York", 3,          TimeType.DAYLIGHT},
-            {"EST",                 0,          "en_US",    Style.SPECIFIC_LONG,        false,      null,                 0,          TimeType.UNKNOWN},
-            {"EST",                 0,          "en_US",    Style.SPECIFIC_LONG,        true,       "America/New_York", 3,          TimeType.STANDARD},
-            {"EST",                 0,          "en_CA",    Style.SPECIFIC_SHORT,       false,      "America/Toronto",  3,          TimeType.STANDARD},
+        //   text                   inpos       locale      style
+        //      parseOptions            expected            outpos      time type
+            {"Z",                   0,          "en_US",    Style.ISO_EXTENDED_FULL,
+                null,                   "Etc/GMT",          1,          TimeType.UNKNOWN},
+
+            {"Z",                   0,          "en_US",    Style.SPECIFIC_LONG,
+                null,                   "Etc/GMT",          1,          TimeType.UNKNOWN},
+
+            {"Zambia time",         0,          "en_US",    Style.ISO_EXTENDED_FULL,
+                EnumSet.of(ParseOption.ALL_STYLES), "Etc/GMT",  1,      TimeType.UNKNOWN},
+
+            {"Zambia time",         0,          "en_US",    Style.GENERIC_LOCATION,
+                null,                   "Africa/Lusaka",    11,         TimeType.UNKNOWN},
+
+            {"Zambia time",         0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL,
+                EnumSet.of(ParseOption.ALL_STYLES), "Africa/Lusaka",    11, TimeType.UNKNOWN},
+
+            {"+00:00",              0,          "en_US",    Style.ISO_EXTENDED_FULL,
+                null,                   "Etc/GMT",          6,          TimeType.UNKNOWN},
+
+            {"-01:30:45",           0,          "en_US",    Style.ISO_EXTENDED_FULL,
+                null,                   "GMT-01:30:45",     9,          TimeType.UNKNOWN},
+
+            {"-7",                  0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL,
+                null,                   "GMT-07:00",        2,          TimeType.UNKNOWN},
+
+            {"-2222",               0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL,
+                null,                   "GMT-22:22",        5,          TimeType.UNKNOWN},
+
+            {"-3333",               0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL,
+                null,                   "GMT-03:33",        4,          TimeType.UNKNOWN},
+
+            {"XXX+01:30YYY",        3,          "en_US",    Style.LOCALIZED_GMT,
+                null,                   "GMT+01:30",        9,          TimeType.UNKNOWN},
+
+            {"GMT0",                0,          "en_US",    Style.SPECIFIC_SHORT,
+                null,                   "Etc/GMT",          3,          TimeType.UNKNOWN},
+
+            {"EST",                 0,          "en_US",    Style.SPECIFIC_SHORT,
+                null,                   "America/New_York", 3,          TimeType.STANDARD},
+
+            {"ESTx",                0,          "en_US",    Style.SPECIFIC_SHORT,
+                null,                   "America/New_York", 3,          TimeType.STANDARD},
+
+            {"EDTx",                0,          "en_US",    Style.SPECIFIC_SHORT,
+                null,                   "America/New_York", 3,          TimeType.DAYLIGHT},
+
+            {"EST",                 0,          "en_US",    Style.SPECIFIC_LONG,
+                null,                   null,               0,          TimeType.UNKNOWN},
+
+            {"EST",                 0,          "en_US",    Style.SPECIFIC_LONG,
+                EnumSet.of(ParseOption.ALL_STYLES), "America/New_York", 3,  TimeType.STANDARD},
+
+            {"EST",                 0,          "en_CA",    Style.SPECIFIC_SHORT,
+                null,                   "America/Toronto",  3,          TimeType.STANDARD},
+
+            {"CST",                 0,          "en_US",    Style.SPECIFIC_SHORT,
+                null,                   "America/Chicago",  3,          TimeType.STANDARD},
+
+            {"CST",                 0,          "en_GB",    Style.SPECIFIC_SHORT,
+                null,                   null,               0,          TimeType.UNKNOWN},
+
+            {"CST",                 0,          "en_GB",    Style.SPECIFIC_SHORT,
+                EnumSet.of(ParseOption.TZ_DATABASE_ABBREVIATIONS),  "America/Chicago",  3,  TimeType.STANDARD},
+
+            {"--CST--",             2,          "en_GB",    Style.SPECIFIC_SHORT,
+                EnumSet.of(ParseOption.TZ_DATABASE_ABBREVIATIONS),  "America/Chicago",  5,  TimeType.STANDARD},
+
+            {"CST",                 0,          "zh_CN",    Style.SPECIFIC_SHORT,
+                EnumSet.of(ParseOption.TZ_DATABASE_ABBREVIATIONS),  "Asia/Shanghai",    3,  TimeType.STANDARD},
+
+            {"EST",                 0,          "en_AU",    Style.SPECIFIC_SHORT,
+                EnumSet.of(ParseOption.TZ_DATABASE_ABBREVIATIONS),  "Australia/Sydney", 3,  TimeType.UNKNOWN},
+
+            {"AST",                 0,          "ar_SA",    Style.SPECIFIC_SHORT,
+                EnumSet.of(ParseOption.TZ_DATABASE_ABBREVIATIONS),  "Asia/Riyadh",      3,  TimeType.STANDARD},
+
+            {"AQTST",               0,          "en",       Style.SPECIFIC_LONG,
+                null,                       null,           0,          TimeType.UNKNOWN},
+
+            {"AQTST",           0,      "en",       Style.SPECIFIC_LONG,
+                EnumSet.of(ParseOption.ALL_STYLES), null,   0,          TimeType.UNKNOWN},
+
+            {"AQTST",           0,      "en",       Style.SPECIFIC_LONG,
+                EnumSet.of(ParseOption.ALL_STYLES, ParseOption.TZ_DATABASE_ABBREVIATIONS),  "Asia/Aqtobe",  5,  TimeType.DAYLIGHT},
         };
 
         for (Object[] test : DATA) {
@@ -523,7 +589,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             int inPos = (Integer)test[1];
             ULocale loc = new ULocale((String)test[2]);
             Style style = (Style)test[3];
-            EnumSet<ParseOption> options = (Boolean)test[4] ? EnumSet.of(ParseOption.ALL_STYLES) : null;
+            EnumSet<ParseOption> options = (EnumSet<ParseOption>)test[4];
             String expID = (String)test[5];
             int expPos = (Integer)test[6];
             TimeType expType = (TimeType)test[7];
