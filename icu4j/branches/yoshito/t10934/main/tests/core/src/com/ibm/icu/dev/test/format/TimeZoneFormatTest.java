@@ -24,6 +24,7 @@ import com.ibm.icu.text.TimeZoneFormat;
 import com.ibm.icu.text.TimeZoneFormat.ParseOption;
 import com.ibm.icu.text.TimeZoneFormat.Style;
 import com.ibm.icu.text.TimeZoneFormat.TimeType;
+import com.ibm.icu.text.TimeZoneNames;
 import com.ibm.icu.util.BasicTimeZone;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Output;
@@ -839,6 +840,87 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
         for (Object[] testCase : TESTDATA) {
             TimeZoneFormat tzfmt = TimeZoneFormat.getInstance(new ULocale((String)testCase[0]));
+            TimeZone tz = TimeZone.getTimeZone((String)testCase[1]);
+            Output<TimeType> timeType = new Output<TimeType>();
+            String out = tzfmt.format((Style)testCase[3], tz, ((Date)testCase[2]).getTime(), timeType);
+
+            if (!out.equals((String)testCase[4]) || timeType.value != testCase[5]) {
+                errln("Format result for [locale=" + testCase[0] + ",tzid=" + testCase[1] + ",date=" + testCase[2]
+                        + ",style=" + testCase[3] + "]: expected [output=" + testCase[4] + ",type=" + testCase[5]
+                        + "]; actual [output=" + out + ",type=" + timeType.value + "]");
+            }
+        }
+    }
+
+    public void TestFormatTZDBNames() {
+        final Date dateJan = new Date(1358208000000L);  // 2013-01-15T00:00:00Z
+        final Date dateJul = new Date(1373846400000L);  // 2013-07-15T00:00:00Z
+
+        final Object[][] TESTDATA = {
+            {
+                "en",
+                "America/Chicago", 
+                dateJan,
+                Style.SPECIFIC_SHORT,
+                "CST",
+                TimeType.STANDARD
+            },
+            {
+                "en",
+                "Asia/Shanghai", 
+                dateJan,
+                Style.SPECIFIC_SHORT,
+                "CST",
+                TimeType.STANDARD
+            },
+            {
+                "zh_Hans",
+                "Asia/Shanghai", 
+                dateJan,
+                Style.SPECIFIC_SHORT,
+                "CST",
+                TimeType.STANDARD
+            },
+            {
+                "en",
+                "America/Los_Angeles",
+                dateJul,
+                Style.SPECIFIC_LONG,
+                "GMT-07:00",    // No long display names
+                TimeType.DAYLIGHT
+            },
+            {
+                "ja",
+                "America/Los_Angeles",
+                dateJul,
+                Style.SPECIFIC_SHORT,
+                "PDT",
+                TimeType.DAYLIGHT
+            },
+            {
+                "en",
+                "Australia/Sydney",
+                dateJan,
+                Style.SPECIFIC_SHORT,
+                "EST",
+                TimeType.DAYLIGHT
+            },
+            {
+                "en",
+                "Australia/Sydney",
+                dateJul,
+                Style.SPECIFIC_SHORT,
+                "EST",
+                TimeType.STANDARD
+            },
+        };
+
+        for (Object[] testCase : TESTDATA) {
+            ULocale loc = new ULocale((String)testCase[0]);
+            TimeZoneFormat tzfmt = TimeZoneFormat.getInstance(loc).cloneAsThawed();
+            TimeZoneNames tzdbNames = TimeZoneNames.getTZDBInstance(loc);
+            tzfmt.setTimeZoneNames(tzdbNames);
+
             TimeZone tz = TimeZone.getTimeZone((String)testCase[1]);
             Output<TimeType> timeType = new Output<TimeType>();
             String out = tzfmt.format((Style)testCase[3], tz, ((Date)testCase[2]).getTime(), timeType);
