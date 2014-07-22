@@ -2302,8 +2302,8 @@ public class FormatTests
     public static class TZDBTimeZoneNamesHandler implements SerializableTest.Handler {
         public Object[] getTestObjects() {
             return new Object[] {
-                    new TZDBTimeZoneNames(ULocale.ENGLISH),
-                    new TZDBTimeZoneNames(ULocale.JAPAN)
+                    TimeZoneNames.getTZDBInstance(ULocale.ENGLISH),
+                    TimeZoneNames.getTZDBInstance(ULocale.JAPAN)
             };
         }
         public boolean hasSameBehavior(Object a, Object b) {
