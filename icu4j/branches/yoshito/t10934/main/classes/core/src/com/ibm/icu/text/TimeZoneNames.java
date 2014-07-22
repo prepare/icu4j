@@ -174,12 +174,15 @@ public abstract class TimeZoneNames implements Serializable {
 
     /**
      * Returns an instance of <code>TimeZoneNames</code> containing only short specific
-     * zone names ({@link NameType#SHORT_STANDARD} and {@link NameType#SHORT_STANDARD}),
+     * zone names ({@link NameType#SHORT_STANDARD} and {@link NameType#SHORT_DAYLIGHT}),
      * compatible with the IANA tz database's zone abbreviations (not localized).
      * <br>
      * Note: The input locale is used for resolving ambiguous names (e.g. "IST" is parsed
      * as Israel Standard Time for Israel, while it is parsed as India Standard Time for
      * all other regions). The zone names returned by this instance are not localized.
+     * 
+     * @draft ICU 54
+     * @provisional This API might change or be removed in a future release.
      */
     public static TimeZoneNames getTZDBInstance(ULocale locale) {
         return new TZDBTimeZoneNames(locale);

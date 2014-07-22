@@ -38,10 +38,10 @@ import com.ibm.icu.util.UResourceBundle;
 public class TZDBTimeZoneNames extends TimeZoneNames {
     private static final long serialVersionUID = 1L;
 
-    private static final ConcurrentHashMap<String, TZDBNames> METAZONE_NAMES_MAP = 
+    private static final ConcurrentHashMap<String, TZDBNames> TZDB_NAMES_MAP = 
             new ConcurrentHashMap<String, TZDBNames>();
 
-    private static volatile TextTrieMap<TZDBNameInfo> METAZONE_NAMES_TRIE = null;
+    private static volatile TextTrieMap<TZDBNameInfo> TZDB_NAMES_TRIE = null;
 
     private static final ICUResourceBundle ZONESTRINGS;
     static {
@@ -129,8 +129,8 @@ public class TZDBTimeZoneNames extends TimeZoneNames {
         }
 
         prepareFind();
-        NameSearchHandler handler = new NameSearchHandler(nameTypes, getTargetRegion());
-        METAZONE_NAMES_TRIE.find(text, start, handler);
+        TZDBNameSearchHandler handler = new TZDBNameSearchHandler(nameTypes, getTargetRegion());
+        TZDB_NAMES_TRIE.find(text, start, handler);
         return handler.getMatches();
     }
 
@@ -153,7 +153,7 @@ public class TZDBTimeZoneNames extends TimeZoneNames {
 
             ICUResourceBundle table = null;
             try {
-                table = zoneStrings.getWithFallback(key);
+                table = (ICUResourceBundle)zoneStrings.get(key);
             } catch (MissingResourceException e) {
                 return EMPTY_TZDBNAMES;
             }
@@ -218,12 +218,12 @@ public class TZDBTimeZoneNames extends TimeZoneNames {
         String[] parseRegions;
     }
 
-    private static class NameSearchHandler implements ResultHandler<TZDBNameInfo> {
+    private static class TZDBNameSearchHandler implements ResultHandler<TZDBNameInfo> {
         private EnumSet<NameType> _nameTypes;
         private Collection<MatchInfo> _matches;
         private String _region;
 
-        NameSearchHandler(EnumSet<NameType> nameTypes, String region) {
+        TZDBNameSearchHandler(EnumSet<NameType> nameTypes, String region) {
             _nameTypes = nameTypes;
             assert region != null;
             _region = region;
@@ -323,22 +323,22 @@ public class TZDBTimeZoneNames extends TimeZoneNames {
     }
 
     private static TZDBNames getMetaZoneNames(String mzID) {
-        TZDBNames names = METAZONE_NAMES_MAP.get(mzID);
+        TZDBNames names = TZDB_NAMES_MAP.get(mzID);
         if (names == null) {
             names = TZDBNames.getInstance(ZONESTRINGS, "meta:" + mzID);
             mzID = mzID.intern();
-            TZDBNames tmpNames = METAZONE_NAMES_MAP.putIfAbsent(mzID, names);
+            TZDBNames tmpNames = TZDB_NAMES_MAP.putIfAbsent(mzID, names);
             names = (tmpNames == null) ? names : tmpNames;
         }
         return names;
     }
 
     private static void prepareFind() {
-        if (METAZONE_NAMES_TRIE == null) {
+        if (TZDB_NAMES_TRIE == null) {
             synchronized(TZDBTimeZoneNames.class) {
-                if (METAZONE_NAMES_TRIE == null) {
+                if (TZDB_NAMES_TRIE == null) {
                     // loading all names into trie
-                    METAZONE_NAMES_TRIE = new TextTrieMap<TZDBNameInfo>(true);
+                    TZDB_NAMES_TRIE = new TextTrieMap<TZDBNameInfo>(true);
                     Set<String> mzIDs = TimeZoneNamesImpl._getAvailableMetaZoneIDs();
                     for (String mzID : mzIDs) {
                         TZDBNames names = getMetaZoneNames(mzID);
@@ -363,7 +363,7 @@ public class TZDBTimeZoneNames extends TimeZoneNames {
                             stdInf.type = NameType.SHORT_STANDARD;
                             stdInf.ambiguousType = ambiguousType;
                             stdInf.parseRegions = parseRegions;
-                            METAZONE_NAMES_TRIE.put(std, stdInf);
+                            TZDB_NAMES_TRIE.put(std, stdInf);
                         }
                         if (dst != null) {
                             TZDBNameInfo dstInf = new TZDBNameInfo();
@@ -371,7 +371,7 @@ public class TZDBTimeZoneNames extends TimeZoneNames {
                             dstInf.type = NameType.SHORT_DAYLIGHT;
                             dstInf.ambiguousType = ambiguousType;
                             dstInf.parseRegions = parseRegions;
-                            METAZONE_NAMES_TRIE.put(dst, dstInf);
+                            TZDB_NAMES_TRIE.put(dst, dstInf);
                         }
                     }
                 }
