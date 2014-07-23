@@ -7,6 +7,7 @@
 
 package com.ibm.icu.impl;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -14,15 +15,154 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.MissingResourceException;
 
 import com.ibm.icu.util.ICUUncheckedIOException;
 import com.ibm.icu.util.VersionInfo;
 
-public final class ICUBinary 
-{    
+public final class ICUBinary {
+    /**
+     * .dat package data format ID "CmnD".
+     */
+    private static final int DAT_DATA_FORMAT = 0x436d6e44;
+
+    private static final class DatPackageIsAcceptable implements Authenticate {
+        // @Override when we switch to Java 6
+        public boolean isDataVersionAcceptable(byte version[]) {
+            return version[0] == 1;
+        }
+    }
+    private static final DatPackageIsAcceptable DAT_IS_ACCEPTABLE = new DatPackageIsAcceptable();
+
+    private static final class DataFile {
+        public final String basePath;  // TODO: needed?
+        public final String itemPath;
+        public final File path;  // TODO: needed if pkgBytes!=null?
+        /**
+         * .dat package bytes, or null if not a .dat package.
+         * position() is after the header.
+         * Do not modify the position or other state, for thread safety.
+         */
+        public final ByteBuffer pkgBytes;
+
+        public DataFile(String base, String item, File path) {
+            basePath = base;
+            itemPath = item;
+            this.path = path;
+            pkgBytes = null;
+        }
+        public DataFile(String base, String item, File path, ByteBuffer bytes) {
+            basePath = base;
+            itemPath = item;
+            this.path = path;
+            pkgBytes = bytes;
+        }
+        public String toString() {
+            return path.toString();
+        }
+    }
+    private static final List<DataFile> dataFiles = new ArrayList<DataFile>();
+
+    static {
+        String dataPath = ICUConfig.get("com.ibm.icu.impl.ICUBinary.DataPath");
+        int pathStart = 0;
+        while (pathStart < dataPath.length()) {
+            int sepIndex = dataPath.indexOf(File.pathSeparatorChar, pathStart);
+            int pathLimit;
+            if (sepIndex >= 0) {
+                pathLimit = sepIndex;
+            } else {
+                pathLimit = dataPath.length();
+            }
+            String path = simpleTrim(dataPath, pathStart, pathLimit);
+            if (path.endsWith(File.separator)) {
+                path = path.substring(0, path.length() - 1);
+            }
+            if (path.length() != 0) {
+                handlePath(path, new StringBuilder(), new File(path));
+            }
+            if (sepIndex < 0) {
+                break;
+            }
+            pathStart = sepIndex + 1;
+        }
+    }
+
+    private static void handlePath(String basePath, StringBuilder itemPath, File folder) {
+        File[] files = folder.listFiles();
+        if (files == null || files.length == 0) {
+            return;
+        }
+        int folderPathLength = itemPath.length();
+        if (folderPathLength > 0) {
+            // The item path must use the ICU file separator character,
+            // not the platform-dependent File.separatorChar,
+            // so that the enumerated item paths match the paths requested by ICU code.
+            itemPath.append('/');
+            ++folderPathLength;
+        }
+        for (File file : files) {
+            String fileName = file.getName();
+            if (fileName.endsWith(".txt")) {
+                continue;
+            }
+            itemPath.append(fileName);
+            if (file.isDirectory()) {
+                // TODO: Within a folder, put all single files before all .dat packages?
+                handlePath(basePath, itemPath, file);
+            } else if (fileName.endsWith(".dat")) {
+                handlePackage(basePath, itemPath, file);
+            } else {
+                dataFiles.add(new DataFile(basePath, itemPath.toString(), file));
+            }
+            itemPath.setLength(folderPathLength);
+        }
+    }
+
+    private static void handlePackage(String basePath, StringBuilder itemPath, File pkgFile) {
+        ByteBuffer pkgBytes = mapFile(pkgFile);
+        if (pkgBytes == null) {
+            return;
+        }
+        try {
+            readHeader(pkgBytes, DAT_DATA_FORMAT, DAT_IS_ACCEPTABLE);
+        } catch (IOException ignored) {
+            return;
+        }
+        int count = pkgBytes.getInt(pkgBytes.position());  // Do not move the position.
+        if (count <= 0) {
+            return;
+        }
+        // For each item, there is one ToC entry (8 bytes) and a name string
+        // and a data item of at least 16 bytes.
+        // (We assume no data item duplicate elimination for now.)
+        if (pkgBytes.position() + 4 + count * (8 + 16) > pkgBytes.capacity()) {
+            return;
+        }
+        // TODO: Do we need dataFile.path for a .dat package?
+        dataFiles.add(new DataFile(basePath, itemPath.toString(), pkgFile, pkgBytes));
+    }
+
+    private static String simpleTrim(String s, int start, int limit) {
+        while (start < limit && s.charAt(start) == ' ') {
+            ++start;
+        }
+        while (start < limit && s.charAt(limit - 1) == ' ') {
+            --limit;
+        }
+        if (start == 0 && limit == s.length()) {
+            return s;
+        } else if (start == limit) {
+            return "";
+        } else {
+            return s.substring(start, limit);
+        }
+    }
+
     // public inner interface ------------------------------------------------
-    
+
     /**
      * Special interface for data authentication
      */
@@ -150,24 +290,31 @@ public final class ICUBinary
     }
 
     private static ByteBuffer getDataFromFile(String itemPath) {
-        // TODO: Try to load from a file system file.
-        // TODO: cache itemPath->ByteBuffer (or remember not being able to load)
-        // TODO: should we add a way to clear the ByteBuffer from the cache
-        // when the caller has deserialized the data and will never need the file nor ByteBuffer again?
-        if (itemPath.equals("coll/ucadata.icu")) {
-            String ICU4C_SRC = "/home/mscherer/svn.icu/trunk/src";
-            FileInputStream file;
-            try {
-                file = new FileInputStream(ICU4C_SRC + "/source/data/in/coll/ucadata.icu");
-                FileChannel channel = file.getChannel();
-                ByteBuffer bytes = channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size());
-                file.close();
-                return bytes;
-            } catch(FileNotFoundException ignored) {
-                System.err.println(ignored);
-            } catch (IOException ignored) {
-                System.err.println(ignored);
+        for (DataFile dataFile : dataFiles) {
+            if (dataFile.pkgBytes != null) {
+                // TODO
+                continue;
+            } else if (itemPath.equals(dataFile.itemPath)) {
+                return mapFile(dataFile.path);
             }
+        }
+        return null;
+    }
+
+    private static ByteBuffer mapFile(File path) {
+        FileInputStream file;
+        try {
+            file = new FileInputStream(path);
+            FileChannel channel = file.getChannel();
+            ByteBuffer bytes = channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size());
+            // Closes the channel but seems to keep the ByteBuffer valid.
+            // If not, then we will need to return the pair of (file, bytes).
+            file.close();
+            return bytes;
+        } catch(FileNotFoundException ignored) {
+            System.err.println(ignored);
+        } catch (IOException ignored) {
+            System.err.println(ignored);
         }
         return null;
     }
