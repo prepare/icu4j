@@ -24,17 +24,114 @@ import com.ibm.icu.util.VersionInfo;
 
 public final class ICUBinary {
     /**
-     * .dat package data format ID "CmnD".
+     * Reads the ICU .dat package file format.
+     * Most methods do not modify the ByteBuffer in any way,
+     * not even its position or other state.
      */
-    private static final int DAT_DATA_FORMAT = 0x436d6e44;
+    private static final class DatPackageReader {
+        /**
+         * .dat package data format ID "CmnD".
+         */
+        private static final int DATA_FORMAT = 0x436d6e44;
 
-    private static final class DatPackageIsAcceptable implements Authenticate {
-        // @Override when we switch to Java 6
-        public boolean isDataVersionAcceptable(byte version[]) {
-            return version[0] == 1;
+        private static final class IsAcceptable implements Authenticate {
+            // @Override when we switch to Java 6
+            public boolean isDataVersionAcceptable(byte version[]) {
+                return version[0] == 1;
+            }
+        }
+        private static final IsAcceptable IS_ACCEPTABLE = new IsAcceptable();
+
+        /**
+         * Checks that the ByteBuffer contains a valid, usable ICU .dat package.
+         * Moves the buffer position from 0 to after the data header.
+         */
+        private static boolean validate(ByteBuffer bytes) {
+            try {
+                readHeader(bytes, DATA_FORMAT, IS_ACCEPTABLE);
+            } catch (IOException ignored) {
+                return false;
+            }
+            int count = bytes.getInt(bytes.position());  // Do not move the position.
+            if (count <= 0) {
+                return false;
+            }
+            // For each item, there is one ToC entry (8 bytes) and a name string
+            // and a data item of at least 16 bytes.
+            // (We assume no data item duplicate elimination for now.)
+            if (bytes.position() + 4 + count * (8 + 16) > bytes.capacity()) {
+                return false;
+            }
+            if (!startsWithPackageName(bytes, getNameOffset(bytes, 0)) ||
+                    !startsWithPackageName(bytes, getNameOffset(bytes, count - 1))) {
+                return false;
+            }
+            return true;
+        }
+
+        private static boolean startsWithPackageName(ByteBuffer bytes, int start) {
+            // Compare all but the trailing 'b' or 'l' which depends on the platform.
+            int length = ICUData.PACKAGE_NAME.length() - 1;
+            for (int i = 0; i < length; ++i) {
+                if (bytes.get(start + i) != ICUData.PACKAGE_NAME.charAt(i)) {
+                    return false;
+                }
+            }
+            // Check for 'b' or 'l' followed by '/'.
+            byte c = bytes.get(start + length++);
+            if ((c != 'b' && c != 'l') || bytes.get(start + length) != '/') {
+                return false;
+            }
+            return true;
+        }
+
+        private static ByteBuffer getData(ByteBuffer bytes, CharSequence key) {
+            int base = bytes.position();
+            int count = bytes.getInt(base);
+
+            // Do a binary search for the key.
+            int start = 0;
+            int limit = count;
+            while (start < limit) {
+                int mid = (start + limit) >>> 1;
+                int nameOffset = getNameOffset(bytes, mid);
+                // Skip "icudt54b/".
+                nameOffset += ICUData.PACKAGE_NAME.length() + 1;
+                int result = compareKeys(key, bytes, nameOffset);
+                if (result < 0) {
+                    limit = mid;
+                } else if (result > 0) {
+                    start = mid + 1;
+                } else {
+                    // We found it!
+                    ByteBuffer data = bytes.duplicate();
+                    data.position(getDataOffset(bytes, mid));
+                    data.limit(getDataOffset(bytes, mid + 1));
+                    return data.slice();
+                }
+            }
+            return null;  // Not found or table is empty.
+        }
+
+        private static int getNameOffset(ByteBuffer bytes, int index) {
+            int base = bytes.position();
+            assert 0 <= index && index < bytes.getInt(base);  // count
+            // The count integer is followed by count (nameOffset, dataOffset) integer pairs.
+            return base + bytes.getInt(base + 4 + index * 8);
+        }
+
+        private static int getDataOffset(ByteBuffer bytes, int index) {
+            int base = bytes.position();
+            int count = bytes.getInt(base);
+            if (index == count) {
+                // Return the limit of the last data item.
+                return bytes.capacity();
+            }
+            assert 0 <= index && index < count;
+            // The count integer is followed by count (nameOffset, dataOffset) integer pairs.
+            return base + bytes.getInt(base + 4 + 4 + index * 8);
         }
     }
-    private static final DatPackageIsAcceptable DAT_IS_ACCEPTABLE = new DatPackageIsAcceptable();
 
     private static final class DataFile {
         public final String basePath;  // TODO: needed?
@@ -113,36 +210,16 @@ public final class ICUBinary {
                 // TODO: Within a folder, put all single files before all .dat packages?
                 handlePath(basePath, itemPath, file);
             } else if (fileName.endsWith(".dat")) {
-                handlePackage(basePath, itemPath, file);
+                ByteBuffer pkgBytes = mapFile(file);
+                if (pkgBytes != null && DatPackageReader.validate(pkgBytes)) {
+                    // TODO: Do we need dataFile.path for a .dat package?
+                    dataFiles.add(new DataFile(basePath, itemPath.toString(), file, pkgBytes));
+                }
             } else {
                 dataFiles.add(new DataFile(basePath, itemPath.toString(), file));
             }
             itemPath.setLength(folderPathLength);
         }
-    }
-
-    private static void handlePackage(String basePath, StringBuilder itemPath, File pkgFile) {
-        ByteBuffer pkgBytes = mapFile(pkgFile);
-        if (pkgBytes == null) {
-            return;
-        }
-        try {
-            readHeader(pkgBytes, DAT_DATA_FORMAT, DAT_IS_ACCEPTABLE);
-        } catch (IOException ignored) {
-            return;
-        }
-        int count = pkgBytes.getInt(pkgBytes.position());  // Do not move the position.
-        if (count <= 0) {
-            return;
-        }
-        // For each item, there is one ToC entry (8 bytes) and a name string
-        // and a data item of at least 16 bytes.
-        // (We assume no data item duplicate elimination for now.)
-        if (pkgBytes.position() + 4 + count * (8 + 16) > pkgBytes.capacity()) {
-            return;
-        }
-        // TODO: Do we need dataFile.path for a .dat package?
-        dataFiles.add(new DataFile(basePath, itemPath.toString(), pkgFile, pkgBytes));
     }
 
     private static String simpleTrim(String s, int start, int limit) {
@@ -158,6 +235,29 @@ public final class ICUBinary {
             return "";
         } else {
             return s.substring(start, limit);
+        }
+    }
+
+    /**
+     * Compares the length-specified input key with the
+     * NUL-terminated table key. (ASCII)
+     */
+    static int compareKeys(CharSequence key, ByteBuffer bytes, int offset) {
+        for (int i = 0;; ++i, ++offset) {
+            int c2 = bytes.get(offset);
+            if (c2 == 0) {
+                if (i == key.length()) {
+                    return 0;
+                } else {
+                    return 1;  // key > table key because key is longer.
+                }
+            } else if (i == key.length()) {
+                return -1;  // key < table key because key is shorter.
+            }
+            int diff = (int)key.charAt(i) - c2;
+            if (diff != 0) {
+                return diff;
+            }
         }
     }
 
@@ -292,8 +392,10 @@ public final class ICUBinary {
     private static ByteBuffer getDataFromFile(String itemPath) {
         for (DataFile dataFile : dataFiles) {
             if (dataFile.pkgBytes != null) {
-                // TODO
-                continue;
+                ByteBuffer data = DatPackageReader.getData(dataFile.pkgBytes, itemPath);
+                if (data != null) {
+                    return data;
+                }
             } else if (itemPath.equals(dataFile.itemPath)) {
                 return mapFile(dataFile.path);
             }

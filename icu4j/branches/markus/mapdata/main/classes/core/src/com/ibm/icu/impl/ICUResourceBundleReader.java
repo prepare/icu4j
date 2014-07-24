@@ -582,38 +582,18 @@ public final class ICUResourceBundleReader {
             return makeKeyStringFromBytes(poolBundleKeys, keyOffset & 0x7fffffff);
         }
     }
-    // Compare the length-specified input key with the
-    // NUL-terminated table key.
-    private static int compareKeys(CharSequence key, ByteBuffer keyBytes, int keyOffset) {
-        for(int i = 0;; ++i, ++keyOffset) {
-            int c2 = keyBytes.get(keyOffset);
-            if(c2 == 0) {
-                if(i == key.length()) {
-                    return 0;
-                } else {
-                    return 1;  // key > table key because key is longer.
-                }
-            } else if(i == key.length()) {
-                return -1;  // key < table key because key is shorter.
-            }
-            int diff = (int)key.charAt(i) - c2;
-            if(diff != 0) {
-                return diff;
-            }
-        }
-    }
     private int compareKeys(CharSequence key, char keyOffset) {
         if(keyOffset < localKeyLimit) {
-            return compareKeys(key, bytes, keyOffset);
+            return ICUBinary.compareKeys(key, bytes, keyOffset);
         } else {
-            return compareKeys(key, poolBundleKeys, keyOffset - localKeyLimit);
+            return ICUBinary.compareKeys(key, poolBundleKeys, keyOffset - localKeyLimit);
         }
     }
     private int compareKeys32(CharSequence key, int keyOffset) {
         if(keyOffset >= 0) {
-            return compareKeys(key, bytes, keyOffset);
+            return ICUBinary.compareKeys(key, bytes, keyOffset);
         } else {
-            return compareKeys(key, poolBundleKeys, keyOffset & 0x7fffffff);
+            return ICUBinary.compareKeys(key, poolBundleKeys, keyOffset & 0x7fffffff);
         }
     }
 

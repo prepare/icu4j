@@ -26,9 +26,15 @@ public final class ICUData {
      */
     static final String ICU_DATA_PATH = "com/ibm/icu/impl/";
     /**
+     * The ICU data package name.
+     * This is normally the name of the .dat package, and the prefix (plus '/')
+     * of the package entry names.
+     */
+    static final String PACKAGE_NAME = "icudt" + VersionInfo.ICU_DATA_VERSION_PATH;
+    /**
      * The data path to be used with getBundleInstance API
      */
-    public static final String ICU_BUNDLE = "data/icudt" + VersionInfo.ICU_DATA_VERSION_PATH;
+    public static final String ICU_BUNDLE = "data/" + PACKAGE_NAME;
 
     /**
      * The base name of ICU data to be used with getBundleInstance API
