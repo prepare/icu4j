@@ -54,6 +54,11 @@ class CharsetMBCS extends CharsetICU {
     final static class MBCSToUFallback {
         int offset;
         int codePoint;
+
+        MBCSToUFallback(int off, int cp) {
+            offset = off;
+            codePoint = cp;
+        }
     }
 
     /**
@@ -73,9 +78,14 @@ class CharsetMBCS extends CharsetICU {
         MBCSToUFallback toUFallbacks[/* countToUFallbacks */];
 
         /* fromUnicode */
-        char fromUnicodeTable[];
+        char fromUnicodeTable[];  // stage1, and for MBCS_OUTPUT_1 also contains stage2
+        int fromUnicodeTableInts[];  // stage1 and stage2 together as int[]
+        // Exactly one of the fromUnicode(Type) tables is not null,
+        // depending on the outputType.
         byte fromUnicodeBytes[];
-        byte swapLFNLFromUnicodeBytes[]; /* for swaplfnl */
+        char fromUnicodeChars[];
+        int fromUnicodeInts[];
+        char swapLFNLFromUnicodeChars[]; /* for swaplfnl */
         int fromUBytesLength;
         short outputType, unicodeMask;
 
@@ -106,7 +116,7 @@ class CharsetMBCS extends CharsetICU {
          * stateTableOwned = t.stateTableOwned; countToUFallbacks = t.countToUFallbacks; stateTable = t.stateTable;
          * swapLFNLStateTable = t.swapLFNLStateTable; unicodeCodeUnits = t.unicodeCodeUnits; toUFallbacks =
          * t.toUFallbacks; fromUnicodeTable = t.fromUnicodeTable; fromUnicodeBytes = t.fromUnicodeBytes;
-         * swapLFNLFromUnicodeBytes = t.swapLFNLFromUnicodeBytes; fromUBytesLength = t.fromUBytesLength; outputType =
+         * swapLFNLFromUnicodeChars = t.swapLFNLFromUnicodeChars; fromUBytesLength = t.fromUBytesLength; outputType =
          * t.outputType; unicodeMask = t.unicodeMask; swapLFNLName = t.swapLFNLName; baseSharedData = t.baseSharedData;
          * extIndexes = t.extIndexes; }
          */
@@ -193,15 +203,20 @@ class CharsetMBCS extends CharsetICU {
         UConverterStaticData staticData = new UConverterStaticData();
         UConverterDataReader reader = null;
         try {
-            String resourceName = classPath + "/" + myName + "." + UConverterSharedData.DATA_TYPE;
-            InputStream i;
+            ByteBuffer b;
 
             if (loader != null) {
-                i = ICUData.getRequiredStream(loader, resourceName);
+                String resourceName = classPath + "/" + myName + "." + UConverterSharedData.DATA_TYPE;
+                InputStream i = ICUData.getRequiredStream(loader, resourceName);
+                b = ICUBinary.getByteBufferFromInputStream(i);
+            } else if (!classPath.equals(ICUData.ICU_BUNDLE)) {
+                String resourceName = classPath + "/" + myName + "." + UConverterSharedData.DATA_TYPE;
+                InputStream i = ICUData.getRequiredStream(resourceName);
+                b = ICUBinary.getByteBufferFromInputStream(i);
             } else {
-                i = ICUData.getRequiredStream(resourceName);
+                String itemName = myName + "." + UConverterSharedData.DATA_TYPE;
+                b = ICUBinary.getRequiredData(null, itemName);
             }
-            ByteBuffer b = ICUBinary.getByteBufferFromInputStream(i);
             reader = new UConverterDataReader(b);
             reader.readStaticData(staticData);
         } catch (IOException e) {
@@ -235,11 +250,6 @@ class CharsetMBCS extends CharsetICU {
         int offset;
         // int[] extIndexesArray = null;
         String baseNameString = null;
-        int[][] stateTableArray = null;
-        MBCSToUFallback[] toUFallbacksArray = null;
-        char[] unicodeCodeUnitsArray = null;
-        char[] fromUnicodeTableArray = null;
-        byte[] fromUnicodeBytesArray = null;
 
         if (header.version[0] == 5 && header.version[1] >= 3 && (header.options & MBCS_OPT_UNKNOWN_INCOMPATIBLE_MASK) == 0) {
             noFromU = ((header.options & MBCS_OPT_NO_FROM_U) != 0);
@@ -329,7 +339,7 @@ class CharsetMBCS extends CharsetICU {
              * for the extension converter separately when it is requested.
              */
             mbcsTable.swapLFNLStateTable = null;
-            mbcsTable.swapLFNLFromUnicodeBytes = null;
+            mbcsTable.swapLFNLFromUnicodeChars = null;
             mbcsTable.swapLFNLName = null;
 
             /*
@@ -412,43 +422,25 @@ class CharsetMBCS extends CharsetICU {
                 throw new InvalidFormatException();
             }
 
-            stateTableArray = new int[header.countStates][256];
-            toUFallbacksArray = new MBCSToUFallback[header.countToUFallbacks];
-            for (int i = 0; i < toUFallbacksArray.length; ++i)
-                toUFallbacksArray[i] = new MBCSToUFallback();
-            unicodeCodeUnitsArray = new char[(header.offsetFromUTable - header.offsetToUCodeUnits) / 2];
-            fromUnicodeTableArray = new char[(header.offsetFromUBytes - header.offsetFromUTable) / 2];
-            fromUnicodeBytesArray = new byte[header.fromUBytesLength];
-            try {
-                reader.readMBCSTable(stateTableArray, toUFallbacksArray, unicodeCodeUnitsArray, fromUnicodeTableArray,
-                        fromUnicodeBytesArray);
-            } catch (IOException e) {
-                throw new InvalidFormatException();
-            }
-
-            mbcsTable.countStates = (byte) header.countStates;
-            mbcsTable.countToUFallbacks = header.countToUFallbacks;
-            mbcsTable.stateTable = stateTableArray;
-            mbcsTable.toUFallbacks = toUFallbacksArray;
-            mbcsTable.unicodeCodeUnits = unicodeCodeUnitsArray;
-
-            mbcsTable.fromUnicodeTable = fromUnicodeTableArray;
-            mbcsTable.fromUnicodeBytes = fromUnicodeBytesArray;
-            mbcsTable.fromUBytesLength = header.fromUBytesLength;
-
             /*
              * converter versions 6.1 and up contain a unicodeMask that is used here to select the most efficient
              * function implementations
              */
             // agljport:fix info.size=sizeof(UDataInfo);
             // agljport:fix udata_getInfo((UDataMemory *)sharedData->dataMemory, &info);
-            // agljport:fix if(info.formatVersion[0]>6 || (info.formatVersion[0]==6 && info.formatVersion[1]>=1)) {
-            /* mask off possible future extensions to be safe */
-            mbcsTable.unicodeMask = (short) (staticData.unicodeMask & 3);
-            // agljport:fix } else {
-            /* for older versions, assume worst case: contains anything possible (prevent over-optimizations) */
-            // agljport:fix mbcsTable->unicodeMask=UCNV_HAS_SUPPLEMENTARY|UCNV_HAS_SURROGATES;
-            // agljport:fix }
+            if (reader.isFormatVersionAtLeast_6_1()) {
+                /* mask off possible future extensions to be safe */
+                mbcsTable.unicodeMask = (short) (staticData.unicodeMask & 3);
+            } else {
+                /* for older versions, assume worst case: contains anything possible (prevent over-optimizations) */
+                mbcsTable.unicodeMask = UConverterConstants.HAS_SUPPLEMENTARY | UConverterConstants.HAS_SURROGATES;
+            }
+            try {
+                reader.readMBCSTable(header, mbcsTable);
+            } catch (IOException e) {
+                throw new InvalidFormatException();
+            }
+
             if (offset != 0) {
                 try {
                     // agljport:commment subtract 32 for sizeof(_MBCSHeader) and length of baseNameString and 1 null
@@ -596,7 +588,7 @@ class CharsetMBCS extends CharsetICU {
         }
         return true;
      }
-    
+    // TODO: make this work with width-specific arrays and little-endian data
     private static void reconstituteData(UConverterMBCSTable mbcsTable, int stage1Length, int stage2Length, int fullStage2Length) {
         int datalength = stage1Length*2+fullStage2Length*4+mbcsTable.fromUBytesLength;
         int offset = 0;
@@ -965,30 +957,26 @@ class CharsetMBCS extends CharsetICU {
     
     private boolean EBCDICSwapLFNL() throws Exception {
         UConverterMBCSTable mbcsTable;
-        
+
         char[] table;
-        byte[] results;
-        byte[] bytes;
-        
+
         int[][] newStateTable;
-        byte[] newResults;
         String newName;
-        
+
         int stage2Entry;
-//        int size;
-        int sizeofFromUBytes;
-        
+
         mbcsTable = sharedData.mbcs;
         
         table = mbcsTable.fromUnicodeTable;
-        bytes = mbcsTable.fromUnicodeBytes;
-        results = bytes;
-        
+        int[] tableInts = sharedData.mbcs.fromUnicodeTableInts;
+        char[] chars = mbcsTable.fromUnicodeChars;
+        char[] results = chars;
+
         /*
          * Check that this is an EBCDIC table with SBCS portion -
          * SBCS or EBCDIC with standard EBCDIC LF and NL mappings.
          * 
-         * If not, ignore the option Options are always ignored if they do not apply.
+         * If not, ignore the option. Options are always ignored if they do not apply.
          */
         if (!((mbcsTable.outputType == MBCS_OUTPUT_1 || mbcsTable.outputType == MBCS_OUTPUT_2_SISO) &&
               mbcsTable.stateTable[0][EBCDIC_LF] == MBCS_ENTRY_FINAL(0, MBCS_STATE_VALID_DIRECT_16, U_LF) &&
@@ -1002,15 +990,15 @@ class CharsetMBCS extends CharsetICU {
                 return false;
             }
         } else /* MBCS_OUTPUT_2_SISO */ {
-            stage2Entry = MBCS_STAGE_2_FROM_U(table, U_LF);
+            stage2Entry = MBCS_STAGE_2_FROM_U(table, tableInts, U_LF);
             if (!(MBCS_FROM_U_IS_ROUNDTRIP(stage2Entry, U_LF) &&
-                  EBCDIC_LF == MBCS_VALUE_2_FROM_STAGE_2(bytes, stage2Entry, U_LF))) {
+                  EBCDIC_LF == MBCS_VALUE_2_FROM_STAGE_2(chars, stage2Entry, U_LF))) {
                 return false;
             }
             
-            stage2Entry = MBCS_STAGE_2_FROM_U(table, U_NL);
+            stage2Entry = MBCS_STAGE_2_FROM_U(table, tableInts, U_NL);
             if (!(MBCS_FROM_U_IS_ROUNDTRIP(stage2Entry, U_NL) &&
-                  EBCDIC_NL == MBCS_VALUE_2_FROM_STAGE_2(bytes, stage2Entry, U_NL))) {
+                  EBCDIC_NL == MBCS_VALUE_2_FROM_STAGE_2(chars, stage2Entry, U_NL))) {
                 return false;
             }
         }
@@ -1020,7 +1008,7 @@ class CharsetMBCS extends CharsetICU {
              * We _know_ the number of bytes in the fromUnicodeBytes array
              * starting with header.version 4.1.
              */
-            sizeofFromUBytes = mbcsTable.fromUBytesLength;
+            // sizeofFromUBytes = mbcsTable.fromUBytesLength;
         } else {
             /*
              * Otherwise:
@@ -1050,26 +1038,26 @@ class CharsetMBCS extends CharsetICU {
         newStateTable[0][EBCDIC_NL] = MBCS_ENTRY_FINAL(0, MBCS_STATE_VALID_DIRECT_16, U_LF);
         
         /* copy and modify the from-Unicode result table */
-        newResults = new byte[sizeofFromUBytes];
-        System.arraycopy(bytes, 0, newResults, 0, sizeofFromUBytes);
+        char[] newResults = new char[chars.length];
+        System.arraycopy(chars, 0, newResults, 0, chars.length);
         /* conveniently, the table access macros work on the left side of expressions */
         if (mbcsTable.outputType == MBCS_OUTPUT_1) {
             MBCS_SINGLE_RESULT_FROM_U_SET(table, newResults, U_LF, EBCDIC_RT_NL);
             MBCS_SINGLE_RESULT_FROM_U_SET(table, newResults, U_NL, EBCDIC_RT_LF);
         } else /* MBCS_OUTPUT_2_SISO */ {
-            stage2Entry = MBCS_STAGE_2_FROM_U(table, U_LF);
+            stage2Entry = MBCS_STAGE_2_FROM_U(table, tableInts, U_LF);
             MBCS_VALUE_2_FROM_STAGE_2_SET(newResults, stage2Entry, U_LF, EBCDIC_NL);
             
-            stage2Entry = MBCS_STAGE_2_FROM_U(table, U_NL);
+            stage2Entry = MBCS_STAGE_2_FROM_U(table, tableInts, U_NL);
             MBCS_VALUE_2_FROM_STAGE_2_SET(newResults, stage2Entry, U_NL, EBCDIC_LF);
         }
         
         /* set the canonical converter name */
         newName = icuCanonicalName.concat(UConverterConstants.OPTION_SWAP_LFNL_STRING);
-        
+
         if (mbcsTable.swapLFNLStateTable == null) {
             mbcsTable.swapLFNLStateTable = newStateTable;
-            mbcsTable.swapLFNLFromUnicodeBytes = newResults;
+            mbcsTable.swapLFNLFromUnicodeChars = newResults;
             mbcsTable.swapLFNLName = newName;
         }
         return true;
@@ -1274,49 +1262,44 @@ class CharsetMBCS extends CharsetICU {
     }
 
     /* single-byte fromUnicode: get the 16-bit result word */
-    static char MBCS_SINGLE_RESULT_FROM_U(char[] table, byte[] results, int c) {
+    static char MBCS_SINGLE_RESULT_FROM_U(char[] table, char[] results, int c) {
         int i1 = table[c >>> 10] + ((c >>> 4) & 0x3f);
-        int i = 2 * (table[i1] + (c & 0xf)); // used as index into byte[] array treated as char[] array
-        return (char) (((results[i] & UConverterConstants.UNSIGNED_BYTE_MASK) << 8) | (results[i + 1] & UConverterConstants.UNSIGNED_BYTE_MASK));
+        int i = table[i1] + (c & 0xf);
+        return results[i];
+        // TODO: look for UConverterConstants.UNSIGNED_BYTE_MASK
     }
     
     /* single-byte fromUnicode: set the 16-bit result word with newValue*/
-    static void MBCS_SINGLE_RESULT_FROM_U_SET(char[] table, byte[] results, int c, int newValue) {
+    static void MBCS_SINGLE_RESULT_FROM_U_SET(char[] table, char[] results, int c, int newValue) {
         int i1 = table[c >>> 10] + ((c >>> 4) & 0x3f);
-        int i = 2 * (table[i1] + (c & 0xf)); // used as index into byte[] array treated as char[] array
-        results[i] = (byte)((newValue >> 8) & UConverterConstants.UNSIGNED_BYTE_MASK);
-        results[i + 1] =  (byte)(newValue & UConverterConstants.UNSIGNED_BYTE_MASK);
+        int i = table[i1] + (c & 0xf);
+        results[i] = (char) newValue;
     }
 
     /* multi-byte fromUnicode: get the 32-bit stage 2 entry */
-    static int MBCS_STAGE_2_FROM_U(char[] table, int c) {
-        int i = 2 * (table[(c) >>> 10] + ((c >>> 4) & 0x3f)); // 2x because used as index into char[] array treated as
-        // int[] array
-        return ((table[i] & UConverterConstants.UNSIGNED_SHORT_MASK) << 16)
-                | (table[i + 1] & UConverterConstants.UNSIGNED_SHORT_MASK);
+    static int MBCS_STAGE_2_FROM_U(char[] table, int[] tableInts, int c) {
+        int i = table[(c) >>> 10] + ((c >>> 4) & 0x3f);
+        return tableInts[i];
     }
 
     private static boolean MBCS_FROM_U_IS_ROUNDTRIP(int stage2Entry, int c) {
         return (((stage2Entry) & (1 << (16 + ((c) & 0xf)))) != 0);
     }
 
-    static char MBCS_VALUE_2_FROM_STAGE_2(byte[] bytes, int stage2Entry, int c) {
-        int i = 2 * (16 * ((char) stage2Entry & UConverterConstants.UNSIGNED_SHORT_MASK) + (c & 0xf));
-        return (char) (((bytes[i] & UConverterConstants.UNSIGNED_BYTE_MASK) << 8) | (bytes[i + 1] & UConverterConstants.UNSIGNED_BYTE_MASK));
-    }
-    
-    static void MBCS_VALUE_2_FROM_STAGE_2_SET(byte[] bytes, int stage2Entry, int c, int newValue) {
-        int i = 2 * (16 * ((char) stage2Entry & UConverterConstants.UNSIGNED_SHORT_MASK) + (c & 0xf));
-        bytes[i] = (byte)((newValue >> 8) & UConverterConstants.UNSIGNED_BYTE_MASK);
-        bytes[i + 1] = (byte)(newValue & UConverterConstants.UNSIGNED_BYTE_MASK);
+    static char MBCS_VALUE_2_FROM_STAGE_2(char[] chars, int stage2Entry, int c) {
+        // TODO: remove (char) cast; UConverterConstants.UNSIGNED_SHORT_MASK should suffice; do we need even that?
+        int i = 16 * ((char) stage2Entry & UConverterConstants.UNSIGNED_SHORT_MASK) + (c & 0xf);
+        return chars[i];
     }
 
-    private static int MBCS_VALUE_4_FROM_STAGE_2(byte[] bytes, int stage2Entry, int c) {
-        int i = 4 * (16 * ((char) stage2Entry & UConverterConstants.UNSIGNED_SHORT_MASK) + (c & 0xf));
-        return ((bytes[i] & UConverterConstants.UNSIGNED_BYTE_MASK) << 24)
-                | ((bytes[i + 1] & UConverterConstants.UNSIGNED_BYTE_MASK) << 16)
-                | ((bytes[i + 2] & UConverterConstants.UNSIGNED_BYTE_MASK) << 8)
-                | (bytes[i + 3] & UConverterConstants.UNSIGNED_BYTE_MASK);
+    static void MBCS_VALUE_2_FROM_STAGE_2_SET(char[] chars, int stage2Entry, int c, int newValue) {
+        int i = 16 * ((char) stage2Entry & UConverterConstants.UNSIGNED_SHORT_MASK) + (c & 0xf);
+        chars[i] = (char) newValue;
+    }
+
+    private static int MBCS_VALUE_4_FROM_STAGE_2(int[] ints, int stage2Entry, int c) {
+        int i = 16 * ((char) stage2Entry & UConverterConstants.UNSIGNED_SHORT_MASK) + (c & 0xf);
+        return ints[i];
     }
 
     static int MBCS_POINTER_3_FROM_STAGE_2(byte[] bytes, int stage2Entry, int c) {
@@ -2866,6 +2849,8 @@ class CharsetMBCS extends CharsetICU {
             int sourceArrayIndex;
             char[] table;
             byte[] pArray, bytes;
+            char[] chars;
+            int[] ints;
             int pArrayIndex, outputType, c;
             int prevSourceIndex, sourceIndex, nextSourceIndex;
             int stage2Entry = 0, value = 0, length = 0, prevLength;
@@ -2908,12 +2893,15 @@ class CharsetMBCS extends CharsetICU {
                 }
 
                 table = sharedData.mbcs.fromUnicodeTable;
+                int[] tableInts = sharedData.mbcs.fromUnicodeTableInts;
                 sourceArrayIndex = source.position();
 
+                bytes = sharedData.mbcs.fromUnicodeBytes;
+                ints = sharedData.mbcs.fromUnicodeInts;
                 if ((options & UConverterConstants.OPTION_SWAP_LFNL) != 0) {
-                    bytes = sharedData.mbcs.swapLFNLFromUnicodeBytes;
+                    chars = sharedData.mbcs.swapLFNLFromUnicodeChars;
                 } else {
-                    bytes = sharedData.mbcs.fromUnicodeBytes;
+                    chars = sharedData.mbcs.fromUnicodeChars;
                 }
 
                 // asciiRoundtrips = sharedData.mbcs.asciiRoundtrips;
@@ -3054,7 +3042,7 @@ class CharsetMBCS extends CharsetICU {
                              * byte may be output if the "assigned" bit in stage 2 was on. The data structure does not
                              * support zero byte output as a fallback, and also does not allow output of leading zeros.
                              */
-                            stage2Entry = MBCS_STAGE_2_FROM_U(table, c);
+                            stage2Entry = MBCS_STAGE_2_FROM_U(table, tableInts, c);
 
                             /* get the bytes and the length for the output */
                             switch (outputType) {
@@ -3078,7 +3066,7 @@ class CharsetMBCS extends CharsetICU {
                                  * callback function changed it for its output.
                                  */
                                 fromUnicodeStatus = prevLength; /* save the old state */
-                                value = MBCS_VALUE_2_FROM_STAGE_2(bytes, stage2Entry, c);
+                                value = MBCS_VALUE_2_FROM_STAGE_2(chars, stage2Entry, c);
                                 if ((value & UConverterConstants.UNSIGNED_INT_MASK) <= 0xff) {
                                     if (value == 0 && MBCS_FROM_U_IS_ROUNDTRIP(stage2Entry, c) == false) {
                                         /* no mapping, leave value==0 */
@@ -3116,7 +3104,7 @@ class CharsetMBCS extends CharsetICU {
                                 break;
                             case MBCS_OUTPUT_DBCS_ONLY:
                                 /* table with single-byte results, but only DBCS mappings used */
-                                value = MBCS_VALUE_2_FROM_STAGE_2(bytes, stage2Entry, c);
+                                value = MBCS_VALUE_2_FROM_STAGE_2(chars, stage2Entry, c);
                                 if ((value & UConverterConstants.UNSIGNED_INT_MASK) <= 0xff) {
                                     /* no mapping or SBCS result, not taken for DBCS-only */
                                     value = stage2Entry = 0; /* stage2Entry=0 to reset roundtrip flags */
@@ -3131,6 +3119,7 @@ class CharsetMBCS extends CharsetICU {
                                 value = ((pArray[pArrayIndex] & UConverterConstants.UNSIGNED_BYTE_MASK) << 16)
                                         | ((pArray[pArrayIndex + 1] & UConverterConstants.UNSIGNED_BYTE_MASK) << 8)
                                         | (pArray[pArrayIndex + 2] & UConverterConstants.UNSIGNED_BYTE_MASK);
+                                // TODO: value can't possibly need UConverterConstants.UNSIGNED_INT_MASK
                                 if ((value & UConverterConstants.UNSIGNED_INT_MASK) <= 0xff) {
                                     length = 1;
                                 } else if ((value & UConverterConstants.UNSIGNED_INT_MASK) <= 0xffff) {
@@ -3140,7 +3129,7 @@ class CharsetMBCS extends CharsetICU {
                                 }
                                 break;
                             case MBCS_OUTPUT_4:
-                                value = MBCS_VALUE_4_FROM_STAGE_2(bytes, stage2Entry, c);
+                                value = MBCS_VALUE_4_FROM_STAGE_2(ints, stage2Entry, c);
                                 if ((value & UConverterConstants.UNSIGNED_INT_MASK) <= 0xff) {
                                     length = 1;
                                 } else if ((value & UConverterConstants.UNSIGNED_INT_MASK) <= 0xffff) {
@@ -3152,7 +3141,7 @@ class CharsetMBCS extends CharsetICU {
                                 }
                                 break;
                             case MBCS_OUTPUT_3_EUC:
-                                value = MBCS_VALUE_2_FROM_STAGE_2(bytes, stage2Entry, c);
+                                value = MBCS_VALUE_2_FROM_STAGE_2(chars, stage2Entry, c);
                                 /* EUC 16-bit fixed-length representation */
                                 if ((value & UConverterConstants.UNSIGNED_INT_MASK) <= 0xff) {
                                     length = 1;
@@ -3401,19 +3390,20 @@ class CharsetMBCS extends CharsetICU {
 
                 /* convert the Unicode code point in c into codepage bytes (same as in _MBCSFromUnicodeWithOffsets) */
                 if (sharedData.mbcs.outputType == MBCS_OUTPUT_1) {
-                    value = MBCS_SINGLE_RESULT_FROM_U(table, sharedData.mbcs.fromUnicodeBytes, c);
+                    value = MBCS_SINGLE_RESULT_FROM_U(table, sharedData.mbcs.fromUnicodeChars, c);
                     /* is this code point assigned, or do we use fallbacks? */
                     if (isUseFallback ? value >= 0x800 : value >= 0xc00) {
                         pValue[0] = value & 0xff;
                         return 1;
                     }
                 } else /* outputType!=MBCS_OUTPUT_1 */{
-                    stage2Entry = MBCS_STAGE_2_FROM_U(table, c);
+                    int[] tableInts = sharedData.mbcs.fromUnicodeTableInts;
+                    stage2Entry = MBCS_STAGE_2_FROM_U(table, tableInts, c);
 
                     /* get the bytes and the length for the output */
                     switch (sharedData.mbcs.outputType) {
                     case MBCS_OUTPUT_2:
-                        value = MBCS_VALUE_2_FROM_STAGE_2(sharedData.mbcs.fromUnicodeBytes, stage2Entry, c);
+                        value = MBCS_VALUE_2_FROM_STAGE_2(sharedData.mbcs.fromUnicodeChars, stage2Entry, c);
                         if (value <= 0xff) {
                             length = 1;
                         } else {
@@ -3996,7 +3986,7 @@ class CharsetMBCS extends CharsetICU {
             int sourceArrayIndex, lastSource;
             int targetCapacity, length;
             char[] table;
-            byte[] results;
+            char[] results;
 
             int c, sourceIndex;
             char value, minValue;
@@ -4007,12 +3997,9 @@ class CharsetMBCS extends CharsetICU {
             table = sharedData.mbcs.fromUnicodeTable;
 
             if ((options & UConverterConstants.OPTION_SWAP_LFNL) != 0) {
-                results = sharedData.mbcs.swapLFNLFromUnicodeBytes; // agljport:comment should swapLFNLFromUnicodeBytes
-                // be a ByteBuffer so results can be a 16-bit view
-                // of it?
+                results = sharedData.mbcs.swapLFNLFromUnicodeChars;
             } else {
-                results = sharedData.mbcs.fromUnicodeBytes; // agljport:comment should swapLFNLFromUnicodeBytes be a
-                // ByteBuffer so results can be a 16-bit view of it?
+                results = sharedData.mbcs.fromUnicodeChars;
             }
 
             if (useFallback) {
@@ -4164,7 +4151,7 @@ class CharsetMBCS extends CharsetICU {
             int sourceArrayIndex;
 
             char[] table;
-            byte[] results; // agljport:comment results is used to to get 16-bit values out of byte[] array
+            char[] results;
 
             int c;
             int sourceIndex, nextSourceIndex;
@@ -4178,12 +4165,9 @@ class CharsetMBCS extends CharsetICU {
             table = sharedData.mbcs.fromUnicodeTable;
 
             if ((options & UConverterConstants.OPTION_SWAP_LFNL) != 0) {
-                results = sharedData.mbcs.swapLFNLFromUnicodeBytes; // agljport:comment should swapLFNLFromUnicodeBytes
-                // be a ByteBuffer so results can be a 16-bit view
-                // of it?
+                results = sharedData.mbcs.swapLFNLFromUnicodeChars;
             } else {
-                results = sharedData.mbcs.fromUnicodeBytes; // agljport:comment should swapLFNLFromUnicodeBytes be a
-                // ByteBuffer so results can be a 16-bit view of it?
+                results = sharedData.mbcs.fromUnicodeChars;
             }
 
             if (useFallback) {
@@ -4316,7 +4300,7 @@ class CharsetMBCS extends CharsetICU {
             int sourceArrayIndex;
 
             char[] table;
-            byte[] bytes;
+            char[] chars;
 
             int c, sourceIndex, nextSourceIndex;
 
@@ -4332,11 +4316,12 @@ class CharsetMBCS extends CharsetICU {
             sourceArrayIndex = source.position();
 
             table = sharedData.mbcs.fromUnicodeTable;
+            int[] tableInts = sharedData.mbcs.fromUnicodeTableInts;
 
             if ((options & UConverterConstants.OPTION_SWAP_LFNL) != 0) {
-                bytes = sharedData.mbcs.swapLFNLFromUnicodeBytes;
+                chars = sharedData.mbcs.swapLFNLFromUnicodeChars;
             } else {
-                bytes = sharedData.mbcs.fromUnicodeBytes;
+                chars = sharedData.mbcs.fromUnicodeChars;
             }
 
             /* get the converter state from UConverter */
@@ -4413,11 +4398,11 @@ class CharsetMBCS extends CharsetICU {
                         }
 
                         /* convert the Unicode code point in c into codepage bytes */
-                        stage2Entry = MBCS_STAGE_2_FROM_U(table, c);
+                        stage2Entry = MBCS_STAGE_2_FROM_U(table, tableInts, c);
 
                         /* get the bytes and the length for the output */
                         /* MBCS_OUTPUT_2 */
-                        value = MBCS_VALUE_2_FROM_STAGE_2(bytes, stage2Entry, c);
+                        value = MBCS_VALUE_2_FROM_STAGE_2(chars, stage2Entry, c);
                         if ((value & UConverterConstants.UNSIGNED_INT_MASK) <= 0xff) {
                             length = 1;
                         } else {
