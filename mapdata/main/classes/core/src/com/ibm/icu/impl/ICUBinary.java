@@ -134,7 +134,6 @@ public final class ICUBinary {
     }
 
     private static final class DataFile {
-        public final String basePath;  // TODO: needed?
         public final String itemPath;
         public final File path;  // TODO: needed if pkgBytes!=null?
         /**
@@ -144,14 +143,12 @@ public final class ICUBinary {
          */
         public final ByteBuffer pkgBytes;
 
-        public DataFile(String base, String item, File path) {
-            basePath = base;
+        public DataFile(String item, File path) {
             itemPath = item;
             this.path = path;
             pkgBytes = null;
         }
-        public DataFile(String base, String item, File path, ByteBuffer bytes) {
-            basePath = base;
+        public DataFile(String item, File path, ByteBuffer bytes) {
             itemPath = item;
             this.path = path;
             pkgBytes = bytes;
@@ -178,7 +175,7 @@ public final class ICUBinary {
                 path = path.substring(0, path.length() - 1);
             }
             if (path.length() != 0) {
-                handlePath(path, new StringBuilder(), new File(path));
+                addDataFilesFromFolder(new File(path), new StringBuilder());
             }
             if (sepIndex < 0) {
                 break;
@@ -187,7 +184,7 @@ public final class ICUBinary {
         }
     }
 
-    private static void handlePath(String basePath, StringBuilder itemPath, File folder) {
+    private static void addDataFilesFromFolder(File folder, StringBuilder itemPath) {
         File[] files = folder.listFiles();
         if (files == null || files.length == 0) {
             return;
@@ -208,15 +205,15 @@ public final class ICUBinary {
             itemPath.append(fileName);
             if (file.isDirectory()) {
                 // TODO: Within a folder, put all single files before all .dat packages?
-                handlePath(basePath, itemPath, file);
+                addDataFilesFromFolder(file, itemPath);
             } else if (fileName.endsWith(".dat")) {
                 ByteBuffer pkgBytes = mapFile(file);
                 if (pkgBytes != null && DatPackageReader.validate(pkgBytes)) {
                     // TODO: Do we need dataFile.path for a .dat package?
-                    dataFiles.add(new DataFile(basePath, itemPath.toString(), file, pkgBytes));
+                    dataFiles.add(new DataFile(itemPath.toString(), file, pkgBytes));
                 }
             } else {
-                dataFiles.add(new DataFile(basePath, itemPath.toString(), file));
+                dataFiles.add(new DataFile(itemPath.toString(), file));
             }
             itemPath.setLength(folderPathLength);
         }
@@ -476,7 +473,11 @@ public final class ICUBinary {
                 bytes.get(14) != (byte)(dataFormat >> 8) ||
                 bytes.get(15) != (byte)dataFormat ||
                 (authenticate != null && !authenticate.isDataVersionAcceptable(formatVersion))) {
-            throw new IOException(HEADER_AUTHENTICATION_FAILED_);
+            throw new IOException(HEADER_AUTHENTICATION_FAILED_ +
+                    String.format("; data format %02x%02x%02x%02x, format version %d.%d.%d.%d",
+                            bytes.get(12), bytes.get(13), bytes.get(14), bytes.get(15),
+                            formatVersion[0] & 0xff, formatVersion[1] & 0xff,
+                            formatVersion[2] & 0xff, formatVersion[3] & 0xff));
         }
 
         bytes.position(headerSize);
