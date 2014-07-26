@@ -530,6 +530,10 @@ final class UConverterDataReader {
         ICUBinary.skipBytes(byteBuffer, length);
         bytesRead+=length;
 
+        // TODO: Consider leaving large arrays as CharBuffer/IntBuffer rather than
+        // reading them into Java arrays, to reduce initialization time and memory usage.
+        // For example: unicodeCodeUnits, fromUnicodeTable, fromUnicodeBytes.
+        // Take care not to modify the buffer contents for swaplfnl.
         CharBuffer charBuffer = byteBuffer.asCharBuffer();
         length = header.offsetFromUTable - header.offsetToUCodeUnits;
         assert (length & 1) == 0;
@@ -567,31 +571,38 @@ final class UConverterDataReader {
         bytesRead+=length;
 
         mbcsTable.fromUBytesLength = header.fromUBytesLength;
-        switch (mbcsTable.outputType) {
-        case CharsetMBCS.MBCS_OUTPUT_1:
-        case CharsetMBCS.MBCS_OUTPUT_2:
-        case CharsetMBCS.MBCS_OUTPUT_2_SISO:
-        case CharsetMBCS.MBCS_OUTPUT_3_EUC:
-            mbcsTable.fromUnicodeChars = new char[header.fromUBytesLength / 2];
-            byteBuffer.asCharBuffer().get(mbcsTable.fromUnicodeChars);
-            ICUBinary.skipBytes(byteBuffer, header.fromUBytesLength & ~1);
-            break;
-        case CharsetMBCS.MBCS_OUTPUT_3:
-        case CharsetMBCS.MBCS_OUTPUT_4_EUC:
-            mbcsTable.fromUnicodeBytes = new byte[header.fromUBytesLength];
-            byteBuffer.get(mbcsTable.fromUnicodeBytes);
-            break;
-        case CharsetMBCS.MBCS_OUTPUT_4:
-            mbcsTable.fromUnicodeInts = new int[header.fromUBytesLength / 4];
-            byteBuffer.asIntBuffer().get(mbcsTable.fromUnicodeInts);
-            ICUBinary.skipBytes(byteBuffer, header.fromUBytesLength & ~3);
-            break;
-        default:
-            // Cannot occur, caller checked already.
-            assert false;
+        boolean noFromU = ((header.options & CharsetMBCS.MBCS_OPT_NO_FROM_U) != 0);
+        if (!noFromU) {
+            switch (mbcsTable.outputType) {
+            case CharsetMBCS.MBCS_OUTPUT_1:
+            case CharsetMBCS.MBCS_OUTPUT_2:
+            case CharsetMBCS.MBCS_OUTPUT_2_SISO:
+            case CharsetMBCS.MBCS_OUTPUT_3_EUC:
+                mbcsTable.fromUnicodeChars = new char[header.fromUBytesLength / 2];
+                byteBuffer.asCharBuffer().get(mbcsTable.fromUnicodeChars);
+                ICUBinary.skipBytes(byteBuffer, header.fromUBytesLength & ~1);
+                break;
+            case CharsetMBCS.MBCS_OUTPUT_3:
+            case CharsetMBCS.MBCS_OUTPUT_4_EUC:
+                mbcsTable.fromUnicodeBytes = new byte[header.fromUBytesLength];
+                byteBuffer.get(mbcsTable.fromUnicodeBytes);
+                break;
+            case CharsetMBCS.MBCS_OUTPUT_4:
+                mbcsTable.fromUnicodeInts = new int[header.fromUBytesLength / 4];
+                byteBuffer.asIntBuffer().get(mbcsTable.fromUnicodeInts);
+                ICUBinary.skipBytes(byteBuffer, header.fromUBytesLength & ~3);
+                break;
+            default:
+                // Cannot occur, caller checked already.
+                assert false;
+            }
+            bytesRead+=header.fromUBytesLength;
+            assert bytesRead == byteBuffer.position() - headerLimit;
+        } else {
+            // Optional utf8Friendly mbcsIndex -- _MBCSHeader.version 4.3 (ICU 3.8) and higher.
+            // Needed for reconstituting omitted data.
+            mbcsTable.mbcsIndex = byteBuffer.asCharBuffer();
         }
-        bytesRead+=header.fromUBytesLength;
-        assert bytesRead == byteBuffer.position() - headerLimit;
         // TODO: remove bytesRead
     }
 
