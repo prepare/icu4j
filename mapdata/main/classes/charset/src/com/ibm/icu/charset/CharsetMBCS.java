@@ -1455,6 +1455,9 @@ class CharsetMBCS extends CharsetICU {
         int oldpos = indexes.position();
         Buffer b;
 
+        // TODO: It is very inefficient to create Buffer objects for each array access.
+        // We should create a inner class Extensions (or sibling class CharsetMBCSExtensions)
+        // which has buffers for the arrays, together with the code that works with them.
         indexes.position(indexes.getInt(index << 2));
         if (itemType == int.class)
             b = indexes.asIntBuffer();
