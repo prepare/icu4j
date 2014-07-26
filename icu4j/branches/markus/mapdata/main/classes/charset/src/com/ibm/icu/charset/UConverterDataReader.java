@@ -16,6 +16,7 @@ import com.ibm.icu.charset.CharsetMBCS.MBCSHeader;
 import com.ibm.icu.charset.CharsetMBCS.MBCSToUFallback;
 import com.ibm.icu.charset.CharsetMBCS.UConverterMBCSTable;
 import com.ibm.icu.impl.ICUBinary;
+import com.ibm.icu.impl.InvalidFormatException;
 
 /**
  * ucnvmbcs.h
@@ -619,26 +620,19 @@ final class UConverterDataReader {
     }
 
     //protected int[] readExtIndexes(int skip) throws IOException
-    protected ByteBuffer readExtIndexes(int skip) throws IOException
+    protected ByteBuffer readExtIndexes(int skip) throws IOException, InvalidFormatException
     {
         ICUBinary.skipBytes(byteBuffer, skip);
-        int n = byteBuffer.getInt();
-        bytesRead+=4;
-        int[] indexes = new int[n];
-        indexes[0] = n;
-        for(int i = 1; i < n; ++i) {
-            indexes[i] = byteBuffer.getInt();
-            bytesRead+=4;
+        ByteBuffer b = byteBuffer.slice();
+        b.order(byteBuffer.order());  // slice() does not seem to copy the byte order.
+        int lengthOfIndexes = b.getInt(0);
+        if (lengthOfIndexes < 32) {
+            throw new InvalidFormatException();
         }
-        //return indexes;
-
-        ByteBuffer b = ByteBuffer.allocate(indexes[31]);
-        for(int i = 0; i < n; ++i) {
-            b.putInt(indexes[i]);
-        }
-        int len = b.remaining();
-        byteBuffer.get(b.array(), b.position(), len);
-        bytesRead += len;
+        int numBytesExtensionStructure = b.getInt(31 * 4);
+        b.limit(numBytesExtensionStructure);
+        ICUBinary.skipBytes(byteBuffer, numBytesExtensionStructure);
+        bytesRead+=numBytesExtensionStructure;
         return b;
     }
 
