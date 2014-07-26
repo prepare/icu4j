@@ -157,10 +157,17 @@ public final class ICUBinary {
             return path.toString();
         }
     }
-    private static final List<DataFile> dataFiles = new ArrayList<DataFile>();
+    private static final List<DataFile> icuDataFiles = new ArrayList<DataFile>();
 
     static {
-        String dataPath = ICUConfig.get("com.ibm.icu.impl.ICUBinary.DataPath");
+        // Normally com.ibm.icu.impl.ICUBinary.DataPath.
+        String dataPath = ICUConfig.get(ICUBinary.class.getName() + ".DataPath");
+        if (dataPath != null) {
+            addDataFilesFromPath(dataPath, icuDataFiles);
+        }
+    }
+
+    private static void addDataFilesFromPath(String dataPath, List<DataFile> files) {
         int pathStart = 0;
         while (pathStart < dataPath.length()) {
             int sepIndex = dataPath.indexOf(File.pathSeparatorChar, pathStart);
@@ -175,7 +182,7 @@ public final class ICUBinary {
                 path = path.substring(0, path.length() - 1);
             }
             if (path.length() != 0) {
-                addDataFilesFromFolder(new File(path), new StringBuilder());
+                addDataFilesFromFolder(new File(path), new StringBuilder(), icuDataFiles);
             }
             if (sepIndex < 0) {
                 break;
@@ -184,7 +191,8 @@ public final class ICUBinary {
         }
     }
 
-    private static void addDataFilesFromFolder(File folder, StringBuilder itemPath) {
+    private static void addDataFilesFromFolder(File folder, StringBuilder itemPath,
+            List<DataFile> dataFiles) {
         File[] files = folder.listFiles();
         if (files == null || files.length == 0) {
             return;
@@ -205,7 +213,7 @@ public final class ICUBinary {
             itemPath.append(fileName);
             if (file.isDirectory()) {
                 // TODO: Within a folder, put all single files before all .dat packages?
-                addDataFilesFromFolder(file, itemPath);
+                addDataFilesFromFolder(file, itemPath, dataFiles);
             } else if (fileName.endsWith(".dat")) {
                 ByteBuffer pkgBytes = mapFile(file);
                 if (pkgBytes != null && DatPackageReader.validate(pkgBytes)) {
@@ -387,7 +395,7 @@ public final class ICUBinary {
     }
 
     private static ByteBuffer getDataFromFile(String itemPath) {
-        for (DataFile dataFile : dataFiles) {
+        for (DataFile dataFile : icuDataFiles) {
             if (dataFile.pkgBytes != null) {
                 ByteBuffer data = DatPackageReader.getData(dataFile.pkgBytes, itemPath);
                 if (data != null) {
