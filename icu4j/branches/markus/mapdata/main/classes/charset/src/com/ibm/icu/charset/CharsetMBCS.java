@@ -103,7 +103,7 @@ class CharsetMBCS extends CharsetICU {
         char maxFastUChar;                        /* for utf8Friendly data */
 
         /* roundtrips */
-        long asciiRoundtrips;
+        int asciiRoundtrips;
 
         UConverterMBCSTable() {
             utf8Friendly = false;
@@ -478,15 +478,16 @@ class CharsetMBCS extends CharsetICU {
             }
             /* calculate a bit set of 4 ASCII characters per bit that round-trip to ASCII bytes */
             {
-                long asciiRoundtrips = 0xffffffff;
+                int asciiRoundtrips = 0xffffffff;
                 for (int i = 0; i < 0x80; ++i) {
                     if (mbcsTable.stateTable[0][i] != MBCS_ENTRY_FINAL(0, MBCS_STATE_VALID_DIRECT_16, i)) {
-                        asciiRoundtrips&=~((long)1<<(i>>2))&UConverterConstants.UNSIGNED_INT_MASK;
+                        asciiRoundtrips&=~(1<<(i>>2));
                     }
                 }
-                mbcsTable.asciiRoundtrips = asciiRoundtrips&UConverterConstants.UNSIGNED_INT_MASK;
+                mbcsTable.asciiRoundtrips = asciiRoundtrips;
             }
-            
+            // TODO: Use asciiRoundtrips to speed up conversion, like in ICU4C.
+
             if (noFromU) {
                 int stage1Length = (mbcsTable.unicodeMask&UConverterConstants.HAS_SUPPLEMENTARY) != 0 ? 0x440 : 0x40;
                 int stage2Length = (header.offsetFromUBytes - header.offsetFromUTable)/4 - stage1Length/2;
@@ -776,7 +777,7 @@ class CharsetMBCS extends CharsetICU {
             }
             if (((++b)&0x1f) == 0) {
                 if(anyCodePoints>=0) {
-                    if(!writeStage3Roundtrip(mbcsTable, value|(b-0x20)&UConverterConstants.UNSIGNED_INT_MASK, codePoints)) {
+                    if(!writeStage3Roundtrip(mbcsTable, value|(b-0x20), codePoints)) {
                         return false;
                     }
                     anyCodePoints=-1;
@@ -1080,13 +1081,13 @@ class CharsetMBCS extends CharsetICU {
     /* GB 18030 data ------------------------------------------------------------ */
 
     /* helper macros for linear values for GB 18030 four-byte sequences */
-    private static long LINEAR_18030(long a, long b, long c, long d) {
-        return ((((a & 0xff) * 10 + (b & 0xff)) * 126L + (c & 0xff)) * 10L + (d & 0xff));
+    private static int LINEAR_18030(int a, int b, int c, int d) {
+        return ((((a & 0xff) * 10 + (b & 0xff)) * 126 + (c & 0xff)) * 10 + (d & 0xff));
     }
 
-    private static long LINEAR_18030_BASE = LINEAR_18030(0x81, 0x30, 0x81, 0x30);
+    private static int LINEAR_18030_BASE = LINEAR_18030(0x81, 0x30, 0x81, 0x30);
 
-    private static long LINEAR(long x) {
+    private static int LINEAR(int x) {
         return LINEAR_18030(x >>> 24, (x >>> 16) & 0xff, (x >>> 8) & 0xff, x & 0xff);
     }
 
@@ -1097,21 +1098,21 @@ class CharsetMBCS extends CharsetICU {
      * 
      * Note that single surrogates are not mapped by GB 18030 as of the re-released mapping tables from 2000-nov-30.
      */
-    private static final long gb18030Ranges[][] = new long[/* 14 */][/* 4 */] {
-            { 0x10000L, 0x10FFFFL, LINEAR(0x90308130L), LINEAR(0xE3329A35L) },
-            { 0x9FA6L, 0xD7FFL, LINEAR(0x82358F33L), LINEAR(0x8336C738L) },
-            { 0x0452L, 0x1E3EL, LINEAR(0x8130D330L), LINEAR(0x8135F436L) },
-            { 0x1E40L, 0x200FL, LINEAR(0x8135F438L), LINEAR(0x8136A531L) },
-            { 0xE865L, 0xF92BL, LINEAR(0x8336D030L), LINEAR(0x84308534L) },
-            { 0x2643L, 0x2E80L, LINEAR(0x8137A839L), LINEAR(0x8138FD38L) },
-            { 0xFA2AL, 0xFE2FL, LINEAR(0x84309C38L), LINEAR(0x84318537L) },
-            { 0x3CE1L, 0x4055L, LINEAR(0x8231D438L), LINEAR(0x8232AF32L) },
-            { 0x361BL, 0x3917L, LINEAR(0x8230A633L), LINEAR(0x8230F237L) },
-            { 0x49B8L, 0x4C76L, LINEAR(0x8234A131L), LINEAR(0x8234E733L) },
-            { 0x4160L, 0x4336L, LINEAR(0x8232C937L), LINEAR(0x8232F837L) },
-            { 0x478EL, 0x4946L, LINEAR(0x8233E838L), LINEAR(0x82349638L) },
-            { 0x44D7L, 0x464BL, LINEAR(0x8233A339L), LINEAR(0x8233C931L) },
-            { 0xFFE6L, 0xFFFFL, LINEAR(0x8431A234L), LINEAR(0x8431A439L) } };
+    private static final int gb18030Ranges[][] = new int[/* 14 */][/* 4 */] {
+            { 0x10000, 0x10FFFF, LINEAR(0x90308130), LINEAR(0xE3329A35) },
+            { 0x9FA6, 0xD7FF, LINEAR(0x82358F33), LINEAR(0x8336C738) },
+            { 0x0452, 0x1E3E, LINEAR(0x8130D330), LINEAR(0x8135F436) },
+            { 0x1E40, 0x200F, LINEAR(0x8135F438), LINEAR(0x8136A531) },
+            { 0xE865, 0xF92B, LINEAR(0x8336D030), LINEAR(0x84308534) },
+            { 0x2643, 0x2E80, LINEAR(0x8137A839), LINEAR(0x8138FD38) },
+            { 0xFA2A, 0xFE2F, LINEAR(0x84309C38), LINEAR(0x84318537) },
+            { 0x3CE1, 0x4055, LINEAR(0x8231D438), LINEAR(0x8232AF32) },
+            { 0x361B, 0x3917, LINEAR(0x8230A633), LINEAR(0x8230F237) },
+            { 0x49B8, 0x4C76, LINEAR(0x8234A131), LINEAR(0x8234E733) },
+            { 0x4160, 0x4336, LINEAR(0x8232C937), LINEAR(0x8232F837) },
+            { 0x478E, 0x4946, LINEAR(0x8233E838), LINEAR(0x82349638) },
+            { 0x44D7, 0x464B, LINEAR(0x8233A339), LINEAR(0x8233C931) },
+            { 0xFFE6, 0xFFFF, LINEAR(0x8431A234), LINEAR(0x8431A439) } };
 
     /* bit flag for UConverter.options indicating GB 18030 special handling */
     private static final int MBCS_OPTION_GB18030 = 0x8000;
@@ -1256,7 +1257,8 @@ class CharsetMBCS extends CharsetICU {
      * single-state codepages that only map to and from BMP code points, and it always returns fallback values.
      */
     static char MBCS_SINGLE_SIMPLE_GET_NEXT_BMP(UConverterMBCSTable mbcs, final int b) {
-        return MBCS_ENTRY_FINAL_VALUE_16(mbcs.stateTable[0][b & UConverterConstants.UNSIGNED_BYTE_MASK]);
+        assert 0 <= b && b <= 0xff;
+        return MBCS_ENTRY_FINAL_VALUE_16(mbcs.stateTable[0][b]);
     }
 
     /* single-byte fromUnicode: get the 16-bit result word */
@@ -1285,23 +1287,22 @@ class CharsetMBCS extends CharsetICU {
     }
 
     static char MBCS_VALUE_2_FROM_STAGE_2(char[] chars, int stage2Entry, int c) {
-        // TODO: remove (char) cast; UConverterConstants.UNSIGNED_SHORT_MASK should suffice; do we need even that?
-        int i = 16 * ((char) stage2Entry & UConverterConstants.UNSIGNED_SHORT_MASK) + (c & 0xf);
+        int i = 16 * (stage2Entry & UConverterConstants.UNSIGNED_SHORT_MASK) + (c & 0xf);
         return chars[i];
     }
 
     static void MBCS_VALUE_2_FROM_STAGE_2_SET(char[] chars, int stage2Entry, int c, int newValue) {
-        int i = 16 * ((char) stage2Entry & UConverterConstants.UNSIGNED_SHORT_MASK) + (c & 0xf);
+        int i = 16 * (stage2Entry & UConverterConstants.UNSIGNED_SHORT_MASK) + (c & 0xf);
         chars[i] = (char) newValue;
     }
 
     private static int MBCS_VALUE_4_FROM_STAGE_2(int[] ints, int stage2Entry, int c) {
-        int i = 16 * ((char) stage2Entry & UConverterConstants.UNSIGNED_SHORT_MASK) + (c & 0xf);
+        int i = 16 * (stage2Entry & UConverterConstants.UNSIGNED_SHORT_MASK) + (c & 0xf);
         return ints[i];
     }
 
     static int MBCS_POINTER_3_FROM_STAGE_2(byte[] bytes, int stage2Entry, int c) {
-        return ((16 * ((char) (stage2Entry) & UConverterConstants.UNSIGNED_SHORT_MASK) + ((c) & 0xf)) * 3);
+        return ((16 * (stage2Entry & UConverterConstants.UNSIGNED_SHORT_MASK) + ((c) & 0xf)) * 3);
     }
 
     // ------------UConverterExt-------------------------------------------------------
@@ -1365,7 +1366,7 @@ class CharsetMBCS extends CharsetICU {
     }
 
     static boolean TO_U_IS_PARTIAL(int value) {
-        return (value & UConverterConstants.UNSIGNED_INT_MASK) < TO_U_MIN_CODE_POINT;
+        return 0 <= value && value < TO_U_MIN_CODE_POINT;
     }
 
     static int TO_U_GET_PARTIAL_INDEX(int value) {
@@ -1377,16 +1378,19 @@ class CharsetMBCS extends CharsetICU {
     }
 
     private static int TO_U_MAKE_WORD(byte b, int value) {
-        return ((b & UConverterConstants.UNSIGNED_BYTE_MASK) << TO_U_BYTE_SHIFT) | value;
+        // TO_U_BYTE_SHIFT == 24: safe to just shift the signed byte-as-int.
+        return (b << TO_U_BYTE_SHIFT) | value;
     }
 
     /* use after masking off the roundtrip flag */
     static boolean TO_U_IS_CODE_POINT(int value) {
-        return (value & UConverterConstants.UNSIGNED_INT_MASK) <= TO_U_MAX_CODE_POINT;
+        assert value >= 0;
+        return value <= TO_U_MAX_CODE_POINT;
     }
 
     static int TO_U_GET_CODE_POINT(int value) {
-        return (int) ((value & UConverterConstants.UNSIGNED_INT_MASK) - TO_U_MIN_CODE_POINT);
+        assert value >= 0;
+        return value - TO_U_MIN_CODE_POINT;
     }
 
     private static int TO_U_GET_INDEX(int value) {
@@ -1884,8 +1888,8 @@ class CharsetMBCS extends CharsetICU {
 
             /* GB 18030 */
             if (length == 4 && (options & MBCS_OPTION_GB18030) != 0) {
-                long[] range;
-                long linear;
+                int[] range;
+                int linear;
                 int i;
 
                 linear = LINEAR_18030(toUBytesArray[0], toUBytesArray[1], toUBytesArray[2], toUBytesArray[3]);
@@ -1899,7 +1903,7 @@ class CharsetMBCS extends CharsetICU {
                         linear = range[0] + (linear - range[2]);
 
                         /* output this code point */
-                        cr[0] = toUWriteCodePoint((int) linear, target, offsets, sourceIndex);
+                        cr[0] = toUWriteCodePoint(linear, target, offsets, sourceIndex);
 
                         return 0;
                     }
@@ -2802,7 +2806,7 @@ class CharsetMBCS extends CharsetICU {
             for (b = 0; b <= 0xff; b++) {
                 entry = row[b];
                 if (MBCS_ENTRY_IS_TRANSITION(entry) && 
-                        hasValidTrailBytes(stateTable, (short)(MBCS_ENTRY_TRANSITION_STATE(entry) & UConverterConstants.UNSIGNED_BYTE_MASK))) {
+                        hasValidTrailBytes(stateTable, (short)MBCS_ENTRY_TRANSITION_STATE(entry))) {
                     return true;
                 }
             }
@@ -2813,9 +2817,9 @@ class CharsetMBCS extends CharsetICU {
             int[] row = stateTable[state];
             int entry = row[b];
             if (MBCS_ENTRY_IS_TRANSITION(entry)) { /* lead byte */
-                return hasValidTrailBytes(stateTable, (short)(MBCS_ENTRY_TRANSITION_STATE(entry) & UConverterConstants.UNSIGNED_BYTE_MASK));
+                return hasValidTrailBytes(stateTable, (short)MBCS_ENTRY_TRANSITION_STATE(entry));
             } else {
-                short action = (short)(MBCS_ENTRY_FINAL_ACTION(entry) & UConverterConstants.UNSIGNED_BYTE_MASK);
+                int action = MBCS_ENTRY_FINAL_ACTION(entry);
                 if (action == MBCS_STATE_CHANGE_ONLY && isDBCSOnly) {
                     return false;   /* SI/SO are illegal for DBCS-only conversion */
                 } else {
@@ -3068,7 +3072,7 @@ class CharsetMBCS extends CharsetICU {
                                  */
                                 fromUnicodeStatus = prevLength; /* save the old state */
                                 value = MBCS_VALUE_2_FROM_STAGE_2(chars, stage2Entry, c);
-                                if ((value & UConverterConstants.UNSIGNED_INT_MASK) <= 0xff) {
+                                if (value <= 0xff) {
                                     if (value == 0 && MBCS_FROM_U_IS_ROUNDTRIP(stage2Entry, c) == false) {
                                         /* no mapping, leave value==0 */
                                         length = 0;
@@ -3106,7 +3110,7 @@ class CharsetMBCS extends CharsetICU {
                             case MBCS_OUTPUT_DBCS_ONLY:
                                 /* table with single-byte results, but only DBCS mappings used */
                                 value = MBCS_VALUE_2_FROM_STAGE_2(chars, stage2Entry, c);
-                                if ((value & UConverterConstants.UNSIGNED_INT_MASK) <= 0xff) {
+                                if (value <= 0xff) {
                                     /* no mapping or SBCS result, not taken for DBCS-only */
                                     value = stage2Entry = 0; /* stage2Entry=0 to reset roundtrip flags */
                                     length = 0;
@@ -3120,10 +3124,9 @@ class CharsetMBCS extends CharsetICU {
                                 value = ((pArray[pArrayIndex] & UConverterConstants.UNSIGNED_BYTE_MASK) << 16)
                                         | ((pArray[pArrayIndex + 1] & UConverterConstants.UNSIGNED_BYTE_MASK) << 8)
                                         | (pArray[pArrayIndex + 2] & UConverterConstants.UNSIGNED_BYTE_MASK);
-                                // TODO: value can't possibly need UConverterConstants.UNSIGNED_INT_MASK
-                                if ((value & UConverterConstants.UNSIGNED_INT_MASK) <= 0xff) {
+                                if (value <= 0xff) {
                                     length = 1;
-                                } else if ((value & UConverterConstants.UNSIGNED_INT_MASK) <= 0xffff) {
+                                } else if (value <= 0xffff) {
                                     length = 2;
                                 } else {
                                     length = 3;
@@ -3131,11 +3134,14 @@ class CharsetMBCS extends CharsetICU {
                                 break;
                             case MBCS_OUTPUT_4:
                                 value = MBCS_VALUE_4_FROM_STAGE_2(ints, stage2Entry, c);
-                                if ((value & UConverterConstants.UNSIGNED_INT_MASK) <= 0xff) {
+                                if (value < 0) {
+                                    // Half of the 4-byte values look negative in a signed int.
+                                    length = 4;
+                                } else if (value <= 0xff) {
                                     length = 1;
-                                } else if ((value & UConverterConstants.UNSIGNED_INT_MASK) <= 0xffff) {
+                                } else if (value <= 0xffff) {
                                     length = 2;
-                                } else if ((value & UConverterConstants.UNSIGNED_INT_MASK) <= 0xffffff) {
+                                } else if (value <= 0xffffff) {
                                     length = 3;
                                 } else {
                                     length = 4;
@@ -3144,7 +3150,7 @@ class CharsetMBCS extends CharsetICU {
                             case MBCS_OUTPUT_3_EUC:
                                 value = MBCS_VALUE_2_FROM_STAGE_2(chars, stage2Entry, c);
                                 /* EUC 16-bit fixed-length representation */
-                                if ((value & UConverterConstants.UNSIGNED_INT_MASK) <= 0xff) {
+                                if (value <= 0xff) {
                                     length = 1;
                                 } else if ((value & 0x8000) == 0) {
                                     value |= 0x8e8000;
@@ -3163,9 +3169,9 @@ class CharsetMBCS extends CharsetICU {
                                         | ((pArray[pArrayIndex + 1] & UConverterConstants.UNSIGNED_BYTE_MASK) << 8)
                                         | (pArray[pArrayIndex + 2] & UConverterConstants.UNSIGNED_BYTE_MASK);
                                 /* EUC 16-bit fixed-length representation applied to the first two bytes */
-                                if ((value & UConverterConstants.UNSIGNED_INT_MASK) <= 0xff) {
+                                if (value <= 0xff) {
                                     length = 1;
-                                } else if ((value & UConverterConstants.UNSIGNED_INT_MASK) <= 0xffff) {
+                                } else if (value <= 0xffff) {
                                     length = 2;
                                 } else if ((value & 0x800000) == 0) {
                                     value |= 0x8e800000;
@@ -3874,28 +3880,27 @@ class CharsetMBCS extends CharsetICU {
          * @return if(U_FAILURE) return the code point for cnv->fromUChar32 else return 0 after output has been written
          * to the target
          */
-        private int fromU(int cp_, CharBuffer source, ByteBuffer target, IntBuffer offsets, int sourceIndex,
+        private int fromU(int cp, CharBuffer source, ByteBuffer target, IntBuffer offsets, int sourceIndex,
                 int length, boolean flush, CoderResult[] cr) {
             // ByteBuffer cx;
-            long cp = cp_ & UConverterConstants.UNSIGNED_INT_MASK;
 
             useSubChar1 = false;
 
             if (sharedData.mbcs.extIndexes != null
-                    && initialMatchFromU((int) cp, source, target, offsets, sourceIndex, flush, cr)) {
+                    && initialMatchFromU(cp, source, target, offsets, sourceIndex, flush, cr)) {
                 return 0; /* an extension mapping handled the input */
             }
 
             /* GB 18030 */
             if ((options & MBCS_OPTION_GB18030) != 0) {
-                long[] range;
+                int[] range;
                 int i;
 
                 for (i = 0; i < gb18030Ranges.length; ++i) {
                     range = gb18030Ranges[i];
                     if (range[0] <= cp && cp <= range[1]) {
                         /* found the Unicode code point, output the four-byte sequence for it */
-                        long linear;
+                        int linear;
                         byte bytes[] = new byte[4];
 
                         /* get the linear value of the first GB 18030 code in this range */
@@ -4404,7 +4409,7 @@ class CharsetMBCS extends CharsetICU {
                         /* get the bytes and the length for the output */
                         /* MBCS_OUTPUT_2 */
                         value = MBCS_VALUE_2_FROM_STAGE_2(chars, stage2Entry, c);
-                        if ((value & UConverterConstants.UNSIGNED_INT_MASK) <= 0xff) {
+                        if (value <= 0xff) {
                             length = 1;
                         } else {
                             length = 2;
@@ -4842,10 +4847,9 @@ class CharsetMBCS extends CharsetICU {
                         if(st3!=0){
                         //if((st3=table[stage2+st2])!=0){
                             stage3 = st3Multiplier*16*(st3&UConverterConstants.UNSIGNED_SHORT_MASK);
-                            
+
                             /* get the roundtrip flags for the stage 3 block */
-                            st3>>=16;
-                            st3 &= UConverterConstants.UNSIGNED_SHORT_MASK;
+                            st3>>>=16;
                             switch(filter) {
                             case UCNV_SET_FILTER_NONE:
                                 do {
@@ -4877,8 +4881,7 @@ class CharsetMBCS extends CharsetICU {
                             case UCNV_SET_FILTER_DBCS_ONLY:
                                 /* Ignore single bytes results (<0x100). */
                                 do {
-                                    if(((st3&1) != 0 || useFallBack) && 
-                                            (UConverterConstants.UNSIGNED_SHORT_MASK & chars[stage3 / 2]) >= 0x100){
+                                    if(((st3&1) != 0 || useFallBack) && chars[stage3 / 2] >= 0x100){
                                         setFillIn.add(c);
                                     }
                                     st3>>=1;
@@ -4899,7 +4902,7 @@ class CharsetMBCS extends CharsetICU {
                             case UCNV_SET_FILTER_SJIS:
                                 /* only add code points that map tp Shift-JIS codes corrosponding to JIS X 0280. */
                                 do{
-                                    if(((st3&1) != 0 || useFallBack) && (value=(UConverterConstants.UNSIGNED_SHORT_MASK & chars[stage3 / 2]))>=0x8140 && value<=0xeffc){
+                                    if(((st3&1) != 0 || useFallBack) && (value=chars[stage3 / 2])>=0x8140 && value<=0xeffc){
                                         setFillIn.add(c);
                                     }
                                     st3>>=1;
@@ -4910,7 +4913,7 @@ class CharsetMBCS extends CharsetICU {
                                 /* only add code points that maps to ISO 2022 GR 94 DBCS codes*/
                                 do {
                                     if(((st3&1) != 0 || useFallBack) && 
-                                            (UConverterConstants.UNSIGNED_SHORT_MASK & ((value=(UConverterConstants.UNSIGNED_SHORT_MASK & chars[stage3 / 2]))- 0xa1a1))<=(0xfefe - 0xa1a1) && 
+                                            (UConverterConstants.UNSIGNED_SHORT_MASK & ((value=chars[stage3 / 2])- 0xa1a1))<=(0xfefe - 0xa1a1) && 
                                             (UConverterConstants.UNSIGNED_BYTE_MASK & (value - 0xa1)) <= (0xfe - 0xa1)){
                                         setFillIn.add(c);
                                     }
@@ -4922,7 +4925,7 @@ class CharsetMBCS extends CharsetICU {
                                 /*Only add code points that are suitable for HZ DBCS*/
                                 do {
                                     if( ((st3&1) != 0 || useFallBack) && 
-                                            (UConverterConstants.UNSIGNED_SHORT_MASK & ((value=(UConverterConstants.UNSIGNED_SHORT_MASK & chars[stage3 / 2]))-0xa1a1))<=(0xfdfe - 0xa1a1) &&
+                                            (UConverterConstants.UNSIGNED_SHORT_MASK & ((value=chars[stage3 / 2])-0xa1a1))<=(0xfdfe - 0xa1a1) &&
                                             (UConverterConstants.UNSIGNED_BYTE_MASK & (value - 0xa1)) <= (0xfe - 0xa1)){
                                         setFillIn.add(c);
                                     }
@@ -5035,7 +5038,7 @@ class CharsetMBCS extends CharsetICU {
                     if(st3!= 0){
                         ps3 = st3;
                         do {
-                            value = stage3b.get(UConverterConstants.UNSIGNED_SHORT_MASK&stage3.get(ps3++));
+                            value = stage3b.get(stage3.get(ps3++));
                             if(value==0){
                                 /* no mapping do nothing */
                             }else if (FROM_U_IS_PARTIAL(value)){
@@ -5057,14 +5060,13 @@ class CharsetMBCS extends CharsetICU {
                                     }
                                     break;
                                 case UCNV_SET_FILTER_GR94DBCS:
-                                    if(!(FROM_U_GET_LENGTH(value)==2 && (UConverterConstants.UNSIGNED_SHORT_MASK & ((value=FROM_U_GET_DATA(value)) - 0xa1a1))<=(0xfefe - 0xa1a1) 
+                                    if(!(FROM_U_GET_LENGTH(value)==2 && ((value=FROM_U_GET_DATA(value)) - 0xa1a1)<=(0xfefe - 0xa1a1)
                                             && (UConverterConstants.UNSIGNED_BYTE_MASK & (value - 0xa1))<= (0xfe - 0xa1))){
-                                        
                                         continue;
                                     }
                                     break;
                                 case UCNV_SET_FILTER_HZ:
-                                    if(!(FROM_U_GET_LENGTH(value)==2 && (UConverterConstants.UNSIGNED_SHORT_MASK & ((value=FROM_U_GET_DATA(value)) - 0xa1a1))<=(0xfdfe - 0xa1a1) 
+                                    if(!(FROM_U_GET_LENGTH(value)==2 && ((value=FROM_U_GET_DATA(value)) - 0xa1a1)<=(0xfdfe - 0xa1a1)
                                             && (UConverterConstants.UNSIGNED_BYTE_MASK & (value - 0xa1))<= (0xfe - 0xa1))){
                                         continue;
                                     }
