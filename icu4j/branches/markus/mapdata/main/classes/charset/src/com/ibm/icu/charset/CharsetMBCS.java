@@ -98,7 +98,7 @@ class CharsetMBCS extends CharsetICU {
         ByteBuffer extIndexes; // create int[] view etc. as needed
         
         CharBuffer mbcsIndex;                     /* for fast conversion from most of BMP to MBCS (utf8Friendly data) */
-        char sbcsIndex[/* SBCS_FAST_LIMIT>>6 */]; /* for fast conversion from low BMP to SBCS (utf8Friendly data) */
+        // char sbcsIndex[/* SBCS_FAST_LIMIT>>6 */]; /* for fast conversion from low BMP to SBCS (utf8Friendly data) */
         boolean utf8Friendly;                     /* for utf8Friendly data */
         char maxFastUChar;                        /* for utf8Friendly data */
 
@@ -108,7 +108,6 @@ class CharsetMBCS extends CharsetICU {
         UConverterMBCSTable() {
             utf8Friendly = false;
             mbcsIndex = null;
-            sbcsIndex = new char[SBCS_FAST_LIMIT>>6];
         }
 
         /*
@@ -460,12 +459,13 @@ class CharsetMBCS extends CharsetICU {
                 if (mbcsTable.countStates == 1) {
                     /*
                      * SBCS: Stage 3 is allocated in 64-entry blocks for U+0000..SBCS_FAST_MAX or higher.
-                     * Build a table with indexes to each block, to be used instaed of
+                     * Build a table with indexes to each block, to be used instead of
                      * the regular stage 1/2 table.
-                     */
+                    sbcsIndex = new char[SBCS_FAST_LIMIT>>6];
                     for (int i = 0; i < (SBCS_FAST_LIMIT>>6); ++i) {
                         mbcsTable.sbcsIndex[i] = mbcsTable.fromUnicodeTable[mbcsTable.fromUnicodeTable[i>>4]+((i<<2)&0x3c)];
                     }
+                     */
                     /* set SBCS_FAST_MAX to reflect the reach of sbcsIndex[] even if header.version[2]>(SBCS_FAST_MAX>>8) */
                     mbcsTable.maxFastUChar = SBCS_FAST_MAX;
                 } else {
@@ -473,9 +473,6 @@ class CharsetMBCS extends CharsetICU {
                      * MBCS: Stage 3 is allocated in 64-entry blocks for U+0000..MBCS_FAST_MAX or higher.
                      * The .cnv file is prebuilt with an additional stage table with indexes to each block.
                      */
-                    if (noFromU) {
-                        mbcsTable.mbcsIndex = ByteBuffer.wrap(mbcsTable.fromUnicodeBytes).asCharBuffer();
-                    }
                     mbcsTable.maxFastUChar = (char)((header.version[2]<<8) | 0xff);
                 }
             }
@@ -503,9 +500,11 @@ class CharsetMBCS extends CharsetICU {
                 mbcsTable.asciiRoundtrips = 0;
             }
         }
+        // TODO: Use mbcsIndex to speed up UTF-16 conversion, like in ICU4C.
+        mbcsTable.mbcsIndex = null;
         return data;
     }
-    
+
     private static boolean writeStage3Roundtrip(UConverterMBCSTable mbcsTable, long value, int codePoints[]) {
         char[] table;
         byte[] bytes;
@@ -516,7 +515,10 @@ class CharsetMBCS extends CharsetICU {
         long temp;
 
         table = mbcsTable.fromUnicodeTable;
+        int[] tableInts = mbcsTable.fromUnicodeTableInts;
         bytes = mbcsTable.fromUnicodeBytes;
+        char[] chars = mbcsTable.fromUnicodeChars;
+        int[] ints = mbcsTable.fromUnicodeInts;
 
         /* for EUC outputTypes, modify the value like genmbcs.c's transformEUC() */
         switch(mbcsTable.outputType) {
@@ -556,7 +558,7 @@ class CharsetMBCS extends CharsetICU {
 
             /* locate the stage 2 & 3 data */
             stage2 = table[c>>10] + ((c>>4)&0x3f);
-            st3 = table[stage2*2]<<16|table[stage2*2 + 1];
+            st3 = tableInts[stage2];
             st3 = (int)(char)(st3 * 16 + (c&0xf));
 
             /* write the codepage bytes into stage 3 */
@@ -569,54 +571,42 @@ class CharsetMBCS extends CharsetICU {
                 bytes[p+2] = (byte)value;
                 break;
             case MBCS_OUTPUT_4:
-                bytes[st3*4] = (byte)(value >> 24);
-                bytes[st3*4 + 1] = (byte)(value >> 16);
-                bytes[st3*4 + 2] = (byte)(value >> 8);
-                bytes[st3*4 + 3] = (byte)value;
+                ints[st3] = (int)value;
                 break;
             default:
                 /* 2 bytes per character */
-                bytes[st3*2] = (byte)(value >> 8);
-                bytes[st3*2 + 1] = (byte)value;
+                chars[st3] = (char)value;
                 break;
             }
 
             /* set the roundtrip flag */
             temp = (1L<<(16+(c&0xf)));
-            table[stage2*2] |= (char)(temp>>16);
-            table[stage2*2 + 1] |= (char)temp;
+            tableInts[stage2] |= temp;
         }
         return true;
      }
-    // TODO: make this work with width-specific arrays and little-endian data
-    private static void reconstituteData(UConverterMBCSTable mbcsTable, int stage1Length, int stage2Length, int fullStage2Length) {
-        int datalength = stage1Length*2+fullStage2Length*4+mbcsTable.fromUBytesLength;
-        int offset = 0;
-        byte[] stage = new byte[datalength];
-        
-        for (int i = 0; i < stage1Length; ++i) {
-            stage[i*2]   = (byte)(mbcsTable.fromUnicodeTable[i]>>8);
-            stage[i*2+1] = (byte)(mbcsTable.fromUnicodeTable[i]);
-        }
-        
-        offset = ((fullStage2Length - stage2Length) * 4) + (stage1Length * 2);
-        for (int i = 0; i < stage2Length; ++i) {
-            stage[offset + i*4]   = (byte)(mbcsTable.fromUnicodeTable[stage1Length + i*2]>>8);
-            stage[offset + i*4+1] = (byte)(mbcsTable.fromUnicodeTable[stage1Length + i*2]);
-            stage[offset + i*4+2] = (byte)(mbcsTable.fromUnicodeTable[stage1Length + i*2+1]>>8);
-            stage[offset + i*4+3] = (byte)(mbcsTable.fromUnicodeTable[stage1Length + i*2+1]);
-        }
-        
-        /* indexes into stage 2 count from the bottom of the fromUnicodeTable */
-        
-        /* reconsitute the initial part of stage 2 from the mbcsIndex */
+
+    private static void reconstituteData(UConverterMBCSTable mbcsTable,
+            int stage1Length, int stage2Length, int fullStage2Length) {
+        char[] stage1 = mbcsTable.fromUnicodeTable;
+
+        // stage2 starts with unused stage1 space.
+        // Indexes into stage 2 count from the bottom of the fromUnicodeTable.
+        int numStage1Ints = stage1Length / 2;  // 2 chars = 1 int
+        int[] stage2 = new int[numStage1Ints + fullStage2Length];
+        System.arraycopy(mbcsTable.fromUnicodeTableInts, numStage1Ints,
+                stage2, (fullStage2Length - stage2Length) + numStage1Ints,
+                stage2Length);
+        mbcsTable.fromUnicodeTableInts = stage2;
+
+        /* reconstitute the initial part of stage 2 from the mbcsIndex */
         {
             int stageUTF8Length=(mbcsTable.maxFastUChar+1)>>6;
             int stageUTF8Index=0;
             int st1, st2, st3, i;
-            
+
             for (st1 = 0; stageUTF8Index < stageUTF8Length; ++st1) {
-                st2 = ((char)stage[2*st1]<<8) | (0xff & stage[2*st1+1]);
+                st2 = stage1[st1];
                 if (st2 != stage1Length/2) {
                     /* each stage 2 block has 64 entries corresponding to 16 entries in the mbcsIndex */
                     for (i = 0; i < 16; ++i) {
@@ -628,10 +618,10 @@ class CharsetMBCS extends CharsetICU {
                              * 4 stage 2 entries point to 4 consecutive stage 3 16-blocks which are
                              * allocated together as a single 64-block for access from the mbcsIndex
                              */
-                            stage[4*st2] = (byte)(st3>>24); stage[4*st2+1] = (byte)(st3>>16); stage[4*st2+2] = (byte)(st3>>8); stage[4*st2+3] = (byte)(st3); st2++; st3++;
-                            stage[4*st2] = (byte)(st3>>24); stage[4*st2+1] = (byte)(st3>>16); stage[4*st2+2] = (byte)(st3>>8); stage[4*st2+3] = (byte)(st3); st2++; st3++;
-                            stage[4*st2] = (byte)(st3>>24); stage[4*st2+1] = (byte)(st3>>16); stage[4*st2+2] = (byte)(st3>>8); stage[4*st2+3] = (byte)(st3); st2++; st3++;
-                            stage[4*st2] = (byte)(st3>>24); stage[4*st2+1] = (byte)(st3>>16); stage[4*st2+2] = (byte)(st3>>8); stage[4*st2+3] = (byte)(st3);
+                            stage2[st2++] = st3++;
+                            stage2[st2++] = st3++;
+                            stage2[st2++] = st3++;
+                            stage2[st2++] = st3;
                         } else {
                             /* no stage 3 block, skip */
                             st2+=4;
@@ -643,17 +633,25 @@ class CharsetMBCS extends CharsetICU {
                 }
             }
         }
-        
-        char[] stage1 = new char[stage.length/2];
-        for (int i = 0; i < stage1.length; ++i) {
-            stage1[i] = (char)(((stage[i*2])<<8)|(stage[i*2+1] & UConverterConstants.UNSIGNED_BYTE_MASK));
+
+        switch (mbcsTable.outputType) {
+        case CharsetMBCS.MBCS_OUTPUT_2:
+        case CharsetMBCS.MBCS_OUTPUT_2_SISO:
+        case CharsetMBCS.MBCS_OUTPUT_3_EUC:
+            mbcsTable.fromUnicodeChars = new char[mbcsTable.fromUBytesLength / 2];
+            break;
+        case CharsetMBCS.MBCS_OUTPUT_3:
+        case CharsetMBCS.MBCS_OUTPUT_4_EUC:
+            mbcsTable.fromUnicodeBytes = new byte[mbcsTable.fromUBytesLength];
+            break;
+        case CharsetMBCS.MBCS_OUTPUT_4:
+            mbcsTable.fromUnicodeInts = new int[mbcsTable.fromUBytesLength / 4];
+            break;
+        default:
+            // Cannot occur, caller checked already.
+            assert false;
         }
-        byte[] stage2 = new byte[stage.length - ((stage1Length * 2) + (fullStage2Length * 4))];
-        System.arraycopy(stage, ((stage1Length * 2) + (fullStage2Length * 4)), stage2, 0, stage2.length);
-        
-        mbcsTable.fromUnicodeTable = stage1;
-        mbcsTable.fromUnicodeBytes = stage2;
-        
+
         /* reconstitute fromUnicodeBytes with roundtrips from toUnicode data */
         MBCSEnumToUnicode(mbcsTable);
     }
@@ -4776,9 +4774,8 @@ class CharsetMBCS extends CharsetICU {
         if(mbcsTable.outputType==MBCS_OUTPUT_1){
             char stage2, stage3;
             char minValue;
-            CharBuffer results;
-            results = ByteBuffer.wrap(mbcsTable.fromUnicodeBytes).asCharBuffer();
-                                   
+            char[] results = mbcsTable.fromUnicodeChars;
+
             if(which==ROUNDTRIP_SET) {
                 /* use only roundtrips */
                 minValue=0xf00;
@@ -4796,10 +4793,9 @@ class CharsetMBCS extends CharsetICU {
                             /*read the stage 3 block */
                             stage3 = (char)st3;
                             do {
-                                if(results.get(stage3++)>=minValue){
+                                if(results[stage3++]>=minValue){
                                      setFillIn.add(c);
                                 }
-                               
                             }while((++c&0xf) !=0);
                           } else {
                             c+= 16; /*empty stage 2 block */
@@ -4810,12 +4806,15 @@ class CharsetMBCS extends CharsetICU {
                 }
             }
         } else {
+            int[] tableInts = mbcsTable.fromUnicodeTableInts;
             int stage2,stage3;
             byte[] bytes;
             int st3Multiplier;
             int value;
             boolean useFallBack;
             bytes = mbcsTable.fromUnicodeBytes;
+            char[] chars = mbcsTable.fromUnicodeChars;
+            int[] ints = mbcsTable.fromUnicodeInts;
             useFallBack = (which == ROUNDTRIP_AND_FALLBACK_SET);
             switch(mbcsTable.outputType) {
             case MBCS_OUTPUT_3:
@@ -4829,16 +4828,14 @@ class CharsetMBCS extends CharsetICU {
                 st3Multiplier =2;
                 break;
             }
-            //ByteBuffer buffer = (ByteBuffer)charTobyte(table);
-            
+
             for(st1=0;st1<maxStage1;++st1){
                 st2 = table[st1]; 
                 if(st2>(maxStage1>>1)){
                     stage2 =  st2 ;
-                    for(st2=0;st2<128;++st2){
+                    for(st2=0;st2<64;++st2){
                         /*read the stage 3 block */
-                        st3 = table[stage2*2 + st2]<<16;
-                        st3+=table[stage2*2 + ++st2];
+                        st3 = tableInts[stage2 + st2];
                         if(st3!=0){
                         //if((st3=table[stage2+st2])!=0){
                             stage3 = st3Multiplier*16*(st3&UConverterConstants.UNSIGNED_SHORT_MASK);
@@ -4849,29 +4846,24 @@ class CharsetMBCS extends CharsetICU {
                             switch(filter) {
                             case UCNV_SET_FILTER_NONE:
                                 do {
-                                    
                                    if((st3&1)!=0){
                                         setFillIn.add(c);
-                                        stage3+=st3Multiplier;
                                    }else if (useFallBack) {
-                                        
-                                        char b =0;
+                                        int b =0;
                                         switch(st3Multiplier) {
-                                        case 4 :
-                                           
-                                            b|= ByteBuffer.wrap(bytes).getChar(stage3++);
-                                           
-                                        case 3 :
-                                            
-                                            b|= ByteBuffer.wrap(bytes).getChar(stage3++);
-                                           
-                                        case 2 :
-                                           
-                                            b|= ByteBuffer.wrap(bytes).getChar(stage3) | ByteBuffer.wrap(bytes).getChar(stage3+1);
-                                            stage3+=2;
+                                        case 4:
+                                            b = ints[stage3 / 4];
+                                            break;
+                                        case 3:
+                                            b |= bytes[stage3] | bytes[stage3 + 1] | bytes[stage3 + 2];
+                                            break;
+                                        case 2:
+                                            b = chars[stage3 / 2];
+                                            break;
                                         default:
                                             break;
                                         }
+                                        stage3+=st3Multiplier;
                                         if(b!=0) {
                                             setFillIn.add(c);
                                         }
@@ -4883,7 +4875,7 @@ class CharsetMBCS extends CharsetICU {
                                 /* Ignore single bytes results (<0x100). */
                                 do {
                                     if(((st3&1) != 0 || useFallBack) && 
-                                            (UConverterConstants.UNSIGNED_SHORT_MASK & (ByteBuffer.wrap(bytes).getChar(stage3))) >= 0x100){
+                                            (UConverterConstants.UNSIGNED_SHORT_MASK & chars[stage3 / 2]) >= 0x100){
                                         setFillIn.add(c);
                                     }
                                     st3>>=1;
@@ -4894,7 +4886,7 @@ class CharsetMBCS extends CharsetICU {
                                 /* only add code points that map to CNS 11643 planes 1&2 for non-EXT ISO-2202-CN. */
                                 do {
                                     if(((st3&1) != 0 || useFallBack) && 
-                                            ((value= (UConverterConstants.UNSIGNED_BYTE_MASK & (ByteBuffer.wrap(bytes).get(stage3))))==0x81 || value==0x82) ){
+                                            ((value= (UConverterConstants.UNSIGNED_BYTE_MASK & bytes[stage3]))==0x81 || value==0x82) ){
                                         setFillIn.add(c);
                                     }
                                     st3>>=1;
@@ -4904,8 +4896,7 @@ class CharsetMBCS extends CharsetICU {
                             case UCNV_SET_FILTER_SJIS:
                                 /* only add code points that map tp Shift-JIS codes corrosponding to JIS X 0280. */
                                 do{
-                                    
-                                    if(((st3&1) != 0 || useFallBack) && (value=(UConverterConstants.UNSIGNED_SHORT_MASK & (ByteBuffer.wrap(bytes).getChar(stage3))))>=0x8140 && value<=0xeffc){
+                                    if(((st3&1) != 0 || useFallBack) && (value=(UConverterConstants.UNSIGNED_SHORT_MASK & chars[stage3 / 2]))>=0x8140 && value<=0xeffc){
                                         setFillIn.add(c);
                                     }
                                     st3>>=1;
@@ -4916,7 +4907,7 @@ class CharsetMBCS extends CharsetICU {
                                 /* only add code points that maps to ISO 2022 GR 94 DBCS codes*/
                                 do {
                                     if(((st3&1) != 0 || useFallBack) && 
-                                            (UConverterConstants.UNSIGNED_SHORT_MASK & ((value=(UConverterConstants.UNSIGNED_SHORT_MASK & (ByteBuffer.wrap(bytes).getChar(stage3))))- 0xa1a1))<=(0xfefe - 0xa1a1) && 
+                                            (UConverterConstants.UNSIGNED_SHORT_MASK & ((value=(UConverterConstants.UNSIGNED_SHORT_MASK & chars[stage3 / 2]))- 0xa1a1))<=(0xfefe - 0xa1a1) && 
                                             (UConverterConstants.UNSIGNED_BYTE_MASK & (value - 0xa1)) <= (0xfe - 0xa1)){
                                         setFillIn.add(c);
                                     }
@@ -4928,7 +4919,7 @@ class CharsetMBCS extends CharsetICU {
                                 /*Only add code points that are suitable for HZ DBCS*/
                                 do {
                                     if( ((st3&1) != 0 || useFallBack) && 
-                                            (UConverterConstants.UNSIGNED_SHORT_MASK & ((value=(UConverterConstants.UNSIGNED_SHORT_MASK & (ByteBuffer.wrap(bytes).getChar(stage3))))-0xa1a1))<=(0xfdfe - 0xa1a1) &&
+                                            (UConverterConstants.UNSIGNED_SHORT_MASK & ((value=(UConverterConstants.UNSIGNED_SHORT_MASK & chars[stage3 / 2]))-0xa1a1))<=(0xfdfe - 0xa1a1) &&
                                             (UConverterConstants.UNSIGNED_BYTE_MASK & (value - 0xa1)) <= (0xfe - 0xa1)){
                                         setFillIn.add(c);
                                     }
