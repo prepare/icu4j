@@ -110,6 +110,10 @@ class CharsetMBCS extends CharsetICU {
             mbcsIndex = null;
         }
 
+        boolean hasSupplementary() {
+            return (unicodeMask & UConverterConstants.HAS_SUPPLEMENTARY) != 0;
+        }
+
         /*
          * UConverterMBCSTable(UConverterMBCSTable t) { countStates = t.countStates; dbcsOnlyState = t.dbcsOnlyState;
          * stateTableOwned = t.stateTableOwned; countToUFallbacks = t.countToUFallbacks; stateTable = t.stateTable;
@@ -267,8 +271,7 @@ class CharsetMBCS extends CharsetICU {
                 if (offset != 0) {
                     // agljport:commment subtract 32 for sizeof(_MBCSHeader) and length of baseNameString and 1 null
                     // terminator byte all already read;
-                    mbcsTable.extIndexes = reader.readExtIndexes(offset
-                            - (reader.bytesRead - reader.staticDataBytesRead));
+                    mbcsTable.extIndexes = reader.readExtIndexes(offset - reader.bytesReadAfterStaticData());
                 }
             } catch (IOException e) {
                 throw new InvalidFormatException();
@@ -445,8 +448,7 @@ class CharsetMBCS extends CharsetICU {
                     // agljport:commment subtract 32 for sizeof(_MBCSHeader) and length of baseNameString and 1 null
                     // terminator byte all already read;
                     // int namelen = baseNameString != null? baseNameString.length() + 1: 0;
-                    mbcsTable.extIndexes = reader.readExtIndexes(offset
-                            - (reader.bytesRead - reader.staticDataBytesRead));
+                    mbcsTable.extIndexes = reader.readExtIndexes(offset - reader.bytesReadAfterStaticData());
                 } catch (IOException e) {
                     throw new InvalidFormatException();
                 }
@@ -2033,7 +2035,7 @@ class CharsetMBCS extends CharsetICU {
             }
 
             if (sharedData.mbcs.countStates == 1) {
-                if ((sharedData.mbcs.unicodeMask & UConverterConstants.HAS_SUPPLEMENTARY) == 0) {
+                if (!sharedData.mbcs.hasSupplementary()) {
                     cr[0] = cnvMBCSSingleToBMPWithOffsets(source, target, offsets, flush);
                 } else {
                     cr[0] = cnvMBCSSingleToUnicodeWithOffsets(source, target, offsets, flush);
@@ -3392,7 +3394,7 @@ class CharsetMBCS extends CharsetICU {
             int p;
 
             /* BMP-only codepages are stored without stage 1 entries for supplementary code points */
-            if (c <= 0xffff || ((sharedData.mbcs.unicodeMask & UConverterConstants.HAS_SUPPLEMENTARY) != 0)) {
+            if (c <= 0xffff || sharedData.mbcs.hasSupplementary()) {
                 table = sharedData.mbcs.fromUnicodeTable;
 
                 /* convert the Unicode code point in c into codepage bytes (same as in _MBCSFromUnicodeWithOffsets) */
@@ -4771,7 +4773,7 @@ class CharsetMBCS extends CharsetICU {
         
         mbcsTable = data.mbcs;
         table = mbcsTable.fromUnicodeTable; 
-        if((mbcsTable.unicodeMask & UConverterConstants.HAS_SUPPLEMENTARY)!=0){
+        if(mbcsTable.hasSupplementary()){
             maxStage1 = 0x440;
         }
         else{
