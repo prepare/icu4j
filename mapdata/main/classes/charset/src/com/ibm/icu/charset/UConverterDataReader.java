@@ -419,12 +419,8 @@ final class UConverterDataReader {
             unicodeVersion = r.unicodeVersion;
         }
         */
-    /** The buffer position right after the data header. */
-    int headerLimit;
-    /** the number bytes read from the buffer */
-    int bytesRead = 0;
-    /** the number of bytes read for static data */
-    int staticDataBytesRead = 0;
+    /** The buffer position after the static data. */
+    private int posAfterStaticData;
 
    /**
     * <p>Protected constructor.</p>
@@ -437,7 +433,6 @@ final class UConverterDataReader {
 
         byteBuffer = bytes;
         /*unicodeVersion = */ICUBinary.readHeader(byteBuffer, DATA_FORMAT_ID, IS_ACCEPTABLE);
-        headerLimit = byteBuffer.position();
 
         //if(debug) System.out.println("Bytes left in byteBuffer " + byteBuffer.remaining());
     }
@@ -446,65 +441,43 @@ final class UConverterDataReader {
 
     protected void readStaticData(UConverterStaticData sd) throws IOException
     {
-        int bRead = 0;
         sd.structSize = byteBuffer.getInt();
-        bRead +=4;
         byte[] name = new byte[UConverterConstants.MAX_CONVERTER_NAME_LENGTH];
         byteBuffer.get(name);
-        bRead +=name.length;
         sd.name = new String(name, "US-ASCII");
         sd.codepage = byteBuffer.getInt();
-        bRead +=4;
         sd.platform = byteBuffer.get();
-        bRead++;
         sd.conversionType = byteBuffer.get();
-        bRead++;
         sd.minBytesPerChar = byteBuffer.get();
-        bRead++;
         sd.maxBytesPerChar = byteBuffer.get();
-        bRead++;
         byteBuffer.get(sd.subChar);
-        bRead += sd.subChar.length;
         sd.subCharLen = byteBuffer.get();
-        bRead++;
         sd.hasToUnicodeFallback = byteBuffer.get();
-        bRead++;
         sd.hasFromUnicodeFallback = byteBuffer.get();
-        bRead++;
         sd.unicodeMask = (short)(byteBuffer.get() & 0xff);
-        bRead++;
         sd.subChar1 = byteBuffer.get();
-        bRead++;
         byteBuffer.get(sd.reserved);
-        bRead += sd.reserved.length;
-        staticDataBytesRead = bRead;
-        bytesRead += bRead;
+        posAfterStaticData = byteBuffer.position();
+    }
+
+    int bytesReadAfterStaticData() {
+        return byteBuffer.position() - posAfterStaticData;
     }
 
     protected void readMBCSHeader(CharsetMBCS.MBCSHeader h) throws IOException
     {
         byteBuffer.get(h.version);
-        bytesRead += h.version.length;
         h.countStates = byteBuffer.getInt();
-        bytesRead+=4;
         h.countToUFallbacks = byteBuffer.getInt();
-        bytesRead+=4;
         h.offsetToUCodeUnits = byteBuffer.getInt();
-        bytesRead+=4;
         h.offsetFromUTable = byteBuffer.getInt();
-        bytesRead+=4;
         h.offsetFromUBytes = byteBuffer.getInt();
-        bytesRead+=4;
         h.flags = byteBuffer.getInt();
-        bytesRead+=4;
         h.fromUBytesLength = byteBuffer.getInt();
-        bytesRead+=4;
         if (h.version[0] == 5 && h.version[1] >= 3) {
             h.options = byteBuffer.getInt();
-            bytesRead+=4;
             if ((h.options & CharsetMBCS.MBCS_OPT_NO_FROM_U) != 0) {
                 h.fullStage2Length = byteBuffer.getInt();
-                bytesRead+=4;
             }
         }
     }
@@ -529,11 +502,11 @@ final class UConverterDataReader {
         // Skip as many bytes as we have read from the IntBuffer.
         int length = intBuffer.position() * 4;
         ICUBinary.skipBytes(byteBuffer, length);
-        bytesRead+=length;
 
-        // TODO: Consider leaving large arrays as CharBuffer/IntBuffer rather than
-        // reading them into Java arrays, to reduce initialization time and memory usage.
-        // For example: unicodeCodeUnits, fromUnicodeTable, fromUnicodeBytes.
+        // Consider leaving some large arrays as CharBuffer/IntBuffer rather than
+        // reading them into Java arrays, to reduce initialization time and memory usage,
+        // at the cost of some performance.
+        // For example: unicodeCodeUnits, fromUnicodeTable, fromUnicodeInts.
         // Take care not to modify the buffer contents for swaplfnl.
         CharBuffer charBuffer = byteBuffer.asCharBuffer();
         length = header.offsetFromUTable - header.offsetToUCodeUnits;
@@ -542,7 +515,6 @@ final class UConverterDataReader {
         charBuffer.get(mbcsTable.unicodeCodeUnits);
         // Skip as many bytes as we have read from the CharBuffer.
         ICUBinary.skipBytes(byteBuffer, length);
-        bytesRead+=length;
 
         length = header.offsetFromUBytes - header.offsetFromUTable;
         assert (length & 1) == 0;
@@ -550,7 +522,7 @@ final class UConverterDataReader {
         if (mbcsTable.outputType == CharsetMBCS.MBCS_OUTPUT_1) {
             // single-byte table stage1 + stage2
             fromUTableCharsLength = length / 2;
-        } else if ((mbcsTable.unicodeMask & UConverterConstants.HAS_SUPPLEMENTARY) != 0) {  // TODO: mbcsTable.hasSupplementary()
+        } else if (mbcsTable.hasSupplementary()) {
             // stage1 for Unicode limit 0x110000 >> 10
             fromUTableCharsLength = 0x440;
         } else {
@@ -569,7 +541,6 @@ final class UConverterDataReader {
         }
         // Skip as many bytes as are in stage1 + stage2.
         ICUBinary.skipBytes(byteBuffer, length);
-        bytesRead+=length;
 
         mbcsTable.fromUBytesLength = header.fromUBytesLength;
         boolean noFromU = ((header.options & CharsetMBCS.MBCS_OPT_NO_FROM_U) != 0);
@@ -597,14 +568,11 @@ final class UConverterDataReader {
                 // Cannot occur, caller checked already.
                 assert false;
             }
-            bytesRead+=header.fromUBytesLength;
-            assert bytesRead == byteBuffer.position() - headerLimit;
         } else {
             // Optional utf8Friendly mbcsIndex -- _MBCSHeader.version 4.3 (ICU 3.8) and higher.
             // Needed for reconstituting omitted data.
             mbcsTable.mbcsIndex = byteBuffer.asCharBuffer();
         }
-        // TODO: remove bytesRead
     }
 
     protected String readBaseTableName() throws IOException
@@ -613,9 +581,7 @@ final class UConverterDataReader {
         StringBuilder name = new StringBuilder();
         while((c = (char)byteBuffer.get()) !=  0){
             name.append(c);
-            bytesRead++;
         }
-        bytesRead++/*for null terminator*/;
         return name.toString();
     }
 
@@ -632,20 +598,8 @@ final class UConverterDataReader {
         int numBytesExtensionStructure = b.getInt(31 * 4);
         b.limit(numBytesExtensionStructure);
         ICUBinary.skipBytes(byteBuffer, numBytesExtensionStructure);
-        bytesRead+=numBytesExtensionStructure;
         return b;
     }
-
-    /*protected byte[] readExtTables(int n) throws IOException
-    {
-        byte[] tables = new byte[n];
-        int len = byteBuffer.get(tables);
-        if(len==-1){
-            throw new IOException("Read failed");
-        }
-        bytesRead += len;
-        return tables;
-    }*/
 
     /**
      * Data formatVersion 6.1 and higher has a unicodeMask.

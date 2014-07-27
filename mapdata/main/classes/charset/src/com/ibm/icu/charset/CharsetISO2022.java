@@ -271,7 +271,7 @@ class CharsetISO2022 extends CharsetICU {
         char[] table;
         int value;
         /* BMP-only codepages are stored without stage 1 entries for supplementary code points */
-        if (c >= 0x10000 && (sharedData.mbcs.unicodeMask&UConverterConstants.HAS_SUPPLEMENTARY) == 0) {
+        if (c >= 0x10000 && !sharedData.mbcs.hasSupplementary()) {
             return 0;
         }
         /* convert the Unicode code point in c into codepage bytes */
