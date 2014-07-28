@@ -86,7 +86,7 @@ public final class ICUData {
         return i != null;
     }
 
-    static InputStream getStream(final Class<?> root, final String resourceName, boolean required) {
+    private static InputStream getStream(final Class<?> root, final String resourceName, boolean required) {
         InputStream i = null;
         if (System.getSecurityManager() != null) {
             i = AccessController.doPrivileged(new PrivilegedAction<InputStream>() {

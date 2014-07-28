@@ -330,7 +330,7 @@ public final class ICUResourceBundleReader {
             String fullName = ICUResourceBundleReader.getFullName(data.baseName, data.localeID);
             try {
                 ByteBuffer inBytes;
-                if (data.baseName != null && data.baseName.equals(ICUData.ICU_BASE_NAME)) {
+                if (data.baseName != null && data.baseName.startsWith(ICUData.ICU_BASE_NAME)) {
                     String itemPath = fullName.substring(ICUData.ICU_BASE_NAME.length() + 1);
                     inBytes = ICUBinary.getData(data.loader, fullName, itemPath);
                     if (inBytes == null) {
