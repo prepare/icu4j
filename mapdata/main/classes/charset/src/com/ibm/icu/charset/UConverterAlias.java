@@ -126,7 +126,7 @@ final class UConverterAlias {
             int[] tableArray = null;
             int tableStart;
 
-            ByteBuffer b = ICUBinary.getRequiredData(null, CNVALIAS_DATA_FILE_NAME);
+            ByteBuffer b = ICUBinary.getRequiredData(CNVALIAS_DATA_FILE_NAME);
             UConverterAliasDataReader reader = new UConverterAliasDataReader(b);
             tableArray = reader.readToc(offsetsCount);
 

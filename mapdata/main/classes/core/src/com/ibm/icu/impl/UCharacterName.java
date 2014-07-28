@@ -1167,7 +1167,7 @@ public final class UCharacterName
     */
     private UCharacterName() throws IOException
     {
-        ByteBuffer b = ICUBinary.getRequiredData(null, FILE_NAME_);
+        ByteBuffer b = ICUBinary.getRequiredData(FILE_NAME_);
         UCharacterNameReader reader = new UCharacterNameReader(b);
         reader.read(this);
     }

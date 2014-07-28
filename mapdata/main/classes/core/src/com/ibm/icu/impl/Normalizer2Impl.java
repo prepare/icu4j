@@ -494,7 +494,7 @@ public final class Normalizer2Impl {
         }
     }
     public Normalizer2Impl load(String name) {
-        return load(ICUBinary.getRequiredData(null, name));
+        return load(ICUBinary.getRequiredData(name));
     }
 
     private void enumLcccRange(int start, int end, int norm16, UnicodeSet set) {

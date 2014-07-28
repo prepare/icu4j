@@ -115,7 +115,7 @@ public final class UPropertyAliases {
     }
 
     private UPropertyAliases() throws IOException {
-        ByteBuffer bytes = ICUBinary.getRequiredData(null, "pnames.icu");
+        ByteBuffer bytes = ICUBinary.getRequiredData("pnames.icu");
         load(bytes);
     }
 

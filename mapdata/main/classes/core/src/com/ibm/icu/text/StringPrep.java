@@ -329,7 +329,7 @@ public final class StringPrep {
             }
 
             if (instance == null) {
-                ByteBuffer bytes = ICUBinary.getRequiredData(null, PROFILE_NAMES[profile] + ".spp");
+                ByteBuffer bytes = ICUBinary.getRequiredData(PROFILE_NAMES[profile] + ".spp");
                 if (bytes != null) {
                     try {
                         instance = new StringPrep(bytes);

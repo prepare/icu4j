@@ -218,7 +218,7 @@ class CharsetMBCS extends CharsetICU {
                 b = ICUBinary.getByteBufferFromInputStream(i);
             } else {
                 String itemName = myName + "." + UConverterSharedData.DATA_TYPE;
-                b = ICUBinary.getRequiredData(null, itemName);
+                b = ICUBinary.getRequiredData(itemName);
             }
             reader = new UConverterDataReader(b);
             reader.readStaticData(staticData);
