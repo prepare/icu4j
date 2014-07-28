@@ -59,13 +59,6 @@ public  class ICUResourceBundle extends UResourceBundle {
     public static final String ICU_COLLATION_BASE_NAME = ICUData.ICU_COLLATION_BASE_NAME;
 
     /**
-     * The base name of rbbi data to be used with getData API
-     * @deprecated because not specific to resource bundles; use the ICUData constants instead
-     */
-    @Deprecated
-    public static final String ICU_BRKITR_NAME = ICUData.ICU_BRKITR_NAME;
-
-    /**
      * The base name of rbbi data to be used with getBundleInstance API
      * @deprecated because not specific to resource bundles; use the ICUData constants instead
      */

@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.ibm.icu.impl.Assert;
+import com.ibm.icu.impl.ICUBinary;
 import com.ibm.icu.impl.ICUDebug;
 
 class RBBIRuleBuilder {
@@ -185,12 +186,8 @@ class RBBIRuleBuilder {
 
         //
         // Write out an ICU Data Header
-        //   TODO:  actually create a real header, rather than just a placeholder.
-        //           The empty placeholder is ok for compile-and-go from within ICU4J.
-        //           Replicating the ICU4C genbrk tool for building .brk resources would need a real header.
         //
-        byte[] ICUDataHeader = new byte[0x80];
-        dos.write(ICUDataHeader);
+        ICUBinary.writeHeader(RBBIDataWrapper.DATA_FORMAT, RBBIDataWrapper.FORMAT_VERSION, 0, dos);
 
         //
         // Write out the RBBIDataHeader
