@@ -32,12 +32,13 @@ public final class ICUData {
      */
     static final String PACKAGE_NAME = "icudt" + VersionInfo.ICU_DATA_VERSION_PATH;
     /**
-     * The data path to be used with getBundleInstance API
+     * The data path to be used with Class.getResourceAsStream().
      */
     public static final String ICU_BUNDLE = "data/" + PACKAGE_NAME;
 
     /**
-     * The base name of ICU data to be used with getBundleInstance API
+     * The base name of ICU data to be used with ClassLoader.getResourceAsStream(),
+     * ICUResourceBundle.getBundleInstance() etc.
      */
     public static final String ICU_BASE_NAME = ICU_DATA_PATH + ICU_BUNDLE;
 

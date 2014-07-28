@@ -289,13 +289,12 @@ public final class ICUBinary {
      * Loads an ICU binary data file and returns it as a ByteBuffer.
      * The buffer contents is normally read-only, but its position etc. can be modified.
      *
-     * @param root Used for root.getResourceAsStream() unless the data is found elsewhere.
      * @param itemPath Relative ICU data item path, for example "root.res" or "coll/ucadata.icu".
      * @return The data as a read-only ByteBuffer,
      *         or null if the resource could not be found.
      */
-    public static ByteBuffer getData(Class<?> root, String itemPath) {
-        return getData(root, itemPath, false);
+    public static ByteBuffer getData(String itemPath) {
+        return getData(null, null, itemPath, false);
     }
 
     /**
@@ -308,22 +307,20 @@ public final class ICUBinary {
      * @return The data as a read-only ByteBuffer,
      *         or null if the resource could not be found.
      */
-    public static ByteBuffer getDataFromClassLoader(ClassLoader loader, String resourceName,
-            String itemPath) {
-        return getDataFromClassLoader(loader, resourceName, itemPath, false);
+    public static ByteBuffer getData(ClassLoader loader, String resourceName, String itemPath) {
+        return getData(loader, resourceName, itemPath, false);
     }
 
     /**
      * Loads an ICU binary data file and returns it as a ByteBuffer.
      * The buffer contents is normally read-only, but its position etc. can be modified.
      *
-     * @param root Used for root.getResourceAsStream() unless the data is found elsewhere.
      * @param itemPath Relative ICU data item path, for example "root.res" or "coll/ucadata.icu".
      * @return The data as a read-only ByteBuffer.
      * @throws MissingResourceException if required==true and the resource could not be found
      */
-    public static ByteBuffer getRequiredData(Class<?> root, String itemPath) {
-        return getData(root, itemPath, true);
+    public static ByteBuffer getRequiredData(String itemPath) {
+        return getData(null, null, itemPath, true);
     }
 
     /**
@@ -335,43 +332,11 @@ public final class ICUBinary {
      * @param itemPath Relative ICU data item path, for example "root.res" or "coll/ucadata.icu".
      * @return The data as a read-only ByteBuffer.
      * @throws MissingResourceException if required==true and the resource could not be found
-     */
-    public static ByteBuffer getRequiredDataFromClassLoader(ClassLoader loader, String resourceName,
+    public static ByteBuffer getRequiredData(ClassLoader loader, String resourceName,
             String itemPath) {
-        return getDataFromClassLoader(loader, resourceName, itemPath, true);
+        return getData(loader, resourceName, itemPath, true);
     }
-
-    /**
-     * Loads an ICU binary data file and returns it as a ByteBuffer.
-     * The buffer contents is normally read-only, but its position etc. can be modified.
-     *
-     * @param root Used for root.getResourceAsStream() unless the data is found elsewhere.
-     * @param itemPath Relative ICU data item path, for example "root.res" or "coll/ucadata.icu".
-     * @param required If the resource cannot be found,
-     *        this method returns null (!required) or throws an exception (required).
-     * @return The data as a read-only ByteBuffer,
-     *         or null if required==false and the resource could not be found.
-     * @throws MissingResourceException if required==true and the resource could not be found
      */
-    private static ByteBuffer getData(Class<?> root, String itemPath, boolean required) {
-        ByteBuffer bytes = getDataFromFile(itemPath);
-        if (bytes != null) {
-            return bytes;
-        }
-        if (root == null) {
-            root = ICUData.class;
-        }
-        String resourceName = ICUData.ICU_BUNDLE + '/' + itemPath;
-        InputStream is = ICUData.getStream(root, resourceName, required);
-        if (is == null) {
-            return null;
-        }
-        try {
-            return getByteBufferFromInputStream(is);
-        } catch (IOException e) {
-            throw new ICUUncheckedIOException(e);
-        }
-    }
 
     /**
      * Loads an ICU binary data file and returns it as a ByteBuffer.
@@ -386,7 +351,7 @@ public final class ICUBinary {
      *         or null if required==false and the resource could not be found.
      * @throws MissingResourceException if required==true and the resource could not be found
      */
-    private static ByteBuffer getDataFromClassLoader(ClassLoader loader, String resourceName,
+    private static ByteBuffer getData(ClassLoader loader, String resourceName,
             String itemPath, boolean required) {
         ByteBuffer bytes = getDataFromFile(itemPath);
         if (bytes != null) {
@@ -396,7 +361,7 @@ public final class ICUBinary {
             loader = ICUData.class.getClassLoader();
         }
         if (resourceName == null) {
-            resourceName = ICUData.ICU_BUNDLE + '/' + itemPath;
+            resourceName = ICUData.ICU_BASE_NAME + '/' + itemPath;
         }
         InputStream is = ICUData.getStream(loader, resourceName, required);
         if (is == null) {

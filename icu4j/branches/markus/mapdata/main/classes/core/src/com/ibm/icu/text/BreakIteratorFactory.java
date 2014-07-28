@@ -111,7 +111,7 @@ final class BreakIteratorFactory extends BreakIterator.BreakIteratorServiceShim 
             String         typeKey       = KIND_NAMES[kind];
             String         brkfname      = rb.getStringWithFallback("boundaries/" + typeKey);
             String         rulesFileName = ICUData.ICU_BRKITR_NAME+ '/' + brkfname;
-                           bytes         = ICUBinary.getData(null, rulesFileName);
+                           bytes         = ICUBinary.getData(rulesFileName);
         }
         catch (Exception e) {
             throw new MissingResourceException(e.toString(),"","");

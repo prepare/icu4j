@@ -1183,7 +1183,7 @@ public final class UCharacterProperty
         }
 
         // jar access
-        ByteBuffer bytes=ICUBinary.getRequiredData(null, DATA_FILE_NAME_);
+        ByteBuffer bytes=ICUBinary.getRequiredData(DATA_FILE_NAME_);
         m_unicodeVersion_ = ICUBinary.readHeaderAndDataVersion(bytes, DATA_FORMAT, new IsAcceptable());
         // Read or skip the 16 indexes.
         int propertyOffset = bytes.getInt();

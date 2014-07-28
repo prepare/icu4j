@@ -33,7 +33,7 @@ public final class UBiDiProps {
 
     // port of ubidi_openProps()
     private UBiDiProps() throws IOException{
-        ByteBuffer bytes=ICUBinary.getData(null, DATA_FILE_NAME);
+        ByteBuffer bytes=ICUBinary.getData(DATA_FILE_NAME);
         readData(bytes);
     }
 

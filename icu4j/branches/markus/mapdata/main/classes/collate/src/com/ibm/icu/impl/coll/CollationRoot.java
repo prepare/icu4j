@@ -44,7 +44,7 @@ public final class CollationRoot {  // purely static
         CollationTailoring t = null;
         RuntimeException e2 = null;
         try {
-            ByteBuffer bytes = ICUBinary.getRequiredData(null, "coll/ucadata.icu");
+            ByteBuffer bytes = ICUBinary.getRequiredData("coll/ucadata.icu");
             CollationTailoring t2 = new CollationTailoring(null);
             CollationDataReader.read(null, bytes, t2);
             t = t2;

@@ -36,7 +36,7 @@ public final class UCaseProps {
 
     // port of ucase_openProps()
     private UCaseProps() throws IOException {
-        ByteBuffer bytes=ICUBinary.getRequiredData(null, DATA_FILE_NAME);
+        ByteBuffer bytes=ICUBinary.getRequiredData(DATA_FILE_NAME);
         readData(bytes);
     }
 

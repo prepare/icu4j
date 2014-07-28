@@ -332,7 +332,7 @@ public final class ICUResourceBundleReader {
                 ByteBuffer inBytes;
                 if (data.baseName != null && data.baseName.equals(ICUData.ICU_BASE_NAME)) {
                     String itemPath = fullName.substring(ICUData.ICU_BASE_NAME.length() + 1);
-                    inBytes = ICUBinary.getDataFromClassLoader(data.loader, fullName, itemPath);
+                    inBytes = ICUBinary.getData(data.loader, fullName, itemPath);
                     if (inBytes == null) {
                         return NULL_READER;
                     }

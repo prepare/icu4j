@@ -2187,7 +2187,7 @@ public class SpoofChecker {
 
             static {
                 try {
-                    INSTANCE = new SpoofData(ICUBinary.getRequiredData(null, "confusables.cfu"));
+                    INSTANCE = new SpoofData(ICUBinary.getRequiredData("confusables.cfu"));
                 } catch (IOException ignored) {
                 }
             }

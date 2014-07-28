@@ -45,7 +45,7 @@ final class DictionaryData {
         ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BRKITR_BASE_NAME);
         String dictFileName = rb.getStringWithFallback("dictionaries/" + dictType);
         dictFileName = ICUData.ICU_BRKITR_NAME + '/' + dictFileName;
-        ByteBuffer bytes = ICUBinary.getRequiredData(null, dictFileName);
+        ByteBuffer bytes = ICUBinary.getRequiredData(dictFileName);
         ICUBinary.readHeader(bytes, DATA_FORMAT_ID, null);
         int[] indexes = new int[IX_COUNT];
         // TODO: read indexes[IX_STRING_TRIE_OFFSET] first, then read a variable-length indexes[]
