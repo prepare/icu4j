@@ -589,8 +589,7 @@ final class UConverterDataReader {
     protected ByteBuffer readExtIndexes(int skip) throws IOException, InvalidFormatException
     {
         ICUBinary.skipBytes(byteBuffer, skip);
-        ByteBuffer b = byteBuffer.slice();
-        b.order(byteBuffer.order());  // slice() does not seem to copy the byte order.
+        ByteBuffer b = ICUBinary.sliceWithOrder(byteBuffer);
         int lengthOfIndexes = b.getInt(0);
         if (lengthOfIndexes < 32) {
             throw new InvalidFormatException();

@@ -7,6 +7,7 @@
 
 package com.ibm.icu.impl;
 
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -107,7 +108,7 @@ public final class ICUBinary {
                     ByteBuffer data = bytes.duplicate();
                     data.position(getDataOffset(bytes, mid));
                     data.limit(getDataOffset(bytes, mid + 1));
-                    return data.slice();
+                    return ICUBinary.sliceWithOrder(data);
                 }
             }
             return null;  // Not found or table is empty.
@@ -302,12 +303,14 @@ public final class ICUBinary {
      * The buffer contents is normally read-only, but its position etc. can be modified.
      *
      * @param loader Used for loader.getResourceAsStream() unless the data is found elsewhere.
+     * @param resourceName Resource name for use with the loader.
      * @param itemPath Relative ICU data item path, for example "root.res" or "coll/ucadata.icu".
      * @return The data as a read-only ByteBuffer,
      *         or null if the resource could not be found.
      */
-    public static ByteBuffer getDataFromClassLoader(ClassLoader loader, String itemPath) {
-        return getDataFromClassLoader(loader, itemPath, false);
+    public static ByteBuffer getDataFromClassLoader(ClassLoader loader, String resourceName,
+            String itemPath) {
+        return getDataFromClassLoader(loader, resourceName, itemPath, false);
     }
 
     /**
@@ -328,12 +331,14 @@ public final class ICUBinary {
      * The buffer contents is normally read-only, but its position etc. can be modified.
      *
      * @param loader Used for loader.getResourceAsStream() unless the data is found elsewhere.
+     * @param resourceName Resource name for use with the loader.
      * @param itemPath Relative ICU data item path, for example "root.res" or "coll/ucadata.icu".
      * @return The data as a read-only ByteBuffer.
      * @throws MissingResourceException if required==true and the resource could not be found
      */
-    public static ByteBuffer getRequiredDataFromClassLoader(ClassLoader loader, String itemPath) {
-        return getDataFromClassLoader(loader, itemPath, true);
+    public static ByteBuffer getRequiredDataFromClassLoader(ClassLoader loader, String resourceName,
+            String itemPath) {
+        return getDataFromClassLoader(loader, resourceName, itemPath, true);
     }
 
     /**
@@ -358,6 +363,9 @@ public final class ICUBinary {
         }
         String resourceName = ICUData.ICU_BUNDLE + '/' + itemPath;
         InputStream is = ICUData.getStream(root, resourceName, required);
+        if (is == null) {
+            return null;
+        }
         try {
             return getByteBufferFromInputStream(is);
         } catch (IOException e) {
@@ -370,6 +378,7 @@ public final class ICUBinary {
      * The buffer contents is normally read-only, but its position etc. can be modified.
      *
      * @param loader Used for loader.getResourceAsStream() unless the data is found elsewhere.
+     * @param resourceName Resource name for use with the loader.
      * @param itemPath Relative ICU data item path, for example "root.res" or "coll/ucadata.icu".
      * @param required If the resource cannot be found,
      *        this method returns null (!required) or throws an exception (required).
@@ -377,7 +386,8 @@ public final class ICUBinary {
      *         or null if required==false and the resource could not be found.
      * @throws MissingResourceException if required==true and the resource could not be found
      */
-    private static ByteBuffer getDataFromClassLoader(ClassLoader loader, String itemPath, boolean required) {
+    private static ByteBuffer getDataFromClassLoader(ClassLoader loader, String resourceName,
+            String itemPath, boolean required) {
         ByteBuffer bytes = getDataFromFile(itemPath);
         if (bytes != null) {
             return bytes;
@@ -385,8 +395,13 @@ public final class ICUBinary {
         if (loader == null) {
             loader = ICUData.class.getClassLoader();
         }
-        String resourceName = ICUData.ICU_BUNDLE + '/' + itemPath;
+        if (resourceName == null) {
+            resourceName = ICUData.ICU_BUNDLE + '/' + itemPath;
+        }
         InputStream is = ICUData.getStream(loader, resourceName, required);
+        if (is == null) {
+            return null;
+        }
         try {
             return getByteBufferFromInputStream(is);
         } catch (IOException e) {
@@ -429,7 +444,7 @@ public final class ICUBinary {
     /**
      * Same as readHeader(), but returns a VersionInfo rather than a compact int.
      */
-    public static final VersionInfo readHeaderAndDataVersion(ByteBuffer bytes,
+    public static VersionInfo readHeaderAndDataVersion(ByteBuffer bytes,
                                                              int dataFormat,
                                                              Authenticate authenticate)
                                                                 throws IOException {
@@ -448,7 +463,7 @@ public final class ICUBinary {
      * @return dataVersion
      * @throws IOException if this is not a valid ICU data item of the expected dataFormat
      */
-    public static final int readHeader(ByteBuffer bytes, int dataFormat, Authenticate authenticate)
+    public static int readHeader(ByteBuffer bytes, int dataFormat, Authenticate authenticate)
             throws IOException {
         assert bytes.position() == 0;
         byte magic1 = bytes.get(2);
@@ -496,17 +511,53 @@ public final class ICUBinary {
                 (bytes.get(23) & 0xff);
     }
 
-    public static final void skipBytes(ByteBuffer bytes, int skipLength) {
+    /**
+     * Writes an ICU data header.
+     * Does not write a copyright string.
+     *
+     * @return The length of the header (number of bytes written).
+     * @throws IOException from the DataOutputStream
+     */
+    public static int writeHeader(int dataFormat, int formatVersion, int dataVersion,
+            DataOutputStream dos) throws IOException {
+        // ucmndata.h MappedData
+        dos.writeChar(32);  // headerSize
+        dos.writeByte(MAGIC1);
+        dos.writeByte(MAGIC2);
+        // unicode/udata.h UDataInfo
+        dos.writeChar(20);  // sizeof(UDataInfo)
+        dos.writeChar(0);  // reservedWord
+        dos.writeByte(1);  // isBigEndian
+        dos.writeByte(CHAR_SET_);  // charsetFamily
+        dos.writeByte(CHAR_SIZE_);  // sizeofUChar
+        dos.writeByte(0);  // reservedByte
+        dos.writeInt(dataFormat);
+        dos.writeInt(formatVersion);
+        dos.writeInt(dataVersion);
+        // 8 bytes padding for 32 bytes headerSize (multiple of 16).
+        dos.writeLong(0);
+        return 32;
+    }
+
+    public static void skipBytes(ByteBuffer bytes, int skipLength) {
         if (skipLength > 0) {
             bytes.position(bytes.position() + skipLength);
         }
     }
 
     /**
+     * Same as ByteBuffer.slice() plus preserving the byte order.
+     */
+    public static ByteBuffer sliceWithOrder(ByteBuffer bytes) {
+        ByteBuffer b = bytes.slice();
+        return b.order(bytes.order());
+    }
+
+    /**
      * Reads the entire contents from the stream into a byte array
      * and wraps it into a ByteBuffer. Closes the InputStream at the end.
      */
-    public static final ByteBuffer getByteBufferFromInputStream(InputStream is) throws IOException {
+    public static ByteBuffer getByteBufferFromInputStream(InputStream is) throws IOException {
         try {
             int avail = is.available();
             byte[] bytes = new byte[avail];
@@ -524,7 +575,7 @@ public final class ICUBinary {
         }
     }
 
-    private static final void readFully(InputStream is, byte[] bytes, int offset, int avail)
+    private static void readFully(InputStream is, byte[] bytes, int offset, int avail)
             throws IOException {
         while (avail > 0) {
             int numRead = is.read(bytes, offset, avail);

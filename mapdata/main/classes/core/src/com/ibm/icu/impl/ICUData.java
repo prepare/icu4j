@@ -49,12 +49,12 @@ public final class ICUData {
     /**
      * The base name of rbbi data to be used with getData API
      */
-    public static final String ICU_BRKITR_NAME = "/brkitr";
+    public static final String ICU_BRKITR_NAME = "brkitr";
 
     /**
      * The base name of rbbi data to be used with getBundleInstance API
      */
-    public static final String ICU_BRKITR_BASE_NAME = ICU_BASE_NAME + ICU_BRKITR_NAME;
+    public static final String ICU_BRKITR_BASE_NAME = ICU_BASE_NAME + '/' + ICU_BRKITR_NAME;
 
     /**
      * The base name of rbnf data to be used with getBundleInstance API
