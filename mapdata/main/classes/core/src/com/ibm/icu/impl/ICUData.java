@@ -9,11 +9,13 @@
  */
 package com.ibm.icu.impl;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.MissingResourceException;
+import java.util.logging.Logger;
 
 import com.ibm.icu.util.VersionInfo;
 
@@ -72,6 +74,18 @@ public final class ICUData {
     public static final String ICU_REGION_BASE_NAME = ICU_BASE_NAME + "/region";
     public static final String ICU_ZONE_BASE_NAME = ICU_BASE_NAME + "/zone";
 
+    /**
+     * For testing (otherwise false): When reading an InputStream from a Class or ClassLoader
+     * (that is, not from a file), log when the stream contains ICU binary data.
+     *
+     * This cannot be ICUConfig'ured because ICUConfig calls ICUData.getStream()
+     * to read the properties file, so we would get a circular dependency
+     * in the class initialization.
+     */
+    private static final boolean logBinaryDataFromInputStream = false;
+    private static final Logger logger = logBinaryDataFromInputStream ?
+            Logger.getLogger(ICUData.class.getName()) : null;
+
     public static boolean exists(final String resourceName) {
         URL i = null;
         if (System.getSecurityManager() != null) {
@@ -101,9 +115,13 @@ public final class ICUData {
         if (i == null && required) {
             throw new MissingResourceException("could not locate data " +resourceName, root.getPackage().getName(), resourceName);
         }
+        checkStreamForBinaryData(i, resourceName);
         return i;
     }
 
+    /**
+     * Should be called only from ICUBinary.getData() or from convenience overloads here.
+     */
     static InputStream getStream(final ClassLoader loader, final String resourceName, boolean required) {
         InputStream i = null;
         if (System.getSecurityManager() != null) {
@@ -118,11 +136,34 @@ public final class ICUData {
         if (i == null && required) {
             throw new MissingResourceException("could not locate data", loader.toString(), resourceName);
         }
+        checkStreamForBinaryData(i, resourceName);
         return i;
     }
-    
+
+    @SuppressWarnings("unused")
+    private static void checkStreamForBinaryData(InputStream is, String resourceName) {
+        if (logBinaryDataFromInputStream && is != null && resourceName.indexOf(PACKAGE_NAME) >= 0) {
+            try {
+                is.mark(32);
+                byte[] b = new byte[32];
+                int len = is.read(b);
+                if (len == 32 && b[2] == (byte)0xda && b[3] == 0x27) {
+                    String msg = String.format(
+                            "ICU binary data file loaded from Class/ClassLoader as InputStream " +
+                            "from %s: MappedData %02x%02x%02x%02x  dataFormat %02x%02x%02x%02x",
+                            resourceName,
+                            b[0], b[1], b[2], b[3],
+                            b[12], b[13], b[14], b[15]);
+                    logger.info(msg);
+                }
+                is.reset();
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
     public static InputStream getStream(ClassLoader loader, String resourceName){
-        return getStream(loader,resourceName, false);   
+        return getStream(loader,resourceName, false);
     }
 
     public static InputStream getRequiredStream(ClassLoader loader, String resourceName){
