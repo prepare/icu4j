@@ -136,7 +136,10 @@ public final class ICUBinary {
 
     private static final class DataFile {
         public final String itemPath;
-        public final File path;  // TODO: needed if pkgBytes!=null?
+        /**
+         * null if a .dat package.
+         */
+        public final File path;
         /**
          * .dat package bytes, or null if not a .dat package.
          * position() is after the header.
@@ -149,9 +152,9 @@ public final class ICUBinary {
             this.path = path;
             pkgBytes = null;
         }
-        public DataFile(String item, File path, ByteBuffer bytes) {
+        public DataFile(String item, ByteBuffer bytes) {
             itemPath = item;
-            this.path = path;
+            path = null;
             pkgBytes = bytes;
         }
         public String toString() {
@@ -161,8 +164,8 @@ public final class ICUBinary {
     private static final List<DataFile> icuDataFiles = new ArrayList<DataFile>();
 
     static {
-        // Normally com.ibm.icu.impl.ICUBinary.DataPath.
-        String dataPath = ICUConfig.get(ICUBinary.class.getName() + ".DataPath");
+        // Normally com.ibm.icu.impl.ICUBinary.dataPath.
+        String dataPath = ICUConfig.get(ICUBinary.class.getName() + ".dataPath");
         if (dataPath != null) {
             addDataFilesFromPath(dataPath, icuDataFiles);
         }
@@ -218,8 +221,7 @@ public final class ICUBinary {
             } else if (fileName.endsWith(".dat")) {
                 ByteBuffer pkgBytes = mapFile(file);
                 if (pkgBytes != null && DatPackageReader.validate(pkgBytes)) {
-                    // TODO: Do we need dataFile.path for a .dat package?
-                    dataFiles.add(new DataFile(itemPath.toString(), file, pkgBytes));
+                    dataFiles.add(new DataFile(itemPath.toString(), pkgBytes));
                 }
             } else {
                 dataFiles.add(new DataFile(itemPath.toString(), file));
