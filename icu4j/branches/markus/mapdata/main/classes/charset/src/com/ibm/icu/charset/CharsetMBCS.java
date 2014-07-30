@@ -206,18 +206,17 @@ class CharsetMBCS extends CharsetICU {
         UConverterStaticData staticData = new UConverterStaticData();
         UConverterDataReader reader = null;
         try {
+            String itemName = myName + '.' + UConverterSharedData.DATA_TYPE;
+            String resourceName = classPath + '/' + itemName;
             ByteBuffer b;
 
             if (loader != null) {
-                String resourceName = classPath + "/" + myName + "." + UConverterSharedData.DATA_TYPE;
                 InputStream i = ICUData.getRequiredStream(loader, resourceName);
                 b = ICUBinary.getByteBufferFromInputStream(i);
             } else if (!classPath.equals(ICUData.ICU_BUNDLE)) {
-                String resourceName = classPath + "/" + myName + "." + UConverterSharedData.DATA_TYPE;
                 InputStream i = ICUData.getRequiredStream(resourceName);
                 b = ICUBinary.getByteBufferFromInputStream(i);
             } else {
-                String itemName = myName + "." + UConverterSharedData.DATA_TYPE;
                 b = ICUBinary.getRequiredData(itemName);
             }
             reader = new UConverterDataReader(b);
@@ -430,7 +429,7 @@ class CharsetMBCS extends CharsetICU {
              */
             // agljport:fix info.size=sizeof(UDataInfo);
             // agljport:fix udata_getInfo((UDataMemory *)sharedData->dataMemory, &info);
-            if (reader.isFormatVersionAtLeast_6_1()) {
+            if (reader.dataFormatHasUnicodeMask()) {
                 /* mask off possible future extensions to be safe */
                 mbcsTable.unicodeMask = (short) (staticData.unicodeMask & 3);
             } else {
@@ -463,11 +462,11 @@ class CharsetMBCS extends CharsetICU {
                      * SBCS: Stage 3 is allocated in 64-entry blocks for U+0000..SBCS_FAST_MAX or higher.
                      * Build a table with indexes to each block, to be used instead of
                      * the regular stage 1/2 table.
-                    sbcsIndex = new char[SBCS_FAST_LIMIT>>6];
-                    for (int i = 0; i < (SBCS_FAST_LIMIT>>6); ++i) {
-                        mbcsTable.sbcsIndex[i] = mbcsTable.fromUnicodeTable[mbcsTable.fromUnicodeTable[i>>4]+((i<<2)&0x3c)];
-                    }
                      */
+//                    sbcsIndex = new char[SBCS_FAST_LIMIT>>6];
+//                    for (int i = 0; i < (SBCS_FAST_LIMIT>>6); ++i) {
+//                        mbcsTable.sbcsIndex[i] = mbcsTable.fromUnicodeTable[mbcsTable.fromUnicodeTable[i>>4]+((i<<2)&0x3c)];
+//                    }
                     /* set SBCS_FAST_MAX to reflect the reach of sbcsIndex[] even if header.version[2]>(SBCS_FAST_MAX>>8) */
                     mbcsTable.maxFastUChar = SBCS_FAST_MAX;
                 } else {
@@ -483,7 +482,7 @@ class CharsetMBCS extends CharsetICU {
                 int asciiRoundtrips = 0xffffffff;
                 for (int i = 0; i < 0x80; ++i) {
                     if (mbcsTable.stateTable[0][i] != MBCS_ENTRY_FINAL(0, MBCS_STATE_VALID_DIRECT_16, i)) {
-                        asciiRoundtrips&=~(1<<(i>>2));
+                        asciiRoundtrips &= ~(1 << (i >> 2));
                     }
                 }
                 mbcsTable.asciiRoundtrips = asciiRoundtrips;
@@ -1268,7 +1267,6 @@ class CharsetMBCS extends CharsetICU {
         int i1 = table[c >>> 10] + ((c >>> 4) & 0x3f);
         int i = table[i1] + (c & 0xf);
         return results[i];
-        // TODO: look for UConverterConstants.UNSIGNED_BYTE_MASK
     }
     
     /* single-byte fromUnicode: set the 16-bit result word with newValue*/
@@ -1462,7 +1460,7 @@ class CharsetMBCS extends CharsetICU {
         Buffer b;
 
         // TODO: It is very inefficient to create Buffer objects for each array access.
-        // We should create a inner class Extensions (or sibling class CharsetMBCSExtensions)
+        // We should create an inner class Extensions (or sibling class CharsetMBCSExtensions)
         // which has buffers for the arrays, together with the code that works with them.
         indexes.position(indexes.getInt(index << 2));
         if (itemType == int.class)

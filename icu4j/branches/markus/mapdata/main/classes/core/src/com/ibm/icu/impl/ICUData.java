@@ -140,7 +140,7 @@ public final class ICUData {
         return i;
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings("unused")  // used if logBinaryDataFromInputStream == true
     private static void checkStreamForBinaryData(InputStream is, String resourceName) {
         if (logBinaryDataFromInputStream && is != null && resourceName.indexOf(PACKAGE_NAME) >= 0) {
             try {

@@ -603,7 +603,7 @@ final class UConverterDataReader {
     /**
      * Data formatVersion 6.1 and higher has a unicodeMask.
      */
-    boolean isFormatVersionAtLeast_6_1() {
+    boolean dataFormatHasUnicodeMask() {
         int formatVersion0 = byteBuffer.get(16) & 0xff;
         return formatVersion0 > 6 || (formatVersion0 == 6 && byteBuffer.get(17) != 0);
     }
