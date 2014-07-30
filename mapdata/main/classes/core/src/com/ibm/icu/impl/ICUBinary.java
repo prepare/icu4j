@@ -117,7 +117,8 @@ public final class ICUBinary {
         private static int getNameOffset(ByteBuffer bytes, int index) {
             int base = bytes.position();
             assert 0 <= index && index < bytes.getInt(base);  // count
-            // The count integer is followed by count (nameOffset, dataOffset) integer pairs.
+            // The count integer (4 bytes)
+            // is followed by count (nameOffset, dataOffset) integer pairs (8 bytes per pair).
             return base + bytes.getInt(base + 4 + index * 8);
         }
 
@@ -129,7 +130,9 @@ public final class ICUBinary {
                 return bytes.capacity();
             }
             assert 0 <= index && index < count;
-            // The count integer is followed by count (nameOffset, dataOffset) integer pairs.
+            // The count integer (4 bytes)
+            // is followed by count (nameOffset, dataOffset) integer pairs (8 bytes per pair).
+            // The dataOffset follows the nameOffset (skip another 4 bytes).
             return base + bytes.getInt(base + 4 + 4 + index * 8);
         }
     }
@@ -172,6 +175,11 @@ public final class ICUBinary {
     }
 
     private static void addDataFilesFromPath(String dataPath, List<DataFile> files) {
+        // Split the path and find files in each location.
+        // This splitting code avoids the regex pattern compilation in String.split()
+        // and its array allocation.
+        // (There is no simple by-character split()
+        // and the StringTokenizer "is discouraged in new code".)
         int pathStart = 0;
         while (pathStart < dataPath.length()) {
             int sepIndex = dataPath.indexOf(File.pathSeparatorChar, pathStart);
@@ -181,7 +189,7 @@ public final class ICUBinary {
             } else {
                 pathLimit = dataPath.length();
             }
-            String path = simpleTrim(dataPath, pathStart, pathLimit);
+            String path = dataPath.substring(pathStart, pathLimit).trim();
             if (path.endsWith(File.separator)) {
                 path = path.substring(0, path.length() - 1);
             }
@@ -227,22 +235,6 @@ public final class ICUBinary {
                 dataFiles.add(new DataFile(itemPath.toString(), file));
             }
             itemPath.setLength(folderPathLength);
-        }
-    }
-
-    private static String simpleTrim(String s, int start, int limit) {
-        while (start < limit && s.charAt(start) == ' ') {
-            ++start;
-        }
-        while (start < limit && s.charAt(limit - 1) == ' ') {
-            --limit;
-        }
-        if (start == 0 && limit == s.length()) {
-            return s;
-        } else if (start == limit) {
-            return "";
-        } else {
-            return s.substring(start, limit);
         }
     }
 
@@ -334,11 +326,11 @@ public final class ICUBinary {
      * @param itemPath Relative ICU data item path, for example "root.res" or "coll/ucadata.icu".
      * @return The data as a read-only ByteBuffer.
      * @throws MissingResourceException if required==true and the resource could not be found
-    public static ByteBuffer getRequiredData(ClassLoader loader, String resourceName,
-            String itemPath) {
-        return getData(loader, resourceName, itemPath, true);
-    }
      */
+//    public static ByteBuffer getRequiredData(ClassLoader loader, String resourceName,
+//            String itemPath) {
+//        return getData(loader, resourceName, itemPath, true);
+//    }
 
     /**
      * Loads an ICU binary data file and returns it as a ByteBuffer.
@@ -396,7 +388,7 @@ public final class ICUBinary {
             file = new FileInputStream(path);
             FileChannel channel = file.getChannel();
             ByteBuffer bytes = channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size());
-            // Closes the channel but seems to keep the ByteBuffer valid.
+            // Close the file and its channel; this seems to keep the ByteBuffer valid.
             // If not, then we will need to return the pair of (file, bytes).
             file.close();
             return bytes;
@@ -503,6 +495,7 @@ public final class ICUBinary {
         dos.writeInt(dataVersion);
         // 8 bytes padding for 32 bytes headerSize (multiple of 16).
         dos.writeLong(0);
+        assert dos.size() == 32;
         return 32;
     }
 

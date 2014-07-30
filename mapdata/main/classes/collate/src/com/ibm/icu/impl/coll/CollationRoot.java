@@ -47,6 +47,8 @@ public final class CollationRoot {  // purely static
             ByteBuffer bytes = ICUBinary.getRequiredData("coll/ucadata.icu");
             CollationTailoring t2 = new CollationTailoring(null);
             CollationDataReader.read(null, bytes, t2);
+            // Keep t=null until after the root data has been read completely.
+            // Otherwise we would set a non-null root object if the data reader throws an exception.
             t = t2;
         } catch(IOException e) {
             e2 = new MissingResourceException(
