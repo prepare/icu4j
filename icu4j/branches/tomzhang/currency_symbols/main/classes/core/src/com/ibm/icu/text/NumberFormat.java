@@ -393,9 +393,52 @@ public abstract class NumberFormat extends UFormat {
         // Default implementation -- subclasses may override
         Currency save = getCurrency(), curr = currAmt.getCurrency();
         boolean same = curr.equals(save);
-        if (!same) setCurrency(curr);
+        DecimalFormatSymbols saveSymbols = null;
+        if (!same) {
+            setCurrency(curr);
+
+            ULocale uloc = getLocale(ULocale.VALID_LOCALE);
+
+            if (uloc != null) {
+                String fullName = uloc.getName();
+                String[] tagData = fullName.split("@");
+                String name = tagData[0];
+
+                boolean override = false;
+                if (this instanceof DecimalFormat) {
+
+                    for (int i = 1; i < tagData.length; i++) {
+                        override = true;
+                        if (tagData[i].startsWith("currency=")) {
+                            String currency = curr.getCurrencyCode();
+                            name += "@currency=" + currency;
+                        } else {
+                            name += "@" + tagData[i];
+                        }
+                    }
+
+                    if (!override) {
+                        String currency = curr.getCurrencyCode();
+                        name += "@currency=" + currency;
+                    }
+
+                    ULocale ul = new ULocale(name);
+                    DecimalFormatSymbols dfs = new DecimalFormatSymbols(ul);
+                    DecimalFormat df = (DecimalFormat) this;
+                    saveSymbols = df.getDecimalFormatSymbols();
+                    df.setDecimalFormatSymbols(dfs);
+                }
+            }
+        }
+        
+        
         format(currAmt.getNumber(), toAppendTo, pos);
-        if (!same) setCurrency(save);
+        if (!same) {
+            setCurrency(save);
+            if (this instanceof DecimalFormat) {
+                ((DecimalFormat) this).setDecimalFormatSymbols(saveSymbols);
+            }
+        }
         return toAppendTo;
     }
 
