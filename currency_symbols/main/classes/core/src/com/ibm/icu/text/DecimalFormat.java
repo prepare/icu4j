@@ -783,6 +783,58 @@ public class DecimalFormat extends NumberFormat {
         return format(number, result, fieldPosition, false);
     }
 
+    @Override
+    public StringBuffer format(CurrencyAmount currAmt, StringBuffer result, FieldPosition fieldPosition) {
+
+        Currency save = getCurrency(), curr = currAmt.getCurrency();
+        DecimalFormatSymbols reserved = symbols;
+        boolean same = curr.equals(save);
+        if (!same) {
+            setCurrency(curr);
+
+            Currency theCurrency = currAmt.getCurrency();
+            
+            ULocale uloc = getLocale(ULocale.VALID_LOCALE);
+            
+            if(uloc != null){
+                String fullName = uloc.getName();
+                String[] tagData = fullName.split("@");
+                String name = tagData[0];
+                
+                boolean override = false;
+                for(int i=1; i< tagData.length; i++){
+                    override = true;
+                    if(tagData[i].startsWith("currency=")){
+                        String currency = theCurrency.getCurrencyCode();
+                        name += "@currency="+currency;
+                    } else {
+                        name += "@" + tagData[i];
+                    }
+                }
+                
+                if(!override){
+                    String currency = theCurrency.getCurrencyCode();
+                    name += "@currency="+currency;
+                }
+
+                ULocale ul = new ULocale(name);
+                DecimalFormatSymbols dfs = new DecimalFormatSymbols(ul);
+                symbols = dfs;
+            }
+            
+        }
+        
+        Number number = currAmt.getNumber();
+        format(((Number)number).doubleValue(), result, fieldPosition, false);
+
+        if (!same) {
+            setCurrency(save);
+            symbols = reserved;
+        }
+        
+        return result;
+    }
+
     // See if number is negative.
     // usage: isNegative(multiply(numberToBeFormatted));
     private boolean isNegative(double number) {
