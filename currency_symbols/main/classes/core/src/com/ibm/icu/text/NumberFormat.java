@@ -384,6 +384,10 @@ public abstract class NumberFormat extends UFormat {
                                         FieldPosition pos);
     /**
      * {@icu} Formats a CurrencyAmount. Specialization of format.
+     * if the currency specified by currAmt is different 
+     * from the currency currently used by the NumberFormat instance, 
+     * default currency symbols, decimal/grouping separators for 
+     * the currAmt will be used in the result
      * @see java.text.Format#format(Object, StringBuffer, FieldPosition)
      * @stable ICU 3.0
      */
