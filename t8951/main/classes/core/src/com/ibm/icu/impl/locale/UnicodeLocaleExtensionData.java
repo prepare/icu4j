@@ -1,0 +1,407 @@
+/*
+ *******************************************************************************
+ * Copyright (C) 2014, International Business Machines Corporation and
+ * others. All Rights Reserved.
+ *******************************************************************************
+ */
+package com.ibm.icu.impl.locale;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.MissingResourceException;
+import java.util.Set;
+
+import com.ibm.icu.impl.ICUResourceBundle;
+import com.ibm.icu.util.UResourceBundle;
+import com.ibm.icu.util.UResourceBundleIterator;
+
+/**
+ */
+public class UnicodeLocaleExtensionData {
+
+    private static class KeyData {
+        String legacyId;
+        String bcpId;
+        Map<String, Type> typeMap;
+
+        KeyData(String legacyId, String bcpId, Map<String, Type> typeMap) {
+            this.legacyId = legacyId;
+            this.bcpId = bcpId;
+            this.typeMap = typeMap;
+        }
+    }
+
+    private static class Type {
+        String legacyId;
+        String bcpId;
+
+        Type(String legacyId, String bcpId) {
+            this.legacyId = legacyId;
+            this.bcpId = bcpId;
+        }
+    }
+
+    public static String toBcpKey(String key) {
+        key = AsciiUtil.toLowerString(key);
+        KeyData keyData = KEYMAP.get(key);
+        if (keyData != null) {
+            return keyData.bcpId;
+        }
+        return null;
+    }
+
+    public static String toLegacyKey(String key) {
+        key = AsciiUtil.toLowerString(key);
+        KeyData keyData = KEYMAP.get(key);
+        if (keyData != null) {
+            return keyData.legacyId;
+        }
+        return null;
+    }
+
+    public static String toBcpType(String key, String type) {
+        key = AsciiUtil.toLowerString(key);
+        type = AsciiUtil.toLowerString(type);
+
+        KeyData keyData = KEYMAP.get(key);
+        if (keyData != null) {
+            Type t = keyData.typeMap.get(type);
+            if (t != null) {
+                return t.bcpId;
+            }
+        }
+        return null;
+    }
+
+
+    public static String toLegacyType(String key, String type) {
+        key = AsciiUtil.toLowerString(key);
+        type = AsciiUtil.toLowerString(type);
+
+        KeyData keyData = KEYMAP.get(key);
+        if (keyData != null) {
+            Type t = keyData.typeMap.get(type);
+            if (t != null) {
+                return t.legacyId;
+            }
+        }
+        return null;
+    }
+
+
+    private static void initFromResourceBundle() {
+        UResourceBundle keyTypeDataRes = UResourceBundle.getBundleInstance(
+                ICUResourceBundle.ICU_BASE_NAME,
+                "keyTypeData",
+                ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+        UResourceBundle keyMapRes = keyTypeDataRes.get("keyMap");
+        UResourceBundle typeMapRes = keyTypeDataRes.get("typeMap");
+
+        // alias data is optional
+        UResourceBundle typeAliasRes = null;
+        UResourceBundle bcpTypeAliasRes = null;
+
+        try {
+            typeAliasRes = keyTypeDataRes.get("typeAlias");
+        } catch (MissingResourceException e) {
+            // fall through
+        }
+
+        try {
+            bcpTypeAliasRes = keyTypeDataRes.get("bcpTypeAlias");
+        } catch (MissingResourceException e) {
+            // fall through
+        }
+
+        // iterate through keyMap resource
+        UResourceBundleIterator keyMapItr = keyMapRes.getIterator();
+        while (keyMapItr.hasNext()) {
+            UResourceBundle keyMapEntry = keyMapItr.next();
+            String legacyKeyId = keyMapEntry.getKey();
+            String bcpKeyId = keyMapEntry.getString();
+
+            boolean hasSameKey = false;
+            if (bcpKeyId.length() == 0) {
+                // Empty value indicates that BCP key is same with the legacy key.
+                bcpKeyId = legacyKeyId;
+                hasSameKey = true;
+            }
+
+            boolean isTZ = legacyKeyId.equals("timezone");
+
+            // reverse type alias map
+            Map<String, Set<String>> typeAliasMap = null;
+            if (typeAliasRes != null) {
+                UResourceBundle typeAliasResByKey = null;
+                try {
+                    typeAliasResByKey = typeAliasRes.get(legacyKeyId);
+                } catch (MissingResourceException e) {
+                    // fall through
+                }
+                if (typeAliasResByKey != null) {
+                    typeAliasMap = new HashMap<String, Set<String>>();
+                    UResourceBundleIterator typeAliasResItr = typeAliasResByKey.getIterator();
+                    while (typeAliasResItr.hasNext()) {
+                        UResourceBundle typeAliasDataEntry = typeAliasResItr.next();
+                        String from = typeAliasDataEntry.getKey();
+                        String to = typeAliasDataEntry.getString();
+                        if (isTZ) {
+                            from = from.replace(':', '/');
+                        }
+                        Set<String> aliasSet = typeAliasMap.get(to);
+                        if (aliasSet == null) {
+                            aliasSet = new HashSet<String>();
+                            typeAliasMap.put(to, aliasSet);
+                        }
+                        aliasSet.add(from);
+                    }
+                }
+            }
+
+            // reverse type alias map
+            Map<String, Set<String>> bcpTypeAliasMap = null;
+            if (bcpTypeAliasRes != null) {
+                UResourceBundle bcpTypeAliasResByKey = null;
+                try {
+                    bcpTypeAliasResByKey = bcpTypeAliasRes.get(bcpKeyId);
+                } catch (MissingResourceException e) {
+                    // fall through
+                }
+                if (bcpTypeAliasResByKey != null) {
+                    bcpTypeAliasMap = new HashMap<String, Set<String>>();
+                    UResourceBundleIterator bcpTypeAliasResItr = bcpTypeAliasResByKey.getIterator();
+                    while (bcpTypeAliasResItr.hasNext()) {
+                        UResourceBundle bcpTypeAliasDataEntry = bcpTypeAliasResItr.next();
+                        String from = bcpTypeAliasDataEntry.getKey();
+                        String to = bcpTypeAliasDataEntry.getString();
+                        Set<String> aliasSet = bcpTypeAliasMap.get(to);
+                        if (aliasSet == null) {
+                            aliasSet = new HashSet<String>();
+                            bcpTypeAliasMap.put(to, aliasSet);
+                        }
+                        aliasSet.add(from);
+                    }
+                }
+            }
+
+            Map<String, Type> typeDataMap = new HashMap<String, Type>();
+
+            // look up type map for the key, and walk through the mapping
+            // data
+            UResourceBundle typeMapResByKey = typeMapRes.get(legacyKeyId);
+            UResourceBundleIterator typeMapResByKeyItr = typeMapResByKey.getIterator();
+            while (typeMapResByKeyItr.hasNext()) {
+                UResourceBundle typeMapEntry = typeMapResByKeyItr.next();
+                String legacyTypeId = typeMapEntry.getKey();
+                String bcpTypeId = typeMapEntry.getString();
+
+                if (isTZ) {
+                    // a timezone key uses a colon instead of a slash in the resource.
+                    // e.g. America:Los_Angeles
+                    legacyTypeId = legacyTypeId.replace(':', '/');
+                }
+
+                boolean hasSameType = false;
+                if (bcpTypeId.length() == 0) {
+                    // Empty value indicates that BCP type is same with the legacy type.
+                    bcpTypeId = legacyTypeId;
+                    hasSameType = true;
+                }
+
+                // Note: legacy type value should never be
+                // equivalent to bcp type value of a different
+                // type under the same key. So we use a single
+                // map for lookup.
+                Type t = new Type(legacyTypeId, bcpTypeId);
+                typeDataMap.put(AsciiUtil.toLowerString(legacyTypeId), t);
+                if (!hasSameType) {
+                    typeDataMap.put(AsciiUtil.toLowerString(bcpTypeId), t);
+                }
+
+                // Also put aliases in the index
+                if (typeAliasMap != null) {
+                    Set<String> typeAliasSet = typeAliasMap.get(legacyTypeId);
+                    if (typeAliasSet != null) {
+                        for (String alias : typeAliasSet) {
+                            typeDataMap.put(AsciiUtil.toLowerString(alias), t);
+                        }
+                    }
+                }
+                if (bcpTypeAliasMap != null) {
+                    Set<String> bcpTypeAliasSet = bcpTypeAliasMap.get(bcpTypeId);
+                    if (bcpTypeAliasSet != null) {
+                        for (String alias : bcpTypeAliasSet) {
+                            typeDataMap.put(AsciiUtil.toLowerString(alias), t);
+                        }
+                    }
+                }
+            }
+
+            KeyData keyData = new KeyData(legacyKeyId, bcpKeyId, typeDataMap);
+
+            KEYMAP.put(AsciiUtil.toLowerString(legacyKeyId), keyData);
+            if (!hasSameKey) {
+                KEYMAP.put(AsciiUtil.toLowerString(bcpKeyId), keyData);
+            }
+        }
+    }
+
+    //
+    // Note:    The key-type data is currently read from ICU resource bundle keyTypeData.res.
+    //          In future, we may import the data into code like below directly from CLDR to
+    //          avoid cyclic dependency between ULocale and UResourceBundle. For now, the code
+    //          below is just for proof of concept, and commented out.
+    //
+
+//    private static final String[][] TYPE_DATA_CA = {
+//     // {<legacy type>, <bcp type - if different>},
+//        {"buddhist", null},
+//        {"chinese", null},
+//        {"coptic", null},
+//        {"dangi", null},
+//        {"ethiopic", null},
+//        {"ethiopic-amete-alem", "ethioaa"},
+//        {"gregorian", "gregory"},
+//        {"hebrew", null},
+//        {"indian", null},
+//        {"islamic", null},
+//        {"islamic-civil", null},
+//        {"islamic-rgsa", null},
+//        {"islamic-tbla", null},
+//        {"islamic-umalqura", null},
+//        {"iso8601", null},
+//        {"japanese", null},
+//        {"persian", null},
+//        {"roc", null},
+//    };
+//
+//    private static final String[][] TYPE_DATA_KS = {
+//     // {<legacy type>, <bcp type - if different>},
+//        {"identical", "identic"},
+//        {"primary", "level1"},
+//        {"quaternary", "level4"},
+//        {"secondary", "level2"},
+//        {"tertiary", "level3"},
+//    };
+//
+//    private static final String[][] TYPE_ALIAS_KS = {
+//     // {<legacy alias>, <legacy canonical>},
+//        {"quarternary", "quaternary"},
+//    };
+//
+//    private static final String[][] BCP_TYPE_ALIAS_CA = {
+//     // {<bcp deprecated>, <bcp preferred>
+//        {"islamicc", "islamic-civil"},
+//    };
+//
+//    private static final Object[][] KEY_DATA = {
+//     // {<legacy key>, <bcp key - if different>, <type map>, <type alias>, <bcp type alias>},
+//        {"calendar", "ca", TYPE_DATA_CA, null, BCP_TYPE_ALIAS_CA},
+//        {"colstrength", "ks", TYPE_DATA_KS, TYPE_ALIAS_KS, null},
+//    };
+//
+//    private static void initFromTables() {
+//        for (Object[] keyDataEntry : KEY_DATA) {
+//            String legacyKeyId = (String)keyDataEntry[0];
+//            String bcpKeyId = (String)keyDataEntry[1];
+//            String[][] typeData = (String[][])keyDataEntry[2];
+//            String[][] typeAliasData = (String[][])keyDataEntry[3];
+//            String[][] bcpTypeAliasData = (String[][])keyDataEntry[4];
+//
+//            boolean hasSameKey = false;
+//            if (bcpKeyId == null) {
+//                bcpKeyId = legacyKeyId;
+//                hasSameKey = true;
+//            }
+//
+//            // reverse type alias map
+//            Map<String, Set<String>> typeAliasMap = null;
+//            if (typeAliasData != null) {
+//                typeAliasMap = new HashMap<String, Set<String>>();
+//                for (String[] typeAliasDataEntry : typeAliasData) {
+//                    String from = typeAliasDataEntry[0];
+//                    String to = typeAliasDataEntry[1];
+//                    Set<String> aliasSet = typeAliasMap.get(to);
+//                    if (aliasSet == null) {
+//                        aliasSet = new HashSet<String>();
+//                        typeAliasMap.put(to, aliasSet);
+//                    }
+//                    aliasSet.add(from);
+//                }
+//            }
+//
+//            // BCP type alias map data
+//            Map<String, Set<String>> bcpTypeAliasMap = null;
+//            if (bcpTypeAliasData != null) {
+//                bcpTypeAliasMap = new HashMap<String, Set<String>>();
+//                for (String[] bcpTypeAliasDataEntry : bcpTypeAliasData) {
+//                    String from = bcpTypeAliasDataEntry[0];
+//                    String to = bcpTypeAliasDataEntry[1];
+//                    Set<String> aliasSet = bcpTypeAliasMap.get(to);
+//                    if (aliasSet == null) {
+//                        aliasSet = new HashSet<String>();
+//                        bcpTypeAliasMap.put(to, aliasSet);
+//                    }
+//                    aliasSet.add(from);
+//                }
+//            }
+//
+//            // Type map data
+//            assert typeData != null;
+//            Map<String, Type> typeDataMap = new HashMap<String, Type>();
+//
+//            for (String[] typeDataEntry : typeData) {
+//                String legacyTypeId = typeDataEntry[0];
+//                String bcpTypeId = typeDataEntry[1];
+//
+//                boolean hasSameType = false;
+//                if (bcpTypeId == null) {
+//                    bcpTypeId = legacyTypeId;
+//                    hasSameType = true;
+//                }
+//
+//                // Note: legacy type value should never be
+//                // equivalent to bcp type value of a different
+//                // type under the same key. So we use a single
+//                // map for lookup.
+//                Type t = new Type(legacyTypeId, bcpTypeId);
+//                typeDataMap.put(AsciiUtil.toLowerString(legacyTypeId), t);
+//                if (!hasSameType) {
+//                    typeDataMap.put(AsciiUtil.toLowerString(bcpTypeId), t);
+//                }
+//
+//                // Also put aliases in the index
+//                Set<String> typeAliasSet = typeAliasMap.get(legacyTypeId);
+//                if (typeAliasSet != null) {
+//                    for (String alias : typeAliasSet) {
+//                        typeDataMap.put(AsciiUtil.toLowerString(alias), t);
+//                    }
+//                }
+//                Set<String> bcpTypeAliasSet = bcpTypeAliasMap.get(bcpTypeId);
+//                if (bcpTypeAliasSet != null) {
+//                    for (String alias : bcpTypeAliasSet) {
+//                        typeDataMap.put(AsciiUtil.toLowerString(alias), t);
+//                    }
+//                }
+//            }
+//
+//
+//            KeyData keyData = new KeyData(legacyKeyId, bcpKeyId, typeDataMap);
+//
+//            KEYMAP.put(AsciiUtil.toLowerString(legacyKeyId), keyData);
+//            if (!hasSameKey) {
+//                KEYMAP.put(AsciiUtil.toLowerString(bcpKeyId), keyData);
+//            }
+//        }
+//    }
+
+    private static final Map<String, KeyData> KEYMAP;
+
+    static {
+        KEYMAP = new HashMap<String, KeyData>();
+//        initFromTables();
+        initFromResourceBundle();
+    }
+
+}

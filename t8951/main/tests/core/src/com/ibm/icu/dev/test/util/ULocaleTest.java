@@ -4449,4 +4449,100 @@ public class ULocaleTest extends TestFmwk {
             }
         }
     }
+
+    public void TestToUnicodeLocaleKey() {
+        String[][] DATA = {
+                {"calendar",    "ca"},
+                {"CALEndar",    "ca"},  // difference casing
+                {"ca",          "ca"},  // bcp key itself
+                {"kv",          "kv"},  // no difference between legacy and bcp
+                {"foo",         null},  // unknown
+                {"zz",          null},  // unknown, bcp well-formed
+        };
+
+        for (String[] d : DATA) {
+            String keyword = d[0];
+            String expected = d[1];
+
+            String bcpKey = ULocale.toUnicodeLocaleKey(keyword);
+            assertEquals("keyword=" + keyword, expected, bcpKey);
+        }
+    }
+
+    public void TestToKeyword() {
+        String[][] DATA = {
+                {"kb",          "colbackwards"},
+                {"kB",          "colbackwards"},    // different casing
+                {"Collation",   "collation"},   // keyword itself with different casing
+                {"kv",          "kv"},  // no difference between legacy and bcp
+                {"foo",         null},  // unknown
+                {"zz",          null},  // unknown, bcp well-formed
+        };
+
+        for (String[] d : DATA) {
+            String keyword = d[0];
+            String expected = d[1];
+
+            String kw = ULocale.toKeyword(keyword);
+            assertEquals("bcpKey=" + keyword, expected, kw);
+        }
+    }
+
+    public void TestToUnicodeLocaleType() {
+        String[][] DATA = {
+                {"tz",              "Asia/Kolkata",     "inccu"},
+                {"calendar",        "gregorian",        "gregory"},
+                {"ca",              "gregorian",        "gregory"},
+                {"ca",              "Gregorian",        "gregory"},
+                {"ca",              "buddhist",         "buddhist"},
+                {"Calendar",        "Japanese",         "japanese"},
+                {"calendar",        "Islamic-Civil",    "islamic-civil"},
+                {"calendar",        "islamicc",         "islamic-civil"},   // bcp type alias
+                {"colalternate",    "NON-IGNORABLE",    "noignore"},
+                {"colcaselevel",    "yes",              "true"},
+                {"tz",              "america/new_york", "usnyc"},
+                {"tz",              "Asia/Kolkata",     "inccu"},
+                {"timezone",        "navajo",           "usden"},
+                {"zz",              "gregorian",        null},  // unknown key
+        };
+
+        for (String[] d : DATA) {
+            String keyword = d[0];
+            String value = d[1];
+            String expected = d[2];
+
+            String bcpType = ULocale.toUnicodeLocaleType(keyword, value);
+            assertEquals("keyword=" + keyword + ", value=" + value, expected, bcpType);
+        }
+
+    }
+
+    public void TestToKeywordValue() {
+        String[][] DATA = {
+                {"calendar",        "gregory",          "gregorian"},
+                {"ca",              "gregory",          "gregorian"},
+                {"ca",              "Gregory",          "gregorian"},
+                {"ca",              "buddhist",         "buddhist"},
+                {"Calendar",        "Japanese",         "japanese"},
+                {"calendar",        "Islamic-Civil",    "islamic-civil"},
+                {"calendar",        "islamicc",         "islamic-civil"},   // bcp type alias
+                {"colalternate",    "noignore",         "non-ignorable"},
+                {"colcaselevel",    "true",             "yes"},
+                {"tz",              "usnyc",            "America/New_York"},
+                {"tz",              "inccu",            "Asia/Calcutta"},
+                {"timezone",        "usden",            "America/Denver"},
+                {"timezone",        "usnavajo",         "America/Denver"},  // bcp type alias
+                {"colstrength",     "quarternary",      "quaternary"},  // type alias
+                {"zz",              "gregory",          null},  // unknown key
+        };
+
+        for (String[] d : DATA) {
+            String keyword = d[0];
+            String value = d[1];
+            String expected = d[2];
+
+            String kwv = ULocale.toKeywordValue(keyword, value);
+            assertEquals("keyword=" + keyword + ", value="  + value, expected, kwv);
+        }
+    }
 }
