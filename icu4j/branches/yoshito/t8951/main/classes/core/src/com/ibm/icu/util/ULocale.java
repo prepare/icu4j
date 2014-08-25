@@ -3262,21 +3262,27 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
      *                      type such as "phonebk").
      * @return              the BCP47 Unicode locale extension type, or null if
      *                      the specified keyword or keyword value is not recognized.
+     * @throws IllegalArgumentException if the specified keyword is not recognized.
      * @see #toKeywordValue(String, String)
      * @draft ICU 54
      * @provisional This API might change or be removed in a future release.
      */
     public static String toUnicodeLocaleType(String keyword, String value) {
-        return UnicodeLocaleExtensionData.toBcpType(keyword, value);
+        Output<Boolean> isKnownKeyword = new Output<Boolean>();
+        String bcpType = UnicodeLocaleExtensionData.toBcpType(keyword, value, isKnownKeyword);
+        if (!isKnownKeyword.value) {
+            throw new IllegalArgumentException("Unknown keyword: " + keyword);
+        }
+        return bcpType;
     }
 
     private static String toUnicodeLocaleTypeWithFallback(String keyword, String value) {
-        String uniLocType = toUnicodeLocaleType(keyword, value);
-        if (uniLocType == null && UnicodeLocaleExtension.isTypeSubtag(value)) {
+        String bcpType = UnicodeLocaleExtensionData.toBcpType(keyword, value, null);
+        if (bcpType == null && UnicodeLocaleExtension.isTypeSubtag(value)) {
             // unknown keyword, but syntax is fine..
-            uniLocType = AsciiUtil.toLowerString(value);
+            bcpType = AsciiUtil.toLowerString(value);
         }
-        return uniLocType;
+        return bcpType;
     }
 
     /**
@@ -3319,12 +3325,18 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
      *                      such as "phonebook").
      * @return              the canonical legacy keyword value, or null if the specified
      *                      keyword or keyword value is not recognized.
+     * @throws IllegalArgumentException if the specified keyword is not recognized.
      * @see #toUnicodeLocaleType(String, String)
      * @draft ICU 54
      * @provisional This API might change or be removed in a future release.
      */
     public static String toKeywordValue(String keyword, String value) {
-        return UnicodeLocaleExtensionData.toLegacyType(keyword, value);
+        Output<Boolean> isKnownKeyword = new Output<Boolean>();
+        String keywordValue = UnicodeLocaleExtensionData.toLegacyType(keyword, value, isKnownKeyword);
+        if (!isKnownKeyword.value) {
+            throw new IllegalArgumentException("Unknown keyword: " + keyword);
+        }
+        return keywordValue;
     }
 
     private static String toKeywordValueWithFallback(String keyword, String value) {

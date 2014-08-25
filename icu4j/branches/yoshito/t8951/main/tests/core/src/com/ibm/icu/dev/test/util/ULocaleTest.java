@@ -4503,16 +4503,33 @@ public class ULocaleTest extends TestFmwk {
                 {"tz",              "america/new_york", "usnyc"},
                 {"tz",              "Asia/Kolkata",     "inccu"},
                 {"timezone",        "navajo",           "usden"},
-                {"zz",              "gregorian",        null},  // unknown key
+                {"ca",              "aaaa",             null},  // unknown type
+                {"zz",              "gregorian",        "#ERROR"},  // unknown key
         };
 
         for (String[] d : DATA) {
             String keyword = d[0];
             String value = d[1];
             String expected = d[2];
+            boolean exception = false;
 
-            String bcpType = ULocale.toUnicodeLocaleType(keyword, value);
-            assertEquals("keyword=" + keyword + ", value=" + value, expected, bcpType);
+            if ("#ERROR".equals(expected)) {
+                expected = null;
+                exception = true;
+            }
+
+            try {
+                String bcpType = ULocale.toUnicodeLocaleType(keyword, value);
+                if (exception) {
+                    errln("keyword=" + keyword + ", value=" + value + ", IllegalArgumentException expected");
+                } else {
+                    assertEquals("keyword=" + keyword + ", value=" + value, expected, bcpType);
+                }
+            } catch (IllegalArgumentException e) {
+                if (!exception) {
+                    errln("keyword=" + keyword + ", value=" + value + ", IllegalArgumentException not expected");
+                }
+            }
         }
 
     }
@@ -4533,16 +4550,33 @@ public class ULocaleTest extends TestFmwk {
                 {"timezone",        "usden",            "America/Denver"},
                 {"timezone",        "usnavajo",         "America/Denver"},  // bcp type alias
                 {"colstrength",     "quarternary",      "quaternary"},  // type alias
-                {"zz",              "gregory",          null},  // unknown key
+                {"ca",              "aaaa",             null},  // unknown type
+                {"zz",              "gregory",          "#ERROR"},  // unknown key
         };
 
         for (String[] d : DATA) {
             String keyword = d[0];
             String value = d[1];
             String expected = d[2];
+            boolean exception = false;
 
-            String kwv = ULocale.toKeywordValue(keyword, value);
-            assertEquals("keyword=" + keyword + ", value="  + value, expected, kwv);
+            if ("#ERROR".equals(expected)) {
+                expected = null;
+                exception = true;
+            }
+
+            try {
+                String kwv = ULocale.toKeywordValue(keyword, value);
+                if (exception) {
+                    errln("keyword=" + keyword + ", value=" + value + ", IllegalArgumentException expected");
+                } else {
+                    assertEquals("keyword=" + keyword + ", value="  + value, expected, kwv);
+                }
+            } catch (IllegalArgumentException e) {
+                if (!exception) {
+                    errln("keyword=" + keyword + ", value=" + value + ", IllegalArgumentException not expected");
+                }
+            }
         }
     }
 }
