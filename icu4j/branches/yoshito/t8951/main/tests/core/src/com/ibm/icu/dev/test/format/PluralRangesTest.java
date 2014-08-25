@@ -6,6 +6,8 @@
  */
 package com.ibm.icu.dev.test.format;
 
+import java.util.Arrays;
+
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.text.MeasureFormat;
 import com.ibm.icu.text.MeasureFormat.FormatWidth;
@@ -50,19 +52,45 @@ public class PluralRangesTest extends TestFmwk {
         }
     }
 
+    public void TestRangePattern() {
+        String[][] tests = {
+                {"de", "SHORT", "{0}–{1}"},
+                {"ja", "NARROW", "{0}～{1}"},
+        };
+        for (String[] test : tests) {
+            ULocale ulocale = new ULocale(test[0]);
+            FormatWidth width = FormatWidth.valueOf(test[1]);
+            String expected = test[2];
+            String actual = MeasureFormat.getRangePattern(ulocale, width);
+            assertEquals("range pattern " + Arrays.asList(test), expected, actual);
+        }
+    }
+    
     public void TestFormatting() {
         Object[][] tests = {
-                {0.0, 1.0, ULocale.FRANCE, FormatWidth.WIDE, MeasureUnit.FAHRENHEIT, "de 0 à 1 degré Fahrenheit"},
-                {1.0, 2.0, ULocale.FRANCE, FormatWidth.WIDE, MeasureUnit.FAHRENHEIT, "de 1 à 2 degrés Fahrenheit"},
+                {0.0, 1.0, ULocale.FRANCE, FormatWidth.WIDE, MeasureUnit.FAHRENHEIT, "0–1 degré Fahrenheit"},
+                {1.0, 2.0, ULocale.FRANCE, FormatWidth.WIDE, MeasureUnit.FAHRENHEIT, "1–2 degrés Fahrenheit"},
                 {3.1, 4.25, ULocale.FRANCE, FormatWidth.SHORT, MeasureUnit.FAHRENHEIT, "3,1–4,25 °F"},
                 {3.1, 4.25, ULocale.ENGLISH, FormatWidth.SHORT, MeasureUnit.FAHRENHEIT, "3.1–4.25°F"},
                 {3.1, 4.25, ULocale.CHINESE, FormatWidth.WIDE, MeasureUnit.INCH, "3.1-4.25英寸"},
                 {0.0, 1.0, ULocale.ENGLISH, FormatWidth.WIDE, MeasureUnit.INCH, "0–1 inches"},
-                
-                {0.0, 1.0, ULocale.ENGLISH, FormatWidth.WIDE, Currency.getInstance("EUR"), 
-                    IllegalArgumentException.class},
+
+                {0.0, 1.0, ULocale.ENGLISH, FormatWidth.NARROW, Currency.getInstance("EUR"), "€0.00–1.00"},
+                {0.0, 1.0, ULocale.FRENCH, FormatWidth.NARROW, Currency.getInstance("EUR"), "0,00–1,00 €"},
+                {0.0, 100.0, ULocale.FRENCH, FormatWidth.NARROW, Currency.getInstance("JPY"), "0–100\u00a0¥JP"},
+
+                {0.0, 1.0, ULocale.ENGLISH, FormatWidth.SHORT, Currency.getInstance("EUR"), "EUR0.00–1.00"},
+                {0.0, 1.0, ULocale.FRENCH, FormatWidth.SHORT, Currency.getInstance("EUR"), "0,00–1,00\u00a0EUR"},
+                {0.0, 100.0, ULocale.FRENCH, FormatWidth.SHORT, Currency.getInstance("JPY"), "0–100\u00a0JPY"},
+
+                {0.0, 1.0, ULocale.ENGLISH, FormatWidth.WIDE, Currency.getInstance("EUR"), "0.00–1.00 euros"},
+                {0.0, 1.0, ULocale.FRENCH, FormatWidth.WIDE, Currency.getInstance("EUR"), "0,00–1,00 euro"},
+                {0.0, 2.0, ULocale.FRENCH, FormatWidth.WIDE, Currency.getInstance("EUR"), "0,00–2,00 euros"},
+                {0.0, 100.0, ULocale.FRENCH, FormatWidth.WIDE, Currency.getInstance("JPY"), "0–100 yens japonais"},
         };
+        int i = 0;
         for (Object[] test : tests) {
+            ++i;
             double low = (Double) test[0];
             double high = (Double) test[1];
             final ULocale locale = (ULocale) test[2];
@@ -77,7 +105,7 @@ public class PluralRangesTest extends TestFmwk {
             } catch (Exception e) {
                 actual = e.getClass();
             }
-            assertEquals("Formatting unit", expected, actual);
+            assertEquals(i + " Formatting unit", expected, actual);
         }
     }
 

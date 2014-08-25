@@ -433,6 +433,24 @@ import com.ibm.icu.util.UResourceBundleIterator;
  *     <td width="165" valign="top">in rule in fraction rule set</td>
  *     <td>Omit the optional text if multiplying the number by the rule's base value yields 1.</td>
  *   </tr>
+ *   <tr>
+ *     <td width="37">$(cardinal,<i>plural syntax</i>)$</td>
+ *     <td width="23"></td>
+ *     <td width="165" valign="top">in all rule sets</td>
+ *     <td>This provides the ability to choose a word based on the number divided by the radix to the power of the
+ *     exponent of the base value for the specified locale, which is normally equivalent to the &lt;&lt; value.
+ *     This uses the cardinal plural rules from PluralFormat. All strings used in the plural format are treated
+ *     as the same base value for parsing.</td>
+ *   </tr>
+ *   <tr>
+ *     <td width="37">$(ordinal,<i>plural syntax</i>)$</td>
+ *     <td width="23"></td>
+ *     <td width="165" valign="top">in all rule sets</td>
+ *     <td>This provides the ability to choose a word based on the number divided by the radix to the power of the
+ *     exponent of the base value for the specified locale, which is normally equivalent to the &lt;&lt; value.
+ *     This uses the ordinal plural rules from PluralFormat. All strings used in the plural format are treated
+ *     as the same base value for parsing.</td>
+ *   </tr>
  * </table>
  *
  * <p>The substitution descriptor (i.e., the text between the token characters) may take one
@@ -480,6 +498,8 @@ import com.ibm.icu.util.UResourceBundleIterator;
  * @author Richard Gillam
  * @see NumberFormat
  * @see DecimalFormat
+ * @see PluralFormat
+ * @see PluralRules
  * @stable ICU 2.0
  */
 public class RuleBasedNumberFormat extends NumberFormat {
@@ -1309,17 +1329,15 @@ public class RuleBasedNumberFormat extends NumberFormat {
         // the same time, but you get what you get, and you shouldn't be using this from
         // multiple threads anyway.
         if (scannerProvider == null && lenientParse && !lookedForScanner) {
-            ///CLOVER:OFF
             try {
                 lookedForScanner = true;
-                Class<?> cls = Class.forName("com.ibm.icu.text.RbnfScannerProviderImpl");
+                Class<?> cls = Class.forName("com.ibm.icu.impl.text.RbnfScannerProviderImpl");
                 RbnfLenientScannerProvider provider = (RbnfLenientScannerProvider)cls.newInstance();
                 setLenientScannerProvider(provider);
             }
             catch (Exception e) {
                 // any failure, we just ignore and return null
             }
-            ///CLOVER:ON
         }
 
         return scannerProvider;
@@ -1474,12 +1492,16 @@ public class RuleBasedNumberFormat extends NumberFormat {
     DecimalFormat getDecimalFormat() {
         if (decimalFormat == null) {
             decimalFormat = (DecimalFormat)NumberFormat.getInstance(locale);
-            
+
             if (decimalFormatSymbols != null) {
                 decimalFormat.setDecimalFormatSymbols(decimalFormatSymbols);
             }
         }
         return decimalFormat;
+    }
+
+    PluralFormat createPluralFormat(PluralRules.PluralType pluralType, String pattern) {
+        return new PluralFormat(locale, pluralType, pattern, getDecimalFormat());
     }
 
     //-----------------------------------------------------------------------
