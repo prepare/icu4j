@@ -762,9 +762,14 @@ public final class UScript {
     public static final int BASSA_VAH                     = 134;/* Bass */
     /**
      * ISO 15924 script code
-     * @stable ICU 4.6
+     * @stable ICU 54
      */
-    public static final int DUPLOYAN_SHORTAND             = 135;/* Dupl */
+    public static final int DUPLOYAN                      = 135;/* Dupl */
+    /**
+     * Typo, use DUPLOYAN
+     * @deprecated ICU 54
+     */
+    public static final int DUPLOYAN_SHORTAND             = DUPLOYAN;
     /**
      * ISO 15924 script code
      * @stable ICU 4.6
@@ -1219,7 +1224,7 @@ public final class UScript {
             // Begin copy-paste output from
             // tools/trunk/unicode/py/parsescriptmetadata.py
             // or from icu/trunk/source/common/uscript_props.cpp
-            0x0040 | UNKNOWN,  // Zyyy
+            0x0040 | RECOMMENDED,  // Zyyy
             0x0308 | UNKNOWN,  // Zinh
             0x0628 | RECOMMENDED | RTL,  // Arab
             0x0531 | RECOMMENDED | CASED,  // Armn
