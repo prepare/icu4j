@@ -3340,12 +3340,12 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     private static String toKeywordValueWithFallback(String keyword, String value) {
-        String result = toKeywordValue(keyword, value);
-        if (result == null) {
+        String keywordValue = UnicodeLocaleExtensionData.toLegacyType(keyword, value, null);
+        if (keywordValue == null) {
             // unknown - just use the input value
-            result = AsciiUtil.toLowerString(value);
+            keywordValue = AsciiUtil.toLowerString(value);
         }
-        return result;
+        return keywordValue;
     }
 
     /**
