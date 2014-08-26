@@ -783,58 +783,71 @@ public class DecimalFormat extends NumberFormat {
         return format(number, result, fieldPosition, false);
     }
 
-//    @Override
-//    public StringBuffer format(CurrencyAmount currAmt, StringBuffer result, FieldPosition fieldPosition) {
-//
-//        Currency save = getCurrency(), curr = currAmt.getCurrency();
-//        DecimalFormatSymbols reserved = symbols;
-//        boolean same = curr.equals(save);
-//        if (!same) {
-//            setCurrency(curr);
-//
-//            Currency theCurrency = currAmt.getCurrency();
-//            
-//            ULocale uloc = getLocale(ULocale.VALID_LOCALE);
-//            
-//            if(uloc != null){
-//                String fullName = uloc.getName();
-//                String[] tagData = fullName.split("@");
-//                String name = tagData[0];
-//                
-//                boolean override = false;
-//                for(int i=1; i< tagData.length; i++){
-//                    override = true;
-//                    if(tagData[i].startsWith("currency=")){
-//                        String currency = theCurrency.getCurrencyCode();
-//                        name += "@currency="+currency;
-//                    } else {
-//                        name += "@" + tagData[i];
-//                    }
-//                }
-//                
-//                if(!override){
-//                    String currency = theCurrency.getCurrencyCode();
-//                    name += "@currency="+currency;
-//                }
-//
-//                ULocale ul = new ULocale(name);
-//                DecimalFormatSymbols dfs = new DecimalFormatSymbols(ul);
-//                symbols = dfs;
-//            }
-//            
-//        }
-//        
-//        Number number = currAmt.getNumber();
-//        format(((Number)number).doubleValue(), result, fieldPosition, false);
-//
-//        if (!same) {
-//            setCurrency(save);
-//            symbols = reserved;
-//        }
-//        
-//        return result;
-//    }
+    /**
+     * if the currency specified by currAmt is different 
+     * from the currency currently used by the NumberFormat instance, 
+     * default currency symbols, decimal/grouping separators for 
+     * the currAmt will be used in the result
+     * @see java.text.Format#format(Object, StringBuffer, FieldPosition)
+     * @draft ICU 54
+     * @provisional This API might change or be removed in a future release. 
+     */
+    @Override
+    public StringBuffer format(CurrencyAmount currAmt, StringBuffer result, FieldPosition fieldPosition) {
+        Currency save = getCurrency(), curr = currAmt.getCurrency();
+        DecimalFormatSymbols reserved = symbols;
+        boolean same = curr.equals(save);
+        if (!same) {
+            setCurrency(curr);
 
+            ULocale uloc = getLocale(ULocale.VALID_LOCALE);
+
+            if (uloc != null) {
+                String fullName = uloc.getName();
+                // the fullName format: en@numbers=latn;currency=PTE
+                String[] tagData = fullName.split("[@;]");
+                String name = tagData[0];
+
+                boolean override = false, hasCurr = false;
+
+                // locale format has 2 cases
+                // 1. normal: en@numbers=latn // separate by @
+                // 2. rare: en@numbers=latn;currency=PTE // separate by @ then ;
+                if (tagData.length >= 2) {
+                    override = true;
+                    name += "@" + tagData[1];
+                    for (int i = 2; i < tagData.length; i++) {
+                        if (tagData[i].startsWith("currency=")) {
+                            hasCurr = true;
+                        }
+                        name += ";" + tagData[i];
+                    }
+                }
+
+                if (!hasCurr && curr != null) {
+                    String currency = curr.getCurrencyCode();
+                    if (override)
+                        name += ";currency=" + currency;
+                    else
+                        name += "@currency=" + currency;
+                }
+
+                ULocale ul = new ULocale(name);
+                DecimalFormatSymbols dfs = new DecimalFormatSymbols(ul);
+                symbols = dfs;
+            }
+        }
+
+        Number number = currAmt.getNumber();
+        format(((Number) number).doubleValue(), result, fieldPosition, false);
+
+        if (!same) {
+            setCurrency(save);
+            symbols = reserved;
+        }
+        return result;
+    }
+    
     // See if number is negative.
     // usage: isNegative(multiply(numberToBeFormatted));
     private boolean isNegative(double number) {
