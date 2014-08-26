@@ -384,10 +384,6 @@ public abstract class NumberFormat extends UFormat {
                                         FieldPosition pos);
     /**
      * {@icu} Formats a CurrencyAmount. Specialization of format.
-     * if the currency specified by currAmt is different 
-     * from the currency currently used by the NumberFormat instance, 
-     * default currency symbols, decimal/grouping separators for 
-     * the currAmt will be used in the result
      * @see java.text.Format#format(Object, StringBuffer, FieldPosition)
      * @stable ICU 3.0
      */
@@ -397,52 +393,9 @@ public abstract class NumberFormat extends UFormat {
         // Default implementation -- subclasses may override
         Currency save = getCurrency(), curr = currAmt.getCurrency();
         boolean same = curr.equals(save);
-        DecimalFormatSymbols saveSymbols = null;
-        if (!same) {
-            setCurrency(curr);
-
-            ULocale uloc = getLocale(ULocale.VALID_LOCALE);
-
-            if (uloc != null) {
-                String fullName = uloc.getName();
-                String[] tagData = fullName.split("@");
-                String name = tagData[0];
-
-                boolean override = false;
-                if (this instanceof DecimalFormat) {
-
-                    for (int i = 1; i < tagData.length; i++) {
-                        override = true;
-                        if (tagData[i].startsWith("currency=")) {
-                            String currency = curr.getCurrencyCode();
-                            name += "@currency=" + currency;
-                        } else {
-                            name += "@" + tagData[i];
-                        }
-                    }
-
-                    if (!override) {
-                        String currency = curr.getCurrencyCode();
-                        name += "@currency=" + currency;
-                    }
-
-                    ULocale ul = new ULocale(name);
-                    DecimalFormatSymbols dfs = new DecimalFormatSymbols(ul);
-                    DecimalFormat df = (DecimalFormat) this;
-                    saveSymbols = df.getDecimalFormatSymbols();
-                    df.setDecimalFormatSymbols(dfs);
-                }
-            }
-        }
-        
-        
+        if (!same) setCurrency(curr);
         format(currAmt.getNumber(), toAppendTo, pos);
-        if (!same) {
-            setCurrency(save);
-            if (this instanceof DecimalFormat) {
-                ((DecimalFormat) this).setDecimalFormatSymbols(saveSymbols);
-            }
-        }
+        if (!same) setCurrency(save);
         return toAppendTo;
     }
 
