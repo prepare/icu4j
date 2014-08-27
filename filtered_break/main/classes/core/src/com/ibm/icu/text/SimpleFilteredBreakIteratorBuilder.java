@@ -17,10 +17,13 @@ import com.ibm.icu.util.StringTrieBuilder;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 
+/**
+ * @author tomzhang
+ */
 class SimpleFilteredSentenceBreakIterator extends BreakIterator {
 
     private BreakIterator delegate;
-    private CharacterIterator text;
+    private CharacterIterator text; // TODO(Tom): suffice to move into the local scope in next() ?
     private CharsTrie backwardsTrie; // i.e. ".srM" for Mrs.
     private CharsTrie forwardsPartialTrie; // Has ".a" for "a.M."
 
@@ -40,7 +43,6 @@ class SimpleFilteredSentenceBreakIterator extends BreakIterator {
     }
 
     @Override
-    // TODO: Finish this & you are almost done....
     public int next() {
         int n = delegate.next();
         if (n == BreakIterator.DONE || // at end or
@@ -48,7 +50,7 @@ class SimpleFilteredSentenceBreakIterator extends BreakIterator {
             return n;
         }
         // UCharacterIterator text;
-        text = delegate.getText();
+        text = (CharacterIterator) delegate.getText().clone();
         do { // outer loop runs once per underlying break (from fDelegate).
              // loops while 'n' points to an exception.
             text.setIndex(n);
@@ -86,7 +88,7 @@ class SimpleFilteredSentenceBreakIterator extends BreakIterator {
                     if (n == BreakIterator.DONE)
                         return n;
                     continue; // See if the next is another exception.
-                } else if (bestValue == SimpleFilteredBreakIteratorBuilder.PARTIAL && forwardsPartialTrie != null) { 
+                } else if (bestValue == SimpleFilteredBreakIteratorBuilder.PARTIAL && forwardsPartialTrie != null) {
                     // make sure there's a forward trie
                     // We matched the "Ph." in "Ph.D." - now we need to run everything through the forwards trie
                     // to see if it matches something going forward.
@@ -115,7 +117,7 @@ class SimpleFilteredSentenceBreakIterator extends BreakIterator {
                 return n; // No match - so exit. Not an exception.
             }
         } while (n != BreakIterator.DONE);
-        return 0;
+        return n;
     }
 
     @Override
@@ -137,7 +139,6 @@ class SimpleFilteredSentenceBreakIterator extends BreakIterator {
         return other;
     }
 
-    // the followings are auto-generated methods from BreakIterator, may not need it here
     @Override
     public int first() {
         return delegate.first();
@@ -179,10 +180,6 @@ class SimpleFilteredSentenceBreakIterator extends BreakIterator {
     }
 }
 
-/**
- * @author tomzhang
- * 
- */
 public class SimpleFilteredBreakIteratorBuilder extends FilteredBreakIteratorBuilder {
     /**
      * filter set to store all exceptions
@@ -194,6 +191,10 @@ public class SimpleFilteredBreakIteratorBuilder extends FilteredBreakIteratorBui
     static final int SuppressInReverse = (1 << 0);
     static final int AddToForward = (1 << 1);
 
+    /**
+     * Create SimpleFilteredBreakIteratorBuilder using given locale
+     * @param loc the locale to get filtered iterators
+     */
     public SimpleFilteredBreakIteratorBuilder(ULocale loc) {
         ICUResourceBundle rb = (ICUResourceBundle) UResourceBundle.getBundleInstance(
                 ICUResourceBundle.ICU_BRKITR_BASE_NAME, loc);
@@ -205,20 +206,20 @@ public class SimpleFilteredBreakIteratorBuilder extends FilteredBreakIteratorBui
             for (int index = 0, size = breaks.getSize(); index < size; ++index) {
                 ICUResourceBundle b = (ICUResourceBundle) breaks.get(index);
                 String br = b.getString();
-
-                System.out.println("exception is " + br);
-
                 filterSet.add(br);
             }
         }
     }
 
+    /**
+     * Create SimpleFilteredBreakIteratorBuilder with no exception
+     */
     public SimpleFilteredBreakIteratorBuilder() {
         filterSet = new HashSet<String>();
     }
 
     @Override
-    Boolean suppressBreakAfter(String str) {
+    public boolean suppressBreakAfter(String str) {
         if (filterSet == null) {
             filterSet = new HashSet<String>();
         }
@@ -226,7 +227,7 @@ public class SimpleFilteredBreakIteratorBuilder extends FilteredBreakIteratorBui
     }
 
     @Override
-    Boolean unsuppressBreakAfter(String str) {
+    public boolean unsuppressBreakAfter(String str) {
         if (filterSet == null) {
             return false;
         } else {
@@ -235,7 +236,7 @@ public class SimpleFilteredBreakIteratorBuilder extends FilteredBreakIteratorBui
     }
 
     @Override
-    BreakIterator build(BreakIterator adoptBreakIterator) {
+    public BreakIterator build(BreakIterator adoptBreakIterator) {
         CharsTrieBuilder builder = new CharsTrieBuilder();
         CharsTrieBuilder builder2 = new CharsTrieBuilder();
 
@@ -266,7 +267,8 @@ public class SimpleFilteredBreakIteratorBuilder extends FilteredBreakIteratorBui
                 for (int j = 0; j < subCount; j++) {
                     if (j == i)
                         continue;
-                    if (oriStr.equals(ustrs[j].substring(0, nn + 1))) {
+                    if (nn + 1 < ustrs[j].length() && // ensure we can get substring
+                            oriStr.equals(ustrs[j].substring(0, nn + 1))) {
                         if (partials[j] == 0) { // hasn't been processed yet
                             partials[j] = SuppressInReverse | AddToForward;
                         } else if ((partials[j] & SuppressInReverse) != 0) {
