@@ -3874,7 +3874,7 @@ public class ULocaleTest extends TestFmwk {
                 {"en@timezone=America/New_York;calendar=japanese",    "en-u-ca-japanese-tz-usnyc"},
                 {"en@timezone=US/Eastern",    "en-u-tz-usnyc"},
                 {"en@x=x-y-z;a=a-b-c",  "en-x-x-y-z"},
-                {"it@collation=badcollationtype;colStrength=identical;cu=usd-eur", "it-u-ks-identic"},
+                {"it@collation=badcollationtype;colStrength=identical;cu=usd-eur", "it-u-cu-usd-eur-ks-identic"},
                 {"en_US_POSIX", "en-US-u-va-posix"},
                 {"en_US_POSIX@calendar=japanese;currency=EUR","en-US-u-ca-japanese-cu-eur-va-posix"},
                 {"@x=elmer",    "x-elmer"},
@@ -4456,8 +4456,8 @@ public class ULocaleTest extends TestFmwk {
                 {"CALEndar",    "ca"},  // difference casing
                 {"ca",          "ca"},  // bcp key itself
                 {"kv",          "kv"},  // no difference between legacy and bcp
-                {"foo",         null},  // unknown
-                {"zz",          null},  // unknown, bcp well-formed
+                {"foo",         null},  // unknown, bcp ill-formed
+                {"ZZ",          "zz"},  // unknown, bcp well-formed
         };
 
         for (String[] d : DATA) {
@@ -4469,22 +4469,23 @@ public class ULocaleTest extends TestFmwk {
         }
     }
 
-    public void TestToKeyword() {
+    public void TestToLegacyKey() {
         String[][] DATA = {
                 {"kb",          "colbackwards"},
                 {"kB",          "colbackwards"},    // different casing
                 {"Collation",   "collation"},   // keyword itself with different casing
                 {"kv",          "kv"},  // no difference between legacy and bcp
-                {"foo",         null},  // unknown
-                {"zz",          null},  // unknown, bcp well-formed
+                {"foo",         "foo"}, // unknown, bcp ill-formed
+                {"ZZ",          "zz"},  // unknown, bcp well-formed
+                {"e=mc2",       null},  // unknown, bcp/legacy ill-formed
         };
 
         for (String[] d : DATA) {
             String keyword = d[0];
             String expected = d[1];
 
-            String kw = ULocale.toKeyword(keyword);
-            assertEquals("bcpKey=" + keyword, expected, kw);
+            String legacyKey = ULocale.toLegacyKey(keyword);
+            assertEquals("bcpKey=" + keyword, expected, legacyKey);
         }
     }
 
@@ -4503,38 +4504,24 @@ public class ULocaleTest extends TestFmwk {
                 {"tz",              "america/new_york", "usnyc"},
                 {"tz",              "Asia/Kolkata",     "inccu"},
                 {"timezone",        "navajo",           "usden"},
-                {"ca",              "aaaa",             null},  // unknown type
-                {"zz",              "gregorian",        "#ERROR"},  // unknown key
+                {"ca",              "aaaa",             "aaaa"},    // unknown type, well-formed type
+                {"ca",              "gregory-japanese-islamic", "gregory-japanese-islamic"},    // unknown type, well-formed type
+                {"zz",              "gregorian",        null},      // unknown key, ill-formed type
+                {"co",              "foo-",             null},      // unknown type, ill-formed type
         };
 
         for (String[] d : DATA) {
             String keyword = d[0];
             String value = d[1];
             String expected = d[2];
-            boolean exception = false;
 
-            if ("#ERROR".equals(expected)) {
-                expected = null;
-                exception = true;
-            }
-
-            try {
-                String bcpType = ULocale.toUnicodeLocaleType(keyword, value);
-                if (exception) {
-                    errln("keyword=" + keyword + ", value=" + value + ", IllegalArgumentException expected");
-                } else {
-                    assertEquals("keyword=" + keyword + ", value=" + value, expected, bcpType);
-                }
-            } catch (IllegalArgumentException e) {
-                if (!exception) {
-                    errln("keyword=" + keyword + ", value=" + value + ", IllegalArgumentException not expected");
-                }
-            }
+            String bcpType = ULocale.toUnicodeLocaleType(keyword, value);
+            assertEquals("keyword=" + keyword + ", value=" + value, expected, bcpType);
         }
 
     }
 
-    public void TestToKeywordValue() {
+    public void TestToLegacyType() {
         String[][] DATA = {
                 {"calendar",        "gregory",          "gregorian"},
                 {"ca",              "gregory",          "gregorian"},
@@ -4550,33 +4537,20 @@ public class ULocaleTest extends TestFmwk {
                 {"timezone",        "usden",            "America/Denver"},
                 {"timezone",        "usnavajo",         "America/Denver"},  // bcp type alias
                 {"colstrength",     "quarternary",      "quaternary"},  // type alias
-                {"ca",              "aaaa",             null},  // unknown type
-                {"zz",              "gregory",          "#ERROR"},  // unknown key
+                {"ca",              "aaaa",             "aaaa"},    // unknown type
+                {"calendar",        "gregory-japanese-islamic", "gregory-japanese-islamic"},    // unknown type, well-formed type
+                {"zz",              "gregorian",        "gregorian"},   // unknown key, bcp ill-formed type
+                {"ca",              "gregorian-calendar",   "gregorian-calendar"},  // known key, bcp ill-formed type
+                {"co",              "e=mc2",            null},  // known key, ill-formed bcp/legacy type
         };
 
         for (String[] d : DATA) {
             String keyword = d[0];
             String value = d[1];
             String expected = d[2];
-            boolean exception = false;
 
-            if ("#ERROR".equals(expected)) {
-                expected = null;
-                exception = true;
-            }
-
-            try {
-                String kwv = ULocale.toKeywordValue(keyword, value);
-                if (exception) {
-                    errln("keyword=" + keyword + ", value=" + value + ", IllegalArgumentException expected");
-                } else {
-                    assertEquals("keyword=" + keyword + ", value="  + value, expected, kwv);
-                }
-            } catch (IllegalArgumentException e) {
-                if (!exception) {
-                    errln("keyword=" + keyword + ", value=" + value + ", IllegalArgumentException not expected");
-                }
-            }
+            String legacyType = ULocale.toLegacyType(keyword, value);
+            assertEquals("keyword=" + keyword + ", value="  + value, expected, legacyType);
         }
     }
 }

@@ -40,7 +40,7 @@ import com.ibm.icu.impl.locale.LocaleExtensions;
 import com.ibm.icu.impl.locale.LocaleSyntaxException;
 import com.ibm.icu.impl.locale.ParseStatus;
 import com.ibm.icu.impl.locale.UnicodeLocaleExtension;
-import com.ibm.icu.impl.locale.UnicodeLocaleExtensionData;
+import com.ibm.icu.impl.locale.KeyTypeData;
 import com.ibm.icu.text.LocaleDisplayNames;
 import com.ibm.icu.text.LocaleDisplayNames.DialectHandling;
 
@@ -3220,26 +3220,28 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * Converts the specified keyword (legacy keyword, or BCP 47 Unicode locale
+     * Converts the specified keyword (legacy key, or BCP 47 Unicode locale
      * extension key) to the equivalent BCP 47 Unicode locale extension key.
      * For example, BCP 47 Unicode locale extension key "co" is returned for
      * the input keyword "collation".
+     * <p>
+     * When the specified keyword is unknown, but satisfies the BCP syntax,
+     * then the lower-case version of the input keyword will be returned.
+     * For example,
+     * <code>toUnicodeLocaleKey("ZZ")</code> returns "zz".
      * 
-     * @param keyword       the input locale keyword (either legacy keyword
+     * @param keyword       the input locale keyword (either legacy key
      *                      such as "collation" or BCP 47 Unicode locale extension
      *                      key such as "co").
-     * @return              the BCP 47 Unicode locale extension key or null
-     *                      if the specified locale keyword is not recognized.
-     * @see #toKeyword(String)
+     * @return              the well-formed BCP 47 Unicode locale extension key,
+     *                      or null if the specified locale keyword cannot be mapped
+     *                      to a well-formed BCP 47 Unicode locale extension key. 
+     * @see #toLegacyKey(String)
      * @draft ICU 54
      * @provisional This API might change or be removed in a future release.
      */
     public static String toUnicodeLocaleKey(String keyword) {
-        return UnicodeLocaleExtensionData.toBcpKey(keyword);
-    }
-
-    private static String toUnicodeLocaleKeyWithFallback(String keyword) {
-        String uniLocKey = toUnicodeLocaleKey(keyword);
+        String uniLocKey = KeyTypeData.toBcpKey(keyword);
         if (uniLocKey == null && UnicodeLocaleExtension.isKey(keyword)) {
             // unknown keyword, but syntax is fine..
             uniLocKey = AsciiUtil.toLowerString(keyword);
@@ -3248,37 +3250,36 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * Converts the specified keyword value (legacy keyword value, or BCP 47
-     * Unicode locale extension type) to the equivalent BCP 47 Unicode locale
+     * Converts the specified keyword value (legacy type, or BCP 47
+     * Unicode locale extension type) to the well-formed BCP 47 Unicode locale
      * extension type for the specified keyword (category). For example, BCP 47
      * Unicode locale extension type "phonebk" is returned for the input
      * keyword value "phonebook", with the keyword "collation" (or "co").
+     * <p>
+     * When the specified keyword is not recognized, but the specified value
+     * satisfies the syntax of the BCP 47 Unicode locale extension type,
+     * or when the specified keyword allows 'variable' type and the specified
+     * value satisfies the syntax, the lower-case version of the input value
+     * will be returned. For example,
+     * <code>toUnicodeLocaleType("Foo", "Bar")</code> returns "bar",
+     * <code>toUnicodeLocaleType("variableTop", "00A4")</code> returns "00a4".
      * 
-     * @param keyword       the locale keyword (either legacy keyword such as
+     * @param keyword       the locale keyword (either legacy key such as
      *                      "collation" or BCP 47 Unicode locale extension
      *                      key such as "co").
-     * @param value         the locale keyword value (either legacy keyword value
+     * @param value         the locale keyword value (either legacy type
      *                      such as "phonebook" or BCP 47 Unicode locale extension
      *                      type such as "phonebk").
-     * @return              the BCP47 Unicode locale extension type, or null if
-     *                      the specified keyword or keyword value is not recognized.
-     * @throws IllegalArgumentException if the specified keyword is not recognized.
-     * @see #toKeywordValue(String, String)
+     * @return              the well-formed BCP47 Unicode locale extension type,
+     *                      or null if the locale keyword value cannot be mapped to
+     *                      a well-formed BCP 47 Unicode locale extension type.
+     * @see #toLegacyType(String, String)
      * @draft ICU 54
      * @provisional This API might change or be removed in a future release.
      */
     public static String toUnicodeLocaleType(String keyword, String value) {
-        Output<Boolean> isKnownKeyword = new Output<Boolean>();
-        String bcpType = UnicodeLocaleExtensionData.toBcpType(keyword, value, isKnownKeyword);
-        if (!isKnownKeyword.value) {
-            throw new IllegalArgumentException("Unknown keyword: " + keyword);
-        }
-        return bcpType;
-    }
-
-    private static String toUnicodeLocaleTypeWithFallback(String keyword, String value) {
-        String bcpType = UnicodeLocaleExtensionData.toBcpType(keyword, value, null);
-        if (bcpType == null && UnicodeLocaleExtension.isTypeSubtag(value)) {
+        String bcpType = KeyTypeData.toBcpType(keyword, value, null, null);
+        if (bcpType == null && UnicodeLocaleExtension.isType(value)) {
             // unknown keyword, but syntax is fine..
             bcpType = AsciiUtil.toLowerString(value);
         }
@@ -3287,65 +3288,79 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
 
     /**
      * Converts the specified keyword (BCP 47 Unicode locale extension key, or
-     * legacy keyword) to the canonical legacy keyword. For example, locale keyword
-     * "collation" is returned for the input BCP 47 Unicode locale extension key "co".
+     * legacy key) to the legacy key. For example, legacy key "collation" is
+     * returned for the input BCP 47 Unicode locale extension key "co".
      * 
      * @param keyword       the input locale keyword (either BCP 47 Unicode locale
-     *                      extension key or legacy keyword).
-     * @return              the canonical legacy keyword, or null if the specified
-     *                      keyword is not recognized.
+     *                      extension key or legacy key).
+     * @return              the well-formed legacy key, or null if the specified
+     *                      keyword cannot be mapped to a well-formed legacy key.
      * @see #toUnicodeLocaleKey(String)
      * @draft ICU 54
      * @provisional This API might change or be removed in a future release.
      */
-    public static String toKeyword(String keyword) {
-        return UnicodeLocaleExtensionData.toLegacyKey(keyword);
-    }
-
-    private static String toKeywordWithFallback(String keyword) {
-        String result = toKeyword(keyword);
-        if (result == null) {
-            // unknown - just use the input value
-            result = AsciiUtil.toLowerString(keyword);
+    public static String toLegacyKey(String keyword) {
+        String legacyKey = KeyTypeData.toLegacyKey(keyword);
+        if (legacyKey == null) {
+            // Checks if the specified locale key is well-formed with the legacy locale syntax.
+            //
+            // Note:
+            //  Neither ICU nor LDML/CLDR provides the definition of keyword syntax.
+            //  However, a key should not contain '=' obviously. For now, all existing
+            //  keys are using ASCII alphabetic letters only. We won't add any new key
+            //  that is not compatible with the BCP 47 syntax. Therefore, we assume
+            //  a valid key consist from [0-9a-zA-Z], no symbols.
+            if (keyword.matches("[0-9a-zA-Z]*")) {
+                legacyKey = AsciiUtil.toLowerString(keyword);
+            }
         }
-        return result;
+        return legacyKey;
     }
 
     /**
      * Converts the specified keyword value (BCP 47 Unicode locale extension type,
-     * or legacy keyword value) to the canonical legacy keyword value. For example,
-     * locale keyword value "phonebook" is returned for the input BCP 47 Unicode
+     * or legacy type or type alias) to the canonical legacy type. For example,
+     * the legacy type "phonebook" is returned for the input BCP 47 Unicode
      * locale extension type "phonebk" with the keyword "collation" (or "co").
-     * 
+     * <p>
+     * When the specified keyword is not recognized, but the specified value
+     * satisfies the syntax of legacy key, or when the specified keyword
+     * allows 'variable' type and the specified value satisfies the syntax,
+     * the lower-case version of the input value will be returned.
+     * For example,
+     * <code>toLegacyType("Foo", "Bar")</code> returns "bar",
+     * <code>toLegacyType("vt", "00A4")</code> returns "00a4".
+     *
      * @param keyword       the locale keyword (either legacy keyword such as
      *                      "collation" or BCP 47 Unicode locale extension
      *                      key such as "co").
      * @param value         the locale keyword value (either BCP 47 Unicode locale
      *                      extension type such as "phonebk" or legacy keyword value
      *                      such as "phonebook").
-     * @return              the canonical legacy keyword value, or null if the specified
-     *                      keyword or keyword value is not recognized.
-     * @throws IllegalArgumentException if the specified keyword is not recognized.
+     * @return              the well-formed legacy type, or null if the specified
+     *                      keyword value cannot be mapped to a well-formed legacy
+     *                      type.
      * @see #toUnicodeLocaleType(String, String)
      * @draft ICU 54
      * @provisional This API might change or be removed in a future release.
      */
-    public static String toKeywordValue(String keyword, String value) {
-        Output<Boolean> isKnownKeyword = new Output<Boolean>();
-        String keywordValue = UnicodeLocaleExtensionData.toLegacyType(keyword, value, isKnownKeyword);
-        if (!isKnownKeyword.value) {
-            throw new IllegalArgumentException("Unknown keyword: " + keyword);
+    public static String toLegacyType(String keyword, String value) {
+        String legacyType = KeyTypeData.toLegacyType(keyword, value, null, null);
+        if (legacyType == null) {
+            // Checks if the specified locale type is well-formed with the legacy locale syntax.
+            //
+            // Note:
+            //  Neither ICU nor LDML/CLDR provides the definition of keyword syntax.
+            //  However, a type should not contain '=' obviously. For now, all existing
+            //  types are using ASCII alphabetic letters with a few symbol letters. We won't
+            //  add any new type that is not compatible with the BCP 47 syntax except timezone
+            //  IDs. For now, we assume a valid type start with [0-9a-zA-Z], but may contain
+            //  '-' '_' '/' in the middle.
+            if (value.matches("[0-9a-zA-Z]+([_/\\-][0-9a-zA-Z]+)*")) {
+                legacyType = AsciiUtil.toLowerString(value);
+            }
         }
-        return keywordValue;
-    }
-
-    private static String toKeywordValueWithFallback(String keyword, String value) {
-        String keywordValue = UnicodeLocaleExtensionData.toLegacyType(keyword, value, null);
-        if (keywordValue == null) {
-            // unknown - just use the input value
-            keywordValue = AsciiUtil.toLowerString(value);
-        }
-        return keywordValue;
+        return legacyType;
     }
 
     /**
@@ -3720,8 +3735,8 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
                     for (String bcpKey : ukeys) {
                         String bcpType = uext.getUnicodeLocaleType(bcpKey);
                         // convert to legacy key/type
-                        String lkey = toKeywordWithFallback(bcpKey);
-                        String ltype = toKeywordValueWithFallback(bcpKey, ((bcpType.length() == 0) ? "yes" : bcpType)); // use "yes" as the value of typeless keywords
+                        String lkey = toLegacyKey(bcpKey);
+                        String ltype = toLegacyType(bcpKey, ((bcpType.length() == 0) ? "yes" : bcpType)); // use "yes" as the value of typeless keywords
                         // special handling for u-va-posix, since this is a variant, not a keyword
                         if (lkey.equals("va") && ltype.equals("posix") && base.getVariant().length() == 0) {
                             id = id + "_POSIX";
@@ -3804,8 +3819,8 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
                             }
                         }
                     } else if (key.length() >= 2) {
-                        String bcpKey = toUnicodeLocaleKeyWithFallback(key);
-                        String bcpType = toUnicodeLocaleTypeWithFallback(key, getKeywordValue(key));
+                        String bcpKey = toUnicodeLocaleKey(key);
+                        String bcpType = toUnicodeLocaleType(key, getKeywordValue(key));
                         if (bcpKey != null && bcpType != null) {
                             try {
                                 intbld.setUnicodeLocaleKeyword(bcpKey, bcpType);
@@ -4047,9 +4062,9 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
 
                     if (kwKey.length() != 1) {
                         // Unicode locale key
-                        kwKey = toKeywordWithFallback(kwKey);
+                        kwKey = toLegacyKey(kwKey);
                         // use "yes" as the value of typeless keywords
-                        kwVal = toKeywordValueWithFallback(kwKey, ((kwVal.length() == 0) ? "yes" : kwVal));
+                        kwVal = toLegacyType(kwKey, ((kwVal.length() == 0) ? "yes" : kwVal));
                     }
 
                     if (addSep) {
