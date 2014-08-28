@@ -31,6 +31,7 @@ import com.ibm.icu.text.PluralRules.FixedDecimal;
 import com.ibm.icu.util.Currency;
 import com.ibm.icu.util.Currency.CurrencyUsage;
 import com.ibm.icu.util.CurrencyAmount;
+import com.ibm.icu.util.IllformedLocaleException;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.ULocale.Category;
 
@@ -803,50 +804,19 @@ public class DecimalFormat extends NumberFormat {
             ULocale uloc = getLocale(ULocale.VALID_LOCALE);
 
             if (uloc != null) {
-                ArrayList<String> keywordList = new ArrayList<String>();
-                keywordList.add(uloc.getBaseName());
-                Iterator<String> iterator = uloc.getKeywords();
-                if (iterator != null) {
-                    while (iterator.hasNext()) {
-                        String keyword = iterator.next();
-                        String value = uloc.getKeywordValue(keyword);
-                        keywordList.add(keyword + "=" + value);
+                String currency = uloc.getKeywordValue("currency");
+                if (currency == null && curr != null) {
+                    currency = curr.getCurrencyCode();
+                    try {
+                        ULocale ul = new ULocale.Builder().setLocale(uloc)
+                                .setUnicodeLocaleKeyword("cu", currency).build();
+                        DecimalFormatSymbols dfs = new DecimalFormatSymbols(ul);
+                        symbols = dfs;
+                    } catch (IllformedLocaleException e) {
+                        System.out.println("ULocale built wrong");
                     }
+                    ;
                 }
-//                String[] tagData = keywordList.toArray(new String[keywordList.size()]);
-                
-//                String fullName = uloc.getName();
-                // the fullName format: en@numbers=latn;currency=PTE
-//                String[] tagData = fullName.split("[@;]");
-                String name = keywordList.get(0);
-
-                boolean override = false, hasCurr = false;
-
-                // locale format has 2 cases
-                // 1. normal: en@numbers=latn // separate by @
-                // 2. rare: en@numbers=latn;currency=PTE // separate by @ then ;
-                if (keywordList.size() >= 2) {
-                    override = true;
-                    name += "@" + keywordList.get(1);
-                    for (int i = 2; i < keywordList.size(); i++) {
-                        if (keywordList.get(i).startsWith("currency=")) {
-                            hasCurr = true;
-                        }
-                        name += ";" + keywordList.get(i);
-                    }
-                }
-
-                if (!hasCurr && curr != null) {
-                    String currency = curr.getCurrencyCode();
-                    if (override)
-                        name += ";currency=" + currency;
-                    else
-                        name += "@currency=" + currency;
-                }
-
-                ULocale ul = new ULocale(name);
-                DecimalFormatSymbols dfs = new DecimalFormatSymbols(ul);
-                symbols = dfs;
             }
         }
 
