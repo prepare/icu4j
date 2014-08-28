@@ -3682,4 +3682,22 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             assertEquals("Test Currency Context", TWD_changed_expected, TWD_changed);
         }
     }
+
+    public void TestFormatCurrencyAmount() {
+        double amount = 12345.67;
+        
+        // this is introduced with format(currencyAmount)
+        ULocale loc1 = new ULocale("pt_PT");
+        NumberFormat fmt1 = NumberFormat.getCurrencyInstance(loc1);
+        Currency cur = Currency.getInstance("PTE");
+        CurrencyAmount curAmt = new CurrencyAmount(amount, cur);
+        String actual = fmt1.format(curAmt);
+        
+        // the is previous expected result, by specifying @currency=
+        ULocale loc2 = new ULocale("pt_PT@currency=PTE");
+        NumberFormat fmt2 = NumberFormat.getCurrencyInstance(loc2);
+        String expected = fmt2.format(amount);
+        
+        assertEquals("Test Currency Context", expected, actual);
+    }
 }

@@ -803,24 +803,36 @@ public class DecimalFormat extends NumberFormat {
             ULocale uloc = getLocale(ULocale.VALID_LOCALE);
 
             if (uloc != null) {
-                String fullName = uloc.getName();
+                ArrayList<String> keywordList = new ArrayList<String>();
+                keywordList.add(uloc.getBaseName());
+                Iterator<String> iterator = uloc.getKeywords();
+                if (iterator != null) {
+                    while (iterator.hasNext()) {
+                        String keyword = iterator.next();
+                        String value = uloc.getKeywordValue(keyword);
+                        keywordList.add(keyword + "=" + value);
+                    }
+                }
+//                String[] tagData = keywordList.toArray(new String[keywordList.size()]);
+                
+//                String fullName = uloc.getName();
                 // the fullName format: en@numbers=latn;currency=PTE
-                String[] tagData = fullName.split("[@;]");
-                String name = tagData[0];
+//                String[] tagData = fullName.split("[@;]");
+                String name = keywordList.get(0);
 
                 boolean override = false, hasCurr = false;
 
                 // locale format has 2 cases
                 // 1. normal: en@numbers=latn // separate by @
                 // 2. rare: en@numbers=latn;currency=PTE // separate by @ then ;
-                if (tagData.length >= 2) {
+                if (keywordList.size() >= 2) {
                     override = true;
-                    name += "@" + tagData[1];
-                    for (int i = 2; i < tagData.length; i++) {
-                        if (tagData[i].startsWith("currency=")) {
+                    name += "@" + keywordList.get(1);
+                    for (int i = 2; i < keywordList.size(); i++) {
+                        if (keywordList.get(i).startsWith("currency=")) {
                             hasCurr = true;
                         }
-                        name += ";" + tagData[i];
+                        name += ";" + keywordList.get(i);
                     }
                 }
 
