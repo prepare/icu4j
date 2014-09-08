@@ -258,17 +258,15 @@ public class SimpleFilteredBreakIteratorBuilder extends FilteredBreakIteratorBui
         }
 
         for (i = 0; i < subCount; i++) {
-            String oriStr = ustrs[i];
-            int nn = oriStr.indexOf('.'); // TODO: non-'.' abbreviations
-            if (nn > -1 && (nn + 1) != oriStr.length()) {
+            int nn = ustrs[i].indexOf('.'); // TODO: non-'.' abbreviations
+            if (nn > -1 && (nn + 1) != ustrs[i].length()) {
                 // is partial.
                 // is it unique?
                 int sameAs = -1;
                 for (int j = 0; j < subCount; j++) {
                     if (j == i)
                         continue;
-                    if (nn + 1 < ustrs[j].length() && // ensure we can get substring
-                            oriStr.equals(ustrs[j].substring(0, nn + 1))) {
+                    if (ustrs[i].regionMatches(0, ustrs[j], 0, nn + 1)) {
                         if (partials[j] == 0) { // hasn't been processed yet
                             partials[j] = SuppressInReverse | AddToForward;
                         } else if ((partials[j] & SuppressInReverse) != 0) {
@@ -277,12 +275,10 @@ public class SimpleFilteredBreakIteratorBuilder extends FilteredBreakIteratorBui
                     }
                 }
 
-                String prefix = oriStr.substring(0, nn + 1);
-                // && (partials[i] == 0)
                 if ((sameAs == -1) && (partials[i] == 0)) {
+                    StringBuilder prefix = new StringBuilder(ustrs[i].substring(0, nn + 1));
                     // first one - add the prefix to the reverse table.
-                    ustrs[i] = new StringBuffer(prefix).reverse().toString() + oriStr.substring(nn + 1);
-                    // new StringBuffer(prefix).reverse().toString();
+                    prefix.reverse();
                     builder.add(prefix, PARTIAL);
                     revCount++;
                     partials[i] = SuppressInReverse | AddToForward;
@@ -292,8 +288,8 @@ public class SimpleFilteredBreakIteratorBuilder extends FilteredBreakIteratorBui
 
         for (i = 0; i < subCount; i++) {
             if (partials[i] == 0) {
-                ustrs[i] = new StringBuffer(ustrs[i]).reverse().toString();
-                builder.add(ustrs[i], MATCH);
+                StringBuilder reversed = new StringBuilder(ustrs[i]).reverse();
+                builder.add(reversed, MATCH);
                 revCount++;
             } else {
                 // an optimization would be to only add the portion after the '.'
