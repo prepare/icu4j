@@ -40,6 +40,8 @@ import com.ibm.icu.impl.locale.LocaleExtensions;
 import com.ibm.icu.impl.locale.LocaleSyntaxException;
 import com.ibm.icu.impl.locale.ParseStatus;
 import com.ibm.icu.impl.locale.UnicodeLocaleExtension;
+import com.ibm.icu.impl.locale.KeyTypeData;
+import com.ibm.icu.lang.UScript;
 import com.ibm.icu.text.LocaleDisplayNames;
 import com.ibm.icu.text.LocaleDisplayNames.DialectHandling;
 
@@ -638,7 +640,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * {@icu} Sets the default ULocale.  This also sets the default Locale.
+     * Sets the default ULocale.  This also sets the default Locale.
      * If the caller does not have write permission to the
      * user.language property, a security exception will be thrown,
      * and the default ULocale will remain unchanged.
@@ -908,7 +910,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * {@icu} Returns the script code for this locale, which might be the empty string.
+     * Returns the script code for this locale, which might be the empty string.
      * @see #getDisplayScript()
      * @see #getDisplayScript(ULocale)
      * @stable ICU 3.0
@@ -940,7 +942,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * Returns the country/region code for this locale, which will either be the empty string
+     * {@icu} Returns the country/region code for this locale, which will either be the empty string
      * or an uppercase ISO 3166 2-letter code.
      * @param localeID The locale identification string.
      * @see #getDisplayCountry()
@@ -962,7 +964,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * Returns the variant code for the specified locale, which might be the empty string.
+     * {@icu} Returns the variant code for the specified locale, which might be the empty string.
      * @see #getDisplayVariant()
      * @see #getDisplayVariant(ULocale)
      * @stable ICU 3.0
@@ -1225,7 +1227,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * Given a keyword and a value, return a new locale with an updated
+     * {@icu} Given a keyword and a value, return a new locale with an updated
      * keyword and value.  If the keyword is null, this removes all keywords from the locale id.
      * Otherwise, if the value is null, this removes the value for this keyword from the
      * locale id.  Otherwise, this adds/replaces the value for this keyword in the locale id.
@@ -1293,7 +1295,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * Returns a three-letter abbreviation for this locale's language.  If the locale
+     * {@icu} Returns a three-letter abbreviation for this locale's language.  If the locale
      * doesn't specify a language, returns the empty string.  Otherwise, returns
      * a lowercase ISO 639-2/T language code.
      * The ISO 639-2 language codes can be found on-line at
@@ -1319,7 +1321,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * Returns a three-letter abbreviation for this locale's country/region.  If the locale
+     * {@icu} Returns a three-letter abbreviation for this locale's country/region.  If the locale
      * doesn't specify a country, returns the empty string.  Otherwise, returns
      * an uppercase ISO 3166 3-letter country code.
      * @exception MissingResourceException Throws MissingResourceException if the
@@ -1328,6 +1330,56 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
      */
     public static String getISO3Country(String localeID) {
         return LocaleIDs.getISO3Country(getCountry(localeID));
+    }
+
+    /**
+     * Pairs of (language subtag, + or -) for finding out fast if common languages
+     * are LTR (minus) or RTL (plus).
+     */
+    private static final String LANG_DIR_STRING =
+            "root-en-es-pt-zh-ja-ko-de-fr-it-ar+he+fa+ru-nl-pl-th-tr-";
+
+    /**
+     * {@icu} Returns whether this locale's script is written right-to-left.
+     * If there is no script subtag, then the likely script is used,
+     * see {@link #addLikelySubtags(ULocale)}.
+     * If no likely script is known, then false is returned.
+     *
+     * <p>A script is right-to-left according to the CLDR script metadata
+     * which corresponds to whether the script's letters have Bidi_Class=R or AL.
+     *
+     * <p>Returns true for "ar" and "en-Hebr", false for "zh" and "fa-Cyrl".
+     *
+     * @return true if the locale's script is written right-to-left
+     * @draft ICU 54
+     * @provisional This API might change or be removed in a future release.
+     */
+    public boolean isRightToLeft() {
+        String script = getScript();
+        if (script.length() == 0) {
+            // Fastpath: We know the likely scripts and their writing direction
+            // for some common languages.
+            String lang = getLanguage();
+            if (lang.length() == 0) {
+                return false;
+            }
+            int langIndex = LANG_DIR_STRING.indexOf(lang);
+            if (langIndex >= 0) {
+                switch (LANG_DIR_STRING.charAt(langIndex + lang.length())) {
+                case '-': return false;
+                case '+': return true;
+                default: break;  // partial match of a longer code
+                }
+            }
+            // Otherwise, find the likely script.
+            ULocale likely = addLikelySubtags(this);
+            script = likely.getScript();
+            if (script.length() == 0) {
+                return false;
+            }
+        }
+        int scriptCode = UScript.getCodeFromName(script);
+        return UScript.isRightToLeft(scriptCode);
     }
 
     // display names
@@ -1343,7 +1395,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * {@icu} Returns this locale's language localized for display in the provided locale.
+     * Returns this locale's language localized for display in the provided locale.
      * @param displayLocale the locale in which to display the name.
      * @return the localized language name.
      * @stable ICU 3.0
@@ -1353,7 +1405,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * Returns a locale's language localized for display in the provided locale.
+     * {@icu} Returns a locale's language localized for display in the provided locale.
      * This is a cover for the ICU4C API.
      * @param localeID the id of the locale whose language will be displayed
      * @param displayLocaleID the id of the locale in which to display the name.
@@ -1366,7 +1418,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * Returns a locale's language localized for display in the provided locale.
+     * {@icu} Returns a locale's language localized for display in the provided locale.
      * This is a cover for the ICU4C API.
      * @param localeID the id of the locale whose language will be displayed.
      * @param displayLocale the locale in which to display the name.
@@ -1432,7 +1484,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * {@icu} Returns this locale's script localized for display in the default <code>DISPLAY</code> locale.
+     * Returns this locale's script localized for display in the default <code>DISPLAY</code> locale.
      * @return the localized script name.
      * @see Category#DISPLAY
      * @stable ICU 3.0
@@ -1454,7 +1506,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * {@icu} Returns this locale's script localized for display in the provided locale.
+     * Returns this locale's script localized for display in the provided locale.
      * @param displayLocale the locale in which to display the name.
      * @return the localized script name.
      * @stable ICU 3.0
@@ -1555,7 +1607,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * Returns a locale's country localized for display in the provided locale.
+     * {@icu} Returns a locale's country localized for display in the provided locale.
      * This is a cover for the ICU4C API.
      * @param localeID the id of the locale whose country will be displayed
      * @param displayLocaleID the id of the locale in which to display the name.
@@ -1567,7 +1619,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * Returns a locale's country localized for display in the provided locale.
+     * {@icu} Returns a locale's country localized for display in the provided locale.
      * This is a cover for the ICU4C API.
      * @param localeID the id of the locale whose country will be displayed.
      * @param displayLocale the locale in which to display the name.
@@ -1605,7 +1657,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * Returns a locale's variant localized for display in the provided locale.
+     * {@icu} Returns a locale's variant localized for display in the provided locale.
      * This is a cover for the ICU4C API.
      * @param localeID the id of the locale whose variant will be displayed
      * @param displayLocaleID the id of the locale in which to display the name.
@@ -1617,7 +1669,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * Returns a locale's variant localized for display in the provided locale.
+     * {@icu} Returns a locale's variant localized for display in the provided locale.
      * This is a cover for the ICU4C API.
      * @param localeID the id of the locale whose variant will be displayed.
      * @param displayLocale the locale in which to display the name.
@@ -1753,7 +1805,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * Returns the locale ID localized for display in the provided locale.
+     * {@icu} Returns the locale ID localized for display in the provided locale.
      * This is a cover for the ICU4C API.
      * @param localeID the locale whose name is to be displayed.
      * @param displayLocaleID the id of the locale in which to display the locale name.
@@ -1765,7 +1817,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * Returns the locale ID localized for display in the provided locale.
+     * {@icu} Returns the locale ID localized for display in the provided locale.
      * This is a cover for the ICU4C API.
      * @param localeID the locale whose name is to be displayed.
      * @param displayLocale the locale in which to display the locale name.
@@ -2884,7 +2936,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     // --------------------------------
 
     /**
-     * {@icu} The key for the private use locale extension ('x').
+     * The key for the private use locale extension ('x').
      *
      * @see #getExtension(char)
      * @see Builder#setExtension(char, String)
@@ -2894,7 +2946,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     public static final char PRIVATE_USE_EXTENSION = 'x';
 
     /**
-     * {@icu} The key for Unicode locale extension ('u').
+     * The key for Unicode locale extension ('u').
      *
      * @see #getExtension(char)
      * @see Builder#setExtension(char, String)
@@ -2904,7 +2956,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     public static final char UNICODE_LOCALE_EXTENSION = 'u';
 
     /**
-     * {@icu} Returns the extension (or private use) value associated with
+     * Returns the extension (or private use) value associated with
      * the specified key, or null if there is no extension
      * associated with the key. To be well-formed, the key must be one
      * of <code>[0-9A-Za-z]</code>. Keys are case-insensitive, so
@@ -2927,7 +2979,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * {@icu} Returns the set of extension keys associated with this locale, or the
+     * Returns the set of extension keys associated with this locale, or the
      * empty set if it has no extensions. The returned set is unmodifiable.
      * The keys will all be lower-case.
      *
@@ -2940,7 +2992,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * {@icu} Returns the set of unicode locale attributes associated with
+     * Returns the set of unicode locale attributes associated with
      * this locale, or the empty set if it has no attributes. The
      * returned set is unmodifiable.
      *
@@ -2952,7 +3004,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * {@icu} Returns the Unicode locale type associated with the specified Unicode locale key
+     * Returns the Unicode locale type associated with the specified Unicode locale key
      * for this locale. Returns the empty string for keys that are defined with no type.
      * Returns null if the key is not defined. Keys are case-insensitive. The key must
      * be two alphanumeric characters ([0-9a-zA-Z]), or an IllegalArgumentException is
@@ -2974,7 +3026,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * {@icu} Returns the set of Unicode locale keys defined by this locale, or the empty set if
+     * Returns the set of Unicode locale keys defined by this locale, or the empty set if
      * this locale has none.  The returned set is immutable.  Keys are all lower case.
      *
      * @return The set of Unicode locale keys, or the empty set if this locale has
@@ -2987,7 +3039,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * {@icu} Returns a well-formed IETF BCP 47 language tag representing
+     * Returns a well-formed IETF BCP 47 language tag representing
      * this locale.
      *
      * <p>If this <code>ULocale</code> has a language, script, country, or
@@ -3107,7 +3159,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
     }
 
     /**
-     * {@icu} Returns a locale for the specified IETF BCP 47 language tag string.
+     * Returns a locale for the specified IETF BCP 47 language tag string.
      *
      * <p>If the specified language tag contains any ill-formed subtags,
      * the first such subtag and all following subtags are ignored.  Compare
@@ -3218,6 +3270,149 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
         return getInstance(bldr.getBaseLocale(), bldr.getLocaleExtensions());
     }
 
+    /**
+     * {@icu} Converts the specified keyword (legacy key, or BCP 47 Unicode locale
+     * extension key) to the equivalent BCP 47 Unicode locale extension key.
+     * For example, BCP 47 Unicode locale extension key "co" is returned for
+     * the input keyword "collation".
+     * <p>
+     * When the specified keyword is unknown, but satisfies the BCP syntax,
+     * then the lower-case version of the input keyword will be returned.
+     * For example,
+     * <code>toUnicodeLocaleKey("ZZ")</code> returns "zz".
+     * 
+     * @param keyword       the input locale keyword (either legacy key
+     *                      such as "collation" or BCP 47 Unicode locale extension
+     *                      key such as "co").
+     * @return              the well-formed BCP 47 Unicode locale extension key,
+     *                      or null if the specified locale keyword cannot be mapped
+     *                      to a well-formed BCP 47 Unicode locale extension key. 
+     * @see #toLegacyKey(String)
+     * @draft ICU 54
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static String toUnicodeLocaleKey(String keyword) {
+        String bcpKey = KeyTypeData.toBcpKey(keyword);
+        if (bcpKey == null && UnicodeLocaleExtension.isKey(keyword)) {
+            // unknown keyword, but syntax is fine..
+            bcpKey = AsciiUtil.toLowerString(keyword);
+        }
+        return bcpKey;
+    }
+
+    /**
+     * {@icu} Converts the specified keyword value (legacy type, or BCP 47
+     * Unicode locale extension type) to the well-formed BCP 47 Unicode locale
+     * extension type for the specified keyword (category). For example, BCP 47
+     * Unicode locale extension type "phonebk" is returned for the input
+     * keyword value "phonebook", with the keyword "collation" (or "co").
+     * <p>
+     * When the specified keyword is not recognized, but the specified value
+     * satisfies the syntax of the BCP 47 Unicode locale extension type,
+     * or when the specified keyword allows 'variable' type and the specified
+     * value satisfies the syntax, the lower-case version of the input value
+     * will be returned. For example,
+     * <code>toUnicodeLocaleType("Foo", "Bar")</code> returns "bar",
+     * <code>toUnicodeLocaleType("variableTop", "00A4")</code> returns "00a4".
+     * 
+     * @param keyword       the locale keyword (either legacy key such as
+     *                      "collation" or BCP 47 Unicode locale extension
+     *                      key such as "co").
+     * @param value         the locale keyword value (either legacy type
+     *                      such as "phonebook" or BCP 47 Unicode locale extension
+     *                      type such as "phonebk").
+     * @return              the well-formed BCP47 Unicode locale extension type,
+     *                      or null if the locale keyword value cannot be mapped to
+     *                      a well-formed BCP 47 Unicode locale extension type.
+     * @see #toLegacyType(String, String)
+     * @draft ICU 54
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static String toUnicodeLocaleType(String keyword, String value) {
+        String bcpType = KeyTypeData.toBcpType(keyword, value, null, null);
+        if (bcpType == null && UnicodeLocaleExtension.isType(value)) {
+            // unknown keyword, but syntax is fine..
+            bcpType = AsciiUtil.toLowerString(value);
+        }
+        return bcpType;
+    }
+
+    /**
+     * {@icu} Converts the specified keyword (BCP 47 Unicode locale extension key, or
+     * legacy key) to the legacy key. For example, legacy key "collation" is
+     * returned for the input BCP 47 Unicode locale extension key "co".
+     * 
+     * @param keyword       the input locale keyword (either BCP 47 Unicode locale
+     *                      extension key or legacy key).
+     * @return              the well-formed legacy key, or null if the specified
+     *                      keyword cannot be mapped to a well-formed legacy key.
+     * @see #toUnicodeLocaleKey(String)
+     * @draft ICU 54
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static String toLegacyKey(String keyword) {
+        String legacyKey = KeyTypeData.toLegacyKey(keyword);
+        if (legacyKey == null) {
+            // Checks if the specified locale key is well-formed with the legacy locale syntax.
+            //
+            // Note:
+            //  Neither ICU nor LDML/CLDR provides the definition of keyword syntax.
+            //  However, a key should not contain '=' obviously. For now, all existing
+            //  keys are using ASCII alphabetic letters only. We won't add any new key
+            //  that is not compatible with the BCP 47 syntax. Therefore, we assume
+            //  a valid key consist from [0-9a-zA-Z], no symbols.
+            if (keyword.matches("[0-9a-zA-Z]*")) {
+                legacyKey = AsciiUtil.toLowerString(keyword);
+            }
+        }
+        return legacyKey;
+    }
+
+    /**
+     * {@icu} Converts the specified keyword value (BCP 47 Unicode locale extension type,
+     * or legacy type or type alias) to the canonical legacy type. For example,
+     * the legacy type "phonebook" is returned for the input BCP 47 Unicode
+     * locale extension type "phonebk" with the keyword "collation" (or "co").
+     * <p>
+     * When the specified keyword is not recognized, but the specified value
+     * satisfies the syntax of legacy key, or when the specified keyword
+     * allows 'variable' type and the specified value satisfies the syntax,
+     * the lower-case version of the input value will be returned.
+     * For example,
+     * <code>toLegacyType("Foo", "Bar")</code> returns "bar",
+     * <code>toLegacyType("vt", "00A4")</code> returns "00a4".
+     *
+     * @param keyword       the locale keyword (either legacy keyword such as
+     *                      "collation" or BCP 47 Unicode locale extension
+     *                      key such as "co").
+     * @param value         the locale keyword value (either BCP 47 Unicode locale
+     *                      extension type such as "phonebk" or legacy keyword value
+     *                      such as "phonebook").
+     * @return              the well-formed legacy type, or null if the specified
+     *                      keyword value cannot be mapped to a well-formed legacy
+     *                      type.
+     * @see #toUnicodeLocaleType(String, String)
+     * @draft ICU 54
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static String toLegacyType(String keyword, String value) {
+        String legacyType = KeyTypeData.toLegacyType(keyword, value, null, null);
+        if (legacyType == null) {
+            // Checks if the specified locale type is well-formed with the legacy locale syntax.
+            //
+            // Note:
+            //  Neither ICU nor LDML/CLDR provides the definition of keyword syntax.
+            //  However, a type should not contain '=' obviously. For now, all existing
+            //  types are using ASCII alphabetic letters with a few symbol letters. We won't
+            //  add any new type that is not compatible with the BCP 47 syntax except timezone
+            //  IDs. For now, we assume a valid type start with [0-9a-zA-Z], but may contain
+            //  '-' '_' '/' in the middle.
+            if (value.matches("[0-9a-zA-Z]+([_/\\-][0-9a-zA-Z]+)*")) {
+                legacyType = AsciiUtil.toLowerString(value);
+            }
+        }
+        return legacyType;
+    }
 
     /**
      * <code>Builder</code> is used to build instances of <code>ULocale</code>
@@ -3591,8 +3786,8 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
                     for (String bcpKey : ukeys) {
                         String bcpType = uext.getUnicodeLocaleType(bcpKey);
                         // convert to legacy key/type
-                        String lkey = bcp47ToLDMLKey(bcpKey);
-                        String ltype = bcp47ToLDMLType(lkey, ((bcpType.length() == 0) ? "yes" : bcpType)); // use "yes" as the value of typeless keywords
+                        String lkey = toLegacyKey(bcpKey);
+                        String ltype = toLegacyType(bcpKey, ((bcpType.length() == 0) ? "yes" : bcpType)); // use "yes" as the value of typeless keywords
                         // special handling for u-va-posix, since this is a variant, not a keyword
                         if (lkey.equals("va") && ltype.equals("posix") && base.getVariant().length() == 0) {
                             id = id + "_POSIX";
@@ -3675,8 +3870,8 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
                             }
                         }
                     } else if (key.length() >= 2) {
-                        String bcpKey = ldmlKeyToBCP47(key);
-                        String bcpType = ldmlTypeToBCP47(key, getKeywordValue(key));
+                        String bcpKey = toUnicodeLocaleKey(key);
+                        String bcpType = toUnicodeLocaleType(key, getKeywordValue(key));
                         if (bcpKey != null && bcpType != null) {
                             try {
                                 intbld.setUnicodeLocaleKeyword(bcpKey, bcpType);
@@ -3697,161 +3892,6 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
             }
         }
         return extensions;
-    }
-
-    //
-    // LDML legacy/BCP47 key and type mapping functions
-    //
-    private static String ldmlKeyToBCP47(String key) {
-        UResourceBundle keyTypeData = UResourceBundle.getBundleInstance(
-                                            ICUResourceBundle.ICU_BASE_NAME,
-                                            "keyTypeData",
-                                            ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-        UResourceBundle keyMap = keyTypeData.get("keyMap");
-
-        // normalize key to lowercase
-        key = AsciiUtil.toLowerString(key);
-        String bcpKey = null;
-        try {
-            bcpKey = keyMap.getString(key);
-            if (bcpKey.length() == 0) {
-                // empty value indicates the BCP47 key is same with the legacy key
-                bcpKey = key;
-            }
-        } catch (MissingResourceException mre) {
-            // fall through
-        }
-
-        if (bcpKey == null) {
-            if (key.length() == 2 && LanguageTag.isExtensionSubtag(key)) {
-                return key;
-            }
-            return null;
-        }
-        return bcpKey;
-    }
-
-    private static String bcp47ToLDMLKey(String bcpKey) {
-        UResourceBundle keyTypeData = UResourceBundle.getBundleInstance(
-                                            ICUResourceBundle.ICU_BASE_NAME,
-                                            "keyTypeData",
-                                            ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-        UResourceBundle keyMap = keyTypeData.get("keyMap");
-
-        // normalize bcp key to lowercase
-        bcpKey = AsciiUtil.toLowerString(bcpKey);
-        String key = null;
-        for (int i = 0; i < keyMap.getSize(); i++) {
-            UResourceBundle mapData = keyMap.get(i);
-            String tmpBcpKey = mapData.getString();
-            if (tmpBcpKey.length() == 0) {
-                // empty value indicates the BCP47 key is same with the legacy key
-                tmpBcpKey = mapData.getKey();
-            }
-            if (bcpKey.equals(tmpBcpKey)) {
-                key = mapData.getKey();
-                break;
-            }
-        }
-        if (key == null) {
-            return bcpKey;
-        }
-        return key;
-    }
-
-    private static String ldmlTypeToBCP47(String key, String type) {
-        UResourceBundle keyTypeData = UResourceBundle.getBundleInstance(
-                                            ICUResourceBundle.ICU_BASE_NAME,
-                                            "keyTypeData",
-                                            ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-        UResourceBundle typeMap = keyTypeData.get("typeMap");
-
-        // keys are case-insensitive, while types are case-sensitive
-        // TODO: make types case insensitive
-        key = AsciiUtil.toLowerString(key);
-        UResourceBundle typeMapForKey = null;
-        String bcpType = null;
-        String typeResKey = key.equals("timezone") ? type.replace('/', ':') : type;
-        try {
-            typeMapForKey = typeMap.get(key);
-            bcpType = typeMapForKey.getString(typeResKey);
-            if (bcpType.length() == 0) {
-                // empty value indicates the BCP47 type is same with the legacy type
-                bcpType = type;
-            }
-        } catch (MissingResourceException mre) {
-            // fall through
-        }
-
-        if (bcpType == null && typeMapForKey != null) {
-            // is this type alias?
-            UResourceBundle typeAlias = keyTypeData.get("typeAlias");
-            try {
-                UResourceBundle typeAliasForKey = typeAlias.get(key);
-                typeResKey = typeAliasForKey.getString(typeResKey);
-                bcpType = typeMapForKey.getString(typeResKey.replace('/', ':'));
-                if (bcpType.length() == 0) {
-                    // empty value indicates the BCP47 type is same with the legacy type
-                    bcpType = typeResKey;
-                }
-            } catch (MissingResourceException mre) {
-                // fall through
-            }
-        }
-
-        if (bcpType == null) {
-            int typeLen = type.length();
-            if (typeLen >= 3 && typeLen <= 8 && LanguageTag.isExtensionSubtag(type)) {
-                return type;
-            }
-            return null;
-        }
-        return bcpType;
-    }
-
-    private static String bcp47ToLDMLType(String key, String bcpType) {
-        UResourceBundle keyTypeData = UResourceBundle.getBundleInstance(
-                                            ICUResourceBundle.ICU_BASE_NAME,
-                                            "keyTypeData",
-                                            ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-        UResourceBundle typeMap = keyTypeData.get("typeMap");
-
-        // normalize key/bcpType to lowercase
-        key = AsciiUtil.toLowerString(key);
-        bcpType = AsciiUtil.toLowerString(bcpType);
-
-        String type = null;
-        try {
-            UResourceBundle typeMapForKey = typeMap.get(key);
-
-            // Note:    Linear search for time zone ID might be too slow.
-            //          ICU services do not use timezone keywords for now.
-            //          In future, we may need to build the optimized inverse
-            //          lookup table.
-
-            for (int i = 0; i < typeMapForKey.getSize(); i++) {
-                UResourceBundle mapData = typeMapForKey.get(i);
-                String tmpBcpType = mapData.getString();
-                if (tmpBcpType.length() == 0) {
-                    // empty value indicates the BCP47 type is same with the legacy type
-                    tmpBcpType = mapData.getKey();
-                }
-                if (bcpType.equals(tmpBcpType)) {
-                    type = mapData.getKey();
-                    if (key.equals("timezone")) {
-                        type = type.replace(':', '/');
-                    }
-                    break;
-                }
-            }
-        } catch (MissingResourceException mre) {
-            // fall through
-        }
-
-        if (type == null) {
-            return bcpType;
-        }
-        return type;
     }
 
     /*
@@ -4073,9 +4113,9 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
 
                     if (kwKey.length() != 1) {
                         // Unicode locale key
-                        kwKey = bcp47ToLDMLKey(kwKey);
+                        kwKey = toLegacyKey(kwKey);
                         // use "yes" as the value of typeless keywords
-                        kwVal = bcp47ToLDMLType(kwKey, ((kwVal.length() == 0) ? "yes" : kwVal));
+                        kwVal = toLegacyType(kwKey, ((kwVal.length() == 0) ? "yes" : kwVal));
                     }
 
                     if (addSep) {

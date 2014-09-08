@@ -1033,56 +1033,70 @@ public class ULocaleTest extends TestFmwk {
                 public String displayLocale;
                 public DisplayContext dialectHandling;
                 public DisplayContext capitalization;
+                public DisplayContext nameLength;
                 public String localeToBeNamed;
                 public String result;
-                public TestContextItem(String dLoc, DisplayContext dia, DisplayContext cap, String locToName, String res) {
+                public TestContextItem(String dLoc, DisplayContext dia, DisplayContext cap, DisplayContext nameLen, String locToName, String res) {
                     displayLocale = dLoc;
                     dialectHandling = dia;
                     capitalization = cap;
+                    nameLength = nameLen;
                     localeToBeNamed = locToName;
                     result = res;
                 }
             };
             final TestContextItem[] items = {
-                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    "en",    "engelsk" ),
-                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, "en",    "Engelsk" ),
-                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       "en",    "Engelsk" ),
-                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_STANDALONE,            "en",    "engelsk" ),
-                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    "en_US", "engelsk (USA)" ),
-                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, "en_US", "Engelsk (USA)" ),
-                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       "en_US", "Engelsk (USA)" ),
-                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_STANDALONE,            "en_US", "engelsk (USA)" ),
-                    new TestContextItem( "da", DisplayContext.DIALECT_NAMES,  DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    "en_US", "amerikansk engelsk" ),
-                    new TestContextItem( "da", DisplayContext.DIALECT_NAMES,  DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, "en_US", "Amerikansk engelsk" ),
-                    new TestContextItem( "da", DisplayContext.DIALECT_NAMES,  DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       "en_US", "Amerikansk engelsk" ),
-                    new TestContextItem( "da", DisplayContext.DIALECT_NAMES,  DisplayContext.CAPITALIZATION_FOR_STANDALONE,            "en_US", "amerikansk engelsk" ),
-                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    "en",    "ingl\u00E9s" ),
-                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, "en",    "Ingl\u00E9s" ),
-                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       "en",    "Ingl\u00E9s" ),
-                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_STANDALONE,            "en",    "Ingl\u00E9s" ),
-                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    "en_US", "ingl\u00E9s (Estados Unidos)" ),
-                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, "en_US", "Ingl\u00E9s (Estados Unidos)" ),
-                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       "en_US", "Ingl\u00E9s (Estados Unidos)" ),
-                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_STANDALONE,            "en_US", "Ingl\u00E9s (Estados Unidos)" ),
-                    new TestContextItem( "es", DisplayContext.DIALECT_NAMES,  DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    "en_US", "ingl\u00E9s estadounidense" ),
-                    new TestContextItem( "es", DisplayContext.DIALECT_NAMES,  DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, "en_US", "Ingl\u00E9s estadounidense" ),
-                    new TestContextItem( "es", DisplayContext.DIALECT_NAMES,  DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       "en_US", "Ingl\u00E9s estadounidense" ),
-                    new TestContextItem( "es", DisplayContext.DIALECT_NAMES,  DisplayContext.CAPITALIZATION_FOR_STANDALONE,            "en_US", "Ingl\u00E9s estadounidense" ),
+                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    DisplayContext.LENGTH_FULL,  "en",    "engelsk" ),
+                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, DisplayContext.LENGTH_FULL,  "en",    "Engelsk" ),
+                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       DisplayContext.LENGTH_FULL,  "en",    "Engelsk" ),
+                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_STANDALONE,            DisplayContext.LENGTH_FULL,  "en",    "engelsk" ),
+                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    DisplayContext.LENGTH_FULL,  "en_GB", "engelsk (Storbritannien)" ),
+                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, DisplayContext.LENGTH_FULL,  "en_GB", "Engelsk (Storbritannien)" ),
+                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       DisplayContext.LENGTH_FULL,  "en_GB", "Engelsk (Storbritannien)" ),
+                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_STANDALONE,            DisplayContext.LENGTH_FULL,  "en_GB", "engelsk (Storbritannien)" ),
+                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    DisplayContext.LENGTH_SHORT, "en_GB", "engelsk (UK)" ),
+                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, DisplayContext.LENGTH_SHORT, "en_GB", "Engelsk (UK)" ),
+                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       DisplayContext.LENGTH_SHORT, "en_GB", "Engelsk (UK)" ),
+                    new TestContextItem( "da", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_STANDALONE,            DisplayContext.LENGTH_SHORT, "en_GB", "engelsk (UK)" ),
+                    new TestContextItem( "da", DisplayContext.DIALECT_NAMES,  DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    DisplayContext.LENGTH_FULL,  "en_GB", "britisk engelsk" ),
+                    new TestContextItem( "da", DisplayContext.DIALECT_NAMES,  DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, DisplayContext.LENGTH_FULL,  "en_GB", "Britisk engelsk" ),
+                    new TestContextItem( "da", DisplayContext.DIALECT_NAMES,  DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       DisplayContext.LENGTH_FULL,  "en_GB", "Britisk engelsk" ),
+                    new TestContextItem( "da", DisplayContext.DIALECT_NAMES,  DisplayContext.CAPITALIZATION_FOR_STANDALONE,            DisplayContext.LENGTH_FULL,  "en_GB", "britisk engelsk" ),
+                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    DisplayContext.LENGTH_FULL,  "en",    "ingl\u00E9s" ),
+                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, DisplayContext.LENGTH_FULL,  "en",    "Ingl\u00E9s" ),
+                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       DisplayContext.LENGTH_FULL,  "en",    "Ingl\u00E9s" ),
+                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_STANDALONE,            DisplayContext.LENGTH_FULL,  "en",    "Ingl\u00E9s" ),
+                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    DisplayContext.LENGTH_FULL,  "en_GB", "ingl\u00E9s (Reino Unido)" ),
+                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, DisplayContext.LENGTH_FULL,  "en_GB", "Ingl\u00E9s (Reino Unido)" ),
+                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       DisplayContext.LENGTH_FULL,  "en_GB", "Ingl\u00E9s (Reino Unido)" ),
+                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_STANDALONE,            DisplayContext.LENGTH_FULL,  "en_GB", "Ingl\u00E9s (Reino Unido)" ),
+                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    DisplayContext.LENGTH_SHORT, "en_GB", "ingl\u00E9s (RU)" ),
+                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, DisplayContext.LENGTH_SHORT, "en_GB", "Ingl\u00E9s (RU)" ),
+                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       DisplayContext.LENGTH_SHORT, "en_GB", "Ingl\u00E9s (RU)" ),
+                    new TestContextItem( "es", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_STANDALONE,            DisplayContext.LENGTH_SHORT, "en_GB", "Ingl\u00E9s (RU)" ),
+                    new TestContextItem( "es", DisplayContext.DIALECT_NAMES,  DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    DisplayContext.LENGTH_FULL,  "en_GB", "ingl\u00E9s brit\u00E1nico" ),
+                    new TestContextItem( "es", DisplayContext.DIALECT_NAMES,  DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, DisplayContext.LENGTH_FULL,  "en_GB", "Ingl\u00E9s brit\u00E1nico" ),
+                    new TestContextItem( "es", DisplayContext.DIALECT_NAMES,  DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       DisplayContext.LENGTH_FULL,  "en_GB", "Ingl\u00E9s brit\u00E1nico" ),
+                    new TestContextItem( "es", DisplayContext.DIALECT_NAMES,  DisplayContext.CAPITALIZATION_FOR_STANDALONE,            DisplayContext.LENGTH_FULL,  "en_GB", "Ingl\u00E9s brit\u00E1nico" ),
+                    new TestContextItem( "en", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    DisplayContext.LENGTH_FULL,  "ur@numbers=latn",    "Urdu (Western Digits)" ),
+                    new TestContextItem( "en", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    DisplayContext.LENGTH_FULL,  "ur@numbers=arabext", "Urdu (Extended Arabic-Indic Digits)" ),
+                    new TestContextItem( "en", DisplayContext.STANDARD_NAMES, DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    DisplayContext.LENGTH_SHORT, "ur@numbers=arabext", "Urdu (X Arabic-Indic Digits)" ),
             };
             for (TestContextItem item: items) {
                 ULocale locale = new ULocale(item.displayLocale);
-                LocaleDisplayNames ldn = LocaleDisplayNames.getInstance(locale, item.dialectHandling, item.capitalization);
+                LocaleDisplayNames ldn = LocaleDisplayNames.getInstance(locale, item.dialectHandling, item.capitalization, item.nameLength);
                 DisplayContext dialectHandling = ldn.getContext(DisplayContext.Type.DIALECT_HANDLING);
                 DisplayContext capitalization = ldn.getContext(DisplayContext.Type.CAPITALIZATION);
-                if (dialectHandling != item.dialectHandling || capitalization != item.capitalization) {
-                    errln("FAIL: displayLocale: " + item.displayLocale + ", dialectHandling: " + item.dialectHandling +
-                            ", capitalization: " + item.capitalization + ", localeToName: " + item.localeToBeNamed +
-                            ", => read back dialectHandling: " + dialectHandling + ", capitalization: " + capitalization);
+                DisplayContext nameLength = ldn.getContext(DisplayContext.Type.DISPLAY_LENGTH);
+                if (dialectHandling != item.dialectHandling || capitalization != item.capitalization || nameLength != item.nameLength) {
+                    errln("FAIL: displayLoc: " + item.displayLocale + ", dialectNam?: " + item.dialectHandling +
+                            ", capitalize: " + item.capitalization + ", nameLen: " + item.nameLength + ", locToName: " + item.localeToBeNamed +
+                            ", => read back dialectNam?: " + dialectHandling + ", capitalize: " + capitalization + ", nameLen: " + nameLength);
                 } else {
                     String result = ldn.localeDisplayName(item.localeToBeNamed);
                     if (!result.equals(item.result)) {
-                        errln("FAIL: displayLocale: " + item.displayLocale + ", dialectHandling: " + item.dialectHandling +
-                                ", capitalization: " + item.capitalization + ", localeToName: " + item.localeToBeNamed +
+                        errln("FAIL: displayLoc: " + item.displayLocale + ", dialectNam?: " + item.dialectHandling +
+                                ", capitalize: " + item.capitalization + ", nameLen: " + item.nameLength + ", locToName: " + item.localeToBeNamed +
                                 ", => expected result: " + item.result + ", got: " + result);
                     } 
                 }
@@ -2989,8 +3003,8 @@ public class ULocaleTest extends TestFmwk {
                     "it_SM"
                 }, {
                     "und_SN",
-                    "fr_Latn_SN",
-                    "fr_SN"
+                    "wo_Latn_SN",
+                    "wo"
                 }, {
                     "und_SO",
                     "so_Latn_SO",
@@ -3101,8 +3115,8 @@ public class ULocaleTest extends TestFmwk {
                     "uz"
                 }, {
                     "und_VA",
-                    "la_Latn_VA",
-                    "la"
+                    "it_Latn_VA",
+                    "it_VA"
                 }, {
                     "und_VE",
                     "es_Latn_VE",
@@ -3874,7 +3888,7 @@ public class ULocaleTest extends TestFmwk {
                 {"en@timezone=America/New_York;calendar=japanese",    "en-u-ca-japanese-tz-usnyc"},
                 {"en@timezone=US/Eastern",    "en-u-tz-usnyc"},
                 {"en@x=x-y-z;a=a-b-c",  "en-x-x-y-z"},
-                {"it@collation=badcollationtype;colStrength=identical;cu=usd-eur", "it-u-ks-identic"},
+                {"it@collation=badcollationtype;colStrength=identical;cu=usd-eur", "it-u-cu-usd-eur-ks-identic"},
                 {"en_US_POSIX", "en-US-u-va-posix"},
                 {"en_US_POSIX@calendar=japanese;currency=EUR","en-US-u-ca-japanese-cu-eur-va-posix"},
                 {"@x=elmer",    "x-elmer"},
@@ -4448,5 +4462,129 @@ public class ULocaleTest extends TestFmwk {
                 break;
             }
         }
+    }
+
+    public void TestToUnicodeLocaleKey() {
+        String[][] DATA = {
+                {"calendar",    "ca"},
+                {"CALEndar",    "ca"},  // difference casing
+                {"ca",          "ca"},  // bcp key itself
+                {"kv",          "kv"},  // no difference between legacy and bcp
+                {"foo",         null},  // unknown, bcp ill-formed
+                {"ZZ",          "zz"},  // unknown, bcp well-formed
+        };
+
+        for (String[] d : DATA) {
+            String keyword = d[0];
+            String expected = d[1];
+
+            String bcpKey = ULocale.toUnicodeLocaleKey(keyword);
+            assertEquals("keyword=" + keyword, expected, bcpKey);
+        }
+    }
+
+    public void TestToLegacyKey() {
+        String[][] DATA = {
+                {"kb",          "colbackwards"},
+                {"kB",          "colbackwards"},    // different casing
+                {"Collation",   "collation"},   // keyword itself with different casing
+                {"kv",          "kv"},  // no difference between legacy and bcp
+                {"foo",         "foo"}, // unknown, bcp ill-formed
+                {"ZZ",          "zz"},  // unknown, bcp well-formed
+                {"e=mc2",       null},  // unknown, bcp/legacy ill-formed
+        };
+
+        for (String[] d : DATA) {
+            String keyword = d[0];
+            String expected = d[1];
+
+            String legacyKey = ULocale.toLegacyKey(keyword);
+            assertEquals("bcpKey=" + keyword, expected, legacyKey);
+        }
+    }
+
+    public void TestToUnicodeLocaleType() {
+        String[][] DATA = {
+                {"tz",              "Asia/Kolkata",     "inccu"},
+                {"calendar",        "gregorian",        "gregory"},
+                {"ca",              "gregorian",        "gregory"},
+                {"ca",              "Gregorian",        "gregory"},
+                {"ca",              "buddhist",         "buddhist"},
+                {"Calendar",        "Japanese",         "japanese"},
+                {"calendar",        "Islamic-Civil",    "islamic-civil"},
+                {"calendar",        "islamicc",         "islamic-civil"},   // bcp type alias
+                {"colalternate",    "NON-IGNORABLE",    "noignore"},
+                {"colcaselevel",    "yes",              "true"},
+                {"tz",              "america/new_york", "usnyc"},
+                {"tz",              "Asia/Kolkata",     "inccu"},
+                {"timezone",        "navajo",           "usden"},
+                {"ca",              "aaaa",             "aaaa"},    // unknown type, well-formed type
+                {"ca",              "gregory-japanese-islamic", "gregory-japanese-islamic"},    // unknown type, well-formed type
+                {"zz",              "gregorian",        null},      // unknown key, ill-formed type
+                {"co",              "foo-",             null},      // unknown type, ill-formed type
+                {"variableTop",     "00A0",             "00a0"},    // valid codepoints type
+                {"variableTop",     "wxyz",             "wxyz"},      // invalid codepoints type - return as is for now
+                {"kr",              "space-punct",      "space-punct"}, // valid reordercode type
+                {"kr",              "digit-spacepunct", null},      // invalid reordercode type
+        };
+
+        for (String[] d : DATA) {
+            String keyword = d[0];
+            String value = d[1];
+            String expected = d[2];
+
+            String bcpType = ULocale.toUnicodeLocaleType(keyword, value);
+            assertEquals("keyword=" + keyword + ", value=" + value, expected, bcpType);
+        }
+
+    }
+
+    public void TestToLegacyType() {
+        String[][] DATA = {
+                {"calendar",        "gregory",          "gregorian"},
+                {"ca",              "gregory",          "gregorian"},
+                {"ca",              "Gregory",          "gregorian"},
+                {"ca",              "buddhist",         "buddhist"},
+                {"Calendar",        "Japanese",         "japanese"},
+                {"calendar",        "Islamic-Civil",    "islamic-civil"},
+                {"calendar",        "islamicc",         "islamic-civil"},   // bcp type alias
+                {"colalternate",    "noignore",         "non-ignorable"},
+                {"colcaselevel",    "true",             "yes"},
+                {"tz",              "usnyc",            "America/New_York"},
+                {"tz",              "inccu",            "Asia/Calcutta"},
+                {"timezone",        "usden",            "America/Denver"},
+                {"timezone",        "usnavajo",         "America/Denver"},  // bcp type alias
+                {"colstrength",     "quarternary",      "quaternary"},  // type alias
+                {"ca",              "aaaa",             "aaaa"},    // unknown type
+                {"calendar",        "gregory-japanese-islamic", "gregory-japanese-islamic"},    // unknown type, well-formed type
+                {"zz",              "gregorian",        "gregorian"},   // unknown key, bcp ill-formed type
+                {"ca",              "gregorian-calendar",   "gregorian-calendar"},  // known key, bcp ill-formed type
+                {"co",              "e=mc2",            null},  // known key, ill-formed bcp/legacy type
+                {"variableTop",     "00A0",             "00a0"},        // valid codepoints type
+                {"variableTop",     "wxyz",             "wxyz"},        // invalid codepoints type - return as is for now
+                {"kr",              "space-punct",      "space-punct"}, // valid reordercode type
+                {"kr",              "digit-spacepunct", "digit-spacepunct"},    // invalid reordercode type, bad ok for legacy syntax
+        };
+
+        for (String[] d : DATA) {
+            String keyword = d[0];
+            String value = d[1];
+            String expected = d[2];
+
+            String legacyType = ULocale.toLegacyType(keyword, value);
+            assertEquals("keyword=" + keyword + ", value="  + value, expected, legacyType);
+        }
+    }
+
+    public void TestIsRightToLeft() {
+        assertFalse("root LTR", ULocale.ROOT.isRightToLeft());
+        assertFalse("zh LTR", ULocale.CHINESE.isRightToLeft());
+        assertTrue("ar RTL", new ULocale("ar").isRightToLeft());
+        assertTrue("und-EG RTL", new ULocale("und-EG").isRightToLeft());
+        assertFalse("fa-Cyrl LTR", new ULocale("fa-Cyrl").isRightToLeft());
+        assertTrue("en-Hebr RTL", new ULocale("en-Hebr").isRightToLeft());
+        assertTrue("ckb RTL", new ULocale("ckb").isRightToLeft());  // Sorani Kurdish
+        assertFalse("fil LTR", new ULocale("fil").isRightToLeft());
+        assertFalse("he-Zyxw LTR", new ULocale("he-Zyxw").isRightToLeft());
     }
 }

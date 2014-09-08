@@ -196,10 +196,12 @@ public final class VersionInfo implements Comparable<VersionInfo>
     public static final VersionInfo UCOL_BUILDER_VERSION;
 
     /**
-     * This is the version of collation tailorings.
-     * This value may change in subsequent releases of ICU.
-     * @stable ICU 2.8
+     * Constant version 1.
+     * This was intended to be the version of collation tailorings,
+     * but instead the tailoring data carries a version number.
+     * @deprecated ICU 54
      */
+    @Deprecated
     public static final VersionInfo UCOL_TAILORINGS_VERSION;
 
 
@@ -523,8 +525,8 @@ public final class VersionInfo implements Comparable<VersionInfo>
         UNICODE_6_3   = getInstance(6, 3, 0, 0);
         UNICODE_7_0   = getInstance(7, 0, 0, 0);
 
-        ICU_VERSION   = getInstance(54, 0, 1, 0);
-        ICU_DATA_VERSION = getInstance(54, 0, 1, 0);
+        ICU_VERSION   = getInstance(54, 1, 0, 0);
+        ICU_DATA_VERSION = getInstance(54, 1, 0, 0);
         UNICODE_VERSION = UNICODE_7_0;
 
         UCOL_RUNTIME_VERSION = getInstance(8);
@@ -602,8 +604,11 @@ public final class VersionInfo implements Comparable<VersionInfo>
      * @param minDigits Minimum number of version digits
      * @param maxDigits Maximum number of version digits
      * @return A tailored version string
+     * @internal
+     * @deprecated This API is ICU internal only. (For use in CLDR, etc.)
      */
-    private String getVersionString(int minDigits, int maxDigits) {
+    @Deprecated
+    public String getVersionString(int minDigits, int maxDigits) {
         if (minDigits < 1 || maxDigits < 1
                 || minDigits > 4 || maxDigits > 4 || minDigits > maxDigits) {
             throw new IllegalArgumentException("Invalid min/maxDigits range");
