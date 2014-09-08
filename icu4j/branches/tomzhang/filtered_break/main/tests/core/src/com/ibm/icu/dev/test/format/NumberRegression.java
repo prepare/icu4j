@@ -1,6 +1,6 @@
 /*****************************************************************************************
  *
- * Copyright (C) 1996-2013, International Business Machines
+ * Copyright (C) 1996-2014, International Business Machines
  * Corporation and others.  All Rights Reserved.
  **/
 
@@ -1548,6 +1548,10 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
         // trip properly.  Test stream in/out integrity too.
         Locale[] avail = NumberFormat.getAvailableLocales();
         for (int i=0; i<avail.length; ++i) {
+            if ((avail[i].getLanguage().equals("ji") || avail[i].getLanguage().equals("bm")) &&
+                    logKnownIssue("11234", "Symbol roundtrip issues for locales ji, bm")) {
+                continue;
+            }
             for (int j=0; j<3; ++j) {
                 NumberFormat nf;
                 switch (j) {

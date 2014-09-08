@@ -561,7 +561,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         String[] DATA = {
                 "fr", "CA", "", "1,50\u00a0$",
                 "de", "DE", "", "1,50\u00a0\u20AC",
-                "de", "DE", "PREEURO", "1,50\u00a0DEM",
+                "de", "DE", "PREEURO", "1,50\u00a0DM",
                 "fr", "FR", "", "1,50\u00a0\u20AC",
                 "fr", "FR", "PREEURO", "1,50\u00a0F",
         };
@@ -848,7 +848,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         expectCurrency(fmt, null, 1234.56, "1 234,56 \u20AC");
 
         expectCurrency(fmt, Currency.getInstance(Locale.JAPAN),
-                1234.56, "1 235 \u00A5JP"); // Yen
+                1234.56, "1 235 JPY"); // Yen
 
         expectCurrency(fmt, Currency.getInstance(new Locale("fr", "CH", "")),
                 1234.56, "1 234,56 CHF"); // no more rounding here, see cldrbug 5548
@@ -2338,7 +2338,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         CurrencyAmount cAmt = new CurrencyAmount(1150.50, curr);
         logln("CurrencyAmount object's hashCode is: " + cAmt.hashCode()); //cover hashCode
         String str = format.format(cAmt);
-        String expected = "1,150$50\u00a0Esc.";
+        String expected = "1,150$50\u00a0\u200b";
         if(!expected.equals(str)){
             errln("Did not get the expected output Expected: "+expected+" Got: "+ str);
         }
@@ -3612,11 +3612,14 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
     public void TestCurrencyUsage() {
         // the 1st one is checking setter/getter, while the 2nd one checks for getInstance
         // compare the Currency and Currency Cash Digits
+        // Note that as of CLDR 26:
+        // * TWD switches from 0 decimals to 2; PKR still has 0, so change test to that
+        // * CAD and all other currencies that rounded to .05 no longer do
         for (int i = 0; i < 2; i++) {
-            String original_expected = "NT$123.57";
+            String original_expected = "PKR124";
             DecimalFormat custom = null;
             if (i == 0) {
-                custom = (DecimalFormat) DecimalFormat.getInstance(new ULocale("en_US@currency=TWD"),
+                custom = (DecimalFormat) DecimalFormat.getInstance(new ULocale("en_US@currency=PKR"),
                         DecimalFormat.CURRENCYSTYLE);
 
                 String original = custom.format(123.567);
@@ -3628,7 +3631,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 custom.setCurrencyUsage(Currency.CurrencyUsage.CASH);
                 assertEquals("Test Currency Context Purpose", custom.getCurrencyUsage(), Currency.CurrencyUsage.CASH);
             } else {
-                custom = (DecimalFormat) DecimalFormat.getInstance(new ULocale("en_US@currency=TWD"),
+                custom = (DecimalFormat) DecimalFormat.getInstance(new ULocale("en_US@currency=PKR"),
                         DecimalFormat.CASHCURRENCYSTYLE);
 
                 // test the getter
@@ -3636,7 +3639,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             }
 
             String cash_currency = custom.format(123.567);
-            String cash_currency_expected = "NT$124";
+            String cash_currency_expected = "PKR124";
             assertEquals("Test Currency Context", cash_currency_expected, cash_currency);
         }
 
@@ -3659,7 +3662,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             }
 
             String cash_rounding_currency = fmt.format(123.567);
-            String cash__rounding_currency_expected = "CA$123.55";
+            String cash__rounding_currency_expected = "CA$123.57";
             assertEquals("Test Currency Context", cash__rounding_currency_expected, cash_rounding_currency);
         }
 
@@ -3676,10 +3679,57 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                         NumberFormat.CASHCURRENCYSTYLE);
             }
 
-            fmt2.setCurrency(Currency.getInstance("TWD"));
-            String TWD_changed = fmt2.format(123.567);
-            String TWD_changed_expected = "NT$124";
-            assertEquals("Test Currency Context", TWD_changed_expected, TWD_changed);
+            fmt2.setCurrency(Currency.getInstance("PKR"));
+            String PKR_changed = fmt2.format(123.567);
+            String PKR_changed_expected = "PKR124";
+            assertEquals("Test Currency Context", PKR_changed_expected, PKR_changed);
         }
     }
+
+    public void TestParseRequiredDecimalPoint() {
+        
+        String[] testPattern = { "00.####", "00.0", "00" };
+        
+        String value2Parse = "99";
+        double parseValue  =  99;
+        DecimalFormat parser = new DecimalFormat();
+        double result;
+        boolean hasDecimalPoint; 
+        for (int i = 0; i < testPattern.length; i++) {            
+            parser.applyPattern(testPattern[i]);
+            hasDecimalPoint = testPattern[i].contains(".");
+            
+            parser.setDecimalPatternMatchRequired(false);
+            try {
+                result = parser.parse(value2Parse).doubleValue();
+                assertEquals("wrong parsed value", parseValue, result);
+            } catch (ParseException e) {
+               this.errln("Parsing " + value2Parse + " should have succeeded with " + testPattern[i] + 
+                            " and isDecimalPointMatchRequired set to: " + parser.isDecimalPatternMatchRequired());
+            }
+            
+            parser.setDecimalPatternMatchRequired(true);
+            try {
+                result = parser.parse(value2Parse).doubleValue();
+                if(hasDecimalPoint){
+                    this.errln("Parsing " + value2Parse + " should NOT have succeeded with " + testPattern[i] + 
+                            " and isDecimalPointMatchRequired set to: " + parser.isDecimalPatternMatchRequired());
+                }
+            } catch (ParseException e) {
+                    // OK, should fail
+            }
+        }
+        
+    }
+
+    public void TestCurrFmtNegSameAsPositive() {
+        DecimalFormatSymbols decfmtsym = DecimalFormatSymbols.getInstance(Locale.US);
+        decfmtsym.setMinusSign('\u200B'); // ZERO WIDTH SPACE, in ICU4J cannot set to empty string
+        DecimalFormat decfmt = new DecimalFormat("\u00A4#,##0.00;\u00A4#,##0.00", decfmtsym);
+        String currFmtResult = decfmt.format(-100.0);
+        if (!currFmtResult.equals("\u200B$100.00")) {
+            errln("decfmt.toPattern results wrong, expected \u200B$100.00, got " + currFmtResult);
+        }
+    }
+
 }
