@@ -23,7 +23,7 @@ import com.ibm.icu.util.UResourceBundle;
 class SimpleFilteredSentenceBreakIterator extends BreakIterator {
 
     private BreakIterator delegate;
-    private CharacterIterator text; // TODO(Tom): suffice to move into the local scope in next() ?
+    private UCharacterIterator text; // TODO(Tom): suffice to move into the local scope in next() ?
     private CharsTrie backwardsTrie; // i.e. ".srM" for Mrs.
     private CharsTrie forwardsPartialTrie; // Has ".a" for "a.M."
 
@@ -50,18 +50,18 @@ class SimpleFilteredSentenceBreakIterator extends BreakIterator {
             return n;
         }
         // UCharacterIterator text;
-        text = (CharacterIterator) delegate.getText().clone();
+        text = UCharacterIterator.getInstance((CharacterIterator) delegate.getText().clone());
         do { // outer loop runs once per underlying break (from fDelegate).
              // loops while 'n' points to an exception.
             text.setIndex(n);
             backwardsTrie.reset();
-            char ch;
+            int uch;
 
             // Assume a space is following the '.' (so we handle the case: "Mr. /Brown")
-            if ((ch = text.previous()) == ' ') { // TODO: skip a class of chars here??
+            if ((uch = text.previousCodePoint()) == ' ') { // TODO: skip a class of chars here??
                 // TODO only do this the 1st time?
             } else {
-                ch = text.next();
+                uch = text.nextCodePoint();
             }
 
             BytesTrie.Result r = BytesTrie.Result.INTERMEDIATE_VALUE;
@@ -69,8 +69,8 @@ class SimpleFilteredSentenceBreakIterator extends BreakIterator {
             int bestPosn = -1;
             int bestValue = -1;
 
-            while ((ch = text.previous()) != BreakIterator.DONE && // more to consume backwards and..
-                    ((r = backwardsTrie.nextForCodePoint(ch)).hasNext())) {// more in the trie
+            while ((uch = text.previousCodePoint()) != BreakIterator.DONE && // more to consume backwards and..
+                    ((r = backwardsTrie.nextForCodePoint(uch)).hasNext())) {// more in the trie
                 if (r.hasValue()) { // remember the best match so far
                     bestPosn = text.getIndex();
                     bestValue = backwardsTrie.getValue();
@@ -96,8 +96,8 @@ class SimpleFilteredSentenceBreakIterator extends BreakIterator {
 
                     BytesTrie.Result rfwd = BytesTrie.Result.INTERMEDIATE_VALUE;
                     text.setIndex(bestPosn); // hope that's close ..
-                    while ((ch = text.next()) != BreakIterator.DONE
-                            && ((rfwd = forwardsPartialTrie.nextForCodePoint(ch)).hasNext())) {
+                    while ((uch = text.nextCodePoint()) != BreakIterator.DONE
+                            && ((rfwd = forwardsPartialTrie.nextForCodePoint(uch)).hasNext())) {
                     }
                     if (rfwd.matches()) {
                         // only full matches here, nothing to check
