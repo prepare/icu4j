@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.TreeSet;
 
 import com.ibm.icu.impl.BMPSet;
@@ -601,7 +602,6 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
     /**
      * Append the <code>toPattern()</code> representation of a
      * string to the given <code>StringBuffer</code>.
-     * @return 
      */
     private static StringBuffer _appendToPat(StringBuffer buf, String s, boolean escapeUnprintable) {
         int cp;
@@ -615,7 +615,6 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
     /**
      * Append the <code>toPattern()</code> representation of a
      * character to the given <code>StringBuffer</code>.
-     * @return 
      */
     private static StringBuffer _appendToPat(StringBuffer buf, int c, boolean escapeUnprintable) {
         // "Utility.isUnprintable(c)" seems redundant since the the call
@@ -1518,7 +1517,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
     public final UnicodeSet remove(CharSequence s) {
         int cp = getSingleCP(s);
         if (cp < 0) {
-            strings.remove(s);
+            strings.remove(s.toString());
             pat = null;
         } else {
             remove(cp, cp);
@@ -1596,10 +1595,11 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
         checkFrozen();
         int cp = getSingleCP(s);
         if (cp < 0) {
-            if (strings.contains(s)) {
-                strings.remove(s);
+            String s2 = s.toString();
+            if (strings.contains(s2)) {
+                strings.remove(s2);
             } else {
-                strings.add(s.toString());
+                strings.add(s2);
             }
             pat = null;
         } else {
@@ -4116,18 +4116,36 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
 
     /**
      * A struct-like class used for iteration through ranges, for faster iteration than by String.
-     * Read about the restrictions on usage in {@link #UnicodeSet.ranges()}.
+     * Read about the restrictions on usage in {@link UnicodeSet#ranges()}.
+     * 
+     * @draft ICU 54
+     * @provisional This is a draft API and might change in a future release of ICU.
      */
     public static class EntryRange {
         /**
          * The starting code point of the range.
+         * 
+         * @draft ICU 54
+         * @provisional This is a draft API and might change in a future release of ICU.
          */
         public int codepoint;
         /**
          * The ending code point of the range
+         * 
+         * @draft ICU 54
+         * @provisional This is a draft API and might change in a future release of ICU.
          */
         public int codepointEnd;
-        
+
+        EntryRange() {
+        }
+
+        /**
+         * {@inheritDoc}
+         * 
+         * @draft ICU 54
+         * @provisional This is a draft API and might change in a future release of ICU.
+         */
         @Override
         public String toString() {
             StringBuffer b = new StringBuffer();
@@ -4155,6 +4173,9 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      *     // do something with each string;
      * }
      * </pre>
+     * 
+     * @draft ICU 54
+     * @provisional This is a draft API and might change in a future release of ICU.
      */
     public Iterable<EntryRange> ranges() {
         return new EntryRanges();
@@ -4177,11 +4198,8 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
             if (pos < len-1) {
                 result.codepoint = list[pos++];
                 result.codepointEnd = list[pos++]-1;
-//                result.string = null;
             } else {
-                throw new ArrayIndexOutOfBoundsException(pos);
-//                result.codepoint = -1;
-//                result.string = stringIterator.next();
+                throw new NoSuchElementException();
             }
             return result;
         }

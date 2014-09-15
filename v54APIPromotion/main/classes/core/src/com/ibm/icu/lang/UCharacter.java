@@ -14,7 +14,6 @@ import java.util.Locale;
 import java.util.Map;
 
 import com.ibm.icu.impl.IllegalIcuArgumentException;
-import com.ibm.icu.impl.Norm2AllModes;
 import com.ibm.icu.impl.Trie2;
 import com.ibm.icu.impl.UBiDiProps;
 import com.ibm.icu.impl.UCaseProps;
@@ -26,6 +25,7 @@ import com.ibm.icu.impl.UPropertyAliases;
 import com.ibm.icu.lang.UCharacterEnums.ECharacterCategory;
 import com.ibm.icu.lang.UCharacterEnums.ECharacterDirection;
 import com.ibm.icu.text.BreakIterator;
+import com.ibm.icu.text.Normalizer2;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.util.RangeValueIterator;
 import com.ibm.icu.util.ULocale;
@@ -4207,7 +4207,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      */
     public static int getCombiningClass(int ch)
     {
-        return Norm2AllModes.getNFCInstance().decomp.getCombiningClass(ch);
+        return Normalizer2.getNFDInstance().getCombiningClass(ch);
     }
 
     /**

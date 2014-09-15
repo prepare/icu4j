@@ -35,12 +35,12 @@ import com.ibm.icu.impl.locale.AsciiUtil;
 import com.ibm.icu.impl.locale.BaseLocale;
 import com.ibm.icu.impl.locale.Extension;
 import com.ibm.icu.impl.locale.InternalLocaleBuilder;
+import com.ibm.icu.impl.locale.KeyTypeData;
 import com.ibm.icu.impl.locale.LanguageTag;
 import com.ibm.icu.impl.locale.LocaleExtensions;
 import com.ibm.icu.impl.locale.LocaleSyntaxException;
 import com.ibm.icu.impl.locale.ParseStatus;
 import com.ibm.icu.impl.locale.UnicodeLocaleExtension;
-import com.ibm.icu.impl.locale.KeyTypeData;
 import com.ibm.icu.lang.UScript;
 import com.ibm.icu.text.LocaleDisplayNames;
 import com.ibm.icu.text.LocaleDisplayNames.DialectHandling;
@@ -3361,7 +3361,7 @@ public final class ULocale implements Serializable, Comparable<ULocale> {
             //  keys are using ASCII alphabetic letters only. We won't add any new key
             //  that is not compatible with the BCP 47 syntax. Therefore, we assume
             //  a valid key consist from [0-9a-zA-Z], no symbols.
-            if (keyword.matches("[0-9a-zA-Z]*")) {
+            if (keyword.matches("[0-9a-zA-Z]+")) {
                 legacyKey = AsciiUtil.toLowerString(keyword);
             }
         }
