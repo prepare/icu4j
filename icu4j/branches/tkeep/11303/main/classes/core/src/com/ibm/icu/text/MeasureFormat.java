@@ -498,30 +498,32 @@ public class MeasureFormat extends UFormat {
     }
     
     /**
-     * Like formatMeasures but formats with a per unit.
+     * Formats a single measure per unit. 
      * 
-     * Will format to a string such as "5 kilometers, 300 meters per hour."
-     * 
-     * @param appendTo the formatted string appended here.
-     * @param fieldPosition Identifies a field in the formatted text.
-     * @param perUnit for the example above would be MeasureUnit.HOUR.
-     * @param measures the measures to format.
+     * An example of such a formatted string is "3.5 meters per second."
+     *
+     * @param measure  the measure object. In above example, 3.5 meters.
+     * @param perUnit  the per unit. In above example, it is MeasureUnit.SECOND
+     * @param appendTo formatted string appended here.
+     * @param pos      The field position.
      * @return appendTo.
-     * @internal Technology preview
-     * @deprecated This API is ICU internal only.
+     * @draft ICU 55
+     * @provisional This API might change or be removed in a future release.
      */
-    @Deprecated
-    public StringBuilder formatMeasuresPer(
-            StringBuilder appendTo, FieldPosition fieldPosition, MeasureUnit perUnit, Measure... measures) {
+    public StringBuilder formatMeasurePerUnit(
+            Measure measure,
+            MeasureUnit perUnit,
+            StringBuilder appendTo,
+            FieldPosition pos) {
         FieldPosition fpos = new FieldPosition(
-                fieldPosition.getFieldAttribute(), fieldPosition.getField());
+                pos.getFieldAttribute(), pos.getField());
         int offset = withPerUnit(
-                formatMeasures(new StringBuilder(), fpos, measures),
+                formatMeasure(measure, numberFormat, appendTo, fpos),
                 perUnit,
                 appendTo);
         if (fpos.getBeginIndex() != 0 || fpos.getEndIndex() != 0) {
-            fieldPosition.setBeginIndex(fpos.getBeginIndex() + offset);
-            fieldPosition.setEndIndex(fpos.getEndIndex() + offset);
+            pos.setBeginIndex(fpos.getBeginIndex() + offset);
+            pos.setEndIndex(fpos.getEndIndex() + offset);
         }
         return appendTo;
     }

@@ -742,56 +742,59 @@ public class MeasureUnitTest extends TestFmwk {
         }
     }
     
-    public void testMultiplesPer() {
-        Object[][] data = new Object[][] {
-                // perUnit pattern
-                {ULocale.ENGLISH, FormatWidth.WIDE, MeasureUnit.SECOND, "2 miles, 1 foot, 2.3 inches per second"},
-                {ULocale.ENGLISH, FormatWidth.SHORT, MeasureUnit.SECOND, "2 mi, 1 ft, 2.3 inps"},
-                {ULocale.ENGLISH, FormatWidth.NARROW, MeasureUnit.SECOND, "2mi 1\u2032 2.3\u2033/s"},
-                // global per pattern
-                {ULocale.ENGLISH, FormatWidth.WIDE, MeasureUnit.MINUTE, "2 miles, 1 foot, 2.3 inches per minute"},
-                {ULocale.ENGLISH, FormatWidth.SHORT, MeasureUnit.MINUTE, "2 mi, 1 ft, 2.3 in/min"},
-                {ULocale.ENGLISH, FormatWidth.NARROW, MeasureUnit.MINUTE, "2mi 1\u2032 2.3\u2033/m"}
-        };
-        for (Object[] row : data) {
-            MeasureFormat mf = MeasureFormat.getInstance(
-                    (ULocale) row[0], (FormatWidth) row[1]);
-            assertEquals(
-                    "testMultiples",
-                    row[3],
-                    mf.formatMeasuresPer(
-                            new StringBuilder(),
-                            new FieldPosition(0),
-                            (MeasureUnit) row[2],
-                            new Measure(2, MeasureUnit.MILE), 
-                            new Measure(1, MeasureUnit.FOOT), 
-                            new Measure(2.3, MeasureUnit.INCH)).toString());
-        }
-    }
-    
     public void testSimplePer() {
+        Object DONT_CARE = null;
         Object[][] data = new Object[][] {
-                // per unit singular
-                {1, MeasureUnit.SECOND, "1 lbps"},
-                // per unit plural
-                {2, MeasureUnit.SECOND, "2 lbps"},
-                // compound singular
-                {1, MeasureUnit.MINUTE, "1 lb/min"},
-                // compound plural
-                {2, MeasureUnit.MINUTE, "2 lb/min"},
+                // per unit pattern
+                {FormatWidth.WIDE, 1.0, MeasureUnit.SECOND, "1 pound per second", DONT_CARE, 0, 0},
+                {FormatWidth.WIDE, 2.0, MeasureUnit.SECOND, "2 pounds per second", DONT_CARE, 0, 0},
+                // compound pattern
+                {FormatWidth.WIDE, 1.0, MeasureUnit.MINUTE, "1 pound per minute", DONT_CARE, 0, 0},
+                {FormatWidth.WIDE, 2.0, MeasureUnit.MINUTE, "2 pounds per minute", DONT_CARE, 0, 0},
+                // per unit
+                {FormatWidth.SHORT, 1.0, MeasureUnit.SECOND, "1 lbps", DONT_CARE, 0, 0},
+                {FormatWidth.SHORT, 2.0, MeasureUnit.SECOND, "2 lbps", DONT_CARE, 0, 0},
+                // compound
+                {FormatWidth.SHORT, 1.0, MeasureUnit.MINUTE, "1 lb/min", DONT_CARE, 0, 0},
+                {FormatWidth.SHORT, 2.0, MeasureUnit.MINUTE, "2 lb/min", DONT_CARE, 0, 0},
+                // per unit
+                {FormatWidth.NARROW, 1.0, MeasureUnit.SECOND, "1#/s", DONT_CARE, 0, 0},
+                {FormatWidth.NARROW, 2.0, MeasureUnit.SECOND, "2#/s", DONT_CARE, 0, 0},
+                // compound
+                {FormatWidth.NARROW, 1.0, MeasureUnit.MINUTE, "1#/m", DONT_CARE, 0, 0},
+                {FormatWidth.NARROW, 2.0, MeasureUnit.MINUTE, "2#/m", DONT_CARE, 0, 0},
+                // field positions
+                {FormatWidth.SHORT, 23.3, MeasureUnit.SECOND, "23.3 lbps", NumberFormat.Field.DECIMAL_SEPARATOR, 2, 3},
+                {FormatWidth.SHORT, 23.3, MeasureUnit.SECOND, "23.3 lbps", NumberFormat.Field.INTEGER, 0, 2},
+                {FormatWidth.SHORT, 23.3, MeasureUnit.MINUTE, "23.3 lb/min", NumberFormat.Field.DECIMAL_SEPARATOR, 2, 3},
+                {FormatWidth.SHORT, 23.3, MeasureUnit.MINUTE, "23.3 lb/min", NumberFormat.Field.INTEGER, 0, 2},
+
         };
         
         for (Object[] row : data) {
+            FormatWidth formatWidth = (FormatWidth) row[0];
+            Number amount = (Number) row[1];
+            MeasureUnit perUnit = (MeasureUnit) row[2];
+            String expected = row[3].toString();
+            NumberFormat.Field field = (NumberFormat.Field) row[4];
+            int startOffset = ((Integer) row[5]).intValue();
+            int endOffset = ((Integer) row[6]).intValue();
             MeasureFormat mf = MeasureFormat.getInstance(
-                    ULocale.ENGLISH, FormatWidth.SHORT);
+                    ULocale.ENGLISH, formatWidth);
+            FieldPosition pos = field != null ? new FieldPosition(field) : new FieldPosition(0);
+            String prefix = "Prefix: ";
             assertEquals(
                     "",
-                    row[2],
-                    mf.formatMeasuresPer(
-                            new StringBuilder(),
-                            new FieldPosition(0),
-                            (MeasureUnit) row[1],
-                            new Measure((Number) row[0], MeasureUnit.POUND)).toString());
+                    prefix + expected,
+                    mf.formatMeasurePerUnit(
+                            new Measure(amount, MeasureUnit.POUND),
+                            perUnit,
+                            new StringBuilder(prefix),
+                            pos).toString());
+            if (field != DONT_CARE) {
+                assertEquals("startOffset", startOffset, pos.getBeginIndex() - prefix.length());
+                assertEquals("endOffset", endOffset, pos.getEndIndex() - prefix.length());
+            }
         }        
     }
     
@@ -808,11 +811,11 @@ public class MeasureUnitTest extends TestFmwk {
             assertEquals(
                     "",
                     row[1],
-                    mf.formatMeasuresPer(
-                            new StringBuilder(),
-                            new FieldPosition(0),
+                    mf.formatMeasurePerUnit(
+                            new Measure((Number) row[0], MeasureUnit.FOOT),
                             MeasureUnit.SECOND,
-                            new Measure((Number) row[0], MeasureUnit.FOOT)).toString());
+                            new StringBuilder(),
+                            new FieldPosition(0)).toString());
         }        
     }
 
@@ -927,64 +930,6 @@ public class MeasureUnitTest extends TestFmwk {
         assertEquals("beginIndex", 8, pos.getBeginIndex());
         assertEquals("endIndex", 10, pos.getEndIndex());
         
-    }
-    
-    public void testFieldPositionMultipleWithPer() {
-        MeasureFormat fmt = MeasureFormat.getInstance(
-                ULocale.ENGLISH, FormatWidth.SHORT);
-        FieldPosition pos = new FieldPosition(NumberFormat.Field.INTEGER);
-        String result = fmt.formatMeasuresPer(
-                new StringBuilder(),
-                pos,
-                MeasureUnit.SECOND,
-                new Measure(354, MeasureUnit.METER),
-                new Measure(23, MeasureUnit.CENTIMETER)).toString();
-        assertEquals("result", "354 m, 23 cmps", result);
-        
-        // According to javadocs for {@link Format#format} FieldPosition is set to
-        // beginning and end of first such field encountered instead of the last
-        // such field encountered.
-        assertEquals("beginIndex", 0, pos.getBeginIndex());
-        assertEquals("endIndex", 3, pos.getEndIndex());
-        
-        pos = new FieldPosition(NumberFormat.Field.DECIMAL_SEPARATOR);
-        result = fmt.formatMeasuresPer(
-                new StringBuilder("123456: "),
-                pos,
-                MeasureUnit.SECOND,
-                new Measure(354, MeasureUnit.METER),
-                new Measure(23, MeasureUnit.CENTIMETER),
-                new Measure(5.4, MeasureUnit.MILLIMETER)).toString();
-        assertEquals("result", "123456: 354 m, 23 cm, 5.4 mmps", result);
-        assertEquals("beginIndex", 23, pos.getBeginIndex());
-        assertEquals("endIndex", 24, pos.getEndIndex());
-  
-        pos = new FieldPosition(NumberFormat.Field.INTEGER);
-        result = fmt.formatMeasuresPer(
-                new StringBuilder(),
-                pos,
-                MeasureUnit.MINUTE,
-                new Measure(354, MeasureUnit.METER),
-                new Measure(23, MeasureUnit.CENTIMETER)).toString();
-        assertEquals("result", "354 m, 23 cm/min", result);
-        
-        // According to javadocs for {@link Format#format} FieldPosition is set to
-        // beginning and end of first such field encountered instead of the last
-        // such field encountered.
-        assertEquals("beginIndex", 0, pos.getBeginIndex());
-        assertEquals("endIndex", 3, pos.getEndIndex());
-        
-        pos = new FieldPosition(NumberFormat.Field.DECIMAL_SEPARATOR);
-        result = fmt.formatMeasuresPer(
-                new StringBuilder("123456: "),
-                pos,
-                MeasureUnit.MINUTE,
-                new Measure(354, MeasureUnit.METER),
-                new Measure(23, MeasureUnit.CENTIMETER),
-                new Measure(5.4, MeasureUnit.MILLIMETER)).toString();
-        assertEquals("result", "123456: 354 m, 23 cm, 5.4 mm/min", result);
-        assertEquals("beginIndex", 23, pos.getBeginIndex());
-        assertEquals("endIndex", 24, pos.getEndIndex());
     }
     
     public void testOldFormatWithList() {
