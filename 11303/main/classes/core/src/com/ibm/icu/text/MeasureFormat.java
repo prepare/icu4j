@@ -519,7 +519,7 @@ public class MeasureFormat extends UFormat {
                 measure.getUnit(), perUnit);
         if (resolvedUnit != null) {
             Measure newMeasure = new Measure(measure.getNumber(), resolvedUnit);
-            return formatMeasures(appendTo, pos, newMeasure);
+            return formatMeasure(newMeasure, numberFormat, appendTo, pos);
         }
         FieldPosition fpos = new FieldPosition(
                 pos.getFieldAttribute(), pos.getField());
