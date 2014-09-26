@@ -515,6 +515,12 @@ public class MeasureFormat extends UFormat {
             MeasureUnit perUnit,
             StringBuilder appendTo,
             FieldPosition pos) {
+        MeasureUnit resolvedUnit = MeasureUnit.resolveUnitPerUnit(
+                measure.getUnit(), perUnit);
+        if (resolvedUnit != null) {
+            Measure newMeasure = new Measure(measure.getNumber(), resolvedUnit);
+            return formatMeasures(appendTo, pos, newMeasure);
+        }
         FieldPosition fpos = new FieldPosition(
                 pos.getFieldAttribute(), pos.getField());
         int offset = withPerUnit(
