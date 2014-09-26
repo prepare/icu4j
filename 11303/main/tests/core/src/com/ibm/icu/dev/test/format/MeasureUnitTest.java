@@ -25,6 +25,7 @@ import java.util.TreeMap;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.dev.test.serializable.SerializableTest;
+import com.ibm.icu.impl.Pair;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.text.MeasureFormat;
@@ -43,6 +44,28 @@ import com.ibm.icu.util.ULocale;
  * @author markdavis
  */
 public class MeasureUnitTest extends TestFmwk {
+    
+    static class OrderedPair<F extends Comparable, S extends Comparable> extends Pair<F, S> implements Comparable<OrderedPair<F, S>> {
+
+        OrderedPair(F first, S second) {
+            super(first, second);
+        }
+        
+        public static <F extends Comparable, S extends Comparable> OrderedPair<F, S> of(F first, S second) {
+            if (first == null || second == null) {
+                throw new IllegalArgumentException("OrderedPair.of requires non null values.");
+            }
+            return new OrderedPair<F, S>(first, second);            
+        }
+
+        public int compareTo(OrderedPair<F, S> other) {
+            int result = first.compareTo(other.first);
+            if (result != 0) {
+                return result;
+            }
+            return second.compareTo(other.second);
+        }
+    }
     
     private static final String[] DRAFT_VERSIONS = {"53", "54"};
     
@@ -972,6 +995,19 @@ public class MeasureUnitTest extends TestFmwk {
         }
     }
     
+    public void testUnitPerUnitResolution() {
+        // Ticket 11274
+        MeasureFormat fmt = MeasureFormat.getInstance(Locale.ENGLISH, FormatWidth.SHORT);
+        
+        // This fails unless we resolve to MeasureUnit.POUND_PER_SQUARE_INCH
+        assertEquals("", "50 psi",
+                fmt.formatMeasurePerUnit(
+                        new Measure(50, MeasureUnit.POUND),
+                        MeasureUnit.SQUARE_INCH,
+                        new StringBuilder(),
+                        new FieldPosition(0)).toString());
+    }
+    
     public void testEqHashCode() {
         MeasureFormat mf = MeasureFormat.getInstance(ULocale.CANADA, FormatWidth.SHORT);
         MeasureFormat mfeq = MeasureFormat.getInstance(ULocale.CANADA, FormatWidth.SHORT);
@@ -1044,6 +1080,42 @@ public class MeasureUnitTest extends TestFmwk {
                         new Measure(23, MeasureUnit.MINUTE),
                         new Measure(16, MeasureUnit.SECOND)));
         
+    }
+    
+    // DO NOT DELETE THIS FUNCTION! It may appear as dead code, but we use this to generate code
+    // for MeasureFormat during the release process.
+    static Map<MeasureUnit, Pair<MeasureUnit, MeasureUnit>> getUnitsToPerParts() {
+        TreeMap<String, List<MeasureUnit>> allUnits = getAllUnits();
+        Map<MeasureUnit, Pair<String, String>> unitsToPerStrings =
+                new HashMap<MeasureUnit, Pair<String, String>>();
+        Map<String, MeasureUnit> namesToUnits = new HashMap<String, MeasureUnit>();
+        for (Map.Entry<String, List<MeasureUnit>> entry : allUnits.entrySet()) {
+            String type = entry.getKey();
+            // Currency types are always atomic units, so we can skip these
+            if (type.equals("currency")) {
+                continue;
+            }
+            for (MeasureUnit unit : entry.getValue()) {
+                String javaName = toJAVAName(unit);
+                String[] nameParts = javaName.split("_PER_");
+                if (nameParts.length == 1) {
+                    namesToUnits.put(nameParts[0], unit);
+                } else if (nameParts.length == 2) {
+                    unitsToPerStrings.put(unit, Pair.of(nameParts[0], nameParts[1]));
+                }
+            }
+        }
+        Map<MeasureUnit, Pair<MeasureUnit, MeasureUnit>> unitsToPerUnits =
+                new HashMap<MeasureUnit, Pair<MeasureUnit, MeasureUnit>>();
+        for (Map.Entry<MeasureUnit, Pair<String, String>> entry : unitsToPerStrings.entrySet()) {
+            Pair<String, String> perStrings = entry.getValue();
+            MeasureUnit unit = namesToUnits.get(perStrings.first);
+            MeasureUnit perUnit = namesToUnits.get(perStrings.second);
+            if (unit != null && perUnit != null) {
+                unitsToPerUnits.put(entry.getKey(), Pair.of(unit, perUnit));
+            }
+        }
+        return unitsToPerUnits;
     }
     
     // DO NOT DELETE THIS FUNCTION! It may appear as dead code, but we use this to generate code
@@ -1341,6 +1413,16 @@ public class MeasureUnitTest extends TestFmwk {
                 System.out.println();
             }
         }
+        System.out.println("    private static HashMap<Pair<MeasureUnit, MeasureUnit>, MeasureUnit>unitPerUnitToSingleUnit =");
+        System.out.println("            new HashMap<Pair<MeasureUnit, MeasureUnit>, MeasureUnit>();");
+        System.out.println();
+        System.out.println("    static {");
+        for (Map.Entry<MeasureUnit, Pair<MeasureUnit, MeasureUnit>> unitPerUnitEntry
+                : getUnitsToPerParts().entrySet()) {
+            Pair<MeasureUnit, MeasureUnit> unitPerUnit = unitPerUnitEntry.getValue();
+            System.out.println("        unitPerUnitToSingleUnit.put(Pair.<MeasureUnit, MeasureUnit>of(MeasureUnit." + toJAVAName(unitPerUnit.first) + ", MeasureUnit." + toJAVAName(unitPerUnit.second) + "), MeasureUnit." + toJAVAName(unitPerUnitEntry.getKey()) + ");"); 
+        }
+        System.out.println("    }");
     }
     
     private static String getVersion(String javaName, String thisVersion) {
