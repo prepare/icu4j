@@ -1206,9 +1206,9 @@ public class MeasureUnitTest extends TestFmwk {
     // DO NOT DELETE THIS FUNCTION! It may appear as dead code, but we use this to generate code
     // for MeasureFormat during the release process.
     static void generateCXXConstants() {
-        System.out.println("static final MeasureUnit");
-        Map<String, MeasureUnit> seen = new HashMap<String, MeasureUnit>();
+        System.out.println("");       
         TreeMap<String, List<MeasureUnit>> allUnits = getAllUnits();
+        
         System.out.println("static const int32_t gOffsets[] = {");
         int index = 0;
         for (Map.Entry<String, List<MeasureUnit>> entry : allUnits.entrySet()) {
@@ -1229,6 +1229,7 @@ public class MeasureUnitTest extends TestFmwk {
         System.out.printf("    %d\n", index);
         System.out.println("};");
         System.out.println();
+        System.out.println("// Must be sorted alphabetically.");
         System.out.println("static const char * const gTypes[] = {");
         boolean first = true;
         for (Map.Entry<String, List<MeasureUnit>> entry : allUnits.entrySet()) {
@@ -1241,47 +1242,89 @@ public class MeasureUnitTest extends TestFmwk {
         System.out.println();
         System.out.println("};");
         System.out.println();
+        System.out.println("// Must be grouped by type and sorted alphabetically within each type.");
         System.out.println("static const char * const gSubTypes[] = {");
         first = true;
+        int offset = 0;
+        int typeIdx = 0;
+        Map<MeasureUnit, Integer> measureUnitToOffset = new HashMap<MeasureUnit, Integer>();
+        Map<MeasureUnit, Pair<Integer, Integer>> measureUnitToTypeSubType =
+                new HashMap<MeasureUnit, Pair<Integer, Integer>>();
         for (Map.Entry<String, List<MeasureUnit>> entry : allUnits.entrySet()) {
+            int subTypeIdx = 0;
             for (MeasureUnit unit : entry.getValue()) {
                 if (!first) {
                     System.out.println(",");
                 }
                 System.out.print("    \"" + unit.getSubtype() + "\"");
                 first = false;
+                measureUnitToOffset.put(unit, offset);
+                measureUnitToTypeSubType.put(unit, Pair.of(typeIdx, subTypeIdx));
+                offset++;
+                subTypeIdx++;
             }
+            typeIdx++;
         }    
         System.out.println();
         System.out.println("};");
         System.out.println();
         
-        int typeIdx = 0;
+        // Build unit per unit offsets to corresponding type sub types sorted by
+        // unit first and then per unit.
+        TreeMap<OrderedPair<Integer, Integer>, Pair<Integer, Integer>> unitPerUnitOffsetsToTypeSubType
+                = new TreeMap<OrderedPair<Integer, Integer>, Pair<Integer, Integer>>();
+        for (Map.Entry<MeasureUnit, Pair<MeasureUnit, MeasureUnit>> entry
+                : getUnitsToPerParts().entrySet()) {
+            Pair<MeasureUnit, MeasureUnit> unitPerUnit = entry.getValue();
+            unitPerUnitOffsetsToTypeSubType.put(
+                    OrderedPair.of(
+                            measureUnitToOffset.get(unitPerUnit.first),
+                            measureUnitToOffset.get(unitPerUnit.second)),
+                    measureUnitToTypeSubType.get(entry.getKey()));
+        }
+        
+        System.out.println("// Must be sorted by first value and then second value.");
+        System.out.println("static int32_t unitPerUnitToSingleUnit[][4] = {");
+        first = true;
+        for (Map.Entry<OrderedPair<Integer, Integer>, Pair<Integer, Integer>> entry
+                : unitPerUnitOffsetsToTypeSubType.entrySet()) {
+            if (!first) {
+                System.out.println(",");
+            }
+            first = false;
+            OrderedPair<Integer, Integer> unitPerUnitOffsets = entry.getKey();
+            Pair<Integer, Integer> typeSubType = entry.getValue();
+            System.out.printf("        {%d, %d, %d, %d}",
+                    unitPerUnitOffsets.first,
+                    unitPerUnitOffsets.second,
+                    typeSubType.first,
+                    typeSubType.second);
+        }
+        System.out.println();
+        System.out.println("};");
+        System.out.println();
+        
+        Map<String, MeasureUnit> seen = new HashMap<String, MeasureUnit>();
         for (Map.Entry<String, List<MeasureUnit>> entry : allUnits.entrySet()) {
-            int subTypeIdx = 0;
+            
             String type = entry.getKey();
             if (type.equals("currency")) {
-                typeIdx++;
                 continue;
             }
             for (MeasureUnit unit : entry.getValue()) {
                 String name = toCamelCase(unit);
-                String javaName = toJAVAName(unit);
+                Pair<Integer, Integer> typeSubType = measureUnitToTypeSubType.get(unit);
+                if (typeSubType == null) {
+                    throw new IllegalStateException();
+                }
                 checkForDup(seen, name, unit);
-                if (isDraft(javaName)) {
-                    System.out.println("#ifndef U_HIDE_DRAFT_API");
-                }
                 System.out.printf("MeasureUnit *MeasureUnit::create%s(UErrorCode &status) {\n", name);
-                System.out.printf("    return MeasureUnit::create(%d, %d, status);\n", typeIdx, subTypeIdx);
+                System.out.printf("    return MeasureUnit::create(%d, %d, status);\n",
+                        typeSubType.first, typeSubType.second);
                 System.out.println("}");
-                if (isDraft(javaName)) {
-                    System.out.println("#endif /* U_HIDE_DRAFT_API */");
-                }
-                System.out.println();
-                subTypeIdx++;
+                System.out.println();                
             }
-            typeIdx++;
-        }    
+        }
     }
 
     private static String toCamelCase(MeasureUnit unit) {
