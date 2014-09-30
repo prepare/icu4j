@@ -48,7 +48,7 @@ public class SimplePatternFormatterTest extends TestFmwk {
          assertEquals(
                  "toString2",
                  "This doesn't have templates {0}",
-                 fmt.format(new StringBuilder(), offsets).toString());
+                 fmt.formatAndAppend(new StringBuilder(), offsets).toString());
          assertEquals(
                  "offsets[0]",
                  -1,
@@ -78,20 +78,24 @@ public class SimplePatternFormatterTest extends TestFmwk {
                          "Templates {1}{2} and {3} are here.").getPatternWithNoPlaceholders());
      }
      
-     public void TestWithPlaceholders() {
+     public void TestTooFewPlaceholderValues() {
          SimplePatternFormatter fmt = SimplePatternFormatter.compile(
                  "Templates {2}{1} and {4} are out of order.");
-         assertFalse("startsWithPlaceholder", fmt.startsWithPlaceholder(2));
-         assertEquals(
-                 "getPlaceholderCount",
-                 5,
-                 fmt.getPlaceholderCount());
          try {
              fmt.format("freddy", "tommy", "frog", "leg");
-             fail("Expected UnsupportedOperationException");
+             fail("Expected IllegalArgumentException");
          } catch (IllegalArgumentException e) {
              // Expected
          }
+     }
+     
+     public void TestWithPlaceholders() {
+         SimplePatternFormatter fmt = SimplePatternFormatter.compile(
+                 "Templates {2}{1} and {4} are out of order.");
+         assertEquals(
+                 "getPlaceholderCount",
+                 5,
+                 fmt.getPlaceholderCount()); 
          assertEquals(
                  "toString",
                  "Templates {2}{1} and {4} are out of order.",
@@ -100,7 +104,7 @@ public class SimplePatternFormatterTest extends TestFmwk {
         assertEquals(
                  "format",
                  "123456: Templates frogtommy and {0} are out of order.",
-                 fmt.format(
+                 fmt.formatAndAppend(
                          new StringBuilder("123456: "),
                          offsets,
                          "freddy", "tommy", "frog", "leg", "{0}").toString());
@@ -113,25 +117,98 @@ public class SimplePatternFormatterTest extends TestFmwk {
          }
      }
      
-     public void TestOptimization() {
+     public void TestFormatUseAppendToAsPlaceholder() {
+         SimplePatternFormatter fmt = SimplePatternFormatter.compile(
+                 "Placeholders {0} and {1}");
+         StringBuilder appendTo = new StringBuilder("previous:");
+         assertEquals(
+                 "",
+                 "previous:Placeholders previous: and frog",
+                 fmt.formatAndAppend(appendTo, null, appendTo, "frog").toString());
+     }
+     
+     public void TestFormatOverwriteNoOptimization() {
          SimplePatternFormatter fmt = SimplePatternFormatter.compile("{2}, {0}, {1} and {3}");
-         assertTrue("startsWithPlaceholder", fmt.startsWithPlaceholder(2));
-         assertFalse("startsWithPlaceholder", fmt.startsWithPlaceholder(0));
          int[] offsets = new int[4];
-         StringBuilder appendTo = new StringBuilder("leg");
+         StringBuilder result = new StringBuilder("original");
         assertEquals(
                  "format",
-                 "leg, freddy, frog and by",
-                 fmt.format(
-                         appendTo,
+                 "frog, original, freddy and by",
+                 fmt.formatAndOverwrite(
+                         result,
                          offsets,
-                         "freddy", "frog", appendTo, "by").toString());
+                         result, "freddy", "frog", "by").toString());
          
-         int[] expectedOffsets = {5, 13, 0, 22};
+         int[] expectedOffsets = {6, 16, 0, 27};
          for (int i = 0; i < offsets.length; i++) {
              if (offsets[i] != expectedOffsets[i]) {
                  fail("getOffset() returned wrong value for " + i);
              }
          }
      }
+     
+     
+     public void TestFormatOverwriteNoOptimizationLeadingText() {
+         SimplePatternFormatter fmt = SimplePatternFormatter.compile("boo {2}, {0}, {1} and {3}");
+         int[] offsets = new int[4];
+         StringBuilder result = new StringBuilder("original");
+        assertEquals(
+                 "format",
+                 "boo original, freddy, frog and by",
+                 fmt.formatAndOverwrite(
+                         result,
+                         offsets,
+                         "freddy", "frog", result, "by").toString());
+         
+         int[] expectedOffsets = {14, 22, 4, 31};
+         for (int i = 0; i < offsets.length; i++) {
+             if (offsets[i] != expectedOffsets[i]) {
+                 fail("getOffset() returned wrong value for " + i);
+             }
+         }  
+     }
+     
+     public void TestFormatOverwriteOptimization() {
+         SimplePatternFormatter fmt = SimplePatternFormatter.compile("{2}, {0}, {1} and {3}");
+         int[] offsets = new int[4];
+         StringBuilder result = new StringBuilder("original");
+        assertEquals(
+                 "format",
+                 "original, freddy, frog and by",
+                 fmt.formatAndOverwrite(
+                         result,
+                         offsets,
+                         "freddy", "frog", result, "by").toString());
+         
+         int[] expectedOffsets = {10, 18, 0, 27};
+         for (int i = 0; i < offsets.length; i++) {
+             if (offsets[i] != expectedOffsets[i]) {
+                 fail("getOffset() returned wrong value for " + i);
+             }
+         }  
+     }
+     
+     public void TestFormatOverwriteOptimizationNoOffsets() {
+         SimplePatternFormatter fmt = SimplePatternFormatter.compile("{2}, {0}, {1} and {3}");
+         StringBuilder result = new StringBuilder("original");
+        assertEquals(
+                 "format",
+                 "original, freddy, frog and by",
+                 fmt.formatAndOverwrite(
+                         result,
+                         null,
+                         "freddy", "frog", result, "by").toString());
+         
+     }
+     
+     public void TestFormatOverwriteNoOptimizationNoOffsets() {
+         SimplePatternFormatter fmt = SimplePatternFormatter.compile(
+                 "Placeholders {0} and {1}");
+         StringBuilder result = new StringBuilder("previous:");
+         assertEquals(
+                 "",
+                 "Placeholders previous: and frog",
+                 fmt.formatAndOverwrite(result, null, result, "frog").toString());
+     }
+     
 }
