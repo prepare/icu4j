@@ -122,69 +122,118 @@ public class SimplePatternFormatter {
     }
     
     /**
-     * Returns true if this instance starts with placeholder with given id.
-     */
-    public boolean startsWithPlaceholder(int id) {
-        if (placeholderIdsOrderedByOffset.length == 0) {
-            return false;
-        }
-        return (placeholderIdsOrderedByOffset[0] == 0 && placeholderIdsOrderedByOffset[1] == id);
-    }
-    
-    /**
      * Formats the given values.
      */
     public String format(CharSequence... values) {
-        return format(new StringBuilder(), null, values).toString();
+        return formatAndAppend(new StringBuilder(), null, values).toString();
     }
 
     /**
      * Formats the given values.
      * 
-     * @param appendTo the result appended here. Optimization: If the pattern this object
-     * represents starts with a placeholder AND appendTo references the value of that same
-     * placeholder (corresponding values parameter must also be a StringBuilder), then that
-     * placeholder value is not copied to appendTo (Its already there). If the value of the
-     * starting placeholder is very large, this optimization can offer huge savings.
+     * @param appendTo the result appended here. 
      * @param offsets position of first value in appendTo stored in offsets[0];
      *   second in offsets[1]; third in offsets[2] etc. An offset of -1 means that the
      *   corresponding value is not in appendTo. offsets.length and values.length may
-     *   differ. If caller is not interested in offsets, caller may pass null here.
-     * @param values the values
+     *   differ. If offsets.length < values.length then only the first offsets are written out;
+     *   If offsets.length > values.length then the extra offsets get -1.
+     *   If caller is not interested in offsets, caller may pass null here.
+     * @param values the placeholder values. A placeholder value may be appendTo itself in which case
+     *   the previous value of appendTo is used.
      * @return appendTo
      */
-    public StringBuilder format(
+    public StringBuilder formatAndAppend(
             StringBuilder appendTo, int[] offsets, CharSequence... values) {
         if (values.length < placeholderCount) {
             throw new IllegalArgumentException("Too few values.");
         }
+        formatReturningOffsetLength(appendTo, offsets, fixValues(appendTo, -1, values));
+        return appendTo;
+    }
+    
+    /**
+     * Formats the given values.
+     * 
+     * @param result The result is stored here overwriting any previously stored value. 
+     * @param offsets position of first value in result stored in offsets[0];
+     *   second in offsets[1]; third in offsets[2] etc. An offset of -1 means that the
+     *   corresponding value is not in result. offsets.length and values.length may
+     *   differ. If offsets.length < values.length then only the first offsets are written out;
+     *   If offsets.length > values.length then the extra offsets get -1.
+     *   If caller is not interested in offsets, caller may pass null here.
+     * @param values the placeholder values. A placeholder value may be result itself in which case
+     *   The previous value of result is used.
+     * @return result
+     */
+    public StringBuilder formatAndOverwrite(
+            StringBuilder result, int[] offsets, CharSequence... values) {
+        if (values.length < placeholderCount) {
+            throw new IllegalArgumentException("Too few values.");
+        }
+        int placeholderAtStart = getPlaceholderAtStart();
+        
+        // If patterns starts with a placeholder and the value for that placeholder
+        // is result, then we can optimize by just appending to result.
+        if (placeholderAtStart >= 0 && values[placeholderAtStart] == result) {
+            
+            // Append to result, but make the value of the placeholderAtStart placeholder be
+            // the empty string so that it doesn't show up twice.
+            CharSequence[] fixedValues = fixValues(result, placeholderAtStart, values);
+            int offsetLength = formatReturningOffsetLength(result, offsets, fixedValues);
+            
+            // We have to make the offset for the placholderAtStart placeholder be 0.
+            // Otherwise it would be the length of the previous value of result.
+            if (offsetLength > placeholderAtStart) {
+                offsets[placeholderAtStart] = 0;
+            }
+            return result;
+        }
+        CharSequence[] fixedValues = fixValues(result, -1, values);
+        result.setLength(0);
+        formatReturningOffsetLength(result, offsets, fixedValues);
+        return result;
+    }
+    
+    /**
+     * Formats this object using values {0}, {1} etc. Note that this is
+     * not the same as the original pattern string used to build this object.
+     */
+    @Override
+    public String toString() {
+        String[] values = new String[this.getPlaceholderCount()];
+        for (int i = 0; i < values.length; i++) {
+            values[i] = String.format("{%d}", i);
+        }
+        return formatAndAppend(new StringBuilder(), null, values).toString();
+    }
+    
+    /**
+     * Just like format, but does no sanity check on values. In particular no
+     * element in values can be equaled to appendTo. In addition, it returns
+     * the length of the offsets array. Returns 0 if offsets is null.
+     */
+    private int formatReturningOffsetLength(
+            StringBuilder appendTo,
+            int[] offsets,
+            CharSequence... values) {
         int offsetLen = offsets == null ? 0 : offsets.length;
         for (int i = 0; i < offsetLen; i++) {
             offsets[i] = -1;
         }
         if (placeholderIdsOrderedByOffset.length == 0) {
             appendTo.append(patternWithoutPlaceholders);
-            return appendTo;
+            return offsetLen;
         }
-        if (placeholderIdsOrderedByOffset[0] > 0 ||
-                appendTo != values[placeholderIdsOrderedByOffset[1]]) {
-            appendTo.append(
-                    patternWithoutPlaceholders,
-                    0,
-                    placeholderIdsOrderedByOffset[0]);
-            setPlaceholderOffset(
-                    placeholderIdsOrderedByOffset[1],
-                    appendTo.length(),
-                    offsets,
-                    offsetLen);
-            appendTo.append(values[placeholderIdsOrderedByOffset[1]]);
-        } else {
-            setPlaceholderOffset(
-                    placeholderIdsOrderedByOffset[1],
-                    0,
-                    offsets,
-                    offsetLen);
-        }
+        appendTo.append(
+                patternWithoutPlaceholders,
+                0,
+                placeholderIdsOrderedByOffset[0]);
+        setPlaceholderOffset(
+                placeholderIdsOrderedByOffset[1],
+                appendTo.length(),
+                offsets,
+                offsetLen);
+        appendTo.append(values[placeholderIdsOrderedByOffset[1]]);
         for (int i = 2; i < placeholderIdsOrderedByOffset.length; i += 2) {
             appendTo.append(
                     patternWithoutPlaceholders,
@@ -201,20 +250,51 @@ public class SimplePatternFormatter {
                 patternWithoutPlaceholders,
                 placeholderIdsOrderedByOffset[placeholderIdsOrderedByOffset.length - 2],
                 patternWithoutPlaceholders.length());
-        return appendTo;
+        return offsetLen;
     }
     
     /**
-     * Formats this object using values {0}, {1} etc. Note that this is
-     * not the same as the original pattern string used to build this object.
+     * Returns an array like values except that for each element in values that is
+     * equaled to builder, the corresponding element in returned array contains a snapshot
+     * of builder as a string. Moreover if emptyIndex >=0, the emptyIndexth element of
+     * returned array will be the empty string ("") regardless of the value of the corresponding
+     * element in the values array. If no changes are needed, fixValues returns the values array
+     * unchanged; when changes are needed, fixValues returns a new array with the changes. In all
+     * cases, the values array remains unchanged.
      */
-    @Override
-    public String toString() {
-        String[] values = new String[this.getPlaceholderCount()];
-        for (int i = 0; i < values.length; i++) {
-            values[i] = String.format("{%d}", i);
+    private CharSequence[] fixValues(
+            StringBuilder builder, int emptyIndex, CharSequence... values) {
+        boolean valuesOk = (emptyIndex < 0);
+        for (int i = 0; valuesOk && i < placeholderCount; i++) {
+            if (values[i] == builder) {
+                valuesOk = false;
+            }
         }
-        return format(new StringBuilder(), null, values).toString();
+        if (valuesOk) {
+            return values;
+        }
+        CharSequence[] result = new CharSequence[placeholderCount];
+        for (int i = 0; i < placeholderCount; i++) {
+            if (i == emptyIndex) {
+                result[i] = "";
+            } else if (values[i] == builder) {
+                result[i] = builder.toString();
+            } else {
+                result[i] = values[i];
+            }
+        }
+        return result;
+    }
+    
+    /**
+     * Returns the placeholder at the beginning of this pattern (e.g 3 for placeholder {3}). If the
+     * beginning of pattern is text instead of a placeholder, returns -1.
+     */
+    private int getPlaceholderAtStart() {
+        if (placeholderIdsOrderedByOffset.length == 0 || placeholderIdsOrderedByOffset[0] != 0) {
+            return -1;
+        }
+        return placeholderIdsOrderedByOffset[1];
     }
     
     private static void setPlaceholderOffset(
@@ -290,4 +370,6 @@ public class SimplePatternFormatter {
     public String getPatternWithNoPlaceholders() {
         return patternWithoutPlaceholders;
     }
+
+   
 }

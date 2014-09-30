@@ -524,7 +524,7 @@ public class MeasureFormat extends UFormat {
         FieldPosition fpos = new FieldPosition(
                 pos.getFieldAttribute(), pos.getField());
         int offset = withPerUnit(
-                formatMeasure(measure, numberFormat, appendTo, fpos),
+                formatMeasure(measure, numberFormat, new StringBuilder(), fpos),
                 perUnit,
                 appendTo);
         if (fpos.getBeginIndex() != 0 || fpos.getEndIndex() != 0) {
@@ -866,14 +866,14 @@ public class MeasureFormat extends UFormat {
                 unitToStyleToPerUnitPattern.get(perUnit);
         SimplePatternFormatter perUnitPattern = styleToPerUnitPattern.get(formatWidth);
         if (perUnitPattern != null) {
-            perUnitPattern.format(appendTo, offsets, formatted);
+            perUnitPattern.formatAndAppend(appendTo, offsets, formatted);
             return offsets[0];
         }
         SimplePatternFormatter perPattern = styleToPerPattern.get(formatWidth);
         Map<FormatWidth, QuantityFormatter> styleToCountToFormat = unitToStyleToCountToFormat.get(perUnit);
         QuantityFormatter countToFormat = styleToCountToFormat.get(formatWidth);
         String perUnitString = countToFormat.getByVariant("one").getPatternWithNoPlaceholders().trim();
-        perPattern.format(appendTo, offsets, formatted, perUnitString);
+        perPattern.formatAndAppend(appendTo, offsets, formatted, perUnitString);
         return offsets[0];
     }
 
@@ -906,7 +906,7 @@ public class MeasureFormat extends UFormat {
         QuantityFormatter countToFormat = styleToCountToFormat.get(formatWidth);
         SimplePatternFormatter formatter = countToFormat.getByVariant(keyword);
         int[] offsets = new int[1];
-        formatter.format(appendTo, offsets, formattedNumber);
+        formatter.formatAndAppend(appendTo, offsets, formattedNumber);
         if (offsets[0] != -1) { // there is a number (may not happen with, say, Arabic dual)
             // Fix field position
             if (fpos.getBeginIndex() != 0 || fpos.getEndIndex() != 0) {
