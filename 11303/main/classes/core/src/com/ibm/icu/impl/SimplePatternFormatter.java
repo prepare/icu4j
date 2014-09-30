@@ -147,7 +147,8 @@ public class SimplePatternFormatter {
         if (values.length < placeholderCount) {
             throw new IllegalArgumentException("Too few values.");
         }
-        formatReturningOffsetLength(appendTo, offsets, fixValues(appendTo, -1, values));
+        CharSequence[] fixedValues = fixValues(appendTo, -1, values);
+        formatReturningOffsetLength(appendTo, offsets, fixedValues);
         return appendTo;
     }
     
@@ -274,11 +275,15 @@ public class SimplePatternFormatter {
             return values;
         }
         CharSequence[] result = new CharSequence[placeholderCount];
+        String builderCopy = null;
         for (int i = 0; i < placeholderCount; i++) {
             if (i == emptyIndex) {
                 result[i] = "";
             } else if (values[i] == builder) {
-                result[i] = builder.toString();
+                if (builderCopy == null) {
+                    builderCopy = builder.toString();
+                }
+                result[i] = builderCopy;
             } else {
                 result[i] = values[i];
             }
