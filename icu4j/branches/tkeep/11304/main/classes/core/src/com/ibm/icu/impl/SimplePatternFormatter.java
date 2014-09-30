@@ -121,14 +121,11 @@ public class SimplePatternFormatter {
         return placeholderCount;
     }
     
-    /**
-     * Returns true if this instance starts with placeholder with given id.
-     */
-    public boolean startsWithPlaceholder(int id) {
-        if (placeholderIdsOrderedByOffset.length == 0) {
-            return false;
+    private int getPlaceholderAtStart() {
+        if (placeholderIdsOrderedByOffset.length == 0 || placeholderIdsOrderedByOffset[0] != 0) {
+            return -1;
         }
-        return (placeholderIdsOrderedByOffset[0] == 0 && placeholderIdsOrderedByOffset[1] == id);
+        return placeholderIdsOrderedByOffset[1];
     }
     
     /**
@@ -141,16 +138,14 @@ public class SimplePatternFormatter {
     /**
      * Formats the given values.
      * 
-     * @param appendTo the result appended here. Optimization: If the pattern this object
-     * represents starts with a placeholder AND appendTo references the value of that same
-     * placeholder (corresponding values parameter must also be a StringBuilder), then that
-     * placeholder value is not copied to appendTo (Its already there). If the value of the
-     * starting placeholder is very large, this optimization can offer huge savings.
+     * @param appendTo the result appended here. 
      * @param offsets position of first value in appendTo stored in offsets[0];
      *   second in offsets[1]; third in offsets[2] etc. An offset of -1 means that the
      *   corresponding value is not in appendTo. offsets.length and values.length may
-     *   differ. If caller is not interested in offsets, caller may pass null here.
-     * @param values the values
+     *   differ. If offsets.length < values.length then only the first offsets are written out;
+     *   If offsets.length > values.length then the extra offsets get -1.
+     *   If caller is not interested in offsets, caller may pass null here.
+     * @param values the values. Must be non-null and cannot be appendTo.
      * @return appendTo
      */
     public StringBuilder format(
@@ -158,32 +153,116 @@ public class SimplePatternFormatter {
         if (values.length < placeholderCount) {
             throw new IllegalArgumentException("Too few values.");
         }
+        for (int i = 0; i < values.length; i++) {
+            if (values[i] == appendTo) {
+                throw new IllegalArgumentException("Can't use appendTo buffer as a placeholder value");
+            }
+            if (values[i] == null) {
+                throw new IllegalArgumentException("Can't use null as a placeholder value.");
+            }
+        }
         int offsetLen = offsets == null ? 0 : offsets.length;
         for (int i = 0; i < offsetLen; i++) {
             offsets[i] = -1;
         }
+        return formatFrom(appendTo, true, offsets, offsetLen, values);
+    }
+    
+    /**
+     * Formats the given values in place.
+     * 
+     * @param inPlaceResult previous value replaced with formatted value. 
+     * @param offsets position of first value in appendTo stored in offsets[0];
+     *   second in offsets[1]; third in offsets[2] etc. An offset of -1 means that the
+     *   corresponding value is not in appendTo. offsets.length and values.length may
+     *   differ. If offsets.length < values.length then only the first offsets are written out;
+     *   If offsets.length > values.length then the extra offsets get -1.
+     *   If caller is not interested in offsets, caller may pass null here.
+     * @param values the values. Cannot be inPlaceResult. A null value, means the previous value of
+     *    inPlaceResult
+     * @return inPlaceResult
+     */
+    public StringBuilder formatInPlace(
+            StringBuilder inPlaceResult, int[] offsets, CharSequence... values) {
+        boolean needToCopyValues = false;
+        boolean canOptimize = false;
+        int placeholderAtStart = getPlaceholderAtStart();
+        for (int i = 0; i < values.length; i++) {
+            if (inPlaceResult == values[i]) {
+                throw new IllegalArgumentException("Can't use inPlaceResult buffer as a placeholder value");
+            }
+            if (values[i] == null) {
+                if (i != placeholderAtStart) {
+                    needToCopyValues = true;
+                } else {
+                    canOptimize = true;
+                }
+            }
+        }
+        CharSequence[] valuesCopy = values;
+        if (needToCopyValues) {
+            valuesCopy = new CharSequence[values.length];
+            for (int i = 0; i < valuesCopy.length; i++) {
+                if (canOptimize && i == placeholderAtStart) {
+                    // When optimizing, we can ignore the NULL value for placeholderAtStart placeholder.
+                    continue;
+                }
+                valuesCopy[i] = values[i] == null ? inPlaceResult.toString() : values[i];
+            }
+        }
+        int offsetLen = offsets == null ? 0 : offsets.length;
+        for (int i = 0; i < offsetLen; i++) {
+            offsets[i] = -1;
+        }
+        if (canOptimize) {
+            // Start placeholder is at position 0.
+            setPlaceholderOffset(
+                    placeholderAtStart,
+                    0,
+                    offsets,
+                    offsetLen);
+            // Format everything after first placeholder
+            return formatFrom(inPlaceResult, false, offsets, offsetLen, valuesCopy);
+        }
+        // Clear appendTo
+        inPlaceResult.setLength(0);
+        return formatFrom(inPlaceResult, true, offsets, offsetLen, valuesCopy);
+    }
+    
+    /**
+     * Formats this object using values {0}, {1} etc. Note that this is
+     * not the same as the original pattern string used to build this object.
+     */
+    @Override
+    public String toString() {
+        String[] values = new String[this.getPlaceholderCount()];
+        for (int i = 0; i < values.length; i++) {
+            values[i] = String.format("{%d}", i);
+        }
+        return format(new StringBuilder(), null, values).toString();
+    }
+    
+    public StringBuilder formatFrom(
+            StringBuilder appendTo,
+            boolean includeFirstPlaceholder,
+            int[] offsets,
+            int offsetLen,
+            CharSequence... values) {
         if (placeholderIdsOrderedByOffset.length == 0) {
             appendTo.append(patternWithoutPlaceholders);
             return appendTo;
         }
-        if (placeholderIdsOrderedByOffset[0] > 0 ||
-                appendTo != values[placeholderIdsOrderedByOffset[1]]) {
-            appendTo.append(
-                    patternWithoutPlaceholders,
-                    0,
-                    placeholderIdsOrderedByOffset[0]);
+        appendTo.append(
+                patternWithoutPlaceholders,
+                0,
+                placeholderIdsOrderedByOffset[0]);
+        if (includeFirstPlaceholder) {
             setPlaceholderOffset(
                     placeholderIdsOrderedByOffset[1],
                     appendTo.length(),
                     offsets,
                     offsetLen);
             appendTo.append(values[placeholderIdsOrderedByOffset[1]]);
-        } else {
-            setPlaceholderOffset(
-                    placeholderIdsOrderedByOffset[1],
-                    0,
-                    offsets,
-                    offsetLen);
         }
         for (int i = 2; i < placeholderIdsOrderedByOffset.length; i += 2) {
             appendTo.append(
@@ -202,19 +281,6 @@ public class SimplePatternFormatter {
                 placeholderIdsOrderedByOffset[placeholderIdsOrderedByOffset.length - 2],
                 patternWithoutPlaceholders.length());
         return appendTo;
-    }
-    
-    /**
-     * Formats this object using values {0}, {1} etc. Note that this is
-     * not the same as the original pattern string used to build this object.
-     */
-    @Override
-    public String toString() {
-        String[] values = new String[this.getPlaceholderCount()];
-        for (int i = 0; i < values.length; i++) {
-            values[i] = String.format("{%d}", i);
-        }
-        return format(new StringBuilder(), null, values).toString();
     }
     
     private static void setPlaceholderOffset(
@@ -290,4 +356,6 @@ public class SimplePatternFormatter {
     public String getPatternWithNoPlaceholders() {
         return patternWithoutPlaceholders;
     }
+
+   
 }

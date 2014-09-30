@@ -78,20 +78,24 @@ public class SimplePatternFormatterTest extends TestFmwk {
                          "Templates {1}{2} and {3} are here.").getPatternWithNoPlaceholders());
      }
      
-     public void TestWithPlaceholders() {
+     public void TestTooFewPlaceholderValues() {
          SimplePatternFormatter fmt = SimplePatternFormatter.compile(
                  "Templates {2}{1} and {4} are out of order.");
-         assertFalse("startsWithPlaceholder", fmt.startsWithPlaceholder(2));
-         assertEquals(
-                 "getPlaceholderCount",
-                 5,
-                 fmt.getPlaceholderCount());
          try {
              fmt.format("freddy", "tommy", "frog", "leg");
-             fail("Expected UnsupportedOperationException");
+             fail("Expected IllegalArgumentException");
          } catch (IllegalArgumentException e) {
              // Expected
          }
+     }
+     
+     public void TestWithPlaceholders() {
+         SimplePatternFormatter fmt = SimplePatternFormatter.compile(
+                 "Templates {2}{1} and {4} are out of order.");
+         assertEquals(
+                 "getPlaceholderCount",
+                 5,
+                 fmt.getPlaceholderCount()); 
          assertEquals(
                  "toString",
                  "Templates {2}{1} and {4} are out of order.",
@@ -113,25 +117,99 @@ public class SimplePatternFormatterTest extends TestFmwk {
          }
      }
      
-     public void TestOptimization() {
+     public void TestFormatUseAppendToAsPlaceholder() {
+         SimplePatternFormatter fmt = SimplePatternFormatter.compile(
+                 "Placeholders {0} and {1}");
+         try {
+             StringBuilder appendTo = new StringBuilder();
+             fmt.format(appendTo, new int[0], appendTo, "frog");
+             fail("Expected IllegalArgumentException");
+         } catch (IllegalArgumentException e) {
+             // Expected
+         } 
+     }
+     
+     public void TestFormatInPlaceUseAppendToAsPlaceholder() {
+         SimplePatternFormatter fmt = SimplePatternFormatter.compile(
+                 "Placeholders {0} and {1}");
+         try {
+             StringBuilder appendTo = new StringBuilder();
+             fmt.formatInPlace(appendTo, new int[0], appendTo, "frog");
+             fail("Expected IllegalArgumentException");
+         } catch (IllegalArgumentException e) {
+             // Expected
+         } 
+     }
+     
+     public void TestFormatUseNullAsPlaceholder() {
+         SimplePatternFormatter fmt = SimplePatternFormatter.compile(
+                 "Placeholders {0} and {1}");
+         try {
+             StringBuilder appendTo = new StringBuilder();
+             fmt.format(appendTo, new int[0], "frog", null);
+             fail("Expected IllegalArgumentException");
+         } catch (IllegalArgumentException e) {
+             // Expected
+         } 
+     }
+     
+     public void TestFormatInPlaceNoOptimization() {
          SimplePatternFormatter fmt = SimplePatternFormatter.compile("{2}, {0}, {1} and {3}");
-         assertTrue("startsWithPlaceholder", fmt.startsWithPlaceholder(2));
-         assertFalse("startsWithPlaceholder", fmt.startsWithPlaceholder(0));
          int[] offsets = new int[4];
-         StringBuilder appendTo = new StringBuilder("leg");
+         StringBuilder appendTo = new StringBuilder("original");
         assertEquals(
                  "format",
-                 "leg, freddy, frog and by",
-                 fmt.format(
+                 "frog, original, freddy and by",
+                 fmt.formatInPlace(
                          appendTo,
                          offsets,
-                         "freddy", "frog", appendTo, "by").toString());
+                         null, "freddy", "frog", "by").toString());
          
-         int[] expectedOffsets = {5, 13, 0, 22};
+         int[] expectedOffsets = {6, 16, 0, 27};
          for (int i = 0; i < offsets.length; i++) {
              if (offsets[i] != expectedOffsets[i]) {
                  fail("getOffset() returned wrong value for " + i);
              }
          }
+     }
+     
+     public void TestFormatInPlaceNoOptimizationLeadingText() {
+         SimplePatternFormatter fmt = SimplePatternFormatter.compile("boo {2}, {0}, {1} and {3}");
+         int[] offsets = new int[4];
+         StringBuilder appendTo = new StringBuilder("original");
+        assertEquals(
+                 "format",
+                 "boo original, freddy, frog and by",
+                 fmt.formatInPlace(
+                         appendTo,
+                         offsets,
+                         "freddy", "frog", null, "by").toString());
+         
+         int[] expectedOffsets = {14, 22, 4, 31};
+         for (int i = 0; i < offsets.length; i++) {
+             if (offsets[i] != expectedOffsets[i]) {
+                 fail("getOffset() returned wrong value for " + i);
+             }
+         }  
+     }
+     
+     public void TestFormatInPlaceOptimization() {
+         SimplePatternFormatter fmt = SimplePatternFormatter.compile("{2}, {0}, {1} and {3}");
+         int[] offsets = new int[4];
+         StringBuilder appendTo = new StringBuilder("original");
+        assertEquals(
+                 "format",
+                 "original, freddy, frog and by",
+                 fmt.formatInPlace(
+                         appendTo,
+                         offsets,
+                         "freddy", "frog", null, "by").toString());
+         
+         int[] expectedOffsets = {10, 18, 0, 27};
+         for (int i = 0; i < offsets.length; i++) {
+             if (offsets[i] != expectedOffsets[i]) {
+                 fail("getOffset() returned wrong value for " + i);
+             }
+         }  
      }
 }
