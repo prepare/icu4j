@@ -134,7 +134,7 @@ public class SimplePatternFormatterTest extends TestFmwk {
         assertEquals(
                  "format",
                  "frog, original, freddy and by",
-                 fmt.formatAndOverwrite(
+                 fmt.formatAndReplace(
                          result,
                          offsets,
                          result, "freddy", "frog", "by").toString());
@@ -155,7 +155,7 @@ public class SimplePatternFormatterTest extends TestFmwk {
         assertEquals(
                  "format",
                  "boo original, freddy, frog and by",
-                 fmt.formatAndOverwrite(
+                 fmt.formatAndReplace(
                          result,
                          offsets,
                          "freddy", "frog", result, "by").toString());
@@ -175,7 +175,7 @@ public class SimplePatternFormatterTest extends TestFmwk {
         assertEquals(
                  "format",
                  "original, freddy, frog and by",
-                 fmt.formatAndOverwrite(
+                 fmt.formatAndReplace(
                          result,
                          offsets,
                          "freddy", "frog", result, "by").toString());
@@ -194,7 +194,7 @@ public class SimplePatternFormatterTest extends TestFmwk {
         assertEquals(
                  "format",
                  "original, freddy, frog and by",
-                 fmt.formatAndOverwrite(
+                 fmt.formatAndReplace(
                          result,
                          null,
                          "freddy", "frog", result, "by").toString());
@@ -208,7 +208,7 @@ public class SimplePatternFormatterTest extends TestFmwk {
          assertEquals(
                  "",
                  "Placeholders previous: and frog",
-                 fmt.formatAndOverwrite(result, null, result, "frog").toString());
+                 fmt.formatAndReplace(result, null, result, "frog").toString());
      }
      
 }

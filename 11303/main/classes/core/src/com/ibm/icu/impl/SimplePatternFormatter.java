@@ -166,7 +166,7 @@ public class SimplePatternFormatter {
      *   The previous value of result is used.
      * @return result
      */
-    public StringBuilder formatAndOverwrite(
+    public StringBuilder formatAndReplace(
             StringBuilder result, int[] offsets, CharSequence... values) {
         if (values.length < placeholderCount) {
             throw new IllegalArgumentException("Too few values.");
