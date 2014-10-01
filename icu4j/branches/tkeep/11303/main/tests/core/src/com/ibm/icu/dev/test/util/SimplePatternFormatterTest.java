@@ -87,6 +87,20 @@ public class SimplePatternFormatterTest extends TestFmwk {
          } catch (IllegalArgumentException e) {
              // Expected
          }
+         try {
+             fmt.formatAndAppend(
+                     new StringBuilder(), null, "freddy", "tommy", "frog", "leg");
+             fail("Expected IllegalArgumentException");
+         } catch (IllegalArgumentException e) {
+             // Expected
+         }
+         try {
+             fmt.formatAndReplace(
+                     new StringBuilder(), null, "freddy", "tommy", "frog", "leg");
+             fail("Expected IllegalArgumentException");
+         } catch (IllegalArgumentException e) {
+             // Expected
+         }
      }
      
      public void TestWithPlaceholders() {
@@ -127,7 +141,7 @@ public class SimplePatternFormatterTest extends TestFmwk {
                  fmt.formatAndAppend(appendTo, null, appendTo, "frog").toString());
      }
      
-     public void TestFormatOverwriteNoOptimization() {
+     public void TestFormatReplaceNoOptimization() {
          SimplePatternFormatter fmt = SimplePatternFormatter.compile("{2}, {0}, {1} and {3}");
          int[] offsets = new int[4];
          StringBuilder result = new StringBuilder("original");
@@ -148,7 +162,7 @@ public class SimplePatternFormatterTest extends TestFmwk {
      }
      
      
-     public void TestFormatOverwriteNoOptimizationLeadingText() {
+     public void TestFormatReplaceNoOptimizationLeadingText() {
          SimplePatternFormatter fmt = SimplePatternFormatter.compile("boo {2}, {0}, {1} and {3}");
          int[] offsets = new int[4];
          StringBuilder result = new StringBuilder("original");
@@ -168,7 +182,7 @@ public class SimplePatternFormatterTest extends TestFmwk {
          }  
      }
      
-     public void TestFormatOverwriteOptimization() {
+     public void TestFormatReplaceOptimization() {
          SimplePatternFormatter fmt = SimplePatternFormatter.compile("{2}, {0}, {1} and {3}");
          int[] offsets = new int[4];
          StringBuilder result = new StringBuilder("original");
@@ -188,7 +202,7 @@ public class SimplePatternFormatterTest extends TestFmwk {
          }  
      }
      
-     public void TestFormatOverwriteOptimizationNoOffsets() {
+     public void TestFormatReplaceOptimizationNoOffsets() {
          SimplePatternFormatter fmt = SimplePatternFormatter.compile("{2}, {0}, {1} and {3}");
          StringBuilder result = new StringBuilder("original");
         assertEquals(
@@ -201,7 +215,7 @@ public class SimplePatternFormatterTest extends TestFmwk {
          
      }
      
-     public void TestFormatOverwriteNoOptimizationNoOffsets() {
+     public void TestFormatReplaceNoOptimizationNoOffsets() {
          SimplePatternFormatter fmt = SimplePatternFormatter.compile(
                  "Placeholders {0} and {1}");
          StringBuilder result = new StringBuilder("previous:");
