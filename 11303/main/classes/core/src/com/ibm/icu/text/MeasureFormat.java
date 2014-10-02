@@ -523,16 +523,14 @@ public class MeasureFormat extends UFormat {
         }
         FieldPosition fpos = new FieldPosition(
                 pos.getFieldAttribute(), pos.getField());
-        StringBuilder result = new StringBuilder();
-        int offset = withPerUnitAndReplace(
-                formatMeasure(measure, numberFormat, result, fpos),
+        int offset = withPerUnitAndAppend(
+                formatMeasure(measure, numberFormat, new StringBuilder(), fpos),
                 perUnit,
-                result);
+                appendTo);
         if (fpos.getBeginIndex() != 0 || fpos.getEndIndex() != 0) {
-            pos.setBeginIndex(appendTo.length() + fpos.getBeginIndex() + offset);
-            pos.setEndIndex(appendTo.length() + fpos.getEndIndex() + offset);
+            pos.setBeginIndex(fpos.getBeginIndex() + offset);
+            pos.setEndIndex(fpos.getEndIndex() + offset);
         }
-        appendTo.append(result);
         return appendTo;
     }
 
@@ -862,21 +860,21 @@ public class MeasureFormat extends UFormat {
         return true;
     }
     
-    private int withPerUnitAndReplace(
-            CharSequence formatted, MeasureUnit perUnit, StringBuilder result) {
+    private int withPerUnitAndAppend(
+            CharSequence formatted, MeasureUnit perUnit, StringBuilder appendTo) {
         int[] offsets = new int[1];
         Map<FormatWidth, SimplePatternFormatter> styleToPerUnitPattern =
                 unitToStyleToPerUnitPattern.get(perUnit);
         SimplePatternFormatter perUnitPattern = styleToPerUnitPattern.get(formatWidth);
         if (perUnitPattern != null) {
-            perUnitPattern.formatAndReplace(result, offsets, formatted);
+            perUnitPattern.formatAndAppend(appendTo, offsets, formatted);
             return offsets[0];
         }
         SimplePatternFormatter perPattern = styleToPerPattern.get(formatWidth);
         Map<FormatWidth, QuantityFormatter> styleToCountToFormat = unitToStyleToCountToFormat.get(perUnit);
         QuantityFormatter countToFormat = styleToCountToFormat.get(formatWidth);
         String perUnitString = countToFormat.getByVariant("one").getPatternWithNoPlaceholders().trim();
-        perPattern.formatAndReplace(result, offsets, formatted, perUnitString);
+        perPattern.formatAndAppend(appendTo, offsets, formatted, perUnitString);
         return offsets[0];
     }
 
