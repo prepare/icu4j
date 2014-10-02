@@ -177,8 +177,9 @@ public class SimplePatternFormatter {
         // is result, then we can optimize by just appending to result.
         if (placeholderAtStart >= 0 && values[placeholderAtStart] == result) {
             
-            // Append to result, but make the value of the placeholderAtStart placeholder be
-            // the empty string so that it doesn't show up twice.
+            // Append to result, but make the value of the placeholderAtStart
+            // placeholder remain the same as result so that it is treated as the
+            // empty string.
             CharSequence[] fixedValues = fixValues(result, placeholderAtStart, values);
             int offsetLength = formatReturningOffsetLength(result, offsets, fixedValues);
             
@@ -209,9 +210,10 @@ public class SimplePatternFormatter {
     }
     
     /**
-     * Just like format, but does no sanity check on values. In particular no
-     * element in values can be equaled to appendTo. In addition, it returns
-     * the length of the offsets array. Returns 0 if offsets is null.
+     * Just like format, but uses placeholder values exactly as they are.
+     * A placeholder value that is the same object as appendTo is treated
+     * as the empty string. In addition, returns the length of the offsets
+     * array. Returns 0 if offsets is null.
      */
     private int formatReturningOffsetLength(
             StringBuilder appendTo,
@@ -234,7 +236,10 @@ public class SimplePatternFormatter {
                 appendTo.length(),
                 offsets,
                 offsetLen);
-        appendTo.append(values[placeholderIdsOrderedByOffset[1]]);
+        CharSequence placeholderValue = values[placeholderIdsOrderedByOffset[1]];
+        if (placeholderValue != appendTo) {
+            appendTo.append(placeholderValue);
+        }
         for (int i = 2; i < placeholderIdsOrderedByOffset.length; i += 2) {
             appendTo.append(
                     patternWithoutPlaceholders,
@@ -245,7 +250,10 @@ public class SimplePatternFormatter {
                     appendTo.length(),
                     offsets,
                     offsetLen);
-            appendTo.append(values[placeholderIdsOrderedByOffset[i + 1]]);
+            placeholderValue = values[placeholderIdsOrderedByOffset[i + 1]];
+            if (placeholderValue != appendTo) {
+                appendTo.append(placeholderValue);
+            }
         }
         appendTo.append(
                 patternWithoutPlaceholders,
@@ -256,19 +264,20 @@ public class SimplePatternFormatter {
     
     /**
      * Returns an array like values except that for each element in values that is
-     * equaled to builder, the corresponding element in returned array contains a snapshot
-     * of builder as a string. Moreover if emptyIndex >=0, the emptyIndexth element of
-     * returned array will be the empty string ("") regardless of the value of the corresponding
-     * element in the values array. If no changes are needed, fixValues returns the values array
-     * unchanged; when changes are needed, fixValues returns a new array with the changes. In all
-     * cases, the values array remains unchanged.
+     * the same as builder, the corresponding element in returned array contains a
+     * snapshot of builder as a string. Moreover if skipIndex >=0, the skipIndexth
+     * element of values is not checked and is left as-is in returned array.
+     * If no changes are needed, fixValues returns the values array unchanged;
+     * when changes are needed, fixValues returns a new array with the changes.
+     * In all cases, the values array remains unchanged.
      */
     private CharSequence[] fixValues(
-            StringBuilder builder, int emptyIndex, CharSequence... values) {
-        boolean valuesOk = (emptyIndex < 0);
-        for (int i = 0; valuesOk && i < placeholderCount; i++) {
-            if (values[i] == builder) {
+            StringBuilder builder, int skipIndex, CharSequence... values) {
+        boolean valuesOk = true;
+        for (int i = 0; i < placeholderCount; i++) {
+            if (i != skipIndex && values[i] == builder) {
                 valuesOk = false;
+                break;
             }
         }
         if (valuesOk) {
@@ -277,9 +286,7 @@ public class SimplePatternFormatter {
         CharSequence[] result = new CharSequence[placeholderCount];
         String builderCopy = null;
         for (int i = 0; i < placeholderCount; i++) {
-            if (i == emptyIndex) {
-                result[i] = "";
-            } else if (values[i] == builder) {
+            if (i != skipIndex && values[i] == builder) {
                 if (builderCopy == null) {
                     builderCopy = builder.toString();
                 }
