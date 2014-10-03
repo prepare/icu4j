@@ -270,7 +270,7 @@ public class ScientificFormatter {
      * @provisional This API might change or be removed in a future release.
      */
     public static ScientificFormatter getInstance(
-            DecimalFormat decimalFormat, ScientificFormatter.Style style) {
+            DecimalFormat decimalFormat, Style style) {
         DecimalFormatSymbols dfs = decimalFormat.getDecimalFormatSymbols();
         return new ScientificFormatter(
                 (DecimalFormat) decimalFormat.clone(), getPreExponent(dfs), style);
@@ -286,7 +286,7 @@ public class ScientificFormatter {
      * @provisional This API might change or be removed in a future release.
      */
     public static ScientificFormatter getInstanceForLocale(
-            ULocale locale, ScientificFormatter.Style style) {
+            ULocale locale, Style style) {
         DecimalFormat decimalFormat =
                 (DecimalFormat) DecimalFormat.getScientificInstance(locale);
         return new ScientificFormatter(
