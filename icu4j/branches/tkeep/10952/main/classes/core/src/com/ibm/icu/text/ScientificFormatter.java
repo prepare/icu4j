@@ -246,7 +246,7 @@ public class ScientificFormatter {
     }
     
     /**
-     * Returns s markup style
+     * Returns a markup style
      * @param beginMarkup The html tag to start superscript e.g "<sup>"
      * @param endMarkup The html tag to end superscript e.g "</sup>"
      * @return the style for using markup with the given tags.
@@ -305,11 +305,11 @@ public class ScientificFormatter {
      * @provisional This API might change or be removed in a future release.
      */
     public String format(Object number) {
-        AttributedCharacterIterator iterator;
         synchronized (fmt) {
-            iterator = fmt.formatToCharacterIterator(number);
+            return style.format(
+                    fmt.formatToCharacterIterator(number),
+                    preExponent);
         }
-        return style.format(iterator, preExponent);
     }
     
     private ScientificFormatter(
