@@ -223,7 +223,7 @@ class EasterRule implements DateRule {
                 //System.out.println("                result  = " + result.toString());
             }
 
-            if (end != null && !result.before(end)) {
+            if (end != null && !end.before(result)) {
                 //System.out.println("Result after end, returning null");
                 return null;
             }
