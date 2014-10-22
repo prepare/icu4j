@@ -23,10 +23,9 @@ public class ScientificFormatterTest extends TestFmwk {
     
     public void TestBasic() {
         ULocale en = new ULocale("en");
-        ScientificFormatter fmt = ScientificFormatter.getInstanceForLocale(
-                en, ScientificFormatter.getMarkupStyle("<sup>", "</sup>"));
-        ScientificFormatter fmt2 = ScientificFormatter.getInstanceForLocale(
-                en, ScientificFormatter.getSuperscriptStyle());
+        ScientificFormatter fmt = ScientificFormatter.getMarkupInstance(
+                en, "<sup>", "</sup>");
+        ScientificFormatter fmt2 = ScientificFormatter.getSuperscriptInstance(en);
         assertEquals(
                 "insetMarkup",
                 "1.23456\u00d710<sup>-78</sup>",
@@ -41,8 +40,8 @@ public class ScientificFormatterTest extends TestFmwk {
         ULocale en = new ULocale("en");
         DecimalFormat decfmt = (DecimalFormat) NumberFormat.getScientificInstance(en);
         decfmt.applyPattern("0.00E+0");
-        ScientificFormatter fmt = ScientificFormatter.getInstance(
-                decfmt, ScientificFormatter.getMarkupStyle("<sup>", "</sup>"));
+        ScientificFormatter fmt = ScientificFormatter.getMarkupInstance(
+                decfmt, "<sup>", "</sup>");
                 
         assertEquals(
                 "",
@@ -55,8 +54,8 @@ public class ScientificFormatterTest extends TestFmwk {
         ULocale en = new ULocale("en");
         DecimalFormat decfmt = (DecimalFormat) NumberFormat.getScientificInstance(en);
         decfmt.applyPattern("0.00E+0");
-        ScientificFormatter fmt = ScientificFormatter.getInstance(
-                decfmt, ScientificFormatter.getSuperscriptStyle());
+        ScientificFormatter fmt = ScientificFormatter.getSuperscriptInstance(
+                decfmt);
         assertEquals(
                 "",
                 "6.02\u00d710\u207a\u00b2\u00b3",
@@ -66,8 +65,8 @@ public class ScientificFormatterTest extends TestFmwk {
     public void TestFixedDecimalMarkup() {
         ULocale en = new ULocale("en");
         DecimalFormat decfmt = (DecimalFormat) NumberFormat.getInstance(en);
-        ScientificFormatter fmt = ScientificFormatter.getInstance(
-                decfmt, ScientificFormatter.getMarkupStyle("<sup>", "</sup>"));
+        ScientificFormatter fmt = ScientificFormatter.getMarkupInstance(
+                decfmt, "<sup>", "</sup>");
         try {
             fmt.format(123456.0);
             fail("expected illegal argument exception");
@@ -79,8 +78,8 @@ public class ScientificFormatterTest extends TestFmwk {
     public void TestFixedDecimalSuperscript() {
         ULocale en = new ULocale("en");
         DecimalFormat decfmt = (DecimalFormat) NumberFormat.getInstance(en);
-        ScientificFormatter fmt = ScientificFormatter.getInstance(
-                decfmt, ScientificFormatter.getSuperscriptStyle());
+        ScientificFormatter fmt = ScientificFormatter.getSuperscriptInstance(
+                decfmt);
         try {
             fmt.format(123456.0);
             fail("expected illegal argument exception");

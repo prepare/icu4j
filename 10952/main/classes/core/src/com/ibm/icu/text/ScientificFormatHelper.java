@@ -65,8 +65,8 @@ public final class ScientificFormatHelper {
             CharSequence endMarkup) {
         return format(
                 iterator,
-                ScientificFormatter.getMarkupStyle(
-                        beginMarkup, endMarkup));
+                new ScientificFormatter.MarkupStyle(
+                        beginMarkup.toString(), endMarkup.toString()));
     }
 
     /**
@@ -79,7 +79,7 @@ public final class ScientificFormatHelper {
      * @provisional This API might change or be removed in a future release.
      */
     public String toSuperscriptExponentDigits(AttributedCharacterIterator iterator) {
-        return format(iterator, ScientificFormatter.getSuperscriptStyle());
+        return format(iterator, ScientificFormatter.SUPER_SCRIPT);
     }
     
     private String format(
