@@ -22,8 +22,8 @@ import com.ibm.icu.util.ULocale;
  * Sample code:
  * <pre>
  * ULocale en = new ULocale("en");
- * ScientificFormatter fmt = ScientificFormatter.getInstanceForLocale(
- *         en, ScientificFormatter.getMarkupStyle("<sup>", "</sup>"));
+ * ScientificFormatter fmt = ScientificFormatter.getMarkupInstance(
+ *         en, "<sup>", "</sup>");
  * <pre>
  * // Output: "1.23456×10<sup>-78</sup>"
  * System.out.println(fmt.format(1.23456e-78));
@@ -54,7 +54,7 @@ public final class ScientificFormatter {
      
     /**
      * Gets a ScientificFormatter instance that uses
-     * superscript characters for exponents for this locale.
+     * superscript characters for exponents.
      * @param df The DecimalFormat must be configured for scientific
      *   notation.
      * @return the ScientificFormatter instance.
@@ -69,7 +69,7 @@ public final class ScientificFormatter {
  
      /**
       * Gets a ScientificFormatter instance that uses
-      * html mark up for exponents for this locale.
+      * mark up for exponents for this locale.
       * @param locale The locale
       * @param beginMarkup the mark up to start superscript e.g {@code <sup>}
       * @param endMarkup the mark up to end superscript e.g {@code </sup>}
@@ -88,7 +88,7 @@ public final class ScientificFormatter {
      
      /**
       * Gets a ScientificFormatter instance that uses
-      * html mark up for exponents for this locale.
+      * mark up for exponents.
       * @param df The DecimalFormat must be configured for scientific
       *   notation.
       * @param beginMarkup the mark up to start superscript e.g {@code <sup>}
@@ -163,15 +163,12 @@ public final class ScientificFormatter {
                 String preExponent) {
             int copyFromOffset = 0;
             StringBuilder result = new StringBuilder();
-            boolean exponentSymbolFieldPresent = false;
-            boolean exponentFieldPresent = false;
             for (
                     iterator.first();
                     iterator.current() != CharacterIterator.DONE;
                 ) {
                 Map<Attribute, Object> attributeSet = iterator.getAttributes();
                 if (attributeSet.containsKey(NumberFormat.Field.EXPONENT_SYMBOL)) {
-                    exponentSymbolFieldPresent = true;
                     append(
                             iterator,
                             copyFromOffset,
@@ -182,7 +179,6 @@ public final class ScientificFormatter {
                     result.append(preExponent);
                     result.append(beginMarkup);
                 } else if (attributeSet.containsKey(NumberFormat.Field.EXPONENT)) {
-                    exponentFieldPresent = true;
                     int limit = iterator.getRunLimit(NumberFormat.Field.EXPONENT);
                     append(
                             iterator,
@@ -195,9 +191,6 @@ public final class ScientificFormatter {
                 } else {
                     iterator.next();
                 }
-            }
-            if (!exponentSymbolFieldPresent || !exponentFieldPresent) {
-                throw new IllegalArgumentException("Must start with standard e notation.");
             }
             append(iterator, copyFromOffset, iterator.getEndIndex(), result);
             return result.toString();
@@ -219,15 +212,12 @@ public final class ScientificFormatter {
                 String preExponent) { 
             int copyFromOffset = 0;
             StringBuilder result = new StringBuilder();
-            boolean exponentSymbolFieldPresent = false;
-            boolean exponentFieldPresent = false;
             for (
                     iterator.first();
                     iterator.current() != CharacterIterator.DONE;
                 ) {
                 Map<Attribute, Object> attributeSet = iterator.getAttributes();
                 if (attributeSet.containsKey(NumberFormat.Field.EXPONENT_SYMBOL)) {
-                    exponentSymbolFieldPresent = true;
                     append(
                             iterator,
                             copyFromOffset,
@@ -260,7 +250,6 @@ public final class ScientificFormatter {
                     copyFromOffset = limit;
                     iterator.setIndex(copyFromOffset);
                 } else if (attributeSet.containsKey(NumberFormat.Field.EXPONENT)) {
-                    exponentFieldPresent = true;
                     int start = iterator.getRunStart(NumberFormat.Field.EXPONENT);
                     int limit = iterator.getRunLimit(NumberFormat.Field.EXPONENT);
                     append(
@@ -275,9 +264,6 @@ public final class ScientificFormatter {
                     iterator.next();
                 }
             } 
-            if (!exponentSymbolFieldPresent || !exponentFieldPresent) {
-                throw new IllegalArgumentException("Must start with standard e notation.");
-            }
             append(iterator, copyFromOffset, iterator.getEndIndex(), result);
             return result.toString();
         }

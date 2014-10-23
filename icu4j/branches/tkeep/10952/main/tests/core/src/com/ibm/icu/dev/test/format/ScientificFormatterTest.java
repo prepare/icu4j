@@ -67,24 +67,19 @@ public class ScientificFormatterTest extends TestFmwk {
         DecimalFormat decfmt = (DecimalFormat) NumberFormat.getInstance(en);
         ScientificFormatter fmt = ScientificFormatter.getMarkupInstance(
                 decfmt, "<sup>", "</sup>");
-        try {
-            fmt.format(123456.0);
-            fail("expected illegal argument exception");
-        } catch (IllegalArgumentException expected) {
-            // do nothing
-        }
+        assertEquals(
+                "",
+                "123,456",
+                fmt.format(123456.0));
     }
     
     public void TestFixedDecimalSuperscript() {
         ULocale en = new ULocale("en");
         DecimalFormat decfmt = (DecimalFormat) NumberFormat.getInstance(en);
-        ScientificFormatter fmt = ScientificFormatter.getSuperscriptInstance(
-                decfmt);
-        try {
-            fmt.format(123456.0);
-            fail("expected illegal argument exception");
-        } catch (IllegalArgumentException expected) {
-            // do nothing
-        }
+        ScientificFormatter fmt = ScientificFormatter.getSuperscriptInstance(decfmt);
+        assertEquals(
+                "",
+                "123,456",
+                fmt.format(123456.0));
     }
 }
