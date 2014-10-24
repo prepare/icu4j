@@ -15,7 +15,7 @@ import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.util.ULocale;
 
 /**
- *A formatter that formats in user-friendly scientific notation.
+ *A formatter that formats numbers in user-friendly scientific notation.
  * 
  * ScientificNumberFormatter instances are immutable and thread-safe.
  *
