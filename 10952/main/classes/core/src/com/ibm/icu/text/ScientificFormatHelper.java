@@ -46,7 +46,7 @@ public final class ScientificFormatHelper {
      * @provisional This API might change or be removed in a future release.
      */
     public static ScientificFormatHelper getInstance(DecimalFormatSymbols dfs) {
-        return new ScientificFormatHelper(ScientificFormatter.getPreExponent(dfs));
+        return new ScientificFormatHelper(ScientificNumberFormatter.getPreExponent(dfs));
     }
 
     /**
@@ -65,7 +65,7 @@ public final class ScientificFormatHelper {
             CharSequence endMarkup) {
         return format(
                 iterator,
-                new ScientificFormatter.MarkupStyle(
+                new ScientificNumberFormatter.MarkupStyle(
                         beginMarkup.toString(), endMarkup.toString()));
     }
 
@@ -79,11 +79,11 @@ public final class ScientificFormatHelper {
      * @provisional This API might change or be removed in a future release.
      */
     public String toSuperscriptExponentDigits(AttributedCharacterIterator iterator) {
-        return format(iterator, ScientificFormatter.SUPER_SCRIPT);
+        return format(iterator, ScientificNumberFormatter.SUPER_SCRIPT);
     }
     
     private String format(
-            AttributedCharacterIterator iterator, ScientificFormatter.Style option) {
+            AttributedCharacterIterator iterator, ScientificNumberFormatter.Style option) {
         return option.format(iterator, preExponent);
     }
 }

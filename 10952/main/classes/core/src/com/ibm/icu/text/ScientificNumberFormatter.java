@@ -17,12 +17,12 @@ import com.ibm.icu.util.ULocale;
 /**
  *A formatter that formats in user-friendly scientific notation.
  * 
- * ScientificFormatter instances are immutable and thread-safe.
+ * ScientificNumberFormatter instances are immutable and thread-safe.
  *
  * Sample code:
  * <pre>
  * ULocale en = new ULocale("en");
- * ScientificFormatter fmt = ScientificFormatter.getMarkupInstance(
+ * ScientificNumberFormatter fmt = ScientificNumberFormatter.getMarkupInstance(
  *         en, "<sup>", "</sup>");
  * <pre>
  * // Output: "1.23456×10<sup>-78</sup>"
@@ -33,52 +33,52 @@ import com.ibm.icu.util.ULocale;
  * @provisional This API might change or be removed in a future release.
  *
  */
-public final class ScientificFormatter {
+public final class ScientificNumberFormatter {
     
     private final String preExponent;
     private final DecimalFormat fmt;
     private final Style style;
     
     /**
-     * Gets a ScientificFormatter instance that uses
+     * Gets a ScientificNumberFormatter instance that uses
      * superscript characters for exponents for this locale.
      * @param locale The locale
-     * @return The ScientificFormatter instance.
+     * @return The ScientificNumberFormatter instance.
      * 
      * @draft ICU 55
      * @provisional This API might change or be removed in a future release.
      */
-    public static ScientificFormatter getSuperscriptInstance(ULocale locale) {
+    public static ScientificNumberFormatter getSuperscriptInstance(ULocale locale) {
         return getInstanceForLocale(locale, SUPER_SCRIPT); 
      }
      
     /**
-     * Gets a ScientificFormatter instance that uses
+     * Gets a ScientificNumberFormatter instance that uses
      * superscript characters for exponents.
      * @param df The DecimalFormat must be configured for scientific
      *   notation.
-     * @return the ScientificFormatter instance.
+     * @return the ScientificNumberFormatter instance.
      * 
      * @draft ICU 55
      * @provisional This API might change or be removed in a future release.
      */ 
-     public static ScientificFormatter getSuperscriptInstance(
+     public static ScientificNumberFormatter getSuperscriptInstance(
              DecimalFormat df) {
          return getInstance(df, SUPER_SCRIPT); 
      }
  
      /**
-      * Gets a ScientificFormatter instance that uses
+      * Gets a ScientificNumberFormatter instance that uses
       * mark up for exponents for this locale.
       * @param locale The locale
       * @param beginMarkup the mark up to start superscript e.g {@code <sup>}
       * @param endMarkup the mark up to end superscript e.g {@code </sup>}
-      * @return The ScientificFormatter instance.
+      * @return The ScientificNumberFormatter instance.
       * 
       * @draft ICU 55
       * @provisional This API might change or be removed in a future release.
       */
-     public static ScientificFormatter getMarkupInstance(
+     public static ScientificNumberFormatter getMarkupInstance(
              ULocale locale,
              CharSequence beginMarkup,
              CharSequence endMarkup) {
@@ -87,18 +87,18 @@ public final class ScientificFormatter {
      }
      
      /**
-      * Gets a ScientificFormatter instance that uses
+      * Gets a ScientificNumberFormatter instance that uses
       * mark up for exponents.
       * @param df The DecimalFormat must be configured for scientific
       *   notation.
       * @param beginMarkup the mark up to start superscript e.g {@code <sup>}
       * @param endMarkup the mark up to end superscript e.g {@code </sup>}
-      * @return The ScientificFormatter instance.
+      * @return The ScientificNumberFormatter instance.
       * 
       * @draft ICU 55
       * @provisional This API might change or be removed in a future release.
       */
-     public static ScientificFormatter getMarkupInstance(
+     public static ScientificNumberFormatter getMarkupInstance(
              DecimalFormat df,
              CharSequence beginMarkup,
              CharSequence endMarkup) {
@@ -124,7 +124,7 @@ public final class ScientificFormatter {
      }
      
     /**
-     * A style type for ScientificFormatter. All Style instances are immutable
+     * A style type for ScientificNumberFormatter. All Style instances are immutable
      * and thread-safe.
      */
     static abstract class Style {
@@ -308,18 +308,18 @@ public final class ScientificFormatter {
         return preExponent.toString();
     }
     
-    static ScientificFormatter getInstance(
+    static ScientificNumberFormatter getInstance(
             DecimalFormat decimalFormat, Style style) {
         DecimalFormatSymbols dfs = decimalFormat.getDecimalFormatSymbols();
-        return new ScientificFormatter(
+        return new ScientificNumberFormatter(
                 (DecimalFormat) decimalFormat.clone(), getPreExponent(dfs), style);
     }
      
-    static ScientificFormatter getInstanceForLocale(
+    static ScientificNumberFormatter getInstanceForLocale(
             ULocale locale, Style style) {
         DecimalFormat decimalFormat =
                 (DecimalFormat) DecimalFormat.getScientificInstance(locale);
-        return new ScientificFormatter(
+        return new ScientificNumberFormatter(
                 decimalFormat,
                 getPreExponent(decimalFormat.getDecimalFormatSymbols()),
                 style);
@@ -327,7 +327,7 @@ public final class ScientificFormatter {
     
     static final Style SUPER_SCRIPT = new SuperscriptStyle();
     
-    private ScientificFormatter(
+    private ScientificNumberFormatter(
             DecimalFormat decimalFormat, String preExponent, Style style) {
         this.fmt = decimalFormat;
         this.preExponent = preExponent;
