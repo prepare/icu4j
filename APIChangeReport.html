@@ -2,536 +2,619 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>ICU4J API Comparison: ICU4J 53.1.0 with ICU4J 54.1.0</title>
-<!-- Copyright 2014, IBM, All Rights Reserved. -->
+<title>ICU4J API Comparison: ICU4J 3.6 with ICU4J 3.8</title>
+<!-- Copyright 2007, IBM, All Rights Reserved. -->
 </head>
 <body>
-<h1>ICU4J API Comparison: ICU4J 53.1.0 with ICU4J 54.1.0</h1>
+<h1>ICU4J API Comparison: ICU4J 3.6 with ICU4J 3.8</h1>
 
 <hr/>
-<h2>Removed from ICU4J 53.1.0</h2>
+<h2>Removed from ICU4J 3.6</h2>
 
 <h3>Package com.ibm.icu.text</h3>
 <ul>
-Normalizer.Mode
+DateTimePatternGenerator
 <ul>
-<li><span style='color:orange'>(draft)</span> public <i>Normalizer.Mode</i>()</li>
+<li>(draft)      public DateTimePatternGenerator <i>add</i>(java.lang.String, boolean, DateTimePatternGenerator.PatternInfo)</li>
+<li>(draft)      public java.lang.String <i>getAppendItemFormats</i>(int)</li>
+<li>(draft)      public java.lang.String <i>getAppendItemNames</i>(int)</li>
+<li>(draft)      public static DateTimePatternGenerator <i>newInstance</i>()</li>
+<li>(draft)      public void <i>setAppendItemFormats</i>(int, java.lang.String)</li>
+<li>(draft)      public void <i>setAppendItemNames</i>(int, java.lang.String)</li>
 </ul>
-PluralRules.Factory
+RuleBasedTransliterator
 <ul>
-<li><span style='color:orange'>(draft)</span> public <i>PluralRules.Factory</i>()</li>
-</ul>
-TimeZoneNames.Factory
-<ul>
-<li><span style='color:orange'>(draft)</span> public <i>TimeZoneNames.Factory</i>()</li>
-</ul>
-UnicodeSet
-<ul>
-<li><span style='color:green'>(stable)</span> public UnicodeSet <i>add</i>(java.util.Collection&lt;?&gt;)</li>
-<li><span style='color:green'>(stable)</span> public UnicodeSet <i>addAll</i>(java.lang.String...)</li>
-<li><span style='color:green'>(stable)</span> public UnicodeSet <i>addAll</i>(java.util.Collection&lt;?&gt;)</li>
-<li><span style='color:green'>(stable)</span> public static int <i>compare</i>(int, java.lang.String)</li>
-<li><span style='color:green'>(stable)</span> public static int <i>compare</i>(java.lang.String, int)</li>
-<li><span style='color:green'>(stable)</span> public final UnicodeSet <i>complement</i>(java.lang.String)</li>
-<li><span style='color:green'>(stable)</span> public final UnicodeSet <i>complementAll</i>(java.lang.String)</li>
-<li><span style='color:green'>(stable)</span> public final boolean <i>contains</i>(java.lang.String)</li>
-<li><span style='color:green'>(stable)</span> public boolean <i>containsAll</i>(java.util.Collection&lt;java.lang.String&gt;)</li>
-<li><span style='color:green'>(stable)</span> public boolean <i>containsNone</i>(java.lang.String)</li>
-<li><span style='color:green'>(stable)</span> public boolean <i>containsNone</i>(java.util.Collection&lt;java.lang.String&gt;)</li>
-<li><span style='color:green'>(stable)</span> public final boolean <i>containsSome</i>(java.lang.String)</li>
-<li><span style='color:green'>(stable)</span> public final boolean <i>containsSome</i>(java.util.Collection&lt;java.lang.String&gt;)</li>
-<li><span style='color:green'>(stable)</span> public static UnicodeSet <i>from</i>(java.lang.String)</li>
-<li><span style='color:green'>(stable)</span> public static UnicodeSet <i>fromAll</i>(java.lang.String)</li>
-<li><span style='color:green'>(stable)</span> public final UnicodeSet <i>remove</i>(java.lang.String)</li>
-<li><span style='color:green'>(stable)</span> public final UnicodeSet <i>removeAll</i>(java.lang.String)</li>
-<li><span style='color:green'>(stable)</span> public UnicodeSet <i>removeAll</i>(java.util.Collection&lt;java.lang.String&gt;)</li>
-<li><span style='color:green'>(stable)</span> public final UnicodeSet <i>retain</i>(java.lang.String)</li>
-<li><span style='color:green'>(stable)</span> public final UnicodeSet <i>retainAll</i>(java.lang.String)</li>
-<li><span style='color:green'>(stable)</span> public UnicodeSet <i>retainAll</i>(java.util.Collection&lt;java.lang.String&gt;)</li>
-<li><span style='color:green'>(stable)</span> public java.lang.Iterable&lt;java.lang.String&gt; <i>strings</i>()</li>
-</ul>
-</ul>
-
-
-<hr/>
-<h2>Deprecated or Obsoleted in ICU4J 54.1.0</h2>
-
-<h3>Package com.ibm.icu.lang</h3>
-<ul>
-UScript
-<ul>
-<li><span style='color:gray'>(deprecated)</span> public static final int DUPLOYAN_SHORTAND</li>
-</ul>
-</ul>
-
-<h3>Package com.ibm.icu.text</h3>
-<ul>
-<li><span style='color:gray'>(deprecated)</span> public interface <i>RbnfLenientScanner</i></li>
-<li><span style='color:gray'>(deprecated)</span> public interface <i>RbnfLenientScannerProvider</i></li>
-</ul>
-
-<h3>Package com.ibm.icu.util</h3>
-<ul>
-Calendar
-<ul>
-<li><span style='color:gray'>(deprecated)</span> public static final int WEEKDAY</li>
-<li><span style='color:gray'>(deprecated)</span> public static final int WEEKEND</li>
-<li><span style='color:gray'>(deprecated)</span> public static final int WEEKEND_CEASE</li>
-<li><span style='color:gray'>(deprecated)</span> public static final int WEEKEND_ONSET</li>
-<li><span style='color:gray'>(deprecated)</span> public int <i>getDayOfWeekType</i>(int)</li>
-<li><span style='color:gray'>(deprecated)</span> public int <i>getWeekendTransition</i>(int)</li>
-</ul>
-VersionInfo
-<ul>
-<li><span style='color:gray'>(deprecated)</span> public static final VersionInfo UCOL_TAILORINGS_VERSION</li>
-</ul>
-</ul>
-
-
-<hr/>
-<h2>Changed in ICU4J 54.1.0 (old, new)</h2>
-<p>(no API changed)</p>
-
-<hr/>
-<h2>Promoted to stable in ICU4J 54.1.0</h2>
-
-<h3>Package com.ibm.icu.text</h3>
-<ul>
-BreakIterator
-<ul>
-<li><span style='color:green'>(stable)</span> public int <i>getRuleStatus</i>()</li>
-<li><span style='color:green'>(stable)</span> public int <i>getRuleStatusVec</i>(int[])</li>
-</ul>
-ListFormatter
-<ul>
-<li><span style='color:green'>(stable)</span> public java.lang.String <i>getPatternForNumItems</i>(int)</li>
+<li><span style='color:red'>*internal*  </span>public <i>RuleBasedTransliterator</i>(java.lang.String, java.lang.String)</li>
+<li><span style='color:red'>*internal*  </span>public <i>RuleBasedTransliterator</i>(java.lang.String, java.lang.String, int, UnicodeFilter)</li>
 </ul>
 </ul>
 
 <h3>Package com.ibm.icu.util</h3>
 <ul>
-<li><span style='color:green'>(stable)</span> public static enum <i>IslamicCalendar.CalculationType</i></li>
-IslamicCalendar.CalculationType
+SimpleTimeZone
 <ul>
-<li><span style='color:green'>(stable)</span> public static final IslamicCalendar.CalculationType ISLAMIC</li>
-<li><span style='color:green'>(stable)</span> public static final IslamicCalendar.CalculationType ISLAMIC_CIVIL</li>
-<li><span style='color:green'>(stable)</span> public static final IslamicCalendar.CalculationType ISLAMIC_TBLA</li>
-<li><span style='color:green'>(stable)</span> public static final IslamicCalendar.CalculationType ISLAMIC_UMALQURA</li>
+<li><span style='color:red'>*internal*  </span>public <i>SimpleTimeZone</i>(java.util.SimpleTimeZone, java.lang.String)</li>
 </ul>
 TimeZone
 <ul>
-<li><span style='color:green'>(stable)</span> public static java.lang.String <i>getIDForWindowsID</i>(java.lang.String, java.lang.String)</li>
-<li><span style='color:green'>(stable)</span> public static java.lang.String <i>getWindowsID</i>(java.lang.String)</li>
+<li><span style='color:red'>*internal*  </span>protected static final int MILLIS_PER_DAY</li>
+<li><span style='color:red'>*internal*  </span>protected static final int MILLIS_PER_HOUR</li>
 </ul>
 </ul>
 
 
 <hr/>
-<h2>Added in ICU4J 54.1.0</h2>
+<h2>Withdrawn, Deprecated, or Obsoleted in ICU4J 3.8</h2>
+<p>(no API obsoleted)</p>
+
+<hr/>
+<h2>Changed in ICU4J 3.8 (old, new)</h2>
+
+<h3>Package com.ibm.icu.text</h3>
+<ul>
+<li>    (stable)     public abstract class <i>Transliterator</i> extends java.lang.Object</br>
+(stable)     public abstract class <i>Transliterator</i> extends java.lang.Object implements com.ibm.icu.text.StringTransform</li>
+</ul>
+
+<h3>Package com.ibm.icu.util</h3>
+<ul>
+<li>    (stable)     public class <i>SimpleTimeZone</i> extends com.ibm.icu.impl.JDKTimeZone</br>
+(stable)     public class <i>SimpleTimeZone</i> extends com.ibm.icu.util.BasicTimeZone</li>
+</ul>
+
+
+<hr/>
+<h2>Promoted to stable in ICU4J 3.8</h2>
+
+<h3>Package com.ibm.icu.lang</h3>
+<ul>
+<li>(stable)     public static interface <i>UCharacter.GraphemeClusterBreak</i></li>
+<li>(stable)     public static interface <i>UCharacter.SentenceBreak</i></li>
+<li>(stable)     public static interface <i>UCharacter.WordBreak</i></li>
+UCharacter
+<ul>
+<li>(stable)     public static final int MAX_RADIX</li>
+<li>(stable)     public static final int MIN_RADIX</li>
+<li>(draft)      public static java.lang.String <i>getName</i>(java.lang.String, java.lang.String)</li>
+<li>(stable)     public static boolean <i>isJavaIdentifierPart</i>(int)</li>
+<li>(stable)     public static boolean <i>isJavaIdentifierStart</i>(int)</li>
+<li>(stable)     public static java.lang.String <i>toLowerCase</i>(ULocale, java.lang.String)</li>
+<li>(stable)     public static java.lang.String <i>toTitleCase</i>(ULocale, java.lang.String, BreakIterator)</li>
+<li>(stable)     public static java.lang.String <i>toUpperCase</i>(ULocale, java.lang.String)</li>
+</ul>
+UCharacter.LineBreak
+<ul>
+<li>(stable)     public static final int H2</li>
+<li>(stable)     public static final int H3</li>
+<li>(stable)     public static final int JL</li>
+<li>(stable)     public static final int JT</li>
+<li>(stable)     public static final int JV</li>
+</ul>
+UCharacter.UnicodeBlock
+<ul>
+<li>(stable)     public static final UCharacter.UnicodeBlock ANCIENT_GREEK_MUSICAL_NOTATION</li>
+<li>(stable)     public static final int ANCIENT_GREEK_MUSICAL_NOTATION_ID</li>
+<li>(stable)     public static final UCharacter.UnicodeBlock ANCIENT_GREEK_NUMBERS</li>
+<li>(stable)     public static final int ANCIENT_GREEK_NUMBERS_ID</li>
+<li>(stable)     public static final UCharacter.UnicodeBlock ARABIC_SUPPLEMENT</li>
+<li>(stable)     public static final int ARABIC_SUPPLEMENT_ID</li>
+<li>(stable)     public static final UCharacter.UnicodeBlock BUGINESE</li>
+<li>(stable)     public static final int BUGINESE_ID</li>
+<li>(stable)     public static final UCharacter.UnicodeBlock CJK_STROKES</li>
+<li>(stable)     public static final int CJK_STROKES_ID</li>
+<li>(stable)     public static final UCharacter.UnicodeBlock COMBINING_DIACRITICAL_MARKS_SUPPLEMENT</li>
+<li>(stable)     public static final int COMBINING_DIACRITICAL_MARKS_SUPPLEMENT_ID</li>
+<li>(stable)     public static final UCharacter.UnicodeBlock COPTIC</li>
+<li>(stable)     public static final int COPTIC_ID</li>
+<li>(stable)     public static final UCharacter.UnicodeBlock ETHIOPIC_EXTENDED</li>
+<li>(stable)     public static final int ETHIOPIC_EXTENDED_ID</li>
+<li>(stable)     public static final UCharacter.UnicodeBlock ETHIOPIC_SUPPLEMENT</li>
+<li>(stable)     public static final int ETHIOPIC_SUPPLEMENT_ID</li>
+<li>(stable)     public static final UCharacter.UnicodeBlock GEORGIAN_SUPPLEMENT</li>
+<li>(stable)     public static final int GEORGIAN_SUPPLEMENT_ID</li>
+<li>(stable)     public static final UCharacter.UnicodeBlock GLAGOLITIC</li>
+<li>(stable)     public static final int GLAGOLITIC_ID</li>
+<li>(stable)     public static final UCharacter.UnicodeBlock KHAROSHTHI</li>
+<li>(stable)     public static final int KHAROSHTHI_ID</li>
+<li>(stable)     public static final UCharacter.UnicodeBlock MODIFIER_TONE_LETTERS</li>
+<li>(stable)     public static final int MODIFIER_TONE_LETTERS_ID</li>
+<li>(stable)     public static final UCharacter.UnicodeBlock NEW_TAI_LUE</li>
+<li>(stable)     public static final int NEW_TAI_LUE_ID</li>
+<li>(stable)     public static final UCharacter.UnicodeBlock OLD_PERSIAN</li>
+<li>(stable)     public static final int OLD_PERSIAN_ID</li>
+<li>(stable)     public static final UCharacter.UnicodeBlock PHONETIC_EXTENSIONS_SUPPLEMENT</li>
+<li>(stable)     public static final int PHONETIC_EXTENSIONS_SUPPLEMENT_ID</li>
+<li>(stable)     public static final UCharacter.UnicodeBlock SUPPLEMENTAL_PUNCTUATION</li>
+<li>(stable)     public static final int SUPPLEMENTAL_PUNCTUATION_ID</li>
+<li>(stable)     public static final UCharacter.UnicodeBlock SYLOTI_NAGRI</li>
+<li>(stable)     public static final int SYLOTI_NAGRI_ID</li>
+<li>(stable)     public static final UCharacter.UnicodeBlock TIFINAGH</li>
+<li>(stable)     public static final int TIFINAGH_ID</li>
+<li>(stable)     public static final UCharacter.UnicodeBlock VERTICAL_FORMS</li>
+<li>(stable)     public static final int VERTICAL_FORMS_ID</li>
+</ul>
+UProperty
+<ul>
+<li>(stable)     public static final int GRAPHEME_CLUSTER_BREAK</li>
+<li>(stable)     public static final int PATTERN_SYNTAX</li>
+<li>(stable)     public static final int PATTERN_WHITE_SPACE</li>
+<li>(stable)     public static final int POSIX_ALNUM</li>
+<li>(stable)     public static final int POSIX_BLANK</li>
+<li>(stable)     public static final int POSIX_GRAPH</li>
+<li>(stable)     public static final int POSIX_PRINT</li>
+<li>(stable)     public static final int POSIX_XDIGIT</li>
+<li>(stable)     public static final int SENTENCE_BREAK</li>
+<li>(stable)     public static final int WORD_BREAK</li>
+</ul>
+UScript
+<ul>
+<li>(stable)     public static final int BUGINESE</li>
+<li>(stable)     public static final int GLAGOLITIC</li>
+<li>(stable)     public static final int KHAROSHTHI</li>
+<li>(stable)     public static final int NEW_TAI_LUE</li>
+<li>(stable)     public static final int OLD_PERSIAN</li>
+<li>(stable)     public static final int SYLOTI_NAGRI</li>
+<li>(stable)     public static final int TIFINAGH</li>
+</ul>
+</ul>
+
+<h3>Package com.ibm.icu.text</h3>
+<ul>
+<li>(stable)     public class <i>CharsetDetector</i></li>
+<li>(stable)     public class <i>CharsetMatch</i></li>
+<li>(draft)      public static abstract class <i>UnicodeSet.XSymbolTable</i></li>
+ArabicShapingException
+<ul>
+<li>(draft)      public <i>ArabicShapingException</i>(java.lang.String)</li>
+</ul>
+BreakIterator
+<ul>
+<li>(stable)     public static BreakIterator <i>getCharacterInstance</i>(ULocale)</li>
+<li>(stable)     public static BreakIterator <i>getLineInstance</i>(ULocale)</li>
+<li>(stable)     public static BreakIterator <i>getSentenceInstance</i>(ULocale)</li>
+<li>(stable)     public static BreakIterator <i>getTitleInstance</i>(ULocale)</li>
+<li>(stable)     public static BreakIterator <i>getWordInstance</i>(ULocale)</li>
+<li>(stable)     public static java.lang.Object <i>registerInstance</i>(BreakIterator, ULocale, int)</li>
+</ul>
+ChineseDateFormat
+<ul>
+<li>(stable)     public <i>ChineseDateFormat</i>(java.lang.String, ULocale)</li>
+</ul>
+ChineseDateFormatSymbols
+<ul>
+<li>(stable)     public <i>ChineseDateFormatSymbols</i>(Calendar, ULocale)</li>
+<li>(stable)     public <i>ChineseDateFormatSymbols</i>(ULocale)</li>
+</ul>
+Collator
+<ul>
+<li>(stable)     public static final int FULL_DECOMPOSITION</li>
+<li>(stable)     public static java.lang.String <i>getDisplayName</i>(ULocale)</li>
+<li>(stable)     public static java.lang.String <i>getDisplayName</i>(ULocale, ULocale)</li>
+<li>(stable)     public static final java.lang.Object <i>registerInstance</i>(Collator, ULocale)</li>
+</ul>
+Collator.CollatorFactory
+<ul>
+<li>(stable)     public Collator <i>createCollator</i>(ULocale)</li>
+<li>(stable)     public java.lang.String <i>getDisplayName</i>(ULocale, ULocale)</li>
+</ul>
+DateFormat
+<ul>
+<li>(stable)     public static final int STANDALONE_DAY_FIELD</li>
+<li>(stable)     public static final int STANDALONE_MONTH_FIELD</li>
+<li>(stable)     public static final int TIMEZONE_GENERIC_FIELD</li>
+<li>(stable)     public static final DateFormat <i>getDateInstance</i>(Calendar, int, ULocale)</li>
+<li>(stable)     public static final DateFormat <i>getDateInstance</i>(int, ULocale)</li>
+<li>(stable)     public static final DateFormat <i>getDateTimeInstance</i>(Calendar, int, int, ULocale)</li>
+<li>(stable)     public static final DateFormat <i>getTimeInstance</i>(Calendar, int, ULocale)</li>
+<li>(stable)     public static final DateFormat <i>getTimeInstance</i>(int, ULocale)</li>
+</ul>
+DateFormatSymbols
+<ul>
+<li>(stable)     public <i>DateFormatSymbols</i>(Calendar, ULocale)</li>
+<li>(stable)     public <i>DateFormatSymbols</i>(ULocale)</li>
+<li>(stable)     public <i>DateFormatSymbols</i>(java.lang.Class, ULocale)</li>
+<li>(stable)     public <i>DateFormatSymbols</i>(java.util.ResourceBundle, ULocale)</li>
+<li>(stable)     public static java.util.ResourceBundle <i>getDateFormatBundle</i>(Calendar, ULocale)</li>
+<li>(stable)     public static java.util.ResourceBundle <i>getDateFormatBundle</i>(java.lang.Class, ULocale)</li>
+<li>(stable)     public java.lang.String[] <i>getEraNames</i>()</li>
+<li>(stable)     public java.lang.String[] <i>getMonths</i>(int, int)</li>
+<li>(stable)     public java.lang.String[] <i>getWeekdays</i>(int, int)</li>
+<li>(stable)     public void <i>setEraNames</i>(java.lang.String[])</li>
+<li>(stable)     public void <i>setMonths</i>(java.lang.String[], int, int)</li>
+<li>(draft)      public void <i>setQuarters</i>(java.lang.String[], int, int)</li>
+<li>(stable)     public void <i>setWeekdays</i>(java.lang.String[], int, int)</li>
+</ul>
+DecimalFormat
+<ul>
+<li>(stable)     public void <i>setRoundingIncrement</i>(BigDecimal)</li>
+</ul>
+DecimalFormatSymbols
+<ul>
+<li>(stable)     public <i>DecimalFormatSymbols</i>(ULocale)</li>
+<li>(stable)     public Currency <i>getCurrency</i>()</li>
+<li>(stable)     public ULocale <i>getULocale</i>()</li>
+<li>(stable)     public void <i>setCurrency</i>(Currency)</li>
+</ul>
+MessageFormat
+<ul>
+<li>(stable)     public static java.lang.String <i>autoQuoteApostrophe</i>(java.lang.String)</li>
+</ul>
+Normalizer
+<ul>
+<li>(draft)      public static int <i>getFC_NFKC_Closure</i>(int, char[])</li>
+<li>(draft)      public static java.lang.String <i>getFC_NFKC_Closure</i>(int)</li>
+</ul>
+NumberFormat
+<ul>
+<li>(stable)     public static NumberFormat <i>getCurrencyInstance</i>(ULocale)</li>
+<li>(stable)     public static NumberFormat <i>getInstance</i>(ULocale)</li>
+<li>(stable)     public static NumberFormat <i>getIntegerInstance</i>(ULocale)</li>
+<li>(stable)     public static NumberFormat <i>getNumberInstance</i>(ULocale)</li>
+<li>(stable)     protected static java.lang.String <i>getPattern</i>(ULocale, int)</li>
+<li>(stable)     public static NumberFormat <i>getPercentInstance</i>(ULocale)</li>
+<li>(stable)     public static NumberFormat <i>getScientificInstance</i>(ULocale)</li>
+</ul>
+NumberFormat.NumberFormatFactory
+<ul>
+<li>(stable)     public NumberFormat <i>createFormat</i>(ULocale, int)</li>
+</ul>
+NumberFormat.SimpleNumberFormatFactory
+<ul>
+<li>(stable)     public <i>NumberFormat.SimpleNumberFormatFactory</i>(ULocale)</li>
+<li>(stable)     public <i>NumberFormat.SimpleNumberFormatFactory</i>(ULocale, boolean)</li>
+</ul>
+RawCollationKey
+<ul>
+<li>(stable)     public int <i>compareTo</i>(java.lang.Object)</li>
+</ul>
+RuleBasedCollator
+<ul>
+<li>(stable)     public void <i>getContractionsAndExpansions</i>(UnicodeSet, UnicodeSet, boolean)</li>
+</ul>
+RuleBasedNumberFormat
+<ul>
+<li>(stable)     public <i>RuleBasedNumberFormat</i>(ULocale, int)</li>
+<li>(stable)     public <i>RuleBasedNumberFormat</i>(java.lang.String, ULocale)</li>
+<li>(stable)     public <i>RuleBasedNumberFormat</i>(java.lang.String, java.lang.String[][])</li>
+<li>(stable)     public <i>RuleBasedNumberFormat</i>(java.lang.String, java.lang.String[][], ULocale)</li>
+<li>(stable)     public java.lang.String <i>getRuleSetDisplayName</i>(java.lang.String)</li>
+<li>(stable)     public java.lang.String <i>getRuleSetDisplayName</i>(java.lang.String, ULocale)</li>
+<li>(stable)     public ULocale[] <i>getRuleSetDisplayNameLocales</i>()</li>
+<li>(stable)     public java.lang.String[] <i>getRuleSetDisplayNames</i>()</li>
+<li>(stable)     public java.lang.String[] <i>getRuleSetDisplayNames</i>(ULocale)</li>
+</ul>
+SimpleDateFormat
+<ul>
+<li>(stable)     public <i>SimpleDateFormat</i>(java.lang.String, ULocale)</li>
+</ul>
+StringSearch
+<ul>
+<li>(stable)     public <i>StringSearch</i>(java.lang.String, java.text.CharacterIterator, ULocale)</li>
+</ul>
+Transliterator
+<ul>
+<li>(stable)     public static java.lang.String <i>getDisplayName</i>(java.lang.String, ULocale)</li>
+<li>(stable)     public static void <i>registerAlias</i>(java.lang.String, java.lang.String)</li>
+</ul>
+UnicodeSet
+<ul>
+<li>(stable)     public static final int ADD_CASE_MAPPINGS</li>
+<li>(draft)      public static final int CASE</li>
+<li>(stable)     public static final int CASE_INSENSITIVE</li>
+<li>(draft)      public static final int IGNORE_SPACE</li>
+<li>(draft)      public <i>UnicodeSet</i>(java.lang.String, int)</li>
+<li>(stable)     public <i>UnicodeSet</i>(java.lang.String, java.text.ParsePosition, SymbolTable, int)</li>
+<li>(draft)      public java.lang.StringBuffer <i>_generatePattern</i>(java.lang.StringBuffer, boolean, boolean)</li>
+<li>(draft)      public UnicodeSet <i>applyPattern</i>(java.lang.String, int)</li>
+<li>(stable)     public UnicodeSet <i>applyPropertyAlias</i>(java.lang.String, java.lang.String, SymbolTable)</li>
+<li>(draft)      public java.lang.Object <i>cloneAsThawed</i>()</li>
+<li>(draft)      public UnicodeSet <i>closeOver</i>(int)</li>
+<li>(draft)      public java.lang.Object <i>freeze</i>()</li>
+<li>(draft)      public boolean <i>isFrozen</i>()</li>
+</ul>
+</ul>
+
+<h3>Package com.ibm.icu.util</h3>
+<ul>
+<li>(stable)     public final class <i>CopticCalendar</i></li>
+<li>(stable)     public final class <i>EthiopicCalendar</i></li>
+<li>(stable)     public interface <i>Freezable</i></li>
+<li>(stable)     public final class <i>UniversalTimeScale</i></li>
+BuddhistCalendar
+<ul>
+<li>(stable)     public <i>BuddhistCalendar</i>(TimeZone, ULocale)</li>
+<li>(stable)     public <i>BuddhistCalendar</i>(ULocale)</li>
+<li>(draft)      public java.lang.String <i>getType</i>()</li>
+</ul>
+Calendar
+<ul>
+<li>(stable)     protected <i>Calendar</i>(TimeZone, ULocale)</li>
+<li>(stable)     public int <i>compareTo</i>(Calendar)</li>
+<li>(stable)     public int <i>compareTo</i>(java.lang.Object)</li>
+<li>(stable)     public DateFormat <i>getDateTimeFormat</i>(int, int, ULocale)</li>
+<li>(stable)     public java.lang.String <i>getDisplayName</i>(ULocale)</li>
+<li>(stable)     public static synchronized Calendar <i>getInstance</i>(TimeZone, ULocale)</li>
+<li>(stable)     public static synchronized Calendar <i>getInstance</i>(ULocale)</li>
+<li>(draft)      public java.lang.String <i>getType</i>()</li>
+</ul>
+ChineseCalendar
+<ul>
+<li>(stable)     public <i>ChineseCalendar</i>(TimeZone, ULocale)</li>
+<li>(draft)      public java.lang.String <i>getType</i>()</li>
+</ul>
+Currency
+<ul>
+<li>(stable)     public static Currency <i>getInstance</i>(ULocale)</li>
+<li>(stable)     public java.lang.String <i>getName</i>(ULocale, int, boolean[])</li>
+<li>(stable)     public java.lang.String <i>getName</i>(java.util.Locale, int, boolean[])</li>
+<li>(stable)     public java.lang.String <i>getSymbol</i>()</li>
+<li>(stable)     public java.lang.String <i>getSymbol</i>(ULocale)</li>
+<li>(stable)     public java.lang.String <i>getSymbol</i>(java.util.Locale)</li>
+<li>(stable)     public static java.lang.Object <i>registerInstance</i>(Currency, ULocale)</li>
+</ul>
+GregorianCalendar
+<ul>
+<li>(stable)     public <i>GregorianCalendar</i>(TimeZone, ULocale)</li>
+<li>(stable)     public <i>GregorianCalendar</i>(ULocale)</li>
+<li>(draft)      public java.lang.String <i>getType</i>()</li>
+</ul>
+HebrewCalendar
+<ul>
+<li>(stable)     public <i>HebrewCalendar</i>(TimeZone, ULocale)</li>
+<li>(stable)     public <i>HebrewCalendar</i>(ULocale)</li>
+<li>(draft)      public java.lang.String <i>getType</i>()</li>
+</ul>
+IslamicCalendar
+<ul>
+<li>(stable)     public <i>IslamicCalendar</i>(TimeZone, ULocale)</li>
+<li>(stable)     public <i>IslamicCalendar</i>(ULocale)</li>
+<li>(draft)      public java.lang.String <i>getType</i>()</li>
+</ul>
+JapaneseCalendar
+<ul>
+<li>(stable)     public <i>JapaneseCalendar</i>(TimeZone, ULocale)</li>
+<li>(stable)     public <i>JapaneseCalendar</i>(ULocale)</li>
+<li>(draft)      public java.lang.String <i>getType</i>()</li>
+</ul>
+LocaleData
+<ul>
+<li>(stable)     public static final int ALT_QUOTATION_END</li>
+<li>(stable)     public static final int ALT_QUOTATION_START</li>
+<li>(stable)     public static final int DELIMITER_COUNT</li>
+<li>(stable)     public static final int ES_AUXILIARY</li>
+<li>(stable)     public static final int ES_COUNT</li>
+<li>(stable)     public static final int ES_STANDARD</li>
+<li>(stable)     public static final int QUOTATION_END</li>
+<li>(stable)     public static final int QUOTATION_START</li>
+<li>(stable)     public java.lang.String <i>getDelimiter</i>(int)</li>
+<li>(stable)     public UnicodeSet <i>getExemplarSet</i>(int, int)</li>
+<li>(stable)     public static final LocaleData <i>getInstance</i>()</li>
+<li>(stable)     public static final LocaleData <i>getInstance</i>(ULocale)</li>
+<li>(stable)     public boolean <i>getNoSubstitute</i>()</li>
+<li>(stable)     public void <i>setNoSubstitute</i>(boolean)</li>
+</ul>
+SimpleTimeZone
+<ul>
+<li>(stable)     public <i>SimpleTimeZone</i>(int, java.lang.String, int, int, int, int, int, int, int, int, int, int, int)</li>
+<li>(stable)     public java.lang.Object <i>clone</i>()</li>
+<li>(stable)     public boolean <i>equals</i>(java.lang.Object)</li>
+<li>(stable)     public int <i>getRawOffset</i>()</li>
+<li>(stable)     public boolean <i>hasSameRules</i>(TimeZone)</li>
+<li>(stable)     public int <i>hashCode</i>()</li>
+<li>(stable)     public boolean <i>inDaylightTime</i>(java.util.Date)</li>
+<li>(stable)     public void <i>setRawOffset</i>(int)</li>
+<li>(stable)     public java.lang.String <i>toString</i>()</li>
+<li>(stable)     public boolean <i>useDaylightTime</i>()</li>
+</ul>
+TimeZone
+<ul>
+<li>(stable)     public boolean <i>equals</i>(java.lang.Object)</li>
+<li>(stable)     public java.lang.String <i>getDisplayName</i>(boolean, int, ULocale)</li>
+<li>(stable)     public final java.lang.String <i>getDisplayName</i>(ULocale)</li>
+<li>(stable)     public int <i>hashCode</i>()</li>
+</ul>
+ULocale
+<ul>
+<li>(stable)     public static ULocale <i>acceptLanguage</i>(ULocale[], boolean[])</li>
+<li>(stable)     public static ULocale <i>acceptLanguage</i>(ULocale[], ULocale[], boolean[])</li>
+<li>(stable)     public static ULocale <i>acceptLanguage</i>(java.lang.String, boolean[])</li>
+<li>(stable)     public static ULocale <i>acceptLanguage</i>(java.lang.String, ULocale[], boolean[])</li>
+</ul>
+UResourceBundle
+<ul>
+<li>(draft)      public static UResourceBundle <i>getBundleInstance</i>(java.lang.String, ULocale, java.lang.ClassLoader)</li>
+<li>(draft)      public static UResourceBundle <i>getBundleInstance</i>(java.lang.String, java.util.Locale, java.lang.ClassLoader)</li>
+</ul>
+VersionInfo
+<ul>
+<li>(stable)     public static final VersionInfo UNICODE_4_0_1</li>
+<li>(stable)     public static final VersionInfo UNICODE_4_1</li>
+<li>(stable)     public static final VersionInfo UNICODE_5_0</li>
+</ul>
+</ul>
+
+
+<hr/>
+<h2>Added in ICU4J 3.8</h2>
 
 <h3>Package com.ibm.icu.lang</h3>
 <ul>
 UCharacter
 <ul>
-<li><span style='color:orange'>(draft)</span> public static java.lang.String <i>toTitleCase</i>(java.util.Locale, java.lang.String, BreakIterator, int)</li>
-</ul>
-UCharacter.JoiningGroup
-<ul>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_ALEPH</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_AYIN</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_BETH</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_DALETH</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_DHAMEDH</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_FIVE</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_GIMEL</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_HETH</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_HUNDRED</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_KAPH</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_LAMEDH</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_MEM</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_NUN</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_ONE</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_PE</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_QOPH</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_RESH</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_SADHE</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_SAMEKH</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_TAW</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_TEN</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_TETH</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_THAMEDH</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_TWENTY</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_WAW</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_YODH</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_ZAYIN</li>
-<li><span style='color:green'>(stable)</span> public static final int STRAIGHT_WAW</li>
-</ul>
-UCharacter.UnicodeBlock
-<ul>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock BASSA_VAH</li>
-<li><span style='color:green'>(stable)</span> public static final int BASSA_VAH_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock CAUCASIAN_ALBANIAN</li>
-<li><span style='color:green'>(stable)</span> public static final int CAUCASIAN_ALBANIAN_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock COMBINING_DIACRITICAL_MARKS_EXTENDED</li>
-<li><span style='color:green'>(stable)</span> public static final int COMBINING_DIACRITICAL_MARKS_EXTENDED_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock COPTIC_EPACT_NUMBERS</li>
-<li><span style='color:green'>(stable)</span> public static final int COPTIC_EPACT_NUMBERS_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock DUPLOYAN</li>
-<li><span style='color:green'>(stable)</span> public static final int DUPLOYAN_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock ELBASAN</li>
-<li><span style='color:green'>(stable)</span> public static final int ELBASAN_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock GEOMETRIC_SHAPES_EXTENDED</li>
-<li><span style='color:green'>(stable)</span> public static final int GEOMETRIC_SHAPES_EXTENDED_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock GRANTHA</li>
-<li><span style='color:green'>(stable)</span> public static final int GRANTHA_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock KHOJKI</li>
-<li><span style='color:green'>(stable)</span> public static final int KHOJKI_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock KHUDAWADI</li>
-<li><span style='color:green'>(stable)</span> public static final int KHUDAWADI_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock LATIN_EXTENDED_E</li>
-<li><span style='color:green'>(stable)</span> public static final int LATIN_EXTENDED_E_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock LINEAR_A</li>
-<li><span style='color:green'>(stable)</span> public static final int LINEAR_A_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock MAHAJANI</li>
-<li><span style='color:green'>(stable)</span> public static final int MAHAJANI_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock MANICHAEAN</li>
-<li><span style='color:green'>(stable)</span> public static final int MANICHAEAN_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock MENDE_KIKAKUI</li>
-<li><span style='color:green'>(stable)</span> public static final int MENDE_KIKAKUI_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock MODI</li>
-<li><span style='color:green'>(stable)</span> public static final int MODI_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock MRO</li>
-<li><span style='color:green'>(stable)</span> public static final int MRO_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock MYANMAR_EXTENDED_B</li>
-<li><span style='color:green'>(stable)</span> public static final int MYANMAR_EXTENDED_B_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock NABATAEAN</li>
-<li><span style='color:green'>(stable)</span> public static final int NABATAEAN_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock OLD_NORTH_ARABIAN</li>
-<li><span style='color:green'>(stable)</span> public static final int OLD_NORTH_ARABIAN_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock OLD_PERMIC</li>
-<li><span style='color:green'>(stable)</span> public static final int OLD_PERMIC_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock ORNAMENTAL_DINGBATS</li>
-<li><span style='color:green'>(stable)</span> public static final int ORNAMENTAL_DINGBATS_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock PAHAWH_HMONG</li>
-<li><span style='color:green'>(stable)</span> public static final int PAHAWH_HMONG_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock PALMYRENE</li>
-<li><span style='color:green'>(stable)</span> public static final int PALMYRENE_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock PAU_CIN_HAU</li>
-<li><span style='color:green'>(stable)</span> public static final int PAU_CIN_HAU_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock PSALTER_PAHLAVI</li>
-<li><span style='color:green'>(stable)</span> public static final int PSALTER_PAHLAVI_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock SHORTHAND_FORMAT_CONTROLS</li>
-<li><span style='color:green'>(stable)</span> public static final int SHORTHAND_FORMAT_CONTROLS_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock SIDDHAM</li>
-<li><span style='color:green'>(stable)</span> public static final int SIDDHAM_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock SINHALA_ARCHAIC_NUMBERS</li>
-<li><span style='color:green'>(stable)</span> public static final int SINHALA_ARCHAIC_NUMBERS_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock SUPPLEMENTAL_ARROWS_C</li>
-<li><span style='color:green'>(stable)</span> public static final int SUPPLEMENTAL_ARROWS_C_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock TIRHUTA</li>
-<li><span style='color:green'>(stable)</span> public static final int TIRHUTA_ID</li>
-<li><span style='color:green'>(stable)</span> public static final UCharacter.UnicodeBlock WARANG_CITI</li>
-<li><span style='color:green'>(stable)</span> public static final int WARANG_CITI_ID</li>
+<li>(draft)      public static final int TITLECASE_NO_BREAK_ADJUSTMENT</li>
+<li>(draft)      public static final int TITLECASE_NO_LOWERCASE</li>
+<li>(draft)      public static java.lang.String <i>toTitleCase</i>(ULocale, java.lang.String, BreakIterator, int)</li>
 </ul>
 UScript
 <ul>
-<li><span style='color:green'>(stable)</span> public static final int AHOM</li>
-<li><span style='color:green'>(stable)</span> public static final int DUPLOYAN</li>
-<li><span style='color:green'>(stable)</span> public static final int HATRAN</li>
-<li><span style='color:green'>(stable)</span> public static final int KHUDAWADI</li>
-<li><span style='color:green'>(stable)</span> public static final int MODI</li>
-<li><span style='color:green'>(stable)</span> public static final int MULTANI</li>
-<li><span style='color:green'>(stable)</span> public static final int PAU_CIN_HAU</li>
-<li><span style='color:green'>(stable)</span> public static final int SIDDHAM</li>
-<li><span style='color:orange'>(draft)</span> public static final int <i>getCodeFromName</i>(java.lang.String)</li>
+<li>(draft)      public static final int CARIAN</li>
+<li>(draft)      public static final int JAPANESE</li>
+<li>(draft)      public static final int LANNA</li>
+<li>(draft)      public static final int LYCIAN</li>
+<li>(draft)      public static final int LYDIAN</li>
+<li>(draft)      public static final int MEITEI_MAYEK</li>
+<li>(draft)      public static final int MOON</li>
+<li>(draft)      public static final int OL_CHIKI</li>
+<li>(draft)      public static final int REJANG</li>
+<li>(draft)      public static final int SAURASHTRA</li>
+<li>(draft)      public static final int SIGN_WRITING</li>
+<li>(draft)      public static final int SUNDANESE</li>
 </ul>
 </ul>
 
 <h3>Package com.ibm.icu.text</h3>
 <ul>
-<li><span style='color:orange'>(draft)</span> public final class <i>ScientificFormatHelper</i></li>
-<li><span style='color:orange'>(draft)</span> public static class <i>UnicodeSet.EntryRange</i></li>
-<li><span style='color:orange'>(draft)</span> public class <i>UnicodeSetSpanner</i></li>
-<li><span style='color:orange'>(draft)</span> public static enum <i>RelativeDateTimeFormatter.Style</i></li>
-<li><span style='color:orange'>(draft)</span> public static enum <i>UnicodeSetSpanner.CountMethod</i></li>
-<li><span style='color:orange'>(draft)</span> public static enum <i>UnicodeSetSpanner.TrimOption</i></li>
-CurrencyDisplayNames
+<li>(draft)      public class <i>Bidi</i></li>
+<li>(draft)      public class <i>BidiClassifier</i></li>
+<li>(draft)      public class <i>BidiRun</i></li>
+<li>(stable)     public static class <i>ChineseDateFormat.Field</i></li>
+<li>(stable)     public static class <i>DateFormat.Field</i></li>
+<li>(draft)      public abstract class <i>DurationFormat</i></li>
+<li>(stable)     public static class <i>MessageFormat.Field</i></li>
+<li>(draft)      public class <i>PluralFormat</i></li>
+<li>(draft)      public class <i>PluralRules</i></li>
+<li>(draft)      public interface <i>StringTransform</i></li>
+ChineseDateFormat
 <ul>
-<li><span style='color:orange'>(draft)</span> public static CurrencyDisplayNames <i>getInstance</i>(java.util.Locale)</li>
-<li><span style='color:orange'>(draft)</span> public static CurrencyDisplayNames <i>getInstance</i>(java.util.Locale, boolean)</li>
-</ul>
-CurrencyMetaInfo
-<ul>
-<li><span style='color:orange'>(draft)</span> public CurrencyMetaInfo.CurrencyDigits <i>currencyDigits</i>(java.lang.String, Currency.CurrencyUsage)</li>
+<li>(draft)      protected DateFormat.Field <i>patternCharToDateFormatField</i>(char)</li>
 </ul>
 DateFormat
 <ul>
-<li><span style='color:orange'>(draft)</span> public static final DateFormat <i>getInstanceForSkeleton</i>(Calendar, java.lang.String, ULocale)</li>
-<li><span style='color:orange'>(draft)</span> public static final DateFormat <i>getInstanceForSkeleton</i>(Calendar, java.lang.String, java.util.Locale)</li>
-<li><span style='color:orange'>(draft)</span> public static final DateFormat <i>getInstanceForSkeleton</i>(java.lang.String)</li>
-<li><span style='color:orange'>(draft)</span> public static final DateFormat <i>getInstanceForSkeleton</i>(java.lang.String, ULocale)</li>
-<li><span style='color:orange'>(draft)</span> public static final DateFormat <i>getInstanceForSkeleton</i>(java.lang.String, java.util.Locale)</li>
+<li>(draft)      public static final int NONE</li>
+<li>(draft)      public static final int RELATIVE</li>
+<li>(draft)      public static final int RELATIVE_DEFAULT</li>
+<li>(draft)      public static final int RELATIVE_FULL</li>
+<li>(draft)      public static final int RELATIVE_LONG</li>
+<li>(draft)      public static final int RELATIVE_MEDIUM</li>
+<li>(draft)      public static final int RELATIVE_SHORT</li>
+<li>(stable)     public static final int TIMEZONE_SPECIAL_FIELD</li>
 </ul>
 DateFormatSymbols
 <ul>
-<li><span style='color:orange'>(draft)</span> public java.lang.String[] <i>getYearNames</i>(int, int)</li>
-<li><span style='color:orange'>(draft)</span> public java.lang.String[] <i>getZodiacNames</i>(int, int)</li>
-<li><span style='color:orange'>(draft)</span> public void <i>setYearNames</i>(java.lang.String[], int, int)</li>
-<li><span style='color:orange'>(draft)</span> public void <i>setZodiacNames</i>(java.lang.String[], int, int)</li>
-</ul>
-DateIntervalInfo
-<ul>
-<li><span style='color:orange'>(draft)</span> public <i>DateIntervalInfo</i>(java.util.Locale)</li>
+<li>(stable)     public static java.util.Locale[] <i>getAvailableLocales</i>()</li>
+<li>(draft)      public static ULocale[] <i>getAvailableULocales</i>()</li>
+<li>(stable)     public static DateFormatSymbols <i>getInstance</i>()</li>
+<li>(draft)      public static DateFormatSymbols <i>getInstance</i>(ULocale)</li>
+<li>(stable)     public static DateFormatSymbols <i>getInstance</i>(java.util.Locale)</li>
 </ul>
 DateTimePatternGenerator
 <ul>
-<li><span style='color:orange'>(draft)</span> public static DateTimePatternGenerator <i>getInstance</i>(java.util.Locale)</li>
-</ul>
-DecimalFormat
-<ul>
-<li><span style='color:orange'>(draft)</span> public Currency.CurrencyUsage <i>getCurrencyUsage</i>()</li>
-<li><span style='color:orange'>(draft)</span> public boolean <i>isDecimalPatternMatchRequired</i>()</li>
-<li><span style='color:orange'>(draft)</span> public void <i>setCurrencyUsage</i>(Currency.CurrencyUsage)</li>
-<li><span style='color:orange'>(draft)</span> public void <i>setDecimalPatternMatchRequired</i>(boolean)</li>
+<li>(draft)      public DateTimePatternGenerator <i>addPattern</i>(java.lang.String, boolean, DateTimePatternGenerator.PatternInfo)</li>
+<li>(draft)      public java.lang.String <i>getAppendItemFormat</i>(int)</li>
+<li>(draft)      public java.lang.String <i>getAppendItemName</i>(int)</li>
+<li>(draft)      public static DateTimePatternGenerator <i>getEmptyInstance</i>()</li>
+<li>(draft)      public void <i>setAppendItemFormat</i>(int, java.lang.String)</li>
+<li>(draft)      public void <i>setAppendItemName</i>(int, java.lang.String)</li>
 </ul>
 DecimalFormatSymbols
 <ul>
-<li><span style='color:orange'>(draft)</span> public java.lang.String <i>getExponentMultiplicationSign</i>()</li>
-<li><span style='color:orange'>(draft)</span> public void <i>setExponentMultiplicationSign</i>(java.lang.String)</li>
+<li>(stable)     public static java.util.Locale[] <i>getAvailableLocales</i>()</li>
+<li>(draft)      public static ULocale[] <i>getAvailableULocales</i>()</li>
+<li>(stable)     public static DecimalFormatSymbols <i>getInstance</i>()</li>
+<li>(draft)      public static DecimalFormatSymbols <i>getInstance</i>(ULocale)</li>
+<li>(stable)     public static DecimalFormatSymbols <i>getInstance</i>(java.util.Locale)</li>
 </ul>
-DisplayContext
+MessageFormat
 <ul>
-<li><span style='color:orange'>(draft)</span> public static final DisplayContext LENGTH_FULL</li>
-<li><span style='color:orange'>(draft)</span> public static final DisplayContext LENGTH_SHORT</li>
-</ul>
-DisplayContext.Type
-<ul>
-<li><span style='color:orange'>(draft)</span> public static final DisplayContext.Type DISPLAY_LENGTH</li>
-</ul>
-LocaleDisplayNames
-<ul>
-<li><span style='color:orange'>(draft)</span> public static LocaleDisplayNames <i>getInstance</i>(java.util.Locale)</li>
-<li><span style='color:orange'>(draft)</span> public static LocaleDisplayNames <i>getInstance</i>(java.util.Locale, DisplayContext...)</li>
-</ul>
-MeasureFormat
-<ul>
-<li><span style='color:orange'>(draft)</span> public static MeasureFormat <i>getCurrencyFormat</i>(java.util.Locale)</li>
-<li><span style='color:orange'>(draft)</span> public static MeasureFormat <i>getInstance</i>(java.util.Locale, MeasureFormat.FormatWidth)</li>
-<li><span style='color:orange'>(draft)</span> public static MeasureFormat <i>getInstance</i>(java.util.Locale, MeasureFormat.FormatWidth, NumberFormat)</li>
-</ul>
-NumberFormat
-<ul>
-<li><span style='color:orange'>(draft)</span> public static final int CASHCURRENCYSTYLE</li>
-</ul>
-PluralFormat
-<ul>
-<li><span style='color:orange'>(draft)</span> public <i>PluralFormat</i>(java.util.Locale)</li>
-<li><span style='color:orange'>(draft)</span> public <i>PluralFormat</i>(java.util.Locale, PluralRules)</li>
-<li><span style='color:orange'>(draft)</span> public <i>PluralFormat</i>(java.util.Locale, PluralRules.PluralType)</li>
-</ul>
-PluralRules
-<ul>
-<li><span style='color:orange'>(draft)</span> public static PluralRules <i>forLocale</i>(java.util.Locale)</li>
-<li><span style='color:orange'>(draft)</span> public static PluralRules <i>forLocale</i>(java.util.Locale, PluralRules.PluralType)</li>
-</ul>
-RelativeDateTimeFormatter
-<ul>
-<li><span style='color:orange'>(draft)</span> public DisplayContext <i>getCapitalizationContext</i>()</li>
-<li><span style='color:orange'>(draft)</span> public RelativeDateTimeFormatter.Style <i>getFormatStyle</i>()</li>
-<li><span style='color:orange'>(draft)</span> public static RelativeDateTimeFormatter <i>getInstance</i>(ULocale, NumberFormat, RelativeDateTimeFormatter.Style, DisplayContext)</li>
-<li><span style='color:orange'>(draft)</span> public static RelativeDateTimeFormatter <i>getInstance</i>(java.util.Locale)</li>
-<li><span style='color:orange'>(draft)</span> public static RelativeDateTimeFormatter <i>getInstance</i>(java.util.Locale, NumberFormat)</li>
-</ul>
-RelativeDateTimeFormatter.Style
-<ul>
-<li><span style='color:orange'>(draft)</span> public static final RelativeDateTimeFormatter.Style LONG</li>
-<li><span style='color:orange'>(draft)</span> public static final RelativeDateTimeFormatter.Style NARROW</li>
-<li><span style='color:orange'>(draft)</span> public static final RelativeDateTimeFormatter.Style SHORT</li>
+<li>(draft)      public static java.lang.String <i>format</i>(java.lang.String, java.util.Map)</li>
+<li>(draft)      public final java.lang.StringBuffer <i>format</i>(java.util.Map, java.lang.StringBuffer, java.text.FieldPosition)</li>
+<li>(stable)     public java.text.AttributedCharacterIterator <i>formatToCharacterIterator</i>(java.lang.Object)</li>
+<li>(draft)      public java.util.Map <i>parseToMap</i>(java.lang.String)</li>
+<li>(draft)      public java.util.Map <i>parseToMap</i>(java.lang.String, java.text.ParsePosition)</li>
+<li>(draft)      public void <i>setFormatByArgumentName</i>(java.lang.String, java.text.Format)</li>
+<li>(draft)      public void <i>setFormatsByArgumentName</i>(java.util.Map)</li>
+<li>(draft)      public boolean <i>usesNamedArguments</i>()</li>
 </ul>
 SimpleDateFormat
 <ul>
-<li><span style='color:orange'>(draft)</span> public NumberFormat <i>getNumberFormat</i>(char)</li>
-<li><span style='color:orange'>(draft)</span> public void <i>setNumberFormat</i>(java.lang.String, NumberFormat)</li>
+<li>(stable)     public java.text.AttributedCharacterIterator <i>formatToCharacterIterator</i>(java.lang.Object)</li>
+<li><span style='color:red'>*internal*  </span>public static SimpleDateFormat <i>getInstance</i>(Calendar.FormatConfiguration)</li>
+<li>(draft)      protected DateFormat.Field <i>patternCharToDateFormatField</i>(char)</li>
 </ul>
-SpoofChecker
+StringPrepParseException
 <ul>
-<li><span style='color:orange'>(draft)</span> public java.util.Set&lt;java.util.Locale&gt; <i>getAllowedJavaLocales</i>()</li>
+<li>(draft)      public static final int DOMAIN_NAME_TOO_LONG_ERROR</li>
+<li>(draft)      public int <i>getError</i>()</li>
 </ul>
-SpoofChecker.Builder
+Transliterator
 <ul>
-<li><span style='color:orange'>(draft)</span> public SpoofChecker.Builder <i>setAllowedJavaLocales</i>(java.util.Set&lt;java.util.Locale&gt;)</li>
-</ul>
-TimeZoneFormat
-<ul>
-<li><span style='color:orange'>(draft)</span> public static TimeZoneFormat <i>getInstance</i>(java.util.Locale)</li>
-</ul>
-TimeZoneFormat.ParseOption
-<ul>
-<li><span style='color:orange'>(draft)</span> public static final TimeZoneFormat.ParseOption TZ_DATABASE_ABBREVIATIONS</li>
-</ul>
-TimeZoneNames
-<ul>
-<li><span style='color:orange'>(draft)</span> public static TimeZoneNames <i>getInstance</i>(java.util.Locale)</li>
-<li><span style='color:orange'>(draft)</span> public static TimeZoneNames <i>getTZDBInstance</i>(ULocale)</li>
-</ul>
-UTF16
-<ul>
-<li><span style='color:orange'>(draft)</span> public static int <i>compareCodePoint</i>(int, java.lang.CharSequence)</li>
-<li><span style='color:orange'>(draft)</span> public static int <i>getSingleCodePoint</i>(java.lang.CharSequence)</li>
-</ul>
-UnicodeSet
-<ul>
-<li><span style='color:green'>(stable)</span> public UnicodeSet <i>add</i>(java.lang.Iterable&lt;?&gt;)</li>
-<li><span style='color:green'>(stable)</span> public UnicodeSet <i>addAll</i>(T...)</li>
-<li><span style='color:green'>(stable)</span> public UnicodeSet <i>addAll</i>(java.lang.Iterable&lt;?&gt;)</li>
-<li><span style='color:green'>(stable)</span> public static int <i>compare</i>(int, java.lang.CharSequence)</li>
-<li><span style='color:green'>(stable)</span> public static int <i>compare</i>(java.lang.CharSequence, int)</li>
-<li><span style='color:green'>(stable)</span> public final UnicodeSet <i>complement</i>(java.lang.CharSequence)</li>
-<li><span style='color:green'>(stable)</span> public final UnicodeSet <i>complementAll</i>(java.lang.CharSequence)</li>
-<li><span style='color:green'>(stable)</span> public final boolean <i>contains</i>(java.lang.CharSequence)</li>
-<li><span style='color:green'>(stable)</span> public boolean <i>containsAll</i>(java.lang.Iterable&lt;T&gt;)</li>
-<li><span style='color:green'>(stable)</span> public boolean <i>containsNone</i>(java.lang.CharSequence)</li>
-<li><span style='color:green'>(stable)</span> public boolean <i>containsNone</i>(java.lang.Iterable&lt;T&gt;)</li>
-<li><span style='color:green'>(stable)</span> public final boolean <i>containsSome</i>(java.lang.CharSequence)</li>
-<li><span style='color:green'>(stable)</span> public final boolean <i>containsSome</i>(java.lang.Iterable&lt;T&gt;)</li>
-<li><span style='color:green'>(stable)</span> public static UnicodeSet <i>from</i>(java.lang.CharSequence)</li>
-<li><span style='color:green'>(stable)</span> public static UnicodeSet <i>fromAll</i>(java.lang.CharSequence)</li>
-<li><span style='color:orange'>(draft)</span> public java.lang.Iterable&lt;UnicodeSet.EntryRange&gt; <i>ranges</i>()</li>
-<li><span style='color:green'>(stable)</span> public final UnicodeSet <i>remove</i>(java.lang.CharSequence)</li>
-<li><span style='color:green'>(stable)</span> public final UnicodeSet <i>removeAll</i>(java.lang.CharSequence)</li>
-<li><span style='color:green'>(stable)</span> public UnicodeSet <i>removeAll</i>(java.lang.Iterable&lt;T&gt;)</li>
-<li><span style='color:green'>(stable)</span> public final UnicodeSet <i>retain</i>(java.lang.CharSequence)</li>
-<li><span style='color:green'>(stable)</span> public final UnicodeSet <i>retainAll</i>(java.lang.CharSequence)</li>
-<li><span style='color:green'>(stable)</span> public UnicodeSet <i>retainAll</i>(java.lang.Iterable&lt;T&gt;)</li>
-<li><span style='color:green'>(stable)</span> public java.util.Collection&lt;java.lang.String&gt; <i>strings</i>()</li>
-</ul>
-UnicodeSetSpanner.CountMethod
-<ul>
-<li><span style='color:orange'>(draft)</span> public static final UnicodeSetSpanner.CountMethod MIN_ELEMENTS</li>
-<li><span style='color:orange'>(draft)</span> public static final UnicodeSetSpanner.CountMethod WHOLE_SPAN</li>
-</ul>
-UnicodeSetSpanner.TrimOption
-<ul>
-<li><span style='color:orange'>(draft)</span> public static final UnicodeSetSpanner.TrimOption BOTH</li>
-<li><span style='color:orange'>(draft)</span> public static final UnicodeSetSpanner.TrimOption LEADING</li>
-<li><span style='color:orange'>(draft)</span> public static final UnicodeSetSpanner.TrimOption TRAILING</li>
+<li>(draft)      public java.lang.String <i>transform</i>(java.lang.String)</li>
 </ul>
 </ul>
 
 <h3>Package com.ibm.icu.util</h3>
 <ul>
-<li><span style='color:orange'>(draft)</span> public static final class <i>Calendar.WeekData</i></li>
-<li><span style='color:orange'>(draft)</span> public static enum <i>Currency.CurrencyUsage</i></li>
-Calendar
+<li>(draft)      public class <i>AnnualTimeZoneRule</i></li>
+<li>(draft)      public abstract class <i>BasicTimeZone</i></li>
+<li><span style='color:red'>*internal*  </span>public static class <i>Calendar.FormatConfiguration</i></li>
+<li>(draft)      public class <i>DateTimeRule</i></li>
+<li>(draft)      public class <i>IndianCalendar</i></li>
+<li>(draft)      public class <i>InitialTimeZoneRule</i></li>
+<li>(draft)      public class <i>RuleBasedTimeZone</i></li>
+<li>(draft)      public class <i>TaiwanCalendar</i></li>
+<li>(draft)      public class <i>TimeArrayTimeZoneRule</i></li>
+<li>(draft)      public abstract class <i>TimeZoneRule</i></li>
+<li>(draft)      public class <i>TimeZoneTransition</i></li>
+<li>(draft)      public class <i>UResourceBundleIterator</i></li>
+<li>(draft)      public class <i>VTimeZone</i></li>
+SimpleTimeZone
 <ul>
-<li><span style='color:orange'>(draft)</span> public Calendar.WeekData <i>getWeekData</i>()</li>
-<li><span style='color:orange'>(draft)</span> public static Calendar.WeekData <i>getWeekDataForRegion</i>(java.lang.String)</li>
-<li><span style='color:orange'>(draft)</span> public Calendar <i>setWeekData</i>(Calendar.WeekData)</li>
+<li>(stable)     public static final int STANDARD_TIME</li>
+<li>(stable)     public static final int UTC_TIME</li>
+<li>(stable)     public static final int WALL_TIME</li>
+<li>(draft)      public TimeZoneTransition <i>getNextTransition</i>(long, boolean)</li>
+<li>(draft)      public TimeZoneTransition <i>getPreviousTransition</i>(long, boolean)</li>
+<li>(draft)      public TimeZoneRule[] <i>getTimeZoneRules</i>()</li>
+<li>(stable)     public void <i>setID</i>(java.lang.String)</li>
 </ul>
-Currency
+TimeZone
 <ul>
-<li><span style='color:orange'>(draft)</span> public static java.lang.String[] <i>getAvailableCurrencyCodes</i>(java.util.Locale, java.util.Date)</li>
-<li><span style='color:orange'>(draft)</span> public int <i>getDefaultFractionDigits</i>(Currency.CurrencyUsage)</li>
-<li><span style='color:orange'>(draft)</span> public double <i>getRoundingIncrement</i>(Currency.CurrencyUsage)</li>
+<li>(draft)      public static synchronized java.lang.String <i>getTZDataVersion</i>()</li>
 </ul>
-Currency.CurrencyUsage
+UResourceBundle
 <ul>
-<li><span style='color:orange'>(draft)</span> public static final Currency.CurrencyUsage CASH</li>
-<li><span style='color:orange'>(draft)</span> public static final Currency.CurrencyUsage STANDARD</li>
+<li><span style='color:red'>*internal*  </span>protected static final int ALIAS</li>
+<li>(draft)      public static final int ARRAY</li>
+<li>(draft)      public static final int BINARY</li>
+<li>(draft)      public static final int INT</li>
+<li>(draft)      public static final int INT_VECTOR</li>
+<li>(draft)      public static final int NONE</li>
+<li>(draft)      public static final int STRING</li>
+<li>(draft)      public static final int TABLE</li>
+<li><span style='color:red'>*internal*  </span>protected static final int TABLE32</li>
+<li><span style='color:red'>*internal*  </span>protected boolean isTopLevel</li>
+<li><span style='color:red'>*internal*  </span>protected java.lang.String key</li>
+<li><span style='color:red'>*internal*  </span>protected long resource</li>
+<li><span style='color:red'>*internal*  </span>protected int size</li>
+<li>(draft)      public UResourceBundle <i>get</i>(int)</li>
+<li>(draft)      public UResourceBundle <i>get</i>(java.lang.String)</li>
+<li>(draft)      public byte[] <i>getBinary</i>(byte[])</li>
+<li>(draft)      public java.nio.ByteBuffer <i>getBinary</i>()</li>
+<li>(draft)      public int <i>getInt</i>()</li>
+<li>(draft)      public int[] <i>getIntVector</i>()</li>
+<li>(draft)      public UResourceBundleIterator <i>getIterator</i>()</li>
+<li>(draft)      public java.lang.String <i>getKey</i>()</li>
+<li>(draft)      public java.util.Enumeration <i>getKeys</i>()</li>
+<li>(draft)      public int <i>getSize</i>()</li>
+<li>(draft)      public java.lang.String <i>getString</i>()</li>
+<li>(draft)      public java.lang.String <i>getString</i>(int)</li>
+<li>(draft)      public java.lang.String[] <i>getStringArray</i>()</li>
+<li>(draft)      public int <i>getType</i>()</li>
+<li>(draft)      public int <i>getUInt</i>()</li>
+<li>(draft)      public VersionInfo <i>getVersion</i>()</li>
+<li>(draft)      protected UResourceBundle <i>handleGet</i>(int, java.util.HashMap, UResourceBundle)</li>
+<li>(draft)      protected UResourceBundle <i>handleGet</i>(java.lang.String, java.util.HashMap, UResourceBundle)</li>
+<li>(draft)      protected java.util.Enumeration <i>handleGetKeys</i>()</li>
+<li>(draft)      protected java.lang.Object <i>handleGetObject</i>(java.lang.String)</li>
+<li>(draft)      protected java.lang.String[] <i>handleGetStringArray</i>()</li>
 </ul>
-MeasureUnit
+UniversalTimeScale
 <ul>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit ACRE_FOOT</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit AMPERE</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit ASTRONOMICAL_UNIT</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit BIT</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit BUSHEL</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit BYTE</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit CALORIE</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit CARAT</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit CENTILITER</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit CUBIC_CENTIMETER</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit CUBIC_FOOT</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit CUBIC_INCH</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit CUBIC_METER</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit CUBIC_YARD</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit CUP</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit DECILITER</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit DECIMETER</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit FATHOM</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit FLUID_OUNCE</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit FOODCALORIE</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit FURLONG</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit GALLON</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit GIGABIT</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit GIGABYTE</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit GIGAHERTZ</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit GIGAWATT</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit HECTOLITER</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit HERTZ</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit JOULE</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit KARAT</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit KELVIN</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit KILOBIT</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit KILOBYTE</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit KILOCALORIE</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit KILOHERTZ</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit KILOJOULE</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit KILOWATT_HOUR</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit LITER_PER_KILOMETER</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit LUX</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit MEGABIT</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit MEGABYTE</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit MEGAHERTZ</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit MEGALITER</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit MEGAWATT</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit METER_PER_SECOND_SQUARED</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit METRIC_TON</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit MICROGRAM</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit MICROMETER</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit MICROSECOND</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit MILE_PER_GALLON</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit MILLIAMPERE</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit MILLIGRAM</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit MILLILITER</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit MILLIMETER_OF_MERCURY</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit MILLIWATT</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit NANOMETER</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit NANOSECOND</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit NAUTICAL_MILE</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit OHM</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit OUNCE_TROY</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit PARSEC</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit PINT</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit POUND_PER_SQUARE_INCH</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit QUART</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit RADIAN</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit SQUARE_CENTIMETER</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit SQUARE_INCH</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit SQUARE_YARD</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit STONE</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit TABLESPOON</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit TEASPOON</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit TERABIT</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit TERABYTE</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit TON</li>
-<li><span style='color:orange'>(draft)</span> public static final MeasureUnit VOLT</li>
-</ul>
-ULocale
-<ul>
-<li><span style='color:orange'>(draft)</span> public boolean <i>isRightToLeft</i>()</li>
-<li><span style='color:orange'>(draft)</span> public static java.lang.String <i>toLegacyKey</i>(java.lang.String)</li>
-<li><span style='color:orange'>(draft)</span> public static java.lang.String <i>toLegacyType</i>(java.lang.String, java.lang.String)</li>
-<li><span style='color:orange'>(draft)</span> public static java.lang.String <i>toUnicodeLocaleKey</i>(java.lang.String)</li>
-<li><span style='color:orange'>(draft)</span> public static java.lang.String <i>toUnicodeLocaleType</i>(java.lang.String, java.lang.String)</li>
-</ul>
-VersionInfo
-<ul>
-<li><span style='color:green'>(stable)</span> public static final VersionInfo UNICODE_7_0</li>
+<li>(draft)      public static final int UNIX_MICROSECONDS_TIME</li>
 </ul>
 </ul>
 
 <hr/>
-<p><i><font size="-1">Contents generated by ReportAPI tool on Tue Sep 16 15:13:43 EDT 2014<br/>Copyright (C) 2014, International Business Machines Corporation, All Rights Reserved.</font></i></p>
+<p><i><font size="-1">Contents generated by ReportAPI tool on Sun Aug 26 23:15:39 EDT 2007<br/>Copyright (C) 2007, International Business Machines Corporation, All Rights Reserved.</font></i></p>
 </body>
 </html>
