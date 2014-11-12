@@ -56,7 +56,8 @@ public final class ScientificNumberFormatter {
      * Gets a ScientificNumberFormatter instance that uses
      * superscript characters for exponents.
      * @param df The DecimalFormat must be configured for scientific
-     *   notation.
+     *   notation. Caller may safely change df after this call as this method
+     *   clones it when creating the ScientificNumberFormatter.
      * @return the ScientificNumberFormatter instance.
      * 
      * @draft ICU 55
@@ -80,17 +81,18 @@ public final class ScientificNumberFormatter {
       */
      public static ScientificNumberFormatter getMarkupInstance(
              ULocale locale,
-             CharSequence beginMarkup,
-             CharSequence endMarkup) {
+             String beginMarkup,
+             String endMarkup) {
          return getInstanceForLocale(
-                 locale, new MarkupStyle(beginMarkup.toString(), endMarkup.toString()));
+                 locale, new MarkupStyle(beginMarkup, endMarkup));
      }
      
      /**
       * Gets a ScientificNumberFormatter instance that uses
       * mark up for exponents.
       * @param df The DecimalFormat must be configured for scientific
-      *   notation.
+      *   notation. Caller may safely change df after this call as this method
+      *   clones it when creating the ScientificNumberFormatter.
       * @param beginMarkup the mark up to start superscript e.g {@code <sup>}
       * @param endMarkup the mark up to end superscript e.g {@code </sup>}
       * @return The ScientificNumberFormatter instance.
@@ -100,10 +102,10 @@ public final class ScientificNumberFormatter {
       */
      public static ScientificNumberFormatter getMarkupInstance(
              DecimalFormat df,
-             CharSequence beginMarkup,
-             CharSequence endMarkup) {
+             String beginMarkup,
+             String endMarkup) {
          return getInstance(
-                 df, new MarkupStyle(beginMarkup.toString(), endMarkup.toString()));
+                 df, new MarkupStyle(beginMarkup, endMarkup));
      }
      
      /**
