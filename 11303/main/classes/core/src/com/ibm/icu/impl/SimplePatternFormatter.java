@@ -51,7 +51,7 @@ public class SimplePatternFormatter {
      * @param pattern The string.
      * @return the new SimplePatternFormatter object.
      */
-    public static SimplePatternFormatter compile(CharSequence pattern) {
+    public static SimplePatternFormatter compile(String pattern) {
         PlaceholdersBuilder placeholdersBuilder = new PlaceholdersBuilder();
         PlaceholderIdBuilder idBuilder =  new PlaceholderIdBuilder();
         StringBuilder newPattern = new StringBuilder();
