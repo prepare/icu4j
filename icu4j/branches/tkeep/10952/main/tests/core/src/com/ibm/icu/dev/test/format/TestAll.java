@@ -60,7 +60,7 @@ public class TestAll extends TestGroup {
                 "NumberRegression",
                 "NumberFormatRegressionTest",
                 "ScientificFormatHelperTest",
-                "ScientificFormatterTest",
+                "ScientificNumberFormatterTest",
                 "IntlTestDecimalFormatAPI",
                 "IntlTestDecimalFormatAPIC",
                 "IntlTestDecimalFormatSymbols",

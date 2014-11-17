@@ -70,10 +70,10 @@ public final class ScientificNumberFormatter {
  
      /**
       * Gets a ScientificNumberFormatter instance that uses
-      * mark up for exponents for this locale.
+      * markup for exponents for this locale.
       * @param locale The locale
-      * @param beginMarkup the mark up to start superscript e.g {@code <sup>}
-      * @param endMarkup the mark up to end superscript e.g {@code </sup>}
+      * @param beginMarkup the markup to start superscript e.g {@code <sup>}
+      * @param endMarkup the markup to end superscript e.g {@code </sup>}
       * @return The ScientificNumberFormatter instance.
       * 
       * @draft ICU 55
@@ -89,12 +89,12 @@ public final class ScientificNumberFormatter {
      
      /**
       * Gets a ScientificNumberFormatter instance that uses
-      * mark up for exponents.
+      * markup for exponents.
       * @param df The DecimalFormat must be configured for scientific
       *   notation. Caller may safely change df after this call as this method
       *   clones it when creating the ScientificNumberFormatter.
-      * @param beginMarkup the mark up to start superscript e.g {@code <sup>}
-      * @param endMarkup the mark up to end superscript e.g {@code </sup>}
+      * @param beginMarkup the markup to start superscript e.g {@code <sup>}
+      * @param endMarkup the markup to end superscript e.g {@code </sup>}
       * @return The ScientificNumberFormatter instance.
       * 
       * @draft ICU 55
@@ -128,6 +128,7 @@ public final class ScientificNumberFormatter {
     /**
      * A style type for ScientificNumberFormatter. All Style instances are immutable
      * and thread-safe.
+     * TODO: Make private once ScientificFormatHelper is deleted.
      */
     static abstract class Style {
         abstract String format(
@@ -149,6 +150,7 @@ public final class ScientificNumberFormatter {
         }
     }
     
+    // TODO: make private
     static class MarkupStyle extends Style {
         
         private final String beginMarkup;
@@ -199,6 +201,7 @@ public final class ScientificNumberFormatter {
         }
     }
     
+    // TODO: Make private
     static class SuperscriptStyle extends Style {
         
         private static final char[] SUPERSCRIPT_DIGITS = {
@@ -287,14 +290,13 @@ public final class ScientificNumberFormatter {
         
         private static int char32AtAndAdvance(AttributedCharacterIterator iterator) {
             char c1 = iterator.current();
-            iterator.next();
+            char c2 = iterator.next();
             if (UCharacter.isHighSurrogate(c1)) {
-                char c2 = iterator.current();
-                if (c2 != CharacterIterator.DONE) {
-                    if (UCharacter.isLowSurrogate(c2)) {
-                        iterator.next();
-                        return UCharacter.toCodePoint(c1, c2);
-                    }
+                // If c2 is DONE, it will fail the low surrogate test and we
+                // skip this block.
+                if (UCharacter.isLowSurrogate(c2)) {
+                    iterator.next();
+                    return UCharacter.toCodePoint(c1, c2);
                 }
             }
             return c1;

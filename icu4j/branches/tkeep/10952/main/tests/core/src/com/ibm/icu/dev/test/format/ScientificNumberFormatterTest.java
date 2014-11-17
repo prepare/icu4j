@@ -22,49 +22,58 @@ public class ScientificNumberFormatterTest extends TestFmwk {
     }
     
     public void TestBasic() {
-        ULocale en = new ULocale("en");
-        ScientificNumberFormatter fmt = ScientificNumberFormatter.getMarkupInstance(
-                en, "<sup>", "</sup>");
-        ScientificNumberFormatter fmt2 = ScientificNumberFormatter.getSuperscriptInstance(en);
+        ScientificNumberFormatter markup = ScientificNumberFormatter.getMarkupInstance(
+                ULocale.ENGLISH, "<sup>", "</sup>");
+        ScientificNumberFormatter superscript = ScientificNumberFormatter.getSuperscriptInstance(ULocale.ENGLISH);
         assertEquals(
-                "insetMarkup",
-                "1.23456\u00d710<sup>-78</sup>",
-                fmt.format(1.23456e-78));
+                "toMarkupExponentDigits",
+                "1.23456×10<sup>-78</sup>",
+                markup.format(1.23456e-78));
         assertEquals(
                 "toSuperscriptExponentDigits",
-                "1.23456\u00d710\u207b\u2077\u2078",
-                fmt2.format(1.23456e-78));
+                "1.23456×10⁻⁷⁸",
+                superscript.format(1.23456e-78));
     }
+    
+    /*
+     // TODO: Find out why left to right marker doesn't show up in exponent.
+    public void TestFarsi() {
+        ScientificNumberFormatter fmt = ScientificNumberFormatter.getMarkupInstance(
+                new ULocale("fa"), "<sup>", "</sup>");
+        assertEquals(
+                "",
+                "۱٫۲۳۴۵۶×۱۰<sup>‎−۷۸</sup>",
+                fmt.format(1.23456e-78));
+    }
+    */
+
 
     public void TestPlusSignInExponentMarkup() {
-        ULocale en = new ULocale("en");
-        DecimalFormat decfmt = (DecimalFormat) NumberFormat.getScientificInstance(en);
+        DecimalFormat decfmt = (DecimalFormat) NumberFormat.getScientificInstance(ULocale.ENGLISH);
         decfmt.applyPattern("0.00E+0");
         ScientificNumberFormatter fmt = ScientificNumberFormatter.getMarkupInstance(
                 decfmt, "<sup>", "</sup>");
                 
         assertEquals(
                 "",
-                "6.02\u00d710<sup>+23</sup>",
+                "6.02×10<sup>+23</sup>",
                 fmt.format(6.02e23));
     }
 
     
     public void TestPlusSignInExponentSuperscript() {
-        ULocale en = new ULocale("en");
-        DecimalFormat decfmt = (DecimalFormat) NumberFormat.getScientificInstance(en);
+        DecimalFormat decfmt = (DecimalFormat) NumberFormat.getScientificInstance(ULocale.ENGLISH);
         decfmt.applyPattern("0.00E+0");
         ScientificNumberFormatter fmt = ScientificNumberFormatter.getSuperscriptInstance(
                 decfmt);
         assertEquals(
                 "",
-                "6.02\u00d710\u207a\u00b2\u00b3",
+                "6.02×10⁺²³",
                 fmt.format(6.02e23));
     }
     
     public void TestFixedDecimalMarkup() {
-        ULocale en = new ULocale("en");
-        DecimalFormat decfmt = (DecimalFormat) NumberFormat.getInstance(en);
+        DecimalFormat decfmt = (DecimalFormat) NumberFormat.getInstance(ULocale.ENGLISH);
         ScientificNumberFormatter fmt = ScientificNumberFormatter.getMarkupInstance(
                 decfmt, "<sup>", "</sup>");
         assertEquals(
@@ -74,8 +83,7 @@ public class ScientificNumberFormatterTest extends TestFmwk {
     }
     
     public void TestFixedDecimalSuperscript() {
-        ULocale en = new ULocale("en");
-        DecimalFormat decfmt = (DecimalFormat) NumberFormat.getInstance(en);
+        DecimalFormat decfmt = (DecimalFormat) NumberFormat.getInstance(ULocale.ENGLISH);
         ScientificNumberFormatter fmt = ScientificNumberFormatter.getSuperscriptInstance(decfmt);
         assertEquals(
                 "",
