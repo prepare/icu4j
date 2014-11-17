@@ -35,8 +35,7 @@ public class ScientificNumberFormatterTest extends TestFmwk {
                 superscript.format(1.23456e-78));
     }
     
-    /*
-     // TODO: Find out why left to right marker doesn't show up in exponent.
+    
     public void TestFarsi() {
         ScientificNumberFormatter fmt = ScientificNumberFormatter.getMarkupInstance(
                 new ULocale("fa"), "<sup>", "</sup>");
@@ -45,7 +44,6 @@ public class ScientificNumberFormatterTest extends TestFmwk {
                 "۱٫۲۳۴۵۶×۱۰<sup>‎−۷۸</sup>",
                 fmt.format(1.23456e-78));
     }
-    */
 
 
     public void TestPlusSignInExponentMarkup() {
