@@ -225,4 +225,28 @@ public class SimplePatternFormatterTest extends TestFmwk {
                  fmt.formatAndReplace(result, null, result, "frog").toString());
      }
      
+     public void TestFormatReplaceNoOptimizationLeadingPlaceholderUsedTwice() {
+         SimplePatternFormatter fmt = SimplePatternFormatter.compile(
+                 "{2}, {0}, {1} and {3} {2}");
+         StringBuilder result = new StringBuilder("original");
+         int[] offsets = new int[4];
+         assertEquals(
+                 "",
+                 "original, freddy, frog and by original",
+                 fmt.formatAndReplace(
+                         result,
+                         offsets,
+                         "freddy", "frog", result, "by").toString());
+         int[] expectedOffsets = {10, 18, 30, 27};
+         verifyOffsets(expectedOffsets, offsets);
+     }
+     
+     void verifyOffsets(int[] expected, int[] actual) {
+         for (int i = 0; i < expected.length; ++i) {
+             if (expected[i] != actual[i]) {
+                 errln("Expected "+expected[i]+", got " + actual[i]);
+             }
+         } 
+     }
+     
 }
