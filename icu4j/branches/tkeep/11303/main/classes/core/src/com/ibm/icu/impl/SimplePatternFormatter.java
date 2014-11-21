@@ -38,12 +38,15 @@ public class SimplePatternFormatter {
     // [0] first offset; [1] first placeholderId; [2] second offset;
     // [3] second placeholderId etc.
     private final int[] placeholderIdsOrderedByOffset;
+    
+    private final boolean firstPlaceholderReused;
 
     private SimplePatternFormatter(String pattern, PlaceholdersBuilder builder) {
         this.patternWithoutPlaceholders = pattern;
         this.placeholderIdsOrderedByOffset =
                 builder.getPlaceholderIdsOrderedByOffset();
         this.placeholderCount = builder.getPlaceholderCount();
+        this.firstPlaceholderReused = builder.getFirstPlaceholderReused();
     }
 
     /**
@@ -171,7 +174,7 @@ public class SimplePatternFormatter {
         if (values.length < placeholderCount) {
             throw new IllegalArgumentException("Too few values.");
         }
-        int placeholderAtStart = getPlaceholderAtStart();
+        int placeholderAtStart = getUniquePlaceholderAtStart();
         
         // If patterns starts with a placeholder and the value for that placeholder
         // is result, then we can optimize by just appending to result.
@@ -183,7 +186,7 @@ public class SimplePatternFormatter {
             CharSequence[] fixedValues = fixValues(result, placeholderAtStart, values);
             int offsetLength = formatReturningOffsetLength(result, offsets, fixedValues);
             
-            // We have to make the offset for the placholderAtStart placeholder be 0.
+            // We have to make the offset for the placeholderAtStart placeholder be 0.
             // Otherwise it would be the length of the previous value of result.
             if (offsetLength > placeholderAtStart) {
                 offsets[placeholderAtStart] = 0;
@@ -299,11 +302,13 @@ public class SimplePatternFormatter {
     }
     
     /**
-     * Returns the placeholder at the beginning of this pattern (e.g 3 for placeholder {3}). If the
-     * beginning of pattern is text instead of a placeholder, returns -1.
+     * Returns the placeholder at the beginning of this pattern (e.g 3 for placeholder {3}).
+     * Returns -1 if the beginning of pattern is text or if the placeholder at beginning
+     * of this pattern is used again elsewhere in pattern.
      */
-    private int getPlaceholderAtStart() {
-        if (placeholderIdsOrderedByOffset.length == 0 || placeholderIdsOrderedByOffset[0] != 0) {
+    private int getUniquePlaceholderAtStart() {
+        if (placeholderIdsOrderedByOffset.length == 0
+                || firstPlaceholderReused || placeholderIdsOrderedByOffset[0] != 0) {
             return -1;
         }
         return placeholderIdsOrderedByOffset[1];
@@ -354,12 +359,19 @@ public class SimplePatternFormatter {
     private static class PlaceholdersBuilder {
         private List<Integer> placeholderIdsOrderedByOffset = new ArrayList<Integer>();
         private int placeholderCount = 0;
+        private boolean firstPlaceholderReused = false;
         
         public void add(int placeholderId, int offset) {
             placeholderIdsOrderedByOffset.add(offset);
             placeholderIdsOrderedByOffset.add(placeholderId);
             if (placeholderId >= placeholderCount) {
                 placeholderCount = placeholderId + 1;
+            }
+            int len = placeholderIdsOrderedByOffset.size();
+            if (len > 2
+                    && placeholderIdsOrderedByOffset.get(len - 1)
+                            .equals(placeholderIdsOrderedByOffset.get(1))) {
+                firstPlaceholderReused = true;
             }
         }
         
@@ -373,6 +385,10 @@ public class SimplePatternFormatter {
                 result[i] = placeholderIdsOrderedByOffset.get(i).intValue();
             }
             return result;
+        }
+        
+        public boolean getFirstPlaceholderReused() {
+            return firstPlaceholderReused;
         }
     }
 
