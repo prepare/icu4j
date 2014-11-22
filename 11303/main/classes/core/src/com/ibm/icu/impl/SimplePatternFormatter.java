@@ -276,23 +276,18 @@ public class SimplePatternFormatter {
      */
     private CharSequence[] fixValues(
             StringBuilder builder, int skipIndex, CharSequence... values) {
-        boolean valuesOk = true;
         for (int i = 0; i < placeholderCount; i++) {
+            if (i == placeholderCount) {
+                return values;
+            }
             if (i != skipIndex && values[i] == builder) {
-                valuesOk = false;
                 break;
             }
         }
-        if (valuesOk) {
-            return values;
-        }
         CharSequence[] result = new CharSequence[placeholderCount];
-        String builderCopy = null;
+        String builderCopy = builder.toString();
         for (int i = 0; i < placeholderCount; i++) {
             if (i != skipIndex && values[i] == builder) {
-                if (builderCopy == null) {
-                    builderCopy = builder.toString();
-                }
                 result[i] = builderCopy;
             } else {
                 result[i] = values[i];
