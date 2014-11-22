@@ -131,10 +131,12 @@ public class SimplePatternFormatterTest extends TestFmwk {
          SimplePatternFormatter fmt = SimplePatternFormatter.compile(
                  "Placeholders {0} and {1}");
          StringBuilder appendTo = new StringBuilder("previous:");
-         assertEquals(
-                 "",
-                 "previous:Placeholders previous: and frog",
-                 fmt.formatAndAppend(appendTo, null, appendTo, "frog").toString());
+         try {
+             fmt.formatAndAppend(appendTo, null, appendTo, "frog");
+             fail("IllegalArgumentException expected.");
+         } catch (IllegalArgumentException e) {
+             // expected.
+         }
      }
      
      public void TestFormatReplaceNoOptimization() {

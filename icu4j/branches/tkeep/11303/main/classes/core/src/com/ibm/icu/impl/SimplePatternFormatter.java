@@ -141,8 +141,7 @@ public class SimplePatternFormatter {
      *   differ. If offsets.length < values.length then only the first offsets are written out;
      *   If offsets.length > values.length then the extra offsets get -1.
      *   If caller is not interested in offsets, caller may pass null here.
-     * @param values the placeholder values. A placeholder value may be appendTo itself in which case
-     *   the previous value of appendTo is used.
+     * @param values the placeholder values. A placeholder value may not be appendTo itself.
      * @return appendTo
      */
     public StringBuilder formatAndAppend(
@@ -150,8 +149,11 @@ public class SimplePatternFormatter {
         if (values.length < placeholderCount) {
             throw new IllegalArgumentException("Too few values.");
         }
-        CharSequence[] fixedValues = fixValues(appendTo, -1, values);
-        formatReturningOffsetLength(appendTo, offsets, fixedValues);
+        PlaceholderValues placeholderValues = new PlaceholderValues(values);
+        if (placeholderValues.isAppendToInAnyIndexExcept(appendTo, -1)) {
+            throw new IllegalArgumentException();
+        }
+        formatReturningOffsetLength(appendTo, offsets, placeholderValues);
         return appendTo;
     }
     
@@ -174,17 +176,23 @@ public class SimplePatternFormatter {
         if (values.length < placeholderCount) {
             throw new IllegalArgumentException("Too few values.");
         }
+        PlaceholderValues placeholderValues = new PlaceholderValues(values);
         int placeholderAtStart = getUniquePlaceholderAtStart();
         
         // If patterns starts with a placeholder and the value for that placeholder
-        // is result, then we can optimize by just appending to result.
+        // is result, then we can may be able optimize by just appending to result.
         if (placeholderAtStart >= 0 && values[placeholderAtStart] == result) {
             
-            // Append to result, but make the value of the placeholderAtStart
-            // placeholder remain the same as result so that it is treated as the
-            // empty string.
-            CharSequence[] fixedValues = fixValues(result, placeholderAtStart, values);
-            int offsetLength = formatReturningOffsetLength(result, offsets, fixedValues);
+            // If result is the value for other placeholders, call off optimization.
+            if (placeholderValues.isAppendToInAnyIndexExcept(result, placeholderAtStart)) {
+                placeholderValues.snapshotAppendTo(result);
+                result.setLength(0);
+                formatReturningOffsetLength(result, offsets, placeholderValues);
+                return result;
+            }
+            
+            // Otherwise we can optimize
+            int offsetLength = formatReturningOffsetLength(result, offsets, placeholderValues);
             
             // We have to make the offset for the placeholderAtStart placeholder be 0.
             // Otherwise it would be the length of the previous value of result.
@@ -193,9 +201,11 @@ public class SimplePatternFormatter {
             }
             return result;
         }
-        CharSequence[] fixedValues = fixValues(result, -1, values);
+        if (placeholderValues.isAppendToInAnyIndexExcept(result, -1)) {
+            placeholderValues.snapshotAppendTo(result);
+        }
         result.setLength(0);
-        formatReturningOffsetLength(result, offsets, fixedValues);
+        formatReturningOffsetLength(result, offsets, placeholderValues);
         return result;
     }
     
@@ -213,6 +223,13 @@ public class SimplePatternFormatter {
     }
     
     /**
+     * Returns this pattern with none of the placeholders.
+     */
+    public String getPatternWithNoPlaceholders() {
+        return patternWithoutPlaceholders;
+    }
+    
+    /**
      * Just like format, but uses placeholder values exactly as they are.
      * A placeholder value that is the same object as appendTo is treated
      * as the empty string. In addition, returns the length of the offsets
@@ -221,7 +238,7 @@ public class SimplePatternFormatter {
     private int formatReturningOffsetLength(
             StringBuilder appendTo,
             int[] offsets,
-            CharSequence... values) {
+            PlaceholderValues values) {
         int offsetLen = offsets == null ? 0 : offsets.length;
         for (int i = 0; i < offsetLen; i++) {
             offsets[i] = -1;
@@ -239,7 +256,7 @@ public class SimplePatternFormatter {
                 appendTo.length(),
                 offsets,
                 offsetLen);
-        CharSequence placeholderValue = values[placeholderIdsOrderedByOffset[1]];
+        CharSequence placeholderValue = values.get(placeholderIdsOrderedByOffset[1]);
         if (placeholderValue != appendTo) {
             appendTo.append(placeholderValue);
         }
@@ -253,7 +270,7 @@ public class SimplePatternFormatter {
                     appendTo.length(),
                     offsets,
                     offsetLen);
-            placeholderValue = values[placeholderIdsOrderedByOffset[i + 1]];
+            placeholderValue = values.get(placeholderIdsOrderedByOffset[i + 1]);
             if (placeholderValue != appendTo) {
                 appendTo.append(placeholderValue);
             }
@@ -265,36 +282,6 @@ public class SimplePatternFormatter {
         return offsetLen;
     }
     
-    /**
-     * Returns an array like values except that for each element in values that is
-     * the same as builder, the corresponding element in returned array contains a
-     * snapshot of builder as a string. Moreover if skipIndex >=0, the skipIndexth
-     * element of values is not checked and is left as-is in returned array.
-     * If no changes are needed, fixValues returns the values array unchanged;
-     * when changes are needed, fixValues returns a new array with the changes.
-     * In all cases, the values array remains unchanged.
-     */
-    private CharSequence[] fixValues(
-            StringBuilder builder, int skipIndex, CharSequence... values) {
-        for (int i = 0; i < placeholderCount; i++) {
-            if (i == placeholderCount) {
-                return values;
-            }
-            if (i != skipIndex && values[i] == builder) {
-                break;
-            }
-        }
-        CharSequence[] result = new CharSequence[placeholderCount];
-        String builderCopy = builder.toString();
-        for (int i = 0; i < placeholderCount; i++) {
-            if (i != skipIndex && values[i] == builder) {
-                result[i] = builderCopy;
-            } else {
-                result[i] = values[i];
-            }
-        }
-        return result;
-    }
     
     /**
      * Returns the placeholder at the beginning of this pattern (e.g 3 for placeholder {3}).
@@ -386,13 +373,50 @@ public class SimplePatternFormatter {
             return firstPlaceholderReused;
         }
     }
-
+    
     /**
-     * Returns this pattern with none of the placeholders.
+     * Represents placeholder values.
      */
-    public String getPatternWithNoPlaceholders() {
-        return patternWithoutPlaceholders;
+    private static class PlaceholderValues {
+        private final CharSequence[] values;
+        private CharSequence appendTo;
+        private String appendToCopy;
+        
+        public PlaceholderValues(CharSequence ...values) {
+            this.values = values;
+            this.appendTo = null;
+            this.appendToCopy = null;
+        }
+        
+        /**
+         * Returns true if appendTo value is at any index besides exceptIndex.
+         */
+        public boolean isAppendToInAnyIndexExcept(CharSequence appendTo, int exceptIndex) {
+            for (int i = 0; i < values.length; ++i) {
+                if (i != exceptIndex && values[i] == appendTo) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        /**
+         * For each appendTo value, stores the snapshot of it in its place.
+         */
+        public void snapshotAppendTo(CharSequence appendTo) {
+            this.appendTo = appendTo;
+            this.appendToCopy = appendTo.toString();
+        }
+        
+        /**
+         *  Return placeholder at given index.
+         */
+        public CharSequence get(int index) {
+            if (appendTo == null || appendTo != values[index]) {
+                return values[index];
+            }
+            return appendToCopy;
+        }       
     }
-
    
 }
