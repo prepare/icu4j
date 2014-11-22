@@ -124,11 +124,7 @@ public class SimplePatternFormatterTest extends TestFmwk {
                          "freddy", "tommy", "frog", "leg", "{0}").toString());
          
          int[] expectedOffsets = {-1, 22, 18, -1, 32, -1};
-         for (int i = 0; i < offsets.length; i++) {
-             if (offsets[i] != expectedOffsets[i]) {
-                 fail("getOffset() returned wrong value for " + i);
-             }
-         }
+         verifyOffsets(expectedOffsets, offsets);
      }
      
      public void TestFormatUseAppendToAsPlaceholder() {
@@ -154,11 +150,7 @@ public class SimplePatternFormatterTest extends TestFmwk {
                          result, "freddy", "frog", "by").toString());
          
          int[] expectedOffsets = {6, 16, 0, 27};
-         for (int i = 0; i < offsets.length; i++) {
-             if (offsets[i] != expectedOffsets[i]) {
-                 fail("getOffset() returned wrong value for " + i);
-             }
-         }
+         verifyOffsets(expectedOffsets, offsets);
      }
      
      
@@ -175,11 +167,7 @@ public class SimplePatternFormatterTest extends TestFmwk {
                          "freddy", "frog", result, "by").toString());
          
          int[] expectedOffsets = {14, 22, 4, 31};
-         for (int i = 0; i < offsets.length; i++) {
-             if (offsets[i] != expectedOffsets[i]) {
-                 fail("getOffset() returned wrong value for " + i);
-             }
-         }  
+         verifyOffsets(expectedOffsets, offsets);
      }
      
      public void TestFormatReplaceOptimization() {
@@ -195,11 +183,7 @@ public class SimplePatternFormatterTest extends TestFmwk {
                          "freddy", "frog", result, "by").toString());
          
          int[] expectedOffsets = {10, 18, 0, 27};
-         for (int i = 0; i < offsets.length; i++) {
-             if (offsets[i] != expectedOffsets[i]) {
-                 fail("getOffset() returned wrong value for " + i);
-             }
-         }  
+         verifyOffsets(expectedOffsets, offsets);  
      }
      
      public void TestFormatReplaceOptimizationNoOffsets() {
