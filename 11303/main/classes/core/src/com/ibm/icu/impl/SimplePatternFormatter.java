@@ -141,7 +141,8 @@ public class SimplePatternFormatter {
      *   differ. If offsets.length < values.length then only the first offsets are written out;
      *   If offsets.length > values.length then the extra offsets get -1.
      *   If caller is not interested in offsets, caller may pass null here.
-     * @param values the placeholder values. A placeholder value may not be appendTo itself.
+     * @param values the placeholder values. A placeholder value may not be the same object as
+     *   appendTo.
      * @return appendTo
      */
     public StringBuilder formatAndAppend(
