@@ -152,7 +152,7 @@ public class SimplePatternFormatter {
         }
         PlaceholderValues placeholderValues = new PlaceholderValues(values);
         if (placeholderValues.isAppendToInAnyIndexExcept(appendTo, -1)) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("Parameter values cannot be the same as appendTo.");
         }
         formatReturningOffsetLength(appendTo, offsets, placeholderValues);
         return appendTo;
