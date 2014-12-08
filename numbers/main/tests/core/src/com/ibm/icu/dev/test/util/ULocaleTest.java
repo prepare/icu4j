@@ -12,6 +12,8 @@ package com.ibm.icu.dev.test.util;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.text.RuleBasedCollator;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -37,6 +39,7 @@ import com.ibm.icu.util.LocaleData;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.ULocale.Builder;
 import com.ibm.icu.util.ULocale.Category;
+import com.ibm.icu.util.ULocale.Minimize;
 import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.VersionInfo;
 
@@ -1592,6 +1595,30 @@ public class ULocaleTest extends TestFmwk {
         }
     }
 
+    public void TestMinimize() {
+        RuleBasedCollator c;
+        String[][] data = {
+                // source, favorRegion, favorScript
+                {"zh-Hans-CN", "zh", "zh"},
+                {"zh-Hant-TW", "zh-TW", "zh-Hant"},
+                {"zh-Hant-SG", "zh-Hant-SG", "zh-Hant-SG"},
+                {"zh-Hans-SG", "zh-SG", "zh-SG"},
+                {"zh-Hant-HK", "zh-HK", "zh-HK"},
+                {"en_Latn_US", "en", "en"},
+                {"en_Cyrl-US", "en-Cyrl", "en-Cyrl"},
+                {"en_Cyrl-RU", "en-Cyrl-RU", "en-Cyrl-RU"},
+                {"en_Latn-RU", "en-RU", "en-Latn-RU"},
+        };
+        for (String[] test : data) {
+            ULocale source = new ULocale(test[0]);
+            ULocale expectedFavorRegion = new ULocale(test[1]);
+            ULocale expectedFavorScript = new ULocale(test[2]);
+            assertEquals("favor region:\t" + Arrays.asList(test).toString(), expectedFavorRegion, 
+                    ULocale.minimizeSubtags(source, Minimize.FAVOR_REGION));
+            assertEquals("favor script:\t" + Arrays.asList(test).toString(), expectedFavorScript, 
+                    ULocale.minimizeSubtags(source, Minimize.FAVOR_SCRIPT));
+        }
+    }
     public void TestAddLikelySubtags() {
         String[][] data = {
                 {"en", "en_Latn_US"},
