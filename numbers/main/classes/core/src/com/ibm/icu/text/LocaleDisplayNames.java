@@ -8,6 +8,11 @@ package com.ibm.icu.text;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.text.CharacterIterator;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
 
 import com.ibm.icu.impl.ICUConfig;
@@ -197,7 +202,7 @@ public abstract class LocaleDisplayNames {
      * @stable ICU 4.4
      */
     public abstract String scriptDisplayName(String script);
- 
+
     /**
      * Returns the display name of the provided script code
      * when used in the context of a full locale name.
@@ -252,6 +257,47 @@ public abstract class LocaleDisplayNames {
      * @stable ICU 4.4
      */
     public abstract String keyValueDisplayName(String key, String value);
+
+    /**
+     * Return a list of information used to construct a UI list of locale names.
+     * @param titlecase whether to titlecase the names
+     * @param collator how to collate—should normally be Collator.getInstance(locale)
+     * @param localeSet a list of locales to present in a UI list.
+     * @return an ordered list of information.
+     */
+    public abstract List<Row> getList(Comparator<Object> collator, Collection<ULocale> localeSet);
+
+
+    /**
+     * Struct-like class used to return information for constructing a UI list.
+     */
+    public static class Row {
+        public final String nameInDisplayLocale;
+        public final String nameInSelf;
+        public final ULocale minimized;
+        public final ULocale modified;
+
+        public Row(String nameInDisplayLocale, String nameInSelf, ULocale minimized, ULocale modified) {
+            this.nameInDisplayLocale = nameInDisplayLocale;
+            this.nameInSelf = nameInSelf;
+            this.minimized = minimized;
+            this.modified = modified;
+        }
+        @Override
+        public boolean equals(Object obj) {
+            Row other = (Row)obj;
+            return nameInDisplayLocale.equals(other.nameInDisplayLocale)
+                    && nameInSelf.equals(other.nameInSelf)
+                    && minimized.equals(other.minimized)
+                    && modified.equals(other.modified);
+        }
+        @Override
+        public String toString() {
+            // TODO Auto-generated method stub
+            return "{" + nameInDisplayLocale + ", " + nameInSelf + ", " + modified + ", " + minimized + "}";
+        }
+    }
+
 
     /**
      * Sole constructor.  (For invocation by subclass constructors,
@@ -394,6 +440,102 @@ public abstract class LocaleDisplayNames {
         public String keyValueDisplayName(String key, String value) {
             return value;
         }
-        
+
+        /* (non-Javadoc)
+         * @see com.ibm.icu.text.LocaleDisplayNames#getList(java.util.Comparator, java.util.Collection)
+         */
+        @Override
+        public List<Row> getList(Comparator<Object> collator, Collection<ULocale> localeSet) {
+            return Collections.EMPTY_LIST;
+        }
+
+
+    }
+    /**
+     * Should move to being public.
+     * @internal
+     * @Deprecated
+     */
+    public static final class StringBreakIterator extends BreakIterator {
+        private final BreakIterator source;
+        private final int[] breakpoints = new int[2];
+        private int lastIndex;
+        private int currentIndex;
+
+        public StringBreakIterator(ULocale locale) {
+            this.source = BreakIterator.getTitleInstance(locale);
+            setup(source);
+        }
+
+        private void setup(BreakIterator source) {
+            int last = source.last();
+            breakpoints[0] = 0;
+            breakpoints[1] = last;
+            if (last == 0) {
+                lastIndex = 0;
+            } else {
+                lastIndex = 1;
+            }
+            source.first();
+        }
+
+        @Override
+        public int first() {
+            return breakpoints[currentIndex = 0];
+        }
+
+        @Override
+        public int last() {
+            return breakpoints[currentIndex = lastIndex];
+        }
+
+        @Override
+        public int next(int n) {
+            return 0;
+        }
+
+        @Override
+        public int next() {
+            if (currentIndex >= lastIndex) {
+                return DONE;
+            }
+            return breakpoints[++currentIndex];
+        }
+
+        @Override
+        public int previous() {
+            if (currentIndex <= 0) {
+                return DONE;
+            }
+            return breakpoints[--currentIndex];
+        }
+
+        @Override
+        public int following(int offset) {
+            if (offset >= breakpoints[1]) {
+                return DONE;
+            } else if (offset >= breakpoints[0]) {
+                currentIndex = 1;
+            } else {
+                currentIndex = 0;
+            }
+            return breakpoints[currentIndex];
+        }
+
+        @Override
+        public int current() {
+            return breakpoints[currentIndex];
+        }
+
+        @Override
+        public CharacterIterator getText() {
+            return source.getText();
+        }
+
+        @Override
+        public void setText(CharacterIterator newText) {
+            source.setText(newText);
+            setup(source);
+        }
     }
 }
