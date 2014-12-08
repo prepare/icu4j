@@ -9,7 +9,7 @@ package com.ibm.icu.text;
 /**
  * @author markdavis
  */
-public class DigitList2 implements Cloneable {
+public final class DigitList2 implements Cloneable {
     private static final boolean CHECK_INVARIANTS = true;
     
     private boolean isNegative = false; 
