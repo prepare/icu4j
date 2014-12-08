@@ -8,7 +8,7 @@ package com.ibm.icu.text;
 
 import java.io.IOException;
 
-final class DigitFormatter {
+public final class DigitFormatter {
     private final int groupingSize;
     private final int groupingSize2;
 

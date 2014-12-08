@@ -32,13 +32,13 @@ public class DecimalFormat2Test extends TestFmwk{
         new DecimalFormat2Test().run(args);
     }
 
-//    public void TestPerf() {
-//        DecimalFormat df = (DecimalFormat) NumberFormat.getInstance(ULocale.US);
-//        DecimalFormat2 df2 = new DecimalFormat2(df);
-//        while (true) {
-//            String s2 = df2.format(12345);
-//        }
-//    }
+    public void TestPerf() {
+        DecimalFormat df = (DecimalFormat) NumberFormat.getInstance(ULocale.US);
+        DecimalFormat2 df2 = new DecimalFormat2(df);
+        while (true) {
+            String s2 = df2.format(12345);
+        }
+    }
 
     public void TestAQuick () {
         int[] tests = {0, -1, 1, -12, 12, -123, 123, -1234, 1234, -12345, 12345};
