@@ -24,6 +24,7 @@ import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UScript;
 import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.DisplayContext;
+import com.ibm.icu.text.DisplayContext.Type;
 import com.ibm.icu.text.LocaleDisplayNames;
 import com.ibm.icu.text.MessageFormat;
 import com.ibm.icu.util.ULocale;
@@ -477,7 +478,7 @@ public class LocaleDisplayNamesImpl extends LocaleDisplayNames {
     @Override
     public List<Row> getList(Comparator<Object> collator, Collection<ULocale> localeSet) {
         MyComparator comparator = new MyComparator(collator);
-        final BreakIterator breakIterator = null; // get from contexts, if available ? new StringBreakIterator(locale) : null;
+        DisplayContext capContext = getContext(Type.CAPITALIZATION);
 
         List<Row> result = new ArrayList<Row>();
         Map<ULocale,Set<ULocale>> baseToLocales = new HashMap<ULocale,Set<ULocale>>();
@@ -495,7 +496,7 @@ public class LocaleDisplayNamesImpl extends LocaleDisplayNames {
             Set<ULocale> values = entry.getValue();
             if (values.size() == 1) {
                 ULocale locale = values.iterator().next();
-                result.add(newRow(ULocale.minimizeSubtags(locale, ULocale.Minimize.FAVOR_SCRIPT), breakIterator));
+                result.add(newRow(ULocale.minimizeSubtags(locale, ULocale.Minimize.FAVOR_SCRIPT), capContext));
             } else {
                 Set<String> scripts = new HashSet<String>();
                 Set<String> regions = new HashSet<String>();
@@ -517,7 +518,7 @@ public class LocaleDisplayNamesImpl extends LocaleDisplayNames {
                     if (!hasRegions) {
                         modified.setRegion("");
                     }
-                    result.add(newRow(modified.build(), breakIterator));
+                    result.add(newRow(modified.build(), capContext));
                 }
             }
         }
@@ -531,14 +532,13 @@ public class LocaleDisplayNamesImpl extends LocaleDisplayNames {
      * @param breakIterator
      * @return
      */
-    private Row newRow(ULocale modified, BreakIterator breakIterator) {
+    private Row newRow(ULocale modified, DisplayContext capContext) {
         ULocale minimized = ULocale.minimizeSubtags(modified, ULocale.Minimize.FAVOR_SCRIPT);
         String tempName = modified.getDisplayName(locale);
-        String nameInDisplayLocale = breakIterator == null ? tempName 
-                : UCharacter.toTitleCase(locale, tempName, breakIterator, UCharacter.TITLECASE_NO_LOWERCASE);
+        boolean titlecase = capContext == DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU;
+        String nameInDisplayLocale =  titlecase ? UCharacter.toTitleFirst(locale, tempName) : tempName;
         tempName = modified.getDisplayName(modified);
-        String nameInSelf = breakIterator == null ? tempName 
-                : UCharacter.toTitleCase(modified, tempName, new StringBreakIterator(modified), UCharacter.TITLECASE_NO_LOWERCASE);
+        String nameInSelf = capContext == DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU ? UCharacter.toTitleFirst(modified, tempName) : tempName;
         return new Row(nameInDisplayLocale, nameInSelf, minimized, modified);
     }
 
