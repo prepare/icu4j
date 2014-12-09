@@ -18,6 +18,8 @@ import java.util.Locale;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.text.Collator;
+import com.ibm.icu.text.DisplayContext;
+import com.ibm.icu.text.DisplayContext.Type;
 import com.ibm.icu.text.LocaleDisplayNames;
 import com.ibm.icu.text.LocaleDisplayNames.Row;
 import com.ibm.icu.util.ULocale;
@@ -228,48 +230,51 @@ public class ULocaleCollationTest extends TestFmwk {
     public void TestNameList() {
         String[][][] tests = {
                 {{"fr-Cyrl-BE", "fr-Cyrl-CA"},
-                    {"français (cyrillique, Belgique)", "français (cyrillique, Belgique)", "fr_Cyrl_BE", "fr_Cyrl_BE"},
-                    {"français (cyrillique, Canada)", "français (cyrillique, Canada)", "fr_Cyrl_CA", "fr_Cyrl_CA"},
+                    {"Français (cyrillique, Belgique)", "Français (cyrillique, Belgique)", "fr_Cyrl_BE", "fr_Cyrl_BE"},
+                    {"Français (cyrillique, Canada)", "Français (cyrillique, Canada)", "fr_Cyrl_CA", "fr_Cyrl_CA"},
                 },
                 {{"en", "de", "fr", "zh"},
-                    {"allemand", "Deutsch", "de", "de"},
-                    {"anglais", "English", "en", "en"},
-                    {"chinois", "中文", "zh", "zh"},
-                    {"français", "français", "fr", "fr"},
+                    {"Allemand", "Deutsch", "de", "de"},
+                    {"Anglais", "English", "en", "en"},
+                    {"Chinois", "中文", "zh", "zh"},
+                    {"Français", "Français", "fr", "fr"},
                 },
                 {{"zh-Hant-TW", "en", "en-gb", "fr", "zh-Hant", "de", "de-CH", "zh-TW"},
-                    {"allemand (Allemagne)", "Deutsch (Deutschland)", "de", "de_DE"},
-                    {"allemand (Suisse)", "Deutsch (Schweiz)", "de_CH", "de_CH"},
-                    {"anglais (États-Unis)", "English (United States)", "en", "en_US"},
-                    {"anglais (Royaume-Uni)", "English (United Kingdom)", "en_GB", "en_GB"},
-                    {"chinois (traditionnel)", "中文（繁體）", "zh_Hant", "zh_Hant"},
-                    {"français", "français", "fr", "fr"},
+                    {"Allemand (Allemagne)", "Deutsch (Deutschland)", "de", "de_DE"},
+                    {"Allemand (Suisse)", "Deutsch (Schweiz)", "de_CH", "de_CH"},
+                    {"Anglais (États-Unis)", "English (United States)", "en", "en_US"},
+                    {"Anglais (Royaume-Uni)", "English (United Kingdom)", "en_GB", "en_GB"},
+                    {"Chinois (traditionnel)", "中文（繁體）", "zh_Hant", "zh_Hant"},
+                    {"Français", "Français", "fr", "fr"},
                 },
                 {{"zh", "en-gb", "en-CA", "fr-Latn-FR"},
-                    {"anglais (Canada)", "English (Canada)", "en_CA", "en_CA"},
-                    {"anglais (Royaume-Uni)", "English (United Kingdom)", "en_GB", "en_GB"},
-                    {"chinois", "中文", "zh", "zh"},
-                    {"français", "français", "fr", "fr"},
+                    {"Anglais (Canada)", "English (Canada)", "en_CA", "en_CA"},
+                    {"Anglais (Royaume-Uni)", "English (United Kingdom)", "en_GB", "en_GB"},
+                    {"Chinois", "中文", "zh", "zh"},
+                    {"Français", "Français", "fr", "fr"},
                 },
                 {{"en-gb", "fr", "zh-Hant", "zh-SG", "sr", "sr-Latn"},
-                    {"anglais (Royaume-Uni)", "English (United Kingdom)", "en_GB", "en_GB"},
-                    {"chinois (simplifié, Singapour)", "中文（简体中文、新加坡）", "zh_SG", "zh_Hans_SG"},
-                    {"chinois (traditionnel, Taïwan)", "中文（繁體，台灣）", "zh_Hant", "zh_Hant_TW"},
-                    {"français", "français", "fr", "fr"},
-                    {"serbe (cyrillique)", "српски (ћирилица)", "sr", "sr_Cyrl"},
-                    {"serbe (latin)", "srpski (latinica)", "sr_Latn", "sr_Latn"},
+                    {"Anglais (Royaume-Uni)", "English (United Kingdom)", "en_GB", "en_GB"},
+                    {"Chinois (simplifié, Singapour)", "中文（简体中文、新加坡）", "zh_SG", "zh_Hans_SG"},
+                    {"Chinois (traditionnel, Taïwan)", "中文（繁體，台灣）", "zh_Hant", "zh_Hant_TW"},
+                    {"Français", "Français", "fr", "fr"},
+                    {"Serbe (cyrillique)", "Српски (ћирилица)", "sr", "sr_Cyrl"},
+                    {"Serbe (latin)", "Srpski (latinica)", "sr_Latn", "sr_Latn"},
                 },
                 {{"fr-Cyrl", "fr-Arab"},
-                    {"français (arabe)", "français (arabe)", "fr_Arab", "fr_Arab"},
-                    {"français (cyrillique)", "français (cyrillique)", "fr_Cyrl", "fr_Cyrl"},
+                    {"Français (arabe)", "Français (arabe)", "fr_Arab", "fr_Arab"},
+                    {"Français (cyrillique)", "Français (cyrillique)", "fr_Cyrl", "fr_Cyrl"},
                 },
                 {{"fr-Cyrl-BE", "fr-Arab-CA"},
-                    {"français (arabe, Canada)", "français (arabe, Canada)", "fr_Arab_CA", "fr_Arab_CA"},
-                    {"français (cyrillique, Belgique)", "français (cyrillique, Belgique)", "fr_Cyrl_BE", "fr_Cyrl_BE"},
+                    {"Français (arabe, Canada)", "Français (arabe, Canada)", "fr_Arab_CA", "fr_Arab_CA"},
+                    {"Français (cyrillique, Belgique)", "Français (cyrillique, Belgique)", "fr_Cyrl_BE", "fr_Cyrl_BE"},
                 }
         };
         ULocale french = ULocale.FRENCH;
-        LocaleDisplayNames names = LocaleDisplayNames.getInstance(french);
+        LocaleDisplayNames names = LocaleDisplayNames.getInstance(french, DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU);
+        for (Type type : DisplayContext.Type.values()) {
+            logln("Contexts: " + names.getContext(type).toString());
+        }
         Collator collator = Collator.getInstance(french);
 
         for (String[][] test : tests) {
