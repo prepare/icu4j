@@ -15,24 +15,83 @@ import com.ibm.icu.util.Currency;
 import com.ibm.icu.util.ULocale;
 
 /**
+ * A representation of a single NumberFormat specification test from a data driven test file.
+ * <p>
+ * The purpose of this class is to hide the details of the data driven test file from the
+ * main testing code.
+ * <p>
+ * This class contains fields describing an attribute of the test. Each attribute may
+ * contain either nothing (no specific value specified in data driven test file)
+ * or just some value. The name of each attribute corresponds to the name used in the
+ * data driven test file.
+ * <p>
+ * <b>Adding new attributes</b>
+ * <p>
+ * Each attribute name is lower case. Moreover, for each attribute there is also a
+ * setXXX method for that attribute that is used to initialize the attribute from a
+ * String value read from the data file. For example, there is a setLocale(String) method
+ * for the locale attribute and a setCurrency(String) method for the currency attribute.
+ * In general, for an attribute named abcd, the setter will be setAbcd(String).
+ * This naming rule must be strictly followed or else the test runner will not know how to
+ * initialize instances of this class.
+ * <p>
+ * In addition each attribute is listed in the fieldOrdering static array which specifies
+ * The order that attributes are printed whenever there is a test failure.
+ * <p> 
+ * To add a new attribute, first create a public field for it of type Maybe<T> where T
+ * is the type of the attribute. Next, add the attribute name to the fieldOrdering array.
+ * Finally, create a setter method for it.
+ * 
  * @author rocketman
- *
  */
 public class NumberFormatTestTuple {
+    
+    /**
+     * The locale.
+     */
     public Maybe<ULocale> locale = Maybe.nothing();
+    
+    /**
+     * The currency.
+     */
     public Maybe<Currency> currency = Maybe.nothing();
+    
+    /**
+     * The pattern to initialize the formatter, for example 0.00"
+     */
     public Maybe<String> pattern = Maybe.nothing();
+    
+    /**
+     * The value to format as a string. For example 1234.5 would be "1234.5"
+     */
     public Maybe<String> format = Maybe.nothing();
+    
+    /**
+     * The formatted value.
+     */
     public Maybe<String> output = Maybe.nothing();
+    
+    /**
+     * Field for arbitrary comments.
+     */
     public Maybe<String> comment = Maybe.nothing();
+    
     public Maybe<Integer> minIntegerDigits = Maybe.nothing();
     public Maybe<Integer> maxIntegerDigits = Maybe.nothing();
     public Maybe<Integer> minFractionDigits = Maybe.nothing();
     public Maybe<Integer> maxFractionDigits = Maybe.nothing();
     public Maybe<Integer> minGroupingDigits = Maybe.nothing();
+    
+    /**
+     * nothing or empty means that test ought to work for both C and JAVA;
+     * "C" means test is known to fail in C. "J" means test is known to fail in JAVA.
+     * "CJ" means test is known to fail for both languages.
+     */
     public Maybe<String> breaks = Maybe.nothing();
     
-    public static String[] fieldOrdering = {
+    // Add any new fields here. On test failures, fields are printed in the same order they
+    // appear here.
+    private static String[] fieldOrdering = {
         "locale",
         "currency",
         "pattern",
@@ -55,6 +114,9 @@ public class NumberFormatTestTuple {
             }
         }
     }
+    
+    // start field setters.
+    // add setter for each new field in this block.
     
     public void setLocale(String value) {
         locale = Maybe.just(new ULocale(value));
@@ -103,6 +165,8 @@ public class NumberFormatTestTuple {
     public void setBreaks(String value) {
         breaks = Maybe.just(value);
     }
+    
+    // end field setters.
     
     public void setField(String fieldName, String valueString)
             throws NoSuchMethodException {
