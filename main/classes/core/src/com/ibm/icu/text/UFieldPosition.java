@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2013-2014, International Business Machines Corporation and    *
+ * Copyright (C) 2013, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -14,7 +14,6 @@ import java.text.Format.Field;
  * @internal
  * @deprecated This API is ICU internal only.
  */
-@Deprecated
 public class UFieldPosition extends FieldPosition {
     private int countVisibleFractionDigits = -1;
     private long fractionDigits = 0;
@@ -23,7 +22,6 @@ public class UFieldPosition extends FieldPosition {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public UFieldPosition() {
         super(-1);
     }
@@ -32,7 +30,6 @@ public class UFieldPosition extends FieldPosition {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public UFieldPosition(int field) {
         super(field);
     }
@@ -41,7 +38,6 @@ public class UFieldPosition extends FieldPosition {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public UFieldPosition(Field attribute, int fieldID) {
         super(attribute, fieldID);
     }
@@ -50,7 +46,6 @@ public class UFieldPosition extends FieldPosition {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public UFieldPosition(Field attribute) {
         super(attribute);
     }
@@ -59,7 +54,6 @@ public class UFieldPosition extends FieldPosition {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public void setFractionDigits(int countVisibleFractionDigits, long fractionDigits ) {
         this.countVisibleFractionDigits = countVisibleFractionDigits;
         this.fractionDigits = fractionDigits;
@@ -69,7 +63,6 @@ public class UFieldPosition extends FieldPosition {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public int getCountVisibleFractionDigits() {
         return countVisibleFractionDigits;
     }
@@ -78,7 +71,6 @@ public class UFieldPosition extends FieldPosition {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public long getFractionDigits() {
         return fractionDigits;
     }

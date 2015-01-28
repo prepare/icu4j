@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-* Copyright (C) 2010-2014, International Business Machines
+* Copyright (C) 2010-2011, International Business Machines
 * Corporation and others.  All Rights Reserved.
 *******************************************************************************
 */
@@ -15,7 +15,6 @@ import com.ibm.icu.lang.UScript;
 import com.ibm.icu.text.IDNA;
 import com.ibm.icu.text.Normalizer2;
 import com.ibm.icu.text.StringPrepParseException;
-import com.ibm.icu.util.ICUException;
 
 // Note about tests for IDNA.Error.DOMAIN_NAME_TOO_LONG:
 //
@@ -123,7 +122,9 @@ public final class UTS46 extends IDNA {
         resetInfo(info);
         int srcLength=src.length();
         if(srcLength==0) {
-            addError(info, Error.EMPTY_LABEL);
+            if(toASCII) {
+                addError(info, Error.EMPTY_LABEL);
+            }
             return dest;
         }
         // ASCII fastpath
@@ -175,11 +176,13 @@ public final class UTS46 extends IDNA {
                         ++i;  // '.' was copied to dest already
                         break;
                     }
-                    if(i==labelStart) {
-                        addLabelError(info, Error.EMPTY_LABEL);
-                    }
-                    if(toASCII && (i-labelStart)>63) {
-                        addLabelError(info, Error.LABEL_TOO_LONG);
+                    if(toASCII) {
+                        // Permit an empty label at the end but not elsewhere.
+                        if(i==labelStart && i<(srcLength-1)) {
+                            addLabelError(info, Error.EMPTY_LABEL);
+                        } else if((i-labelStart)>63) {
+                            addLabelError(info, Error.LABEL_TOO_LONG);
+                        }
                     }
                     promoteAndResetLabelErrors(info);
                     labelStart=i+1;
@@ -354,7 +357,9 @@ public final class UTS46 extends IDNA {
         }
         // Validity check
         if(labelLength==0) {
-            addLabelError(info, Error.EMPTY_LABEL);
+            if(toASCII) {
+                addLabelError(info, Error.EMPTY_LABEL);
+            }
             return replaceLabel(dest, destLabelStart, destLabelLength, labelString, labelLength);
         }
         // labelLength>0
@@ -449,7 +454,7 @@ public final class UTS46 extends IDNA {
                     try {
                         punycode=Punycode.encode(labelString.subSequence(labelStart, labelStart+labelLength), null);
                     } catch (StringPrepParseException e) {
-                        throw new ICUException(e);  // unexpected
+                        throw new RuntimeException(e);  // unexpected
                     }
                     punycode.insert(0, "xn--");
                     if(punycode.length()>63) {

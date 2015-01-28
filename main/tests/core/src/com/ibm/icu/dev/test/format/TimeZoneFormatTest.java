@@ -9,18 +9,14 @@ package com.ibm.icu.dev.test.format;
 
 import java.text.ParseException;
 import java.text.ParsePosition;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
-import com.ibm.icu.impl.TZDBTimeZoneNames;
 import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.text.SimpleDateFormat;
@@ -28,8 +24,6 @@ import com.ibm.icu.text.TimeZoneFormat;
 import com.ibm.icu.text.TimeZoneFormat.ParseOption;
 import com.ibm.icu.text.TimeZoneFormat.Style;
 import com.ibm.icu.text.TimeZoneFormat.TimeType;
-import com.ibm.icu.text.TimeZoneNames;
-import com.ibm.icu.text.TimeZoneNames.NameType;
 import com.ibm.icu.util.BasicTimeZone;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Output;
@@ -534,91 +528,25 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
     public void TestParse() {
         final Object[][] DATA = {
-        //   text                   inpos       locale      style
-        //      parseOptions            expected            outpos      time type
-            {"Z",                   0,          "en_US",    Style.ISO_EXTENDED_FULL,
-                null,                   "Etc/GMT",          1,          TimeType.UNKNOWN},
-
-            {"Z",                   0,          "en_US",    Style.SPECIFIC_LONG,
-                null,                   "Etc/GMT",          1,          TimeType.UNKNOWN},
-
-            {"Zambia time",         0,          "en_US",    Style.ISO_EXTENDED_FULL,
-                EnumSet.of(ParseOption.ALL_STYLES), "Etc/GMT",  1,      TimeType.UNKNOWN},
-
-            {"Zambia time",         0,          "en_US",    Style.GENERIC_LOCATION,
-                null,                   "Africa/Lusaka",    11,         TimeType.UNKNOWN},
-
-            {"Zambia time",         0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL,
-                EnumSet.of(ParseOption.ALL_STYLES), "Africa/Lusaka",    11, TimeType.UNKNOWN},
-
-            {"+00:00",              0,          "en_US",    Style.ISO_EXTENDED_FULL,
-                null,                   "Etc/GMT",          6,          TimeType.UNKNOWN},
-
-            {"-01:30:45",           0,          "en_US",    Style.ISO_EXTENDED_FULL,
-                null,                   "GMT-01:30:45",     9,          TimeType.UNKNOWN},
-
-            {"-7",                  0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL,
-                null,                   "GMT-07:00",        2,          TimeType.UNKNOWN},
-
-            {"-2222",               0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL,
-                null,                   "GMT-22:22",        5,          TimeType.UNKNOWN},
-
-            {"-3333",               0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL,
-                null,                   "GMT-03:33",        4,          TimeType.UNKNOWN},
-
-            {"XXX+01:30YYY",        3,          "en_US",    Style.LOCALIZED_GMT,
-                null,                   "GMT+01:30",        9,          TimeType.UNKNOWN},
-
-            {"GMT0",                0,          "en_US",    Style.SPECIFIC_SHORT,
-                null,                   "Etc/GMT",          3,          TimeType.UNKNOWN},
-
-            {"EST",                 0,          "en_US",    Style.SPECIFIC_SHORT,
-                null,                   "America/New_York", 3,          TimeType.STANDARD},
-
-            {"ESTx",                0,          "en_US",    Style.SPECIFIC_SHORT,
-                null,                   "America/New_York", 3,          TimeType.STANDARD},
-
-            {"EDTx",                0,          "en_US",    Style.SPECIFIC_SHORT,
-                null,                   "America/New_York", 3,          TimeType.DAYLIGHT},
-
-            {"EST",                 0,          "en_US",    Style.SPECIFIC_LONG,
-                null,                   null,               0,          TimeType.UNKNOWN},
-
-            {"EST",                 0,          "en_US",    Style.SPECIFIC_LONG,
-                EnumSet.of(ParseOption.ALL_STYLES), "America/New_York", 3,  TimeType.STANDARD},
-
-            {"EST",                 0,          "en_CA",    Style.SPECIFIC_SHORT,
-                null,                   "America/Toronto",  3,          TimeType.STANDARD},
-
-            {"CST",                 0,          "en_US",    Style.SPECIFIC_SHORT,
-                null,                   "America/Chicago",  3,          TimeType.STANDARD},
-
-            {"CST",                 0,          "en_GB",    Style.SPECIFIC_SHORT,
-                null,                   null,               0,          TimeType.UNKNOWN},
-
-            {"CST",                 0,          "en_GB",    Style.SPECIFIC_SHORT,
-                EnumSet.of(ParseOption.TZ_DATABASE_ABBREVIATIONS),  "America/Chicago",  3,  TimeType.STANDARD},
-
-            {"--CST--",             2,          "en_GB",    Style.SPECIFIC_SHORT,
-                EnumSet.of(ParseOption.TZ_DATABASE_ABBREVIATIONS),  "America/Chicago",  5,  TimeType.STANDARD},
-
-            {"CST",                 0,          "zh_CN",    Style.SPECIFIC_SHORT,
-                EnumSet.of(ParseOption.TZ_DATABASE_ABBREVIATIONS),  "Asia/Shanghai",    3,  TimeType.STANDARD},
-
-            {"AEST",                0,          "en_AU",    Style.SPECIFIC_SHORT,
-                EnumSet.of(ParseOption.TZ_DATABASE_ABBREVIATIONS),  "Australia/Sydney", 4,  TimeType.STANDARD},
-
-            {"AST",                 0,          "ar_SA",    Style.SPECIFIC_SHORT,
-                EnumSet.of(ParseOption.TZ_DATABASE_ABBREVIATIONS),  "Asia/Riyadh",      3,  TimeType.STANDARD},
-
-            {"AQTST",               0,          "en",       Style.SPECIFIC_LONG,
-                null,                       null,           0,          TimeType.UNKNOWN},
-
-            {"AQTST",           0,      "en",       Style.SPECIFIC_LONG,
-                EnumSet.of(ParseOption.ALL_STYLES), null,   0,          TimeType.UNKNOWN},
-
-            {"AQTST",           0,      "en",       Style.SPECIFIC_LONG,
-                EnumSet.of(ParseOption.ALL_STYLES, ParseOption.TZ_DATABASE_ABBREVIATIONS),  "Asia/Aqtobe",  5,  TimeType.DAYLIGHT},
+        //   text                   inpos       locale      style                       parseAll?   expected            outpos      time type
+            {"Z",                   0,          "en_US",    Style.ISO_EXTENDED_FULL,    false,      "Etc/GMT",          1,          TimeType.UNKNOWN},
+            {"Z",                   0,          "en_US",    Style.SPECIFIC_LONG,        false,      "Etc/GMT",          1,          TimeType.UNKNOWN},
+            {"Zambia time",         0,          "en_US",    Style.ISO_EXTENDED_FULL,    true,       "Etc/GMT",          1,          TimeType.UNKNOWN},
+            {"Zambia time",         0,          "en_US",    Style.GENERIC_LOCATION,     false,      "Africa/Lusaka",    11,         TimeType.UNKNOWN},
+            {"Zambia time",         0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL, true,       "Africa/Lusaka",    11,         TimeType.UNKNOWN},
+            {"+00:00",              0,          "en_US",    Style.ISO_EXTENDED_FULL,    false,      "Etc/GMT",          6,          TimeType.UNKNOWN},
+            {"-01:30:45",           0,          "en_US",    Style.ISO_EXTENDED_FULL,    false,      "GMT-01:30:45",     9,          TimeType.UNKNOWN},
+            {"-7",                  0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL, false,      "GMT-07:00",        2,          TimeType.UNKNOWN},
+            {"-2222",               0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL, false,      "GMT-22:22",        5,          TimeType.UNKNOWN},
+            {"-3333",               0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL, false,      "GMT-03:33",        4,          TimeType.UNKNOWN},
+            {"XXX+01:30YYY",        3,          "en_US",    Style.LOCALIZED_GMT,        false,      "GMT+01:30",        9,          TimeType.UNKNOWN},
+            {"GMT0",                0,          "en_US",    Style.SPECIFIC_SHORT,       false,      "Etc/GMT",          3,          TimeType.UNKNOWN},
+            {"EST",                 0,          "en_US",    Style.SPECIFIC_SHORT,       false,      "America/New_York", 3,          TimeType.STANDARD},
+            {"ESTx",                0,          "en_US",    Style.SPECIFIC_SHORT,       false,      "America/New_York", 3,          TimeType.STANDARD},
+            {"EDTx",                0,          "en_US",    Style.SPECIFIC_SHORT,       false,      "America/New_York", 3,          TimeType.DAYLIGHT},
+            {"EST",                 0,          "en_US",    Style.SPECIFIC_LONG,        false,      null,                 0,          TimeType.UNKNOWN},
+            {"EST",                 0,          "en_US",    Style.SPECIFIC_LONG,        true,       "America/New_York", 3,          TimeType.STANDARD},
+            {"EST",                 0,          "en_CA",    Style.SPECIFIC_SHORT,       false,      "America/Toronto",  3,          TimeType.STANDARD},
         };
 
         for (Object[] test : DATA) {
@@ -626,7 +554,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             int inPos = (Integer)test[1];
             ULocale loc = new ULocale((String)test[2]);
             Style style = (Style)test[3];
-            EnumSet<ParseOption> options = (EnumSet<ParseOption>)test[4];
+            EnumSet<ParseOption> options = (Boolean)test[4] ? EnumSet.of(ParseOption.ALL_STYLES) : null;
             String expID = (String)test[5];
             int expPos = (Integer)test[6];
             TimeType expType = (TimeType)test[7];
@@ -875,101 +803,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         };
 
         for (Object[] testCase : TESTDATA) {
-            TimeZone tz = TimeZone.getTimeZone((String)testCase[1]);
-            Output<TimeType> timeType = new Output<TimeType>();
-
-            ULocale uloc = new ULocale((String)testCase[0]);
-            TimeZoneFormat tzfmt = TimeZoneFormat.getInstance(uloc);
-            String out = tzfmt.format((Style)testCase[3], tz, ((Date)testCase[2]).getTime(), timeType);
-
-            if (!out.equals((String)testCase[4]) || timeType.value != testCase[5]) {
-                errln("Format result for [locale=" + testCase[0] + ",tzid=" + testCase[1] + ",date=" + testCase[2]
-                        + ",style=" + testCase[3] + "]: expected [output=" + testCase[4] + ",type=" + testCase[5]
-                        + "]; actual [output=" + out + ",type=" + timeType.value + "]");
-            }
-
-            // with equivalent Java Locale
-            Locale loc = uloc.toLocale();
-            tzfmt = TimeZoneFormat.getInstance(loc);
-            out = tzfmt.format((Style)testCase[3], tz, ((Date)testCase[2]).getTime(), timeType);
-
-            if (!out.equals((String)testCase[4]) || timeType.value != testCase[5]) {
-                errln("Format result for [locale(Java)=" + testCase[0] + ",tzid=" + testCase[1] + ",date=" + testCase[2]
-                        + ",style=" + testCase[3] + "]: expected [output=" + testCase[4] + ",type=" + testCase[5]
-                        + "]; actual [output=" + out + ",type=" + timeType.value + "]");
-            }
-        }
-    }
-
-    public void TestFormatTZDBNames() {
-        final Date dateJan = new Date(1358208000000L);  // 2013-01-15T00:00:00Z
-        final Date dateJul = new Date(1373846400000L);  // 2013-07-15T00:00:00Z
-
-        final Object[][] TESTDATA = {
-            {
-                "en",
-                "America/Chicago", 
-                dateJan,
-                Style.SPECIFIC_SHORT,
-                "CST",
-                TimeType.STANDARD
-            },
-            {
-                "en",
-                "Asia/Shanghai", 
-                dateJan,
-                Style.SPECIFIC_SHORT,
-                "CST",
-                TimeType.STANDARD
-            },
-            {
-                "zh_Hans",
-                "Asia/Shanghai", 
-                dateJan,
-                Style.SPECIFIC_SHORT,
-                "CST",
-                TimeType.STANDARD
-            },
-            {
-                "en",
-                "America/Los_Angeles",
-                dateJul,
-                Style.SPECIFIC_LONG,
-                "GMT-07:00",    // No long display names
-                TimeType.DAYLIGHT
-            },
-            {
-                "ja",
-                "America/Los_Angeles",
-                dateJul,
-                Style.SPECIFIC_SHORT,
-                "PDT",
-                TimeType.DAYLIGHT
-            },
-            {
-                "en",
-                "Australia/Sydney",
-                dateJan,
-                Style.SPECIFIC_SHORT,
-                "AEDT",
-                TimeType.DAYLIGHT
-            },
-            {
-                "en",
-                "Australia/Sydney",
-                dateJul,
-                Style.SPECIFIC_SHORT,
-                "AEST",
-                TimeType.STANDARD
-            },
-        };
-
-        for (Object[] testCase : TESTDATA) {
-            ULocale loc = new ULocale((String)testCase[0]);
-            TimeZoneFormat tzfmt = TimeZoneFormat.getInstance(loc).cloneAsThawed();
-            TimeZoneNames tzdbNames = TimeZoneNames.getTZDBInstance(loc);
-            tzfmt.setTimeZoneNames(tzdbNames);
-
+            TimeZoneFormat tzfmt = TimeZoneFormat.getInstance(new ULocale((String)testCase[0]));
             TimeZone tz = TimeZone.getTimeZone((String)testCase[1]);
             Output<TimeType> timeType = new Output<TimeType>();
             String out = tzfmt.format((Style)testCase[3], tz, ((Date)testCase[2]).getTime(), timeType);
@@ -979,44 +813,6 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                         + ",style=" + testCase[3] + "]: expected [output=" + testCase[4] + ",type=" + testCase[5]
                         + "]; actual [output=" + out + ",type=" + timeType.value + "]");
             }
-        }
-    }
-
-    // This is a test case of Ticket#11487.
-    // Because the problem is reproduced for the very first time,
-    // the reported problem cannot be reproduced with regular test
-    // execution. Run this test alone reproduced the problem before
-    // the fix was merged.
-    public void TestTZDBNamesThreading() {
-        final TZDBTimeZoneNames names = new TZDBTimeZoneNames(ULocale.ENGLISH);
-        final AtomicInteger found = new AtomicInteger();
-        List<Thread> threads = new ArrayList<Thread>();
-        final int numIteration = 1000;
-
-        try {
-            for (int i = 0; i < numIteration; i++) {
-                Thread thread = new Thread() {
-                    @Override
-                    public void run() {
-                        int resultSize = names.find("GMT", 0, EnumSet.allOf(NameType.class)).size();
-                        if (resultSize > 0) {
-                            found.incrementAndGet();
-                        }
-                    }
-                };
-                thread.start();
-                threads.add(thread);
-            }
-
-            for(Thread thread: threads) {
-                thread.join();
-            }
-        } catch (Throwable t) {
-            errln(t.toString());
-        }
-
-        if (found.intValue() != numIteration) {
-            errln("Incorrect count: " + found.toString() + ", expected: " + numIteration);
         }
     }
 }

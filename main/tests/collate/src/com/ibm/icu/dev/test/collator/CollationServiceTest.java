@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2014, International Business Machines Corporation and    *
+ * Copyright (C) 2003-2013, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -41,7 +41,7 @@ public class CollationServiceTest extends TestFmwk {
 
             // coverage
             Collator test = Collator.getInstance(ULocale.GERMANY); // CollatorFactory.handleCreate
-            if (!test.getLocale(ULocale.VALID_LOCALE).equals(ULocale.GERMAN)) {
+            if (!test.getLocale(ULocale.VALID_LOCALE).equals(ULocale.GERMANY)) {
                 errln("Collation from Germany is really " + test.getLocale(ULocale.VALID_LOCALE));
             }
 
@@ -77,8 +77,7 @@ public class CollationServiceTest extends TestFmwk {
             }
             try{
                 String name = Collator.getDisplayName(fu_FU);
-                if (!"fu (FU, FOO)".equals(name)
-                        && !"fu_FU_FOO".equals(name) /* no LocaleDisplayNamesImpl */) {
+                if (!"fu (FU, FOO)".equals(name)) {
                     errln("found " + name + " for fu_FU");
                 }
             }catch(MissingResourceException ex){
@@ -86,8 +85,7 @@ public class CollationServiceTest extends TestFmwk {
             }
             try{
                 String name = Collator.getDisplayName(fu_FU, fu_FU);
-                if (!"fu (FU, FOO)".equals(name)
-                        && !"fu_FU_FOO".equals(name) /* no LocaleDisplayNamesImpl */) {
+                if (!"fu (FU, FOO)".equals(name)) {
                     errln("found " + name + " for fu_FU");
                 }
             }catch(MissingResourceException ex){
@@ -247,10 +245,8 @@ public class CollationServiceTest extends TestFmwk {
     
             ULocale bar_BAR = new ULocale("bar_BAR");
             Collator col = Collator.getInstance(bar_BAR);
-            ULocale valid = col.getLocale(ULocale.VALID_LOCALE);
-            String validName = valid.getName();
-            if(validName.length() != 0 && !validName.equals("root")) {
-                errln("Collation from bar_BAR is really \"" + validName + "\" but should be root");
+            if (!col.getLocale(ULocale.VALID_LOCALE).equals(ULocale.getDefault())) {
+                errln("Collation from bar_BAR is really " + col.getLocale(ULocale.VALID_LOCALE));
             }
         }
 
@@ -359,8 +355,8 @@ public class CollationServiceTest extends TestFmwk {
         if (assertTrue("getFunctionalEquivalent(de_DE)!=null", equiv!=null)) {
             assertEquals("getFunctionalEquivalent(de_DE)", "root", equiv.toString());
         }
-        assertTrue("getFunctionalEquivalent(de_DE).isAvailable==false",
-                   isAvailable[0] == false);
+        assertTrue("getFunctionalEquivalent(de_DE).isAvailable==true",
+                   isAvailable[0] == true);
 
         equiv = Collator.getFunctionalEquivalent(KW[0], new ULocale("zh_Hans"));
         if (assertTrue("getFunctionalEquivalent(zh_Hans)!=null", equiv!=null)) {
@@ -380,25 +376,25 @@ public class CollationServiceTest extends TestFmwk {
                           "sv@collation=standard", "sv@collation=standard", "t",
                           "sv@collation=reformed", "sv", "t",
                           "sv@collation=big5han", "sv", "t",
-                          "sv_FI", "sv", "f",
-                          "sv_FI@collation=direct", "sv", "f",
-                          "sv_FI@collation=traditional", "sv", "f",
-                          "sv_FI@collation=gb2312han", "sv", "f",
-                          "sv_FI@collation=stroke", "sv", "f",
-                          "sv_FI@collation=pinyin", "sv", "f",
-                          "sv_FI@collation=standard", "sv@collation=standard", "f",
-                          "sv_FI@collation=reformed", "sv", "f",
-                          "sv_FI@collation=big5han", "sv", "f",
+                          "sv_FI", "sv", "t",
+                          "sv_FI@collation=direct", "sv", "t",
+                          "sv_FI@collation=traditional", "sv", "t",
+                          "sv_FI@collation=gb2312han", "sv", "t",
+                          "sv_FI@collation=stroke", "sv", "t",
+                          "sv_FI@collation=pinyin", "sv", "t",
+                          "sv_FI@collation=standard", "sv@collation=standard", "t",
+                          "sv_FI@collation=reformed", "sv", "t",
+                          "sv_FI@collation=big5han", "sv", "t",
                           "nl", "root", "t",
                           "nl@collation=direct", "root", "t",
-                          "nl_BE", "root", "f",
-                          "nl_BE@collation=direct", "root", "f",
-                          "nl_BE@collation=traditional", "root", "f",
-                          "nl_BE@collation=gb2312han", "root", "f",
-                          "nl_BE@collation=stroke", "root", "f",
-                          "nl_BE@collation=pinyin", "root", "f",
-                          "nl_BE@collation=big5han", "root", "f",
-                          "nl_BE@collation=phonebook", "root", "f",
+                          "nl_BE", "root", "t",
+                          "nl_BE@collation=direct", "root", "t",
+                          "nl_BE@collation=traditional", "root", "t",
+                          "nl_BE@collation=gb2312han", "root", "t",
+                          "nl_BE@collation=stroke", "root", "t",
+                          "nl_BE@collation=pinyin", "root", "t",
+                          "nl_BE@collation=big5han", "root", "t",
+                          "nl_BE@collation=phonebook", "root", "t",
                           "en_US_VALLEYGIRL","root","f"
                         };
         final int DATA_COUNT=(DATA.length/3);
@@ -447,16 +443,7 @@ public class CollationServiceTest extends TestFmwk {
 //                }
 //        }
 //    }
-
-    private static boolean arrayContains(String[] array, String s) {
-        for (int i = 0; i < array.length; ++i) {
-            if (s.equals(array[i])) {
-                return true;
-            }
-        }
-        return false;
-    }
-
+    
     public void TestGetKeywordValues(){
         final String[][] PREFERRED = {
             {"und",             "standard", "eor", "search"},
@@ -464,12 +451,12 @@ public class CollationServiceTest extends TestFmwk {
             {"en_029",          "standard", "eor", "search"},
             {"de_DE",           "standard", "phonebook", "search", "eor"},
             {"de_Latn_DE",      "standard", "phonebook", "search", "eor"},
-            {"zh",              "pinyin", "stroke", "eor", "search", "standard"},
-            {"zh_Hans",         "pinyin", "stroke", "eor", "search", "standard"},
-            {"zh_CN",           "pinyin", "stroke", "eor", "search", "standard"},
-            {"zh_Hant",         "stroke", "pinyin", "eor", "search", "standard"},
-            {"zh_TW",           "stroke", "pinyin", "eor", "search", "standard"},
-            {"zh__PINYIN",      "pinyin", "stroke", "eor", "search", "standard"},
+            {"zh",              "pinyin", "big5han", "gb2312han", "stroke", "zhuyin", "eor", "search", "standard"},
+            {"zh_Hans",         "pinyin", "big5han", "gb2312han", "stroke", "zhuyin", "eor", "search", "standard"},
+            {"zh_CN",           "pinyin", "big5han", "gb2312han", "stroke", "zhuyin", "eor", "search", "standard"},
+            {"zh_Hant",         "stroke", "big5han", "gb2312han", "pinyin", "zhuyin", "eor", "search", "standard"},
+            {"zh_TW",           "stroke", "big5han", "gb2312han", "pinyin", "zhuyin", "eor", "search", "standard"},
+            {"zh__PINYIN",      "pinyin", "big5han", "gb2312han", "stroke", "zhuyin", "eor", "search", "standard"},
             {"es_ES",           "standard", "search", "traditional", "eor"},
             {"es__TRADITIONAL", "traditional", "search", "standard", "eor"},
             {"und@collation=phonebook",     "standard", "eor", "search"},
@@ -478,19 +465,29 @@ public class CollationServiceTest extends TestFmwk {
         };
 
         for (int i = 0; i < PREFERRED.length; i++) {
-            String locale = PREFERRED[i][0];
-            ULocale loc = new ULocale(locale);
-            String[] expected = PREFERRED[i];
+            ULocale loc = new ULocale(PREFERRED[i][0]);
+            String[] expected = new String[PREFERRED[i].length - 1];
+            System.arraycopy(PREFERRED[i], 1, expected, 0, expected.length);
+
             String[] pref = Collator.getKeywordValuesForLocale("collation", loc, true);
-            for (int j = 1; j < expected.length; ++j) {
-                if (!arrayContains(pref, expected[j])) {
-                    errln("Keyword value " + expected[j] + " missing for locale: " + locale);
+            boolean matchPref = false;
+            if (pref.length == expected.length) {
+                matchPref = true;
+                for (int j = 0; j < pref.length; j++) {
+                    if (!pref[j].equals(expected[j])) {
+                        matchPref = false;
+                    }
                 }
             }
+            if (!matchPref) {
+                errln("FAIL: Preferred values for locale " + loc 
+                        + " got:" + Arrays.toString(pref) + " expected:" + Arrays.toString(expected));
+            }
  
+            String[] all = Collator.getKeywordValuesForLocale("collation", loc, true);
+
             // Collator.getKeywordValues return the same contents for both commonlyUsed
             // true and false.
-            String[] all = Collator.getKeywordValuesForLocale("collation", loc, false);
             boolean matchAll = false;
             if (pref.length == all.length) {
                 matchAll = true;

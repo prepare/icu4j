@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2013-2014, International Business Machines Corporation and    *
+ * Copyright (C) 2013, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -31,7 +31,6 @@ import com.ibm.icu.util.Output;
  * @internal
  * @deprecated This API is ICU internal only.
  */
-@Deprecated
 public class PluralSamples {
 
     private PluralRules pluralRules;
@@ -41,7 +40,6 @@ public class PluralSamples {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public final Map<String, Boolean> _keyLimitedMap;
     private final Map<String, Set<FixedDecimal>> _keyFractionSamplesMap;
     private final Set<FixedDecimal> _fractionSamples;
@@ -50,7 +48,6 @@ public class PluralSamples {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public PluralSamples(PluralRules pluralRules) {
         this.pluralRules = pluralRules;
         Set<String> keywords = pluralRules.getKeywords();
@@ -252,7 +249,6 @@ public class PluralSamples {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public KeywordStatus getStatus(String keyword, int offset, Set<Double> explicits, Output<Double> uniqueValue) {
         if (uniqueValue != null) {
             uniqueValue.value = null;

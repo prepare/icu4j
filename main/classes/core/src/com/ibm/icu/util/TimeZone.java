@@ -1,7 +1,7 @@
 /*
  * @(#)TimeZone.java    1.51 00/01/19
  *
- * Copyright (C) 1996-2015, International Business Machines
+ * Copyright (C) 1996-2013, International Business Machines
  * Corporation and others.  All Rights Reserved.
  */
 
@@ -134,7 +134,6 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     protected TimeZone(String ID) {
         if (ID == null) {
             throw new NullPointerException();
@@ -246,14 +245,14 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
      * 
      * @stable ICU 49
      */
-    public static final TimeZone UNKNOWN_ZONE = new ConstantZone(0, UNKNOWN_ZONE_ID).freeze();
+    public static final TimeZone UNKNOWN_ZONE = new SimpleTimeZone(0, UNKNOWN_ZONE_ID).freeze();
 
     /**
      * {@icu} The immutable GMT (=UTC) time zone. Its ID is "Etc/GMT".
      *
      * @stable ICU 49
      */
-    public static final TimeZone GMT_ZONE = new ConstantZone(0, GMT_ZONE_ID).freeze();
+    public static final TimeZone GMT_ZONE = new SimpleTimeZone(0, GMT_ZONE_ID).freeze();
 
     /**
      * {@icu} System time zone type constants used by filtering zones in
@@ -746,7 +745,7 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
      * @return the specified <code>TimeZone</code> or UNKNOWN_ZONE if the given ID
      * cannot be understood.
      */
-    private static TimeZone getTimeZone(String ID, int type, boolean frozen) {
+    private static synchronized TimeZone getTimeZone(String ID, int type, boolean frozen) {
         TimeZone result;
         if (type == TIMEZONE_JDK) {
             result = JavaTimeZone.createTimeZone(ID);
@@ -920,17 +919,13 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
      * @return a default <code>TimeZone</code>.
      * @stable ICU 2.0
      */
-    public static TimeZone getDefault() {
+    public static synchronized TimeZone getDefault() {
         if (defaultZone == null) {
-            synchronized(TimeZone.class) {
-                if (defaultZone == null) {
-                    if (TZ_IMPL == TIMEZONE_JDK) {
-                        defaultZone = new JavaTimeZone();
-                    } else {
-                        java.util.TimeZone temp = java.util.TimeZone.getDefault();
-                        defaultZone = getFrozenTimeZone(temp.getID());
-                    }
-                }
+            if (TZ_IMPL == TIMEZONE_JDK) {
+                defaultZone = new JavaTimeZone();
+            } else {
+                java.util.TimeZone temp = java.util.TimeZone.getDefault();
+                defaultZone = getFrozenTimeZone(temp.getID());
             }
         }
         return defaultZone.cloneAsThawed();
@@ -966,17 +961,8 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
                     String icuID = tz.getID();
                     jdkZone = java.util.TimeZone.getTimeZone(icuID);
                     if (!icuID.equals(jdkZone.getID())) {
-                        // If the ID was unknown, retry with the canonicalized
-                        // ID instead. This will ensure that JDK 1.1.x
-                        // compatibility IDs supported by ICU (but not
-                        // necessarily supported by the platform) work.
-                        // Ticket#11483
-                        icuID = getCanonicalID(icuID);
-                        jdkZone = java.util.TimeZone.getTimeZone(icuID);
-                        if (!icuID.equals(jdkZone.getID())) {
-                            // JDK does not know the ID..
-                            jdkZone = null;
-                        }
+                        // JDK does not know the ID..
+                        jdkZone = null;
                     }
                 }
                 if (jdkZone == null) {
@@ -1040,9 +1026,13 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
      *
      * @stable ICU 3.8
      */
-    public static String getTZDataVersion() {
-        // The implementation had been moved to VersionInfo.
-        return VersionInfo.getTZDataVersion();
+    public static synchronized String getTZDataVersion() {
+        if (TZDATA_VERSION == null) {
+            UResourceBundle tzbundle = UResourceBundle.getBundleInstance(
+                    "com/ibm/icu/impl/data/icudt" + VersionInfo.ICU_DATA_VERSION_PATH, "zoneinfo64");
+            TZDATA_VERSION = tzbundle.getString("TZVersion");
+        }
+        return TZDATA_VERSION;
     }
 
     /**
@@ -1141,7 +1131,8 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
      * or <code>null</code> when the input ID is unknown or unmappable.
      * @see #getIDForWindowsID(String, String)
      * 
-     * @stable ICU 52
+     * @draft ICU 52
+     * @provisional This API might change or be removed in a future release.
      */
     public static String getWindowsID(String id) {
         // canonicalize the input ID
@@ -1202,7 +1193,8 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
      * or <code>null</code> when the input ID is unknown or unmappable.
      * @see #getWindowsID(String)
      * 
-     * @stable ICU 52
+     * @draft ICU 52
+     * @provisional This API might change or be removed in a future release.
      */
     public static String getIDForWindowsID(String winid, String region) {
         String id = null;
@@ -1264,7 +1256,7 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
             TimeZone other = (TimeZone) super.clone();
             return other;
         } catch (CloneNotSupportedException e) {
-            throw new ICUCloneNotSupportedException(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -1283,7 +1275,12 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
     /**
      * The default time zone, or null if not set.
      */
-    private static volatile TimeZone  defaultZone = null;
+    private static TimeZone  defaultZone = null;
+
+    /**
+     * The tzdata version
+     */
+    private static String TZDATA_VERSION = null;
 
     /**
      * TimeZone implementation type
@@ -1301,75 +1298,6 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
         String type = ICUConfig.get(TZIMPL_CONFIG_KEY, TZIMPL_CONFIG_ICU);
         if (type.equalsIgnoreCase(TZIMPL_CONFIG_JDK)) {
             TZ_IMPL = TIMEZONE_JDK;
-        }
-    }
-
-    /*
-     * ConstantZone is a private TimeZone subclass dedicated for the two TimeZone class
-     * constants - TimeZone.GMT_ZONE and TimeZone.UNKNOWN_ZONE. Previously, these zones
-     * are instances of SimpleTimeZone. However, when the SimpleTimeZone constructor and
-     * TimeZone's static methods (such as TimeZone.getDefault()) are called from multiple
-     * threads at the same time, it causes a deadlock by TimeZone's static initializer
-     * and SimpleTimeZone's static initializer. To avoid this issue, these TimeZone
-     * constants (GMT/UNKNOWN) must be implemented by a class not visible from users.
-     * See ticket#11343.
-     */
-    private static final class ConstantZone extends TimeZone {
-        private static final long serialVersionUID = 1L;
-
-        private int rawOffset;
-
-        private ConstantZone(int rawOffset, String ID) {
-            super(ID);
-            this.rawOffset = rawOffset;
-        }
-
-        @Override
-        public int getOffset(int era, int year, int month, int day, int dayOfWeek, int milliseconds) {
-            return rawOffset;
-        }
-
-        @Override
-        public void setRawOffset(int offsetMillis) {
-            if (isFrozen()) {
-                throw new UnsupportedOperationException("Attempt to modify a frozen TimeZone instance.");
-            }
-            rawOffset = offsetMillis;
-        }
-
-        @Override
-        public int getRawOffset() {
-            return rawOffset;
-        }
-
-        @Override
-        public boolean useDaylightTime() {
-            return false;
-        }
-
-        @Override
-        public boolean inDaylightTime(Date date) {
-            return false;
-        }
-
-        private volatile transient boolean isFrozen = false;
-
-        @Override
-        public boolean isFrozen() {
-            return isFrozen;
-        }
-
-        @Override
-        public TimeZone freeze() {
-            isFrozen = true;
-            return this;
-        }
-
-        @Override
-        public TimeZone cloneAsThawed() {
-            ConstantZone tz = (ConstantZone)super.cloneAsThawed();
-            tz.isFrozen = false;
-            return tz;
         }
     }
 }

@@ -1,22 +1,21 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2014, International Business Machines Corporation and
- * others. All Rights Reserved.
+ * Copyright (C) 1996-2012, International Business Machines Corporation and    *
+ * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
-
 package com.ibm.icu.text;
 
+import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
 
-import com.ibm.icu.impl.ICUBinary;
 import com.ibm.icu.util.CompactByteArray;
 
 /**
@@ -49,8 +48,7 @@ class BreakDictionary {
     static void writeToFile(String inFile, String outFile)
             throws FileNotFoundException, UnsupportedEncodingException, IOException {
 
-        BreakDictionary dictionary = new BreakDictionary(
-                ICUBinary.getByteBufferFromInputStream(new FileInputStream(inFile)));
+        BreakDictionary dictionary = new BreakDictionary(new FileInputStream(inFile));
 
         PrintWriter out = null;
 
@@ -168,59 +166,59 @@ class BreakDictionary {
     // deserialization
     //=================================================================================
 
-    /* public */ BreakDictionary(ByteBuffer bytes) throws IOException {
-        readDictionaryFile(bytes);
+    /* public */ BreakDictionary(InputStream dictionaryStream) throws IOException {
+        readDictionaryFile(new DataInputStream(dictionaryStream));
     }
 
-    /* public */ void readDictionaryFile(ByteBuffer bytes) throws IOException {
+    /* public */ void readDictionaryFile(DataInputStream in) throws IOException {
         int l;
 
         // read in the version number (right now we just ignore it)
-        bytes.getInt();
+        in.readInt();
 
         // read in the column map (this is serialized in its internal form:
         // an index array followed by a data array)
-        l = bytes.getInt();
+        l = in.readInt();
         char[] temp = new char[l];
         for (int i = 0; i < temp.length; i++)
-            temp[i] = (char)bytes.getShort();
-        l = bytes.getInt();
+            temp[i] = (char)in.readShort();
+        l = in.readInt();
         byte[] temp2 = new byte[l];
         for (int i = 0; i < temp2.length; i++)
-            temp2[i] = bytes.get();
+            temp2[i] = in.readByte();
         columnMap = new CompactByteArray(temp, temp2);
 
         // read in numCols and numColGroups
-        numCols = bytes.getInt();
-        /*numColGroups = */bytes.getInt();
+        numCols = in.readInt();
+        /*numColGroups = */in.readInt();
 
         // read in the row-number index
-        l = bytes.getInt();
+        l = in.readInt();
         rowIndex = new short[l];
         for (int i = 0; i < rowIndex.length; i++)
-            rowIndex[i] = bytes.getShort();
+            rowIndex[i] = in.readShort();
 
         // load in the populated-cells bitmap: index first, then bitmap list
-        l = bytes.getInt();
+        l = in.readInt();
         rowIndexFlagsIndex = new short[l];
         for (int i = 0; i < rowIndexFlagsIndex.length; i++)
-            rowIndexFlagsIndex[i] = bytes.getShort();
-        l = bytes.getInt();
+            rowIndexFlagsIndex[i] = in.readShort();
+        l = in.readInt();
         rowIndexFlags = new int[l];
         for (int i = 0; i < rowIndexFlags.length; i++)
-            rowIndexFlags[i] = bytes.getInt();
+            rowIndexFlags[i] = in.readInt();
 
         // load in the row-shift index
-        l = bytes.getInt();
+        l = in.readInt();
         rowIndexShifts = new byte[l];
         for (int i = 0; i < rowIndexShifts.length; i++)
-            rowIndexShifts[i] = bytes.get();
+            rowIndexShifts[i] = in.readByte();
 
         // finally, load in the actual state table
-        l = bytes.getInt();
+        l = in.readInt();
         table = new short[l];
         for (int i = 0; i < table.length; i++)
-            table[i] = bytes.getShort();
+            table[i] = in.readShort();
 
         // this data structure is only necessary for testing and debugging purposes
         reverseColumnMap = new char[numCols];
@@ -230,6 +228,9 @@ class BreakDictionary {
                reverseColumnMap[col] = c;
             }
         }
+
+        // close the stream
+        in.close();
     }
 
     //=================================================================================

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2011-2014, International Business Machines Corporation and    *
+ * Copyright (C) 2011-2013, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -24,13 +24,11 @@ import java.util.Date;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Set;
 
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.SoftCache;
-import com.ibm.icu.impl.TZDBTimeZoneNames;
 import com.ibm.icu.impl.TextTrieMap;
 import com.ibm.icu.impl.TimeZoneGenericNames;
 import com.ibm.icu.impl.TimeZoneGenericNames.GenericMatchInfo;
@@ -117,92 +115,106 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         /**
          * Short localized GMT offset format, such as "GMT-5", "UTC+1:30"
          * This style is equivalent to the LDML date format pattern "O".
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         LOCALIZED_GMT_SHORT (0x0040),
         /**
          * Short ISO 8601 local time difference (basic format) or the UTC indicator.
          * For example, "-05", "+0530", and "Z"(UTC).
          * This style is equivalent to the LDML date format pattern "X".
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         ISO_BASIC_SHORT (ISO_Z_STYLE_FLAG),
         /**
          * Short ISO 8601 locale time difference (basic format).
          * For example, "-05" and "+0530".
          * This style is equivalent to the LDML date format pattern "x".
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         ISO_BASIC_LOCAL_SHORT (ISO_LOCAL_STYLE_FLAG),
         /**
          * Fixed width ISO 8601 local time difference (basic format) or the UTC indicator.
          * For example, "-0500", "+0530", and "Z"(UTC).
          * This style is equivalent to the LDML date format pattern "XX".
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         ISO_BASIC_FIXED (ISO_Z_STYLE_FLAG),
         /**
          * Fixed width ISO 8601 local time difference (basic format).
          * For example, "-0500" and "+0530".
          * This style is equivalent to the LDML date format pattern "xx".
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         ISO_BASIC_LOCAL_FIXED (ISO_LOCAL_STYLE_FLAG),
         /**
          * ISO 8601 local time difference (basic format) with optional seconds field, or the UTC indicator.
          * For example, "-0500", "+052538", and "Z"(UTC).
          * This style is equivalent to the LDML date format pattern "XXXX".
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         ISO_BASIC_FULL (ISO_Z_STYLE_FLAG),
         /**
          * ISO 8601 local time difference (basic format) with optional seconds field.
          * For example, "-0500" and "+052538".
          * This style is equivalent to the LDML date format pattern "xxxx".
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         ISO_BASIC_LOCAL_FULL (ISO_LOCAL_STYLE_FLAG),
         /**
          * Fixed width ISO 8601 local time difference (extended format) or the UTC indicator.
          * For example, "-05:00", "+05:30", and "Z"(UTC).
          * This style is equivalent to the LDML date format pattern "XXX".
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         ISO_EXTENDED_FIXED (ISO_Z_STYLE_FLAG),
         /**
          * Fixed width ISO 8601 local time difference (extended format).
          * For example, "-05:00" and "+05:30".
          * This style is equivalent to the LDML date format pattern "xxx" and "ZZZZZ".
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         ISO_EXTENDED_LOCAL_FIXED (ISO_LOCAL_STYLE_FLAG),
         /**
          * ISO 8601 local time difference (extended format) with optional seconds field, or the UTC indicator.
          * For example, "-05:00", "+05:25:38", and "Z"(UTC).
          * This style is equivalent to the LDML date format pattern "XXXXX".
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         ISO_EXTENDED_FULL (ISO_Z_STYLE_FLAG),
         /**
          * ISO 8601 local time difference (extended format) with optional seconds field.
          * For example, "-05:00" and "+05:25:38".
          * This style is equivalent to the LDML date format pattern "xxxxx".
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         ISO_EXTENDED_LOCAL_FULL (ISO_LOCAL_STYLE_FLAG),
         /**
          * Time Zone ID, such as "America/Los_Angeles".
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         ZONE_ID (0x0200),
         /**
          * Short Time Zone ID (BCP 47 Unicode location extension, time zone type value), such as "uslax".
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         ZONE_ID_SHORT (0x0400),
         /**
          * Exemplar location, such as "Los Angeles" and "Paris".
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         EXEMPLAR_LOCATION (0x0800);
 
@@ -219,6 +231,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @see TimeZoneFormat#getGMTOffsetPattern(GMTOffsetPatternType)
      * @see TimeZoneFormat#setGMTOffsetPattern(GMTOffsetPatternType, String)
      * @stable ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public enum GMTOffsetPatternType {
         /**
@@ -243,12 +256,14 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         NEGATIVE_HMS ("-H:mm:ss", "Hms", false),
         /**
          * Positive offset with hours field
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         POSITIVE_H ("+H", "H", true),
         /**
          * Negative offset with hours field
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         NEGATIVE_H ("-H", "H", false);
 
@@ -310,17 +325,8 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
          * by other styles.
          * @stable ICU 49
          */
-        ALL_STYLES,
-        /**
-         * When parsing a time zone display name in {@link Style#SPECIFIC_SHORT},
-         * look for the IANA tz database compatible zone abbreviations in addition
-         * to the localized names coming from the {@link TimeZoneNames} currently
-         * used by the {@link TimeZoneFormat}. 
-         * @draft ICU 54
-         * @provisional This API might change or be removed in a future release.
-         */
-        TZ_DATABASE_ABBREVIATIONS;
-    }
+        ALL_STYLES;
+    }    
 
     /*
      * fields to be serialized
@@ -332,7 +338,6 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     private String[] _gmtOffsetDigits;
     private String _gmtZeroFormat;
     private boolean _parseAllStyles;
-    private boolean _parseTZDBNames;
 
     /*
      * Transient fields
@@ -347,9 +352,8 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
 
     private transient String _region;
 
-    private volatile transient boolean _frozen;
+    private transient boolean _frozen;
 
-    private transient volatile TimeZoneNames _tzdbNames;
 
     /*
      * Static final fields
@@ -491,21 +495,6 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     }
 
     /**
-     * Returns a frozen instance of <code>TimeZoneFormat</code> for the given JDK locale.
-     * <p><b>Note</b>: The instance returned by this method is frozen. If you want to
-     * customize a TimeZoneFormat, you must use {@link #cloneAsThawed()} to get a
-     * thawed copy first.
-     * 
-     * @param locale the JDK locale.
-     * @return a frozen instance of <code>TimeZoneFormat</code> for the given locale.
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static TimeZoneFormat getInstance(Locale locale) {
-        return getInstance(ULocale.forLocale(locale));
-    }
-
-    /**
      * Returns the time zone display name data used by this instance.
      * 
      * @return the time zone display name data.
@@ -534,23 +523,6 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             }
         }
         return _gnames;
-    }
-
-    /**
-     * Private method returning the instance of TZDBTimeZoneNames.
-     * The instance if used only for parsing when {@link ParseOption#TZ_DATABASE_ABBREVIATIONS}
-     * is enabled.
-     * @return an instance of TZDBTimeZoneNames.
-     */
-    private TimeZoneNames getTZDBTimeZoneNames() {
-        if (_tzdbNames == null) {
-            synchronized(this) {
-                if (_tzdbNames == null) {
-                    _tzdbNames = new TZDBTimeZoneNames(_locale);
-                }
-            }
-        }
-        return _tzdbNames;
     }
 
     /**
@@ -728,8 +700,8 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @stable ICU 49
      */
     public TimeZoneFormat setDefaultParseOptions(EnumSet<ParseOption> options) {
+        // Currently, only ALL_STYLES is supported
         _parseAllStyles = options.contains(ParseOption.ALL_STYLES);
-        _parseTZDBNames = options.contains(ParseOption.TZ_DATABASE_ABBREVIATIONS);
         return this;
     }
 
@@ -740,12 +712,8 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @stable ICU 49
      */
     public EnumSet<ParseOption> getDefaultParseOptions() {
-        if (_parseAllStyles && _parseTZDBNames) {
-            return EnumSet.of(ParseOption.ALL_STYLES, ParseOption.TZ_DATABASE_ABBREVIATIONS);
-        } else if (_parseAllStyles) {
+        if (_parseAllStyles) {
             return EnumSet.of(ParseOption.ALL_STYLES);
-        } else if (_parseTZDBNames) {
-            return EnumSet.of(ParseOption.TZ_DATABASE_ABBREVIATIONS);
         }
         return EnumSet.noneOf(ParseOption.class);
     }
@@ -763,7 +731,8 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * (-24 hours &lt; offset &lt; +24 hours).
      * @see #formatOffsetISO8601Extended(int, boolean, boolean, boolean)
      * @see #parseOffsetISO8601(String, ParsePosition)
-     * @stable ICU 51
+     * @draft ICU 51
+     * @provisional This API might change or be removed in a future release.
      */
     public final String formatOffsetISO8601Basic(int offset, boolean useUtcIndicator, boolean isShort, boolean ignoreSeconds) {
         return formatOffsetISO8601(offset, true, useUtcIndicator, isShort, ignoreSeconds);
@@ -782,7 +751,8 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * (-24 hours &lt; offset &lt; +24 hours).
      * @see #formatOffsetISO8601Basic(int, boolean, boolean, boolean)
      * @see #parseOffsetISO8601(String, ParsePosition)
-     * @stable ICU 51
+     * @draft ICU 51
+     * @provisional This API might change or be removed in a future release.
      */
     public final String formatOffsetISO8601Extended(int offset, boolean useUtcIndicator, boolean isShort, boolean ignoreSeconds) {
         return formatOffsetISO8601(offset, false, useUtcIndicator, isShort, ignoreSeconds);
@@ -828,7 +798,8 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @see #parseOffsetLocalizedGMT(String, ParsePosition)
      * @throws IllegalArgumentException if the specified offset is out of supported range
      * (-24 hours &lt; offset &lt; +24 hours).
-     * @stable ICU 51
+     * @draft ICU 51
+     * @provisional This API might change or be removed in a future release.
      */
     public String formatOffsetShortLocalizedGMT(int offset) {
         return formatOffsetLocalizedGMT(offset, true);
@@ -1045,7 +1016,8 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @return the offset from GMT(UTC) in milliseconds for the given short localized GMT
      * offset format string.
      * @see #formatOffsetShortLocalizedGMT(int)
-     * @stable ICU 51
+     * @draft ICU 51
+     * @provisional This API might change or be removed in a future release.
      */
     public int parseOffsetShortLocalizedGMT(String text, ParsePosition pos) {
         return parseOffsetLocalizedGMT(text, pos, true, null);
@@ -1110,10 +1082,6 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
 //            evaluated |= (fallbackLocalizedGMT ? Style.LOCALIZED_GMT.flag : Style.LOCALIZED_GMT_SHORT.flag);
             evaluated |= (Style.LOCALIZED_GMT.flag | Style.LOCALIZED_GMT_SHORT.flag);
         }
-
-        boolean parseTZDBAbbrev = (options == null) ?
-                getDefaultParseOptions().contains(ParseOption.TZ_DATABASE_ABBREVIATIONS)
-                : options.contains(ParseOption.TZ_DATABASE_ABBREVIATIONS);
 
         // Try the specified style
         switch (style) {
@@ -1208,28 +1176,6 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                         timeType.value = getTimeType(specificMatch.nameType());
                         pos.setIndex(parsedPos);
                         return TimeZone.getTimeZone(getTimeZoneID(specificMatch.tzID(), specificMatch.mzID()));
-                    }
-                }
-
-                if (parseTZDBAbbrev && style == Style.SPECIFIC_SHORT) {
-                    assert nameTypes.contains(NameType.SHORT_STANDARD);
-                    assert nameTypes.contains(NameType.SHORT_DAYLIGHT);
-
-                    Collection<MatchInfo> tzdbNameMatches =
-                            getTZDBTimeZoneNames().find(text, startIdx, nameTypes);
-                    if (tzdbNameMatches != null) {
-                        MatchInfo tzdbNameMatch = null;
-                        for (MatchInfo match : tzdbNameMatches) {
-                            if (startIdx + match.matchLength() > parsedPos) {
-                                tzdbNameMatch = match;
-                                parsedPos = startIdx + match.matchLength();
-                            }
-                        }
-                        if (tzdbNameMatch != null) {
-                            timeType.value = getTimeType(tzdbNameMatch.nameType());
-                            pos.setIndex(parsedPos);
-                            return TimeZone.getTimeZone(getTimeZoneID(tzdbNameMatch.tzID(), tzdbNameMatch.mzID()));
-                        }
                     }
                 }
                 break;
@@ -1426,27 +1372,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                     parsedTimeType = getTimeType(specificMatch.nameType());
                     parsedOffset = UNKNOWN_OFFSET;
                 }
-            }
-            if (parseTZDBAbbrev && parsedPos < maxPos && (evaluated & Style.SPECIFIC_SHORT.flag) == 0) {
-                Collection<MatchInfo> tzdbNameMatches =
-                        getTZDBTimeZoneNames().find(text, startIdx, ALL_SIMPLE_NAME_TYPES);
-                MatchInfo tzdbNameMatch = null;
-                int matchPos = -1;
-                if (tzdbNameMatches != null) {
-                    for (MatchInfo match : tzdbNameMatches) {
-                        if (startIdx + match.matchLength() > matchPos) {
-                            tzdbNameMatch = match;
-                            matchPos = startIdx + match.matchLength();
-                        }
-                    }
-                    if (parsedPos < matchPos) {
-                        parsedPos = matchPos;
-                        parsedID = getTimeZoneID(tzdbNameMatch.tzID(), tzdbNameMatch.mzID());
-                        parsedTimeType = getTimeType(tzdbNameMatch.nameType());
-                        parsedOffset = UNKNOWN_OFFSET;
-                    }
-                }
-
+                
             }
             // Try generic names
             if (parsedPos < maxPos) {

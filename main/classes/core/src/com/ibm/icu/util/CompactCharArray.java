@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2014, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2009, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -30,7 +30,6 @@ import com.ibm.icu.impl.Utility;
  * @internal
  * @deprecated This API is ICU internal only.
  */
-@Deprecated
 public final class CompactCharArray implements Cloneable {
 
     /**
@@ -38,7 +37,6 @@ public final class CompactCharArray implements Cloneable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static  final int UNICODECOUNT = 65536;
 
     /**
@@ -47,7 +45,6 @@ public final class CompactCharArray implements Cloneable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public CompactCharArray()
     {
         this((char)0);
@@ -59,7 +56,6 @@ public final class CompactCharArray implements Cloneable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public CompactCharArray(char defaultValue)
     {
         int i;
@@ -86,7 +82,6 @@ public final class CompactCharArray implements Cloneable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public CompactCharArray(char indexArray[],
                              char newValues[])
     {
@@ -114,7 +109,6 @@ public final class CompactCharArray implements Cloneable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public CompactCharArray(String indexArray,
                 String valueArray)
     {
@@ -129,7 +123,6 @@ public final class CompactCharArray implements Cloneable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public char elementAt(char index)
     {
     int ix = (indices[index >> BLOCKSHIFT] & 0xFFFF)
@@ -145,7 +138,6 @@ public final class CompactCharArray implements Cloneable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public void setElementAt(char index, char value)
     {
         if (isCompact)
@@ -163,7 +155,6 @@ public final class CompactCharArray implements Cloneable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public void setElementAt(char start, char end, char value)
     {
         int i;
@@ -180,7 +171,6 @@ public final class CompactCharArray implements Cloneable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public void compact() {
         compact(true);
     }
@@ -190,7 +180,6 @@ public final class CompactCharArray implements Cloneable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public void compact(boolean exhaustive)
     {
         if (!isCompact) {
@@ -306,7 +295,6 @@ public final class CompactCharArray implements Cloneable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public char[] getIndexArray()
     {
         return indices;
@@ -318,7 +306,6 @@ public final class CompactCharArray implements Cloneable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public char[] getValueArray()
     {
         return values;
@@ -329,7 +316,6 @@ public final class CompactCharArray implements Cloneable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public Object clone()
     {
         try {
@@ -339,7 +325,7 @@ public final class CompactCharArray implements Cloneable {
             if (hashes != null) other.hashes = hashes.clone();
             return other;
         } catch (CloneNotSupportedException e) {
-            throw new ICUCloneNotSupportedException(e);
+            throw new IllegalStateException();
         }
     }
 
@@ -351,7 +337,6 @@ public final class CompactCharArray implements Cloneable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public boolean equals(Object obj) {
         if (obj == null) return false;
         if (this == obj)                      // quick check
@@ -372,7 +357,6 @@ public final class CompactCharArray implements Cloneable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public int hashCode() {
         int result = 0;
         int increment = Math.min(3, values.length/16);
@@ -412,7 +396,6 @@ public final class CompactCharArray implements Cloneable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static  final int BLOCKSHIFT = 5; // NormalizerBuilder needs - liu
     static  final int BLOCKCOUNT =(1<<BLOCKSHIFT);
     static  final int INDEXSHIFT =(16-BLOCKSHIFT);

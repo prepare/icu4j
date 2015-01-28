@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2014, International Business Machines Corporation and
+ * Copyright (C) 2007-2013, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.text.FieldPosition;
 import java.text.ParsePosition;
-import java.util.Locale;
 import java.util.Map;
 
 import com.ibm.icu.impl.Utility;
@@ -186,7 +185,7 @@ public class PluralFormat extends UFormat {
      * @stable ICU 3.8
      */
     public PluralFormat() {
-        init(null, PluralType.CARDINAL, ULocale.getDefault(Category.FORMAT), null);
+        init(null, PluralType.CARDINAL, ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -197,19 +196,7 @@ public class PluralFormat extends UFormat {
      * @stable ICU 3.8
      */
     public PluralFormat(ULocale ulocale) {
-        init(null, PluralType.CARDINAL, ulocale, null);
-    }
-
-    /**
-     * Creates a new cardinal-number <code>PluralFormat</code> for a given JDK locale.
-     * @param locale the <code>PluralFormat</code> will be configured with
-     *        rules for this locale. This locale will also be used for standard
-     *        number formatting.
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release.
-     */
-    public PluralFormat(Locale locale) {
-        this(ULocale.forLocale(locale));
+        init(null, PluralType.CARDINAL, ulocale);
     }
 
     /**
@@ -221,7 +208,7 @@ public class PluralFormat extends UFormat {
      * @stable ICU 3.8
      */
     public PluralFormat(PluralRules rules) {
-        init(rules, PluralType.CARDINAL, ULocale.getDefault(Category.FORMAT), null);
+        init(rules, PluralType.CARDINAL, ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -234,21 +221,7 @@ public class PluralFormat extends UFormat {
      * @stable ICU 3.8
      */
     public PluralFormat(ULocale ulocale, PluralRules rules) {
-        init(rules, PluralType.CARDINAL, ulocale, null);
-    }
-
-    /**
-     * Creates a new cardinal-number <code>PluralFormat</code> for a given set of rules.
-     * The standard number formatting will be done using the given locale.
-     * @param locale the default number formatting will be done using this
-     *        locale.
-     * @param rules defines the behavior of the <code>PluralFormat</code>
-     *        object.
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release.
-     */
-    public PluralFormat(Locale locale, PluralRules rules) {
-        this(ULocale.forLocale(locale), rules);
+        init(rules, PluralType.CARDINAL, ulocale);
     }
 
     /**
@@ -260,20 +233,7 @@ public class PluralFormat extends UFormat {
      * @stable ICU 50
      */
     public PluralFormat(ULocale ulocale, PluralType type) {
-        init(null, type, ulocale, null);
-    }
-
-    /**
-     * Creates a new <code>PluralFormat</code> for the plural type.
-     * The standard number formatting will be done using the given JDK locale.
-     * @param locale the default number formatting will be done using this
-     *        locale.
-     * @param type The plural type (e.g., cardinal or ordinal).
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release.
-     */
-    public PluralFormat(Locale locale, PluralType type) {
-        this(ULocale.forLocale(locale), type);
+        init(null, type, ulocale);
     }
 
     /**
@@ -286,7 +246,7 @@ public class PluralFormat extends UFormat {
      * @stable ICU 3.8
      */
     public PluralFormat(String pattern) {
-        init(null, PluralType.CARDINAL, ULocale.getDefault(Category.FORMAT), null);
+        init(null, PluralType.CARDINAL, ULocale.getDefault(Category.FORMAT));
         applyPattern(pattern);
     }
 
@@ -304,7 +264,7 @@ public class PluralFormat extends UFormat {
      * @stable ICU 3.8
      */
     public PluralFormat(ULocale ulocale, String pattern) {
-        init(null, PluralType.CARDINAL, ulocale, null);
+        init(null, PluralType.CARDINAL, ulocale);
         applyPattern(pattern);
     }
 
@@ -320,7 +280,7 @@ public class PluralFormat extends UFormat {
      * @stable ICU 3.8
      */
     public PluralFormat(PluralRules rules, String pattern) {
-        init(rules, PluralType.CARDINAL, ULocale.getDefault(Category.FORMAT), null);
+        init(rules, PluralType.CARDINAL, ULocale.getDefault(Category.FORMAT));
         applyPattern(pattern);
     }
 
@@ -337,7 +297,7 @@ public class PluralFormat extends UFormat {
      * @stable ICU 3.8
      */
     public PluralFormat(ULocale ulocale, PluralRules rules, String pattern) {
-        init(rules, PluralType.CARDINAL, ulocale, null);
+        init(rules, PluralType.CARDINAL, ulocale);
         applyPattern(pattern);
     }
 
@@ -353,23 +313,7 @@ public class PluralFormat extends UFormat {
      * @stable ICU 50
      */
     public PluralFormat(ULocale ulocale, PluralType type, String pattern) {
-        init(null, type, ulocale, null);
-        applyPattern(pattern);
-    }
-
-    /**
-     * Creates a new <code>PluralFormat</code> for a plural type, a
-     * pattern and a locale.
-     * @param ulocale the <code>PluralFormat</code> will be configured with
-     *        rules for this locale. This locale will also be used for standard
-     *        number formatting.
-     * @param type The plural type (e.g., cardinal or ordinal).
-     * @param pattern the pattern for this <code>PluralFormat</code>.
-     * @param numberFormat The number formatter to use.
-     * @throws IllegalArgumentException if the pattern is invalid.
-     */
-    /*package*/ PluralFormat(ULocale ulocale, PluralType type, String pattern, NumberFormat numberFormat) {
-        init(null, type, ulocale, numberFormat);
+        init(null, type, ulocale);
         applyPattern(pattern);
     }
 
@@ -386,12 +330,12 @@ public class PluralFormat extends UFormat {
      *   <code>numberFormat</code>: a <code>NumberFormat</code> for the locale
      *                              <code>ulocale</code>.
      */
-    private void init(PluralRules rules, PluralType type, ULocale locale, NumberFormat numberFormat) {
+    private void init(PluralRules rules, PluralType type, ULocale locale) {
         ulocale = locale;
         pluralRules = (rules == null) ? PluralRules.forLocale(ulocale, type)
                                       : rules;
         resetPattern();
-        this.numberFormat = (numberFormat == null) ? NumberFormat.getInstance(ulocale) : numberFormat;
+        numberFormat = NumberFormat.getInstance(ulocale);
     }
 
     private void resetPattern() {
@@ -604,7 +548,7 @@ public class PluralFormat extends UFormat {
         return toAppendTo;
     }
 
-    private String format(Number numberObject, double number) {
+    private final String format(Number numberObject, double number) {
         // If no pattern was applied, return the formatted number.
         if (msgPattern == null || msgPattern.countParts() == 0) {
             return numberFormat.format(numberObject);
@@ -676,7 +620,6 @@ public class PluralFormat extends UFormat {
      * @stable ICU 3.8
      */
     public Number parse(String text, ParsePosition parsePosition) {
-        // You get number ranges from this. You can't get an exact number.
         throw new UnsupportedOperationException();
     }
 
@@ -695,84 +638,6 @@ public class PluralFormat extends UFormat {
     }
 
     /**
-     * This method returns the PluralRules type found from parsing.
-     * @param source the string to be parsed.
-     * @param pos defines the position where parsing is to begin,
-     * and upon return, the position where parsing left off.  If the position
-     * is a negative index, then parsing failed.
-     * @return Returns the PluralRules type. For example, it could be "zero", "one", "two", "few", "many" or "other")
-     */
-    /*package*/ String parseType(String source, RbnfLenientScanner scanner, FieldPosition pos) {
-        // If no pattern was applied, return null.
-        if (msgPattern == null || msgPattern.countParts() == 0) {
-            pos.setBeginIndex(-1);
-            pos.setEndIndex(-1);
-            return null;
-        }
-        int partIndex = 0;
-        int currMatchIndex;
-        int count=msgPattern.countParts();
-        int startingAt = pos.getBeginIndex();
-        if (startingAt < 0) {
-            startingAt = 0;
-        }
-
-        // The keyword is null until we need to match against a non-explicit, not-"other" value.
-        // Then we get the keyword from the selector.
-        // (In other words, we never call the selector if we match against an explicit value,
-        // or if the only non-explicit keyword is "other".)
-        String keyword = null;
-        String matchedWord = null;
-        int matchedIndex = -1;
-        // Iterate over (ARG_SELECTOR ARG_START message ARG_LIMIT) tuples
-        // until the end of the plural-only pattern.
-        while (partIndex < count) {
-            MessagePattern.Part partSelector=msgPattern.getPart(partIndex++);
-            if (partSelector.getType() != MessagePattern.Part.Type.ARG_SELECTOR) {
-                // Bad format
-                continue;
-            }
-
-            MessagePattern.Part partStart=msgPattern.getPart(partIndex++);
-            if (partStart.getType() != MessagePattern.Part.Type.MSG_START) {
-                // Bad format
-                continue;
-            }
-
-            MessagePattern.Part partLimit=msgPattern.getPart(partIndex++);
-            if (partLimit.getType() != MessagePattern.Part.Type.MSG_LIMIT) {
-                // Bad format
-                continue;
-            }
-
-            String currArg = pattern.substring(partStart.getLimit(), partLimit.getIndex());
-            if (scanner != null) {
-                // If lenient parsing is turned ON, we've got some time consuming parsing ahead of us.
-                int[] scannerMatchResult = scanner.findText(source, currArg, startingAt);
-                currMatchIndex = scannerMatchResult[0];
-            }
-            else {
-                currMatchIndex = source.indexOf(currArg);
-            }
-            if (currMatchIndex >= 0 && currMatchIndex >= matchedIndex && (matchedWord == null || currArg.length() > matchedWord.length())) {
-                matchedIndex = currMatchIndex;
-                matchedWord = currArg;
-                keyword = pattern.substring(partStart.getLimit(), partLimit.getIndex());
-            }
-        }
-        if (keyword != null) {
-            pos.setBeginIndex(matchedIndex);
-            pos.setEndIndex(matchedIndex + matchedWord.length());
-            return keyword;
-        }
-
-        // Not found!
-        pos.setBeginIndex(-1);
-        pos.setEndIndex(-1);
-        return null;
-    }
-
-    /**
      * Sets the locale used by this <code>PluraFormat</code> object.
      * Note: Calling this method resets this <code>PluraFormat</code> object,
      *     i.e., a pattern that was applied previously will be removed,
@@ -788,12 +653,11 @@ public class PluralFormat extends UFormat {
      *             a different kind of PluralRules instance;
      *             use one of the constructors to create a new instance instead.
      */
-    @Deprecated
     public void setLocale(ULocale ulocale) {
         if (ulocale == null) {
             ulocale = ULocale.getDefault(Category.FORMAT);
         }
-        init(null, PluralType.CARDINAL, ulocale, null);
+        init(null, PluralType.CARDINAL, ulocale);
     }
 
     /**

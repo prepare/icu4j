@@ -1,7 +1,7 @@
 /*
  *******************************************************************************
- * Copyright (C) 2009-2014, International Business Machines Corporation and
- * others. All Rights Reserved.
+ * Copyright (C) 2009-2013, International Business Machines Corporation and    *
+ * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.dev.test.text;
@@ -16,7 +16,6 @@ import java.util.BitSet;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -219,34 +218,22 @@ public class SpoofCheckerTest extends TestFmwk {
      */
     public void TestAllowedLocales() {
         SpoofChecker sc = new SpoofChecker.Builder().build();
-        Set<ULocale> allowedLocales = null;
-        Set<Locale> allowedJavaLocales = null;
+        Set<ULocale> allowedLocales = new LinkedHashSet<ULocale>();
         boolean checkResults;
 
         /* Default allowed locales list should be empty */
         allowedLocales = sc.getAllowedLocales();
-        assertTrue("Empty allowed locales", allowedLocales.isEmpty());
-
-        allowedJavaLocales = sc.getAllowedJavaLocales();
-        assertTrue("Empty allowed Java locales", allowedJavaLocales.isEmpty());
+        assertTrue("", allowedLocales.isEmpty());
 
         /* Allow en and ru, which should enable Latin and Cyrillic only to pass */
         ULocale enloc = new ULocale("en");
         ULocale ruloc = new ULocale("ru_RU");
-        allowedLocales = new HashSet<ULocale>();
         allowedLocales.add(enloc);
         allowedLocales.add(ruloc);
         sc = new SpoofChecker.Builder().setAllowedLocales(allowedLocales).build();
         allowedLocales = sc.getAllowedLocales();
-        assertTrue("en in allowed locales", allowedLocales.contains(enloc));
-        assertTrue("ru_RU in allowed locales", allowedLocales.contains(ruloc));
-
-        Locale frlocJ = new Locale("fr");
-        allowedJavaLocales = new HashSet<Locale>();
-        allowedJavaLocales.add(frlocJ);
-        sc = new SpoofChecker.Builder().setAllowedJavaLocales(allowedJavaLocales).build();
-        assertFalse("no en in allowed Java locales", allowedJavaLocales.contains(new Locale("en")));
-        assertTrue("fr in allowed Java locales", allowedJavaLocales.contains(frlocJ));
+        assertTrue("", allowedLocales.contains(enloc));
+        assertTrue("", allowedLocales.contains(ruloc));
 
         /*
          * Limit checks to SpoofChecker.CHAR_LIMIT. Some of the test data has whole script confusables also, which we
@@ -396,12 +383,9 @@ public class SpoofCheckerTest extends TestFmwk {
         int MA = SpoofChecker.ANY_CASE;
         int SA = SpoofChecker.SINGLE_SCRIPT_CONFUSABLE | SpoofChecker.ANY_CASE;
 
-        checkSkeleton(sc, MA, "\\u02b9identifier'",  "'identifier'",  testName);
+        checkSkeleton(sc, SL, "\\u02b9identifier'",  "'identifier'",  testName);
 
-        checkSkeleton(sc, SL, "nochange", "\\u213C\\u2134\\U0001D41C\\u210E\\u237A\\u213C\\u210A\\u212E", testName);
-        checkSkeleton(sc, SA, "nochange", "\\u213C\\u2134\\U0001D41C\\u210E\\u237A\\u213C\\u210A\\u212E", testName);
-        checkSkeleton(sc, ML, "nochange", "\\u213C\\u2134\\U0001D41C\\u210E\\u237A\\u213C\\u210A\\u212E", testName);
-        checkSkeleton(sc, MA, "nochange", "nochange", testName);
+        checkSkeleton(sc, SL, "nochange", "nochange", testName);
         checkSkeleton(sc, MA, "love", "love", testName);
         checkSkeleton(sc, MA, "1ove", "love", testName);   // Digit 1 to letter l
         checkSkeleton(sc, ML, "OOPS", "OOPS", testName);
@@ -410,8 +394,8 @@ public class SpoofCheckerTest extends TestFmwk {
         checkSkeleton(sc, MA, "00PS", "OOPS", testName);   // Digit 0 to letter O in any case mode only
         checkSkeleton(sc, SL, "\\u059c", "\\u0301", testName);
         checkSkeleton(sc, SL, "\\u2A74", "\\u003A\\u003A\\u003D", testName);
-        checkSkeleton(sc, SL, "\\u247E", "\\u0028\\u0031\\u0031\\u0029", testName);  // "(11)"
-        checkSkeleton(sc, SL, "\\uFDFB", "\\u062C\\u0644\\u0020\\u062C\\u0644\\u0031\\u0644\\u2134", testName);
+        checkSkeleton(sc, SL, "\\u247E", "\\u0028\\u006c\\u006c\\u0029", testName);  // "(ll)"
+        checkSkeleton(sc, SL, "\\uFDFB", "\\u062C\\u0644\\u0020\\u062C\\u0644\\u0627\\u0644\\u0647", testName);
 
         // This mapping exists in the ML and MA tables, does not exist in SL, SA
         // 0C83 ; 0983 ; ML #  KANNADA SIGN VISARGA to
@@ -420,17 +404,19 @@ public class SpoofCheckerTest extends TestFmwk {
         checkSkeleton(sc, ML, "\\u0C83", "\\u0983", testName);
         checkSkeleton(sc, MA, "\\u0C83", "\\u0983", testName);
 
-        // 0391 mappings exist only in MA and SA tables.
+        // 0391 ; 0041 ; MA # GREEK CAPITAL LETTER ALPHA to LATIN CAPITAL LETTER A
+        // This mapping exists only in the MA table.
         checkSkeleton(sc, MA, "\\u0391", "A", testName);
-        checkSkeleton(sc, SA, "\\u0391", "\\U0001D400", testName);
+        checkSkeleton(sc, SA, "\\u0391", "\\u0391", testName);
         checkSkeleton(sc, ML, "\\u0391", "\\u0391", testName);
         checkSkeleton(sc, SL, "\\u0391", "\\u0391", testName);
 
-        // 13CF Mappings in all four tables, different in MA.
-        checkSkeleton(sc, ML, "\\u13CF", "\\U0001D41B", testName);
+        // 13CF ; 0062 ; MA # CHEROKEE LETTER SI to LATIN SMALL LETTER B
+        // This mapping exists in the ML and MA tables
+        checkSkeleton(sc, ML, "\\u13CF", "b", testName);
         checkSkeleton(sc, MA, "\\u13CF", "b", testName);
-        checkSkeleton(sc, SL, "\\u13CF", "\\U0001D41B", testName);
-        checkSkeleton(sc, SA, "\\u13CF", "\\U0001D41B", testName);
+        checkSkeleton(sc, SL, "\\u13CF", "\\u13CF", testName);
+        checkSkeleton(sc, SA, "\\u13CF", "\\u13CF", testName);
 
         // 0022 ; 0027 0027 ;
         // all tables
@@ -438,6 +424,21 @@ public class SpoofCheckerTest extends TestFmwk {
         checkSkeleton(sc, SA, "\"", "\\u0027\\u0027", testName);
         checkSkeleton(sc, ML, "\"", "\\u0027\\u0027", testName);
         checkSkeleton(sc, MA, "\"", "\\u0027\\u0027", testName);
+
+        // A long "identifier" that will overflow implementation stack buffers, forcing heap allocations.
+        //    (in the C implementation)
+        checkSkeleton(
+                sc,
+                SL,
+                " A 1ong \\u02b9identifier' that will overflow implementation stack buffers, forcing heap allocations."
+                        + " A 1ong 'identifier' that will overflow implementation stack buffers, forcing heap allocations."
+                        + " A 1ong 'identifier' that will overflow implementation stack buffers, forcing heap allocations."
+                        + " A 1ong 'identifier' that will overflow implementation stack buffers, forcing heap allocations.",
+                        " A long 'identifier' that vvill overflovv irnplernentation stack buffers, forcing heap allocations."
+                                + " A long 'identifier' that vvill overflovv irnplernentation stack buffers, forcing heap allocations."
+                                + " A long 'identifier' that vvill overflovv irnplernentation stack buffers, forcing heap allocations."
+                                + " A long 'identifier' that vvill overflovv irnplernentation stack buffers, forcing heap allocations.",
+                                testName);
 
     }
 
@@ -450,10 +451,7 @@ public class SpoofCheckerTest extends TestFmwk {
         String uExpected = Utility.unescape(expected);
         String actual;
         actual = sc.getSkeleton(type, uInput);
-        Throwable t = new Throwable();
-        int lineNumberOfTest = t.getStackTrace()[1].getLineNumber();
-        
-        assertEquals(testName + " test at line " + lineNumberOfTest + " :  Expected (escaped): " + expected, uExpected, actual);
+        assertEquals(testName + ":  Expected (escaped): " + expected, uExpected, actual);
     }
 
     public void TestAreConfusable() {
@@ -492,7 +490,7 @@ public class SpoofCheckerTest extends TestFmwk {
         Object[][] tests = {
                 {"aγ♥", RestrictionLevel.UNRESTRICTIVE},
                 {"a", RestrictionLevel.ASCII},
-                {"γ", RestrictionLevel.SINGLE_SCRIPT_RESTRICTIVE},
+                {"γ", RestrictionLevel.HIGHLY_RESTRICTIVE},
                 {"aアー", RestrictionLevel.HIGHLY_RESTRICTIVE},
                 {"aऄ", RestrictionLevel.MODERATELY_RESTRICTIVE},
                 {"aγ", RestrictionLevel.MINIMALLY_RESTRICTIVE},
@@ -580,8 +578,8 @@ public class SpoofCheckerTest extends TestFmwk {
                 {"アaー〆",  "HIGHLY_RESTRICTIVE", "[]", "Latn Kana", "", ""},
                 {"a1١",  "UNRESTRICTIVE", "[0٠]", "Latn", "Arab Thaa", "Arab Thaa"},
                 {"a1١۱",  "UNRESTRICTIVE", "[0٠۰]", "Latn Arab", "", ""},
-                {"١ー〆aア1१۱",  "UNRESTRICTIVE", "[0٠۰०]", "Latn Kana Arab", "Deva Kthi Mahj", "Deva Kthi Mahj"},
-                {"aアー〆1१١۱",  "UNRESTRICTIVE", "[0٠۰०]", "Latn Kana Arab", "Deva Kthi Mahj", "Deva Kthi Mahj"},
+                {"١ー〆aア1१۱",  "UNRESTRICTIVE", "[0٠۰०]", "Latn Kana Arab", "Deva Kthi", "Deva Kthi"},
+                {"aアー〆1१١۱",  "UNRESTRICTIVE", "[0٠۰०]", "Latn Kana Arab", "Deva Kthi", "Deva Kthi"},
         };
         for (String[] test : tests) {
             String testString = test[0];

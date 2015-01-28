@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2014, International Business Machines Corporation and
- * others. All Rights Reserved.
+ * Copyright (C) 2001-2013, International Business Machines Corporation and    *
+ * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.dev.test.util;
@@ -39,6 +39,7 @@ public final class ICUResourceBundleTest extends TestFmwk {
     public static void main(String args[]) throws Exception {
         ICUResourceBundleTest test = new ICUResourceBundleTest();
         test.run(args);
+
     }
     public void TestGetResources(){
         try{
@@ -680,19 +681,20 @@ public final class ICUResourceBundleTest extends TestFmwk {
         ULocale[] locales = ULocale.getAvailableLocales();
         for (int i = 0; i < locales.length; ++i) {
             if (!hasLocalizedCountryFor(ULocale.ENGLISH, locales[i]) && (locales[i].getLanguage().compareTo("ti") != 0)){ // TODO: restore test for ti_* when cldrbug 3058 is fixed
-                 errln("Could not get English localized country for " + locales[i]);
+                 errln("Could not get localized country for "+ locales[i]);
             }
             if(!hasLocalizedLanguageFor(ULocale.ENGLISH, locales[i])){
-                errln("Could not get English localized language for " + locales[i]);
+                errln("Could not get localized language for "+ locales[i]);
             }
             if(!hasLocalizedCountryFor(locales[i], locales[i]) &&
-                    !(locales[i].getLanguage().equals("ti") || // TODO: restore test for ti_* when cldrbug 3058 is fixed
-                    ((locales[i].getBaseName().equals("sah_RU") || locales[i].getBaseName().equals("smn_FI")) && logKnownIssue("cldrbug:7872", "No localized region name for sah_RU, smn_FI")))) {
-                errln("Could not get native localized country for " + locales[i]);
+                    (locales[i].getLanguage().compareTo("ti") != 0) && // TODO: restore test for ti_* when cldrbug 3058 is fixed
+                    (locales[i].getBaseName().compareTo("nl_CW") != 0) && // TODO: restore test for nl_CW when cldrbug 4306 is fixed
+                    (locales[i].getBaseName().compareTo("nl_SX") != 0) ){ // TODO: restore test for nl_SX when cldrbug 4306 is fixed
+                errln("Could not get localized country for "+ locales[i]);
                 hasLocalizedCountryFor(locales[i], locales[i]);
             }
             if(!hasLocalizedLanguageFor(locales[i], locales[i]) && (locales[i].getLanguage().compareTo("nmg") != 0)){
-                errln("Could not get native localized language for " + locales[i]);
+                errln("Could not get localized language for "+ locales[i]);
             }
 
             logln(locales[i] + "\t" + locales[i].getDisplayName(ULocale.ENGLISH) + "\t" + locales[i].getDisplayName(locales[i]));
@@ -848,7 +850,6 @@ public final class ICUResourceBundleTest extends TestFmwk {
         }        
     }
     
-    @SuppressWarnings("unused")
     private void assertDefaultLoadingStatus(String msg, int result) {
         assertEqualLoadingStatus(msg, ICUResourceBundle.FROM_DEFAULT, result);
     }
@@ -867,7 +868,7 @@ public final class ICUResourceBundleTest extends TestFmwk {
    
     public void TestLoadingStatus(){
         ICUResourceBundle bundle = (ICUResourceBundle) UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "yi_IL");
-        assertFallbackLoadingStatus("base/yi_IL", bundle.getLoadingStatus());
+        assertDefaultLoadingStatus("base/yi_IL", bundle.getLoadingStatus());
 
         bundle = (ICUResourceBundle) UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "eo_DE");
         assertFallbackLoadingStatus("base/eo_DE", bundle.getLoadingStatus());
@@ -1139,6 +1140,9 @@ public final class ICUResourceBundleTest extends TestFmwk {
         }
         if (rb7.getKey() != null) {
             errln("getKey() call should have returned null.");
+        }
+        if (((ICUResourceBundle)rb1).getResPath() == null) {
+            errln("Error calling getResPath().");
         }
         if (((ICUResourceBundle)rb1).findTopLevel(0) == null) {
             errln("Error calling findTopLevel().");

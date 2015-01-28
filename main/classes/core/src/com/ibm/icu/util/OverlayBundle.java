@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2014, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2009, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -62,7 +62,6 @@ import java.util.ResourceBundle;
  * @internal
  * @deprecated ICU 2.4. This class may be removed or modified.
  */
-@Deprecated
 // prepare to deprecate in next release
 ///CLOVER:OFF
 public class OverlayBundle extends ResourceBundle {
@@ -90,7 +89,6 @@ public class OverlayBundle extends ResourceBundle {
      * @internal
      * @deprecated ICU 2.4. This class may be removed or modified.
      */
-    @Deprecated
     public OverlayBundle(String[] baseNames,
                          Locale locale) {
         this.baseNames = baseNames;
@@ -103,9 +101,8 @@ public class OverlayBundle extends ResourceBundle {
      * bundles[i].getObject().
      * @internal
      * @deprecated ICU 2.4. This class may be removed or modified.
-     */
-    @Deprecated
-    protected Object handleGetObject(String key) 
+     */ 
+   protected Object handleGetObject(String key) 
         throws MissingResourceException {
 
         Object o = null;
@@ -133,7 +130,6 @@ public class OverlayBundle extends ResourceBundle {
      * @internal
      * @deprecated ICU 2.4. This class may be removed or modified.
      */
-    @Deprecated
     public Enumeration<String> getKeys() {
         // Return the enumeration of the last bundle, which is the base
         // of our hierarchy stack.

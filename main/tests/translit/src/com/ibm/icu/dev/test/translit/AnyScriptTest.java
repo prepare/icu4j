@@ -1,7 +1,7 @@
 /*
  *******************************************************************************
- * Copyright (C) 2009-2014, Google, International Business Machines Corporation and
- * others. All Rights Reserved.
+ * Copyright (C) 2009-2013, Google, International Business Machines Corporation and         *
+ * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.dev.test.translit;
@@ -12,7 +12,6 @@ import com.ibm.icu.text.Transliterator;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
 import com.ibm.icu.text.UnicodeSetIterator;
-import com.ibm.icu.util.ULocale;
 
 /**
  * @author markdavis
@@ -59,15 +58,8 @@ public class AnyScriptTest extends TestFmwk {
                     ) {
                 continue;
             }
-
-            String scriptName = UScript.getName(script);  // long name
-            ULocale locale = new ULocale(scriptName);
-            if (locale.getLanguage().equals("new") || locale.getLanguage().equals("pau")) {
-                if (logKnownIssue("11171",
-                        "long script name loosely looks like a locale ID with a known likely script")) {
-                    continue;
-                }
-            }
+            
+            String scriptName = UScript.getName(script);
             Transliterator t;
             try {
                 t = Transliterator.getInstance("any-" + scriptName);
@@ -80,17 +72,12 @@ public class AnyScriptTest extends TestFmwk {
             if (t != null) {
                 t.transform(test); // just verify we don't crash
             }
-            String shortScriptName = UScript.getShortName(script);  // 4-letter script code
-            try {
-                t = Transliterator.getInstance("any-" + shortScriptName);
-            } catch (Exception e) {
-                errln("Transliterator.getInstance() worked for \"any-" + scriptName +
-                        "\" but not for \"any-" + shortScriptName + '\"');
-            }
+            scriptName = UScript.getShortName(script);
+            t = Transliterator.getInstance("any-" + scriptName);
             t.transform(test); // just verify we don't crash
         }
     }
-
+    
     /**
      * Check to make sure that wide characters are converted when going to narrow scripts.
      */

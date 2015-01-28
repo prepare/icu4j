@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2014, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2013, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -23,7 +23,6 @@ import java.util.Set;
 
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.util.Currency;
-import com.ibm.icu.util.Currency.CurrencyUsage;
 import com.ibm.icu.util.CurrencyAmount;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.ULocale.Category;
@@ -208,22 +207,6 @@ public abstract class NumberFormat extends UFormat {
      * @stable ICU 4.2
      */
     public static final int PLURALCURRENCYSTYLE = 6;
-    /**
-     * {@icu} Constant to specify currency style of format which uses currency symbol
-     * to represent currency for accounting, for example: "($3.00), instead of
-     * "-$3.00" ({@link #CURRENCYSTYLE}).
-     * @draft ICU 53
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final int ACCOUNTINGCURRENCYSTYLE = 7;
-    /**
-     * {@icu} Constant to specify currency cash style of format which uses currency
-     * ISO code to represent currency, for example: "NT$3" instead of "NT$3.23".
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release. 
-     */
-    public static final int CASHCURRENCYSTYLE = 8;
-    /**
 
     /**
      * Field constant used to construct a FieldPosition object. Signifies that
@@ -240,7 +223,7 @@ public abstract class NumberFormat extends UFormat {
      * @stable ICU 2.0
      */
     public static final int FRACTION_FIELD = 1;
-    
+
     /**
      * Formats a number and appends the resulting text to the given string buffer.
      * {@icunote} recognizes <code>BigInteger</code>
@@ -513,34 +496,6 @@ public abstract class NumberFormat extends UFormat {
      */
     public boolean isParseStrict() {
         return parseStrict;
-    }
-
-    /**
-     * {@icu} Set a particular DisplayContext value in the formatter,
-     * such as CAPITALIZATION_FOR_STANDALONE. 
-     * 
-     * @param context The DisplayContext value to set. 
-     * @draft ICU 53
-     * @provisional This API might change or be removed in a future release.
-     */
-    public void setContext(DisplayContext context) {
-        if (context.type() == DisplayContext.Type.CAPITALIZATION) {
-            capitalizationSetting = context;
-        }
-    }
-
-    /**
-     * {@icu} Get the formatter's DisplayContext value for the specified DisplayContext.Type,
-     * such as CAPITALIZATION.
-     * 
-     * @param type the DisplayContext.Type whose value to return
-     * @return the current DisplayContext setting for the specified type
-     * @draft ICU 53
-     * @provisional This API might change or be removed in a future release.
-     */
-    public DisplayContext getContext(DisplayContext.Type type) {
-        return (type == DisplayContext.Type.CAPITALIZATION && capitalizationSetting != null)?
-                capitalizationSetting: DisplayContext.CAPITALIZATION_NONE;
     }
 
     //============== Locale Stuff =====================
@@ -991,11 +946,6 @@ public abstract class NumberFormat extends UFormat {
      * {@icu} Registers a new NumberFormatFactory.  The factory is adopted by
      * the service and must not be modified.  The returned object is a
      * key that can be used to unregister this factory.
-     * 
-     * <p>Because ICU may choose to cache NumberFormat objects internally, this must
-     * be called at application startup, prior to any calls to
-     * NumberFormat.getInstance to avoid undefined behavior.
-     * 
      * @param factory the factory to register
      * @return a key with which to unregister the factory
      * @stable ICU 2.6
@@ -1061,8 +1011,7 @@ public abstract class NumberFormat extends UFormat {
             && minimumFractionDigits == other.minimumFractionDigits
             && groupingUsed == other.groupingUsed
             && parseIntegerOnly == other.parseIntegerOnly
-            && parseStrict == other.parseStrict
-            && capitalizationSetting == other.capitalizationSetting;
+            && parseStrict == other.parseStrict;
     }
 
     /**
@@ -1249,7 +1198,7 @@ public abstract class NumberFormat extends UFormat {
     public Currency getCurrency() {
         return currency;
     }
-    
+
     /**
      * Returns the currency in effect for this formatter.  Subclasses
      * should override this method as needed.  Unlike getCurrency(),
@@ -1306,12 +1255,12 @@ public abstract class NumberFormat extends UFormat {
      * @throws IllegalArgumentException  if choice is not one of
      *                                   NUMBERSTYLE, CURRENCYSTYLE,
      *                                   PERCENTSTYLE, SCIENTIFICSTYLE,
-     *                                   INTEGERSTYLE, ISOCURRENCYSTYLE,
-     *                                   PLURALCURRENCYSTYLE and ACCOUNTSTYLE.
+     *                                   INTEGERSTYLE,
+     *                                   ISOCURRENCYSTYLE, PLURALCURRENCYSTYLE,
      * @stable ICU 4.2
      */
     public static NumberFormat getInstance(ULocale desiredLocale, int choice) {
-        if (choice < NUMBERSTYLE || choice > CASHCURRENCYSTYLE) {
+        if (choice < NUMBERSTYLE || choice > PLURALCURRENCYSTYLE) {
             throw new IllegalArgumentException(
                 "choice should be from NUMBERSTYLE to PLURALCURRENCYSTYLE");
         }
@@ -1340,8 +1289,7 @@ public abstract class NumberFormat extends UFormat {
         // This style wont work for currency plural format.
         // For currency plural format, the pattern is get from
         // the locale (from CurrencyUnitPatterns) without override.
-        if (choice == CURRENCYSTYLE || choice == ISOCURRENCYSTYLE || choice == ACCOUNTINGCURRENCYSTYLE
-                || choice == CASHCURRENCYSTYLE) {
+        if(choice == CURRENCYSTYLE || choice == ISOCURRENCYSTYLE){
             String temp = symbols.getCurrencyPattern();
             if(temp!=null){
                 pattern = temp;
@@ -1403,10 +1351,6 @@ public abstract class NumberFormat extends UFormat {
                 f.setMaximumFractionDigits(0);
                 f.setDecimalSeparatorAlwaysShown(false);
                 f.setParseIntegerOnly(true);
-            }
-            
-            if (choice == CASHCURRENCYSTYLE) {
-                f.setCurrencyUsage(CurrencyUsage.CASH);
             }
             format = f;
        }
@@ -1484,42 +1428,20 @@ public abstract class NumberFormat extends UFormat {
          * but by replacing the single currency sign with
          * double currency sign or triple currency sign.
          */
-        String patternKey = null;
-        switch (choice) {
-        case NUMBERSTYLE:
-        case INTEGERSTYLE:
-            patternKey = "decimalFormat";
-            break;
-        case CURRENCYSTYLE:
-        case CASHCURRENCYSTYLE:
-        case ISOCURRENCYSTYLE:
-        case PLURALCURRENCYSTYLE:
-            patternKey = "currencyFormat";
-            break;
-        case PERCENTSTYLE:
-            patternKey = "percentFormat";
-            break;
-        case SCIENTIFICSTYLE:
-            patternKey = "scientificFormat";
-            break;
-        case ACCOUNTINGCURRENCYSTYLE:
-            patternKey = "accountingFormat";
-            break;
-        default:
-            assert false;
-            patternKey = "decimalFormat";
-            break;
-        }
+        int entry = (choice == INTEGERSTYLE) ? NUMBERSTYLE :
+                ((choice == ISOCURRENCYSTYLE || choice == PLURALCURRENCYSTYLE)?
+                CURRENCYSTYLE : choice); //[Richard/GCL]
 
         ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.
         getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, forLocale);
+        String[] numberPatternKeys = { "decimalFormat", "currencyFormat", "percentFormat", "scientificFormat" };
         NumberingSystem ns = NumberingSystem.getInstance(forLocale);
 
         String result = null;
         try {
-            result = rb.getStringWithFallback("NumberElements/" + ns.getName() + "/patterns/"+ patternKey);
+            result = rb.getStringWithFallback("NumberElements/" + ns.getName() + "/patterns/"+numberPatternKeys[entry]);
         } catch ( MissingResourceException ex ) {
-            result = rb.getStringWithFallback("NumberElements/latn/patterns/"+ patternKey);
+            result = rb.getStringWithFallback("NumberElements/latn/patterns/"+numberPatternKeys[entry]);
         }
 
         return result;
@@ -1548,10 +1470,6 @@ public abstract class NumberFormat extends UFormat {
             minimumIntegerDigits = minIntegerDigits;
             maximumFractionDigits = maxFractionDigits;
             minimumFractionDigits = minFractionDigits;
-        }
-        if (serialVersionOnStream < 2) {
-            // Didn't have capitalizationSetting, set it to default
-            capitalizationSetting = DisplayContext.CAPITALIZATION_NONE;
         }
         ///CLOVER:ON
         /*Bug 4185761
@@ -1739,7 +1657,7 @@ public abstract class NumberFormat extends UFormat {
      */
     private Currency currency;
 
-    static final int currentSerialVersion = 2;
+    static final int currentSerialVersion = 1;
 
     /**
      * Describes the version of <code>NumberFormat</code> present on the stream.
@@ -1754,8 +1672,6 @@ public abstract class NumberFormat extends UFormat {
      *     <code>byte</code> fields such as <code>maxIntegerDigits</code> are ignored,
      *     and the <code>int</code> fields such as <code>maximumIntegerDigits</code>
      *     are used instead.
-     *
-     * <li><b>2</b>: adds capitalizationSetting.
      * </ul>
      * When streaming out a <code>NumberFormat</code>, the most recent format
      * (corresponding to the highest allowable <code>serialVersionOnStream</code>)
@@ -1770,7 +1686,7 @@ public abstract class NumberFormat extends UFormat {
     private static final long serialVersionUID = -2308460125733713944L;
 
     /**
-     * Empty constructor.  Public for compatibility with JDK which lets the
+     * Empty constructor.  Public for compatibily with JDK which lets the
      * compiler generate a default public constructor even though this is
      * an abstract class.
      * @stable ICU 2.6
@@ -1780,12 +1696,6 @@ public abstract class NumberFormat extends UFormat {
 
     // new in ICU4J 3.6
     private boolean parseStrict;
-
-    /*
-     * Capitalization context setting, new in ICU 53
-     * @serial
-     */
-    private DisplayContext capitalizationSetting = DisplayContext.CAPITALIZATION_NONE;
 
     /**
      * The instances of this inner class are used as attribute keys and values

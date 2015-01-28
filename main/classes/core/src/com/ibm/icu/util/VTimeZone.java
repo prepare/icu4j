@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2014, International Business Machines Corporation and    *
+ * Copyright (C) 2007-2013, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -95,7 +95,6 @@ public class VTimeZone extends BasicTimeZone {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     @Override
     public void getOffsetFromLocal(long date,
             int nonExistingTimeOpt, int duplicatedTimeOpt, int[] offsets) {
@@ -2095,7 +2094,7 @@ public class VTimeZone extends BasicTimeZone {
     }
 
     // Freezable stuffs
-    private volatile transient boolean isFrozen = false;
+    private transient boolean isFrozen = false;
 
     /**
      * {@inheritDoc}

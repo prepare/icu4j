@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2001-2014, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2015, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -12,11 +12,6 @@
 
 package com.ibm.icu.dev.test.format;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.text.AttributedCharacterIterator;
 import java.text.CharacterIterator;
 import java.text.FieldPosition;
@@ -38,7 +33,6 @@ import com.ibm.icu.text.ChineseDateFormat;
 import com.ibm.icu.text.ChineseDateFormat.Field;
 import com.ibm.icu.text.ChineseDateFormatSymbols;
 import com.ibm.icu.text.DateFormat;
-import com.ibm.icu.text.DateFormat.BooleanAttribute;
 import com.ibm.icu.text.DateFormatSymbols;
 import com.ibm.icu.text.DisplayContext;
 import com.ibm.icu.text.NumberFormat;
@@ -348,22 +342,22 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
              "", "1997", "August", "13", "", "", "34", "12", "", "Wednesday",
              "", "", "", "", "PM", "2", "", "Pacific Daylight Time", "", "",
              "", "", "", "", "", "", "", "", "", "",
-             "", "", "", "", ":",
+             "", "", "", "",
 
              "", "1997", "ao\u00FBt", "13", "", "14", "34", "12", "", "mercredi",
-             "", "", "", "", "", "", "", "heure d\u2019\u00E9t\u00E9 du Pacifique", "", "",
+             "", "", "", "", "", "", "", "heure avanc\u00E9e du Pacifique", "", "",
              "", "", "", "", "", "", "", "", "", "",
-             "", "", "", "", ":",
+             "", "", "", "",
 
             "AD", "1997", "8", "13", "14", "14", "34", "12", "5", "Wed",
             "225", "2", "33", "3", "PM", "2", "2", "PDT", "1997", "4",
             "1997", "2450674", "52452513", "-0700", "PT", "4", "8", "3", "3", "uslax",
-            "1997", "GMT-7", "-07", "-07", ":",
+            "1997", "GMT-7", "-07", "-07",
 
             "Anno Domini", "1997", "August", "0013", "0014", "0014", "0034", "0012", "5130", "Wednesday",
             "0225", "0002", "0033", "0003", "PM", "0002", "0002", "Pacific Daylight Time", "1997", "Wednesday",
             "1997", "2450674", "52452513", "GMT-07:00", "Pacific Time", "Wednesday", "August", "3rd quarter", "3rd quarter", "Los Angeles Time",
-            "1997", "GMT-07:00", "-0700", "-0700", ":",
+            "1997", "GMT-07:00", "-0700", "-0700",
         };
 
         assertTrue("data size", EXPECTED.length == COUNT * DateFormat.FIELD_COUNT);
@@ -409,7 +403,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             {"", "13", "mercredi", "", "",
              "", "", "", "14", "",
              "", "", "", "", "",
-             "34", "ao\u00FBt", "", "12", "heure d\u2019\u00E9t\u00E9 du Pacifique",
+             "34", "ao\u00FBt", "", "12", "heure avanc\u00E9e du Pacifique",
              "", "", "1997", ""},
 
             {"PM", "13", "Wed", "2", "225",
@@ -466,7 +460,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
     /**
      * This MUST be kept in sync with DateFormatSymbols.patternChars.
      */
-    static final String PATTERN_CHARS = "GyMdkHmsSEDFwWahKzYeugAZvcLQqVUOXx:";
+    static final String PATTERN_CHARS = "GyMdkHmsSEDFwWahKzYeugAZvcLQqVUOXx";
 
     /**
      * A list of the DateFormat.Field.
@@ -507,7 +501,6 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         DateFormat.Field.TIME_ZONE,     // O
         DateFormat.Field.TIME_ZONE,     // X
         DateFormat.Field.TIME_ZONE,     // x
-        DateFormat.Field.TIME_SEPARATOR,// :
     };
 
     /**
@@ -549,7 +542,6 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         "TIMEZONE_LOCALIZED_GMT_OFFSET_FIELD",
         "TIMEZONE_ISO_FIELD",
         "TIMEZONE_ISO_LOCAL_FIELD",
-        "TIME_SEPARATOR",
     };
 
     /**
@@ -734,7 +726,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         }
     }
 
-    private static final String GMT_BG = "\u0413\u0440\u0438\u043D\u0443\u0438\u0447";
+    private static final String GMT_BG = "\u0413\u0440\u0438\u0438\u043D\u0443\u0438\u0447";
     private static final String GMT_ZH = "GMT";
     //private static final String GMT_ZH = "\u683C\u6797\u5C3C\u6CBB\u6807\u51C6\u65F6\u95F4";
     //private static final String GMT_BG = "GMT";
@@ -1168,13 +1160,13 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         { "hi", "Asia/Calcutta", "2004-01-15T00:00:00Z", "Z", "+0530", "+5:30" },
         { "hi", "Asia/Calcutta", "2004-01-15T00:00:00Z", "ZZZZ", "GMT+05:30", "+5:30" },
         { "hi", "Asia/Calcutta", "2004-01-15T00:00:00Z", "z", "IST", "+5:30" },
-        { "hi", "Asia/Calcutta", "2004-01-15T00:00:00Z", "zzzz", "\u092D\u093E\u0930\u0924\u0940\u092F \u092E\u093E\u0928\u0915 \u0938\u092E\u092F", "+5:30" },
+        { "hi", "Asia/Calcutta", "2004-01-15T00:00:00Z", "zzzz", "\u092D\u093E\u0930\u0924\u0940\u092F \u0938\u092E\u092F", "+5:30" },
         { "hi", "Asia/Calcutta", "2004-07-15T00:00:00Z", "Z", "+0530", "+5:30" },
         { "hi", "Asia/Calcutta", "2004-07-15T00:00:00Z", "ZZZZ", "GMT+05:30"," +5:30" },
         { "hi", "Asia/Calcutta", "2004-07-15T00:00:00Z", "z", "IST", "+05:30" },
-        { "hi", "Asia/Calcutta", "2004-07-15T00:00:00Z", "zzzz", "\u092D\u093E\u0930\u0924\u0940\u092F \u092E\u093E\u0928\u0915 \u0938\u092E\u092F", "+5:30" },
+        { "hi", "Asia/Calcutta", "2004-07-15T00:00:00Z", "zzzz", "\u092D\u093E\u0930\u0924\u0940\u092F \u0938\u092E\u092F", "+5:30" },
         { "hi", "Asia/Calcutta", "2004-07-15T00:00:00Z", "v", "IST", "Asia/Calcutta" },
-        { "hi", "Asia/Calcutta", "2004-07-15T00:00:00Z", "vvvv", "\u092D\u093E\u0930\u0924\u0940\u092F \u092E\u093E\u0928\u0915 \u0938\u092E\u092F", "Asia/Calcutta" },
+        { "hi", "Asia/Calcutta", "2004-07-15T00:00:00Z", "vvvv", "\u092D\u093E\u0930\u0924\u0940\u092F \u0938\u092E\u092F", "Asia/Calcutta" },
 
         // ==========
 
@@ -1273,13 +1265,13 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         { "bg", "Asia/Calcutta", "2004-01-15T00:00:00Z", "Z", "+0530", "+5:30" },
         { "bg", "Asia/Calcutta", "2004-01-15T00:00:00Z", "ZZZZ", GMT_BG+"+05:30", "+5:30" },
         { "bg", "Asia/Calcutta", "2004-01-15T00:00:00Z", "z", GMT_BG+"+5:30", "+5:30" },
-        { "bg", "Asia/Calcutta", "2004-01-15T00:00:00Z", "zzzz", "\u0418\u043D\u0434\u0438\u0439\u0441\u043A\u043E \u0441\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u043D\u043E \u0432\u0440\u0435\u043C\u0435", "+5:30" },
+        { "bg", "Asia/Calcutta", "2004-01-15T00:00:00Z", "zzzz", "\u0418\u043d\u0434\u0438\u0439\u0441\u043a\u043e \u0432\u0440\u0435\u043c\u0435", "+5:30" },
         { "bg", "Asia/Calcutta", "2004-07-15T00:00:00Z", "Z", "+0530", "+5:30" },
         { "bg", "Asia/Calcutta", "2004-07-15T00:00:00Z", "ZZZZ", GMT_BG+"+05:30", "+5:30" },
         { "bg", "Asia/Calcutta", "2004-07-15T00:00:00Z", "z", GMT_BG+"+5:30", "+05:30" },
-        { "bg", "Asia/Calcutta", "2004-07-15T00:00:00Z", "zzzz", "\u0418\u043D\u0434\u0438\u0439\u0441\u043A\u043E \u0441\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u043D\u043E \u0432\u0440\u0435\u043C\u0435", "+5:30" },
+        { "bg", "Asia/Calcutta", "2004-07-15T00:00:00Z", "zzzz", "\u0418\u043d\u0434\u0438\u0439\u0441\u043a\u043e \u0432\u0440\u0435\u043c\u0435", "+5:30" },
         { "bg", "Asia/Calcutta", "2004-07-15T00:00:00Z", "v", "\u0418\u043D\u0434\u0438\u044F", "Asia/Calcutta" },
-        { "bg", "Asia/Calcutta", "2004-07-15T00:00:00Z", "vvvv", "\u0418\u043D\u0434\u0438\u0439\u0441\u043A\u043E \u0441\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u043D\u043E \u0432\u0440\u0435\u043C\u0435", "Asia/Calcutta" },
+        { "bg", "Asia/Calcutta", "2004-07-15T00:00:00Z", "vvvv", "\u0418\u043d\u0434\u0438\u0439\u0441\u043a\u043e \u0432\u0440\u0435\u043c\u0435", "Asia/Calcutta" },
 
     // ==========
 
@@ -1381,13 +1373,13 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         { "ja", "Asia/Calcutta", "2004-01-15T00:00:00Z", "Z", "+0530", "+5:30" },
         { "ja", "Asia/Calcutta", "2004-01-15T00:00:00Z", "ZZZZ", "GMT+05:30", "+5:30" },
         { "ja", "Asia/Calcutta", "2004-01-15T00:00:00Z", "z", "GMT+5:30", "+5:30" },
-        { "ja", "Asia/Calcutta", "2004-01-15T00:00:00Z", "zzzz", "\u30A4\u30F3\u30C9\u6A19\u6E96\u6642", "+5:30" },
+        { "ja", "Asia/Calcutta", "2004-01-15T00:00:00Z", "zzzz", "\u30A4\u30F3\u30C9\u6642\u9593", "+5:30" },
         { "ja", "Asia/Calcutta", "2004-07-15T00:00:00Z", "Z", "+0530", "+5:30" },
         { "ja", "Asia/Calcutta", "2004-07-15T00:00:00Z", "ZZZZ", "GMT+05:30", "+5:30" },
         { "ja", "Asia/Calcutta", "2004-07-15T00:00:00Z", "z", "GMT+5:30", "+05:30" },
-        { "ja", "Asia/Calcutta", "2004-07-15T00:00:00Z", "zzzz", "\u30A4\u30F3\u30C9\u6A19\u6E96\u6642", "+5:30" },
+        { "ja", "Asia/Calcutta", "2004-07-15T00:00:00Z", "zzzz", "\u30A4\u30F3\u30C9\u6642\u9593", "+5:30" },
         { "ja", "Asia/Calcutta", "2004-07-15T00:00:00Z", "v", "\u30A4\u30F3\u30C9\u6642\u9593", "Asia/Calcutta" },
-        { "ja", "Asia/Calcutta", "2004-07-15T00:00:00Z", "vvvv", "\u30A4\u30F3\u30C9\u6A19\u6E96\u6642", "Asia/Calcutta" },
+        { "ja", "Asia/Calcutta", "2004-07-15T00:00:00Z", "vvvv", "\u30A4\u30F3\u30C9\u6642\u9593", "Asia/Calcutta" },
 
     // ==========
     // - We want a locale here that doesn't have anything in the way of translations
@@ -1896,7 +1888,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
     public void TestDateFormatZone061() {
         Date date;
         DateFormat formatter;
-        date = new Date(859248000000L);
+        date = new Date(859248000000l);
         logln("Date 1997/3/25 00:00 GMT: " + date);
         formatter = new SimpleDateFormat("dd-MMM-yyyyy HH:mm", Locale.UK);
         formatter.setTimeZone(TimeZone.getTimeZone("GMT"));
@@ -1972,14 +1964,15 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
      * Test the formatting of dates in different locales.
      */
     public void TestLocaleDateFormat() {
-        Date testDate = new Date(874306800000L); //Mon Sep 15 00:00:00 PDT 1997
+    
+        Date testDate = new Date(874306800000l); //Mon Sep 15 00:00:00 PDT 1997
         DateFormat dfFrench = DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.FULL, Locale.FRENCH);
         DateFormat dfUS = DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.FULL, Locale.US);
         //Set TimeZone = PDT
         TimeZone tz = TimeZone.getTimeZone("PST");
         dfFrench.setTimeZone(tz);
         dfUS.setTimeZone(tz);
-        String expectedFRENCH_JDK12 = "lundi 15 septembre 1997 00:00:00 heure d\u2019\u00E9t\u00E9 du Pacifique";
+        String expectedFRENCH_JDK12 = "lundi 15 septembre 1997 00:00:00 heure avanc\u00E9e du Pacifique";
         //String expectedFRENCH = "lundi 15 septembre 1997 00 h 00 PDT";
         String expectedUS = "Monday, September 15, 1997 at 12:00:00 AM Pacific Daylight Time";
         logln("Date set to : " + testDate);
@@ -2004,35 +1997,12 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             errln("FAIL: Expected " + expectedUS+" Got "+out);
     }
 
-    public void TestFormattingLocaleTimeSeparator() {
-        Date date = new Date(874266720000L);  // Sun Sep 14 21:52:00 CET 1997
-        TimeZone tz = TimeZone.getTimeZone("CET");
-
-        DateFormat dfArab = DateFormat.getTimeInstance(DateFormat.SHORT, new ULocale("ar"));
-        DateFormat dfLatn = DateFormat.getTimeInstance(DateFormat.SHORT, new ULocale("ar-u-nu-latn"));
-
-        dfArab.setTimeZone(tz);
-        dfLatn.setTimeZone(tz);
-
-        String expectedArab = "\u0669\u060C\u0665\u0662 \u0645";
-        String expectedLatn = "9:52 \u0645";
-
-        String actualArab = dfArab.format(date);
-        String actualLatn = dfLatn.format(date);
-
-        if (!actualArab.equals(expectedArab)) {
-            errln("FAIL: Expected " + expectedArab + " Got " + actualArab);
-        }
-        if (!actualLatn.equals(expectedLatn)) {
-            errln("FAIL: Expected " + expectedLatn + " Got " + actualLatn);
-        }
-    }
-
     /**
      * Test the formatting of dates with the 'NONE' keyword.
      */
     public void TestDateFormatNone() {
-        Date testDate = new Date(874306800000L); //Mon Sep 15 00:00:00 PDT 1997
+    
+        Date testDate = new Date(874306800000l); //Mon Sep 15 00:00:00 PDT 1997
         DateFormat dfFrench = DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.NONE, Locale.FRENCH);
         //Set TimeZone = PDT
         TimeZone tz = TimeZone.getTimeZone("PST");
@@ -2124,20 +2094,15 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
     public void TestSpaceParsing() {
 
         String DATA[] = {
-            "yyyy MM dd HH:mm:ss",
+            "yyyy MM dd",
 
             // pattern, input, expected output (in quotes)
             "MMMM d yy", " 04 05 06",  null, // MMMM wants Apr/April
             null,        "04 05 06",   null,
-            "MM d yy",   " 04 05 06",  "2006 04 05 00:00:00",
-            null,        "04 05 06",   "2006 04 05 00:00:00",
-            "MMMM d yy", " Apr 05 06", "2006 04 05 00:00:00",
-            null,        "Apr 05 06",  "2006 04 05 00:00:00",
-
-            "hh:mm:ss a", "12:34:56 PM", "1970 01 01 12:34:56",
-            null,         "12:34:56PM",  "1970 01 01 12:34:56",
-            null,         "12.34.56PM",  "1970 01 01 12:34:56",
-            null,         "12 : 34 : 56  PM", "1970 01 01 12:34:56",
+            "MM d yy",   " 04 05 06",  "2006 04 05",
+            null,        "04 05 06",   "2006 04 05",
+            "MMMM d yy", " Apr 05 06", "2006 04 05",
+            null,        "Apr 05 06",  "2006 04 05",
         };
 
         expectParse(DATA, new Locale("en", "", ""));
@@ -2579,7 +2544,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             }
             
             // force success on fallback
-            text = "08/15/58 " + TimeZone.getDefault().getDisplayName(true, TimeZone.SHORT);
+            text = "08/15/58 " + TimeZone.getDefault().getID();
             try {
                 fmt.parse(text);
                 logln("found default tz");
@@ -2830,8 +2795,8 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         String SV_DATA[] = {
             "yyyy MM dd HH:mm:ss",
 
-            "EEEEEE d MMM y",  "fp", "2013 01 13 0:00:00", "s\u00F6 13 jan. 2013", "2013 01 13 0:00:00",
-            "EEEEEE d MMM y",  "fp", "2013 01 16 0:00:00", "on 16 jan. 2013",      "2013 01 16 0:00:00",
+            "EEEEEE d MMM y",  "fp", "2013 01 13 0:00:00", "s\u00F6 13 jan 2013", "2013 01 13 0:00:00",
+            "EEEEEE d MMM y",  "fp", "2013 01 16 0:00:00", "on 16 jan 2013",      "2013 01 16 0:00:00",
             "EEEEEE d",        "fp", "1970 01 17 0:00:00", "l\u00F6 17",          "1970 01 17 0:00:00",
             "cccccc d",        "fp", "1970 01 17 0:00:00", "L\u00F6 17",          "1970 01 17 0:00:00",
             "cccccc",          "fp", "1970 01 03 0:00:00", "L\u00F6",             "1970 01 03 0:00:00",
@@ -2895,7 +2860,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             String CS_DATA[] = {
                 "yyyy MM dd HH:mm:ss",
 
-                "yyyy LLLLL dd H:mm:ss", "2004 04 10 16:36:31", "2004 4 10 16:36:31",
+                "yyyy LLLLL dd H:mm:ss", "2004 04 10 16:36:31", "2004 d 10 16:36:31",
                 "yyyy MMMMM dd H:mm:ss", "2004 04 10 16:36:31", "2004 4 10 16:36:31",
                 
                 "MMMMM", "1970 01 01 0:00:00", "1",
@@ -2911,18 +2876,18 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 "MMMMM", "1970 11 01 0:00:00", "11",
                 "MMMMM", "1970 12 01 0:00:00", "12",
                 
-                "LLLLL", "1970 01 01 0:00:00", "1",
-                "LLLLL", "1970 02 01 0:00:00", "2",
-                "LLLLL", "1970 03 01 0:00:00", "3",
-                "LLLLL", "1970 04 01 0:00:00", "4",
-                "LLLLL", "1970 05 01 0:00:00", "5",
-                "LLLLL", "1970 06 01 0:00:00", "6",
-                "LLLLL", "1970 07 01 0:00:00", "7",
-                "LLLLL", "1970 08 01 0:00:00", "8",
-                "LLLLL", "1970 09 01 0:00:00", "9",
-                "LLLLL", "1970 10 01 0:00:00", "10",
-                "LLLLL", "1970 11 01 0:00:00", "11",
-                "LLLLL", "1970 12 01 0:00:00", "12",
+                "LLLLL", "1970 01 01 0:00:00", "l",
+                "LLLLL", "1970 02 01 0:00:00", "\u00FA",
+                "LLLLL", "1970 03 01 0:00:00", "b",
+                "LLLLL", "1970 04 01 0:00:00", "d",
+                "LLLLL", "1970 05 01 0:00:00", "k",
+                "LLLLL", "1970 06 01 0:00:00", "\u010D",
+                "LLLLL", "1970 07 01 0:00:00", "\u010D",
+                "LLLLL", "1970 08 01 0:00:00", "s",
+                "LLLLL", "1970 09 01 0:00:00", "z",
+                "LLLLL", "1970 10 01 0:00:00", "\u0159",
+                "LLLLL", "1970 11 01 0:00:00", "l",
+                "LLLLL", "1970 12 01 0:00:00", "p",
 
                 "EEEEE", "1970 01 04 0:00:00", "N",
                 "EEEEE", "1970 01 05 0:00:00", "P",
@@ -3923,65 +3888,6 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             errln("FAIL: parsed -> " + parsedate.toString() + " expected -> " + cal.toString()); 
         }
     } 
-    
-    public void TestOverrideNumberForamt() {
-        SimpleDateFormat fmt = new SimpleDateFormat("MM/dd/yy z");
-
-        // test override get/set NumberFormat
-        for (int i = 0; i < 100; i++) {
-            NumberFormat check_nf = NumberFormat.getInstance(new ULocale("en_US"));
-            fmt.setNumberFormat("y", check_nf);
-            NumberFormat get_nf = fmt.getNumberFormat('y');
-            if (!get_nf.equals(check_nf))
-                errln("FAIL: getter and setter do not work");
-        }
-
-        NumberFormat reused_nf = NumberFormat.getInstance(new ULocale("en_US"));
-        fmt.setNumberFormat("y", reused_nf);
-        fmt.setNumberFormat(reused_nf); // test the same override NF will not crash
-
-        // DATA[i][0] is to tell which field to set, DATA[i][1] is the expected result
-        String[][] DATA = { 
-                { "", "\u521D\u516D \u5341\u4E94" }, 
-                { "M", "\u521D\u516D 15" },
-                { "Mo", "\u521D\u516D \u5341\u4E94" }, 
-                { "Md", "\u521D\u516D \u5341\u4E94" }, 
-                { "MdMMd", "\u521D\u516D \u5341\u4E94" }, 
-                { "mixed", "\u521D\u516D \u5341\u4E94" }, 
-        };
-
-        NumberFormat override = NumberFormat.getInstance(new ULocale("en@numbers=hanidays"));
-        Calendar cal = Calendar.getInstance();
-        cal.set(1997, Calendar.JUNE, 15);
-        Date test_date = cal.getTime();
-        
-        for (int i = 0; i < DATA.length; i++) {
-            fmt = new SimpleDateFormat("MM d", new ULocale("en_US"));
-            String field = DATA[i][0];
-            
-            if (field == "") { // use the one w/o field
-                fmt.setNumberFormat(override);
-            } else if (field == "mixed") { // set 1 field at first but then full override, both(M & d) should be override
-                NumberFormat single_override = NumberFormat.getInstance(new ULocale("en@numbers=hebr"));
-                fmt.setNumberFormat("M", single_override);
-                fmt.setNumberFormat(override);
-            } else if (field == "Mo") { // o is invalid field
-                try {
-                    fmt.setNumberFormat(field, override);
-                } catch (IllegalArgumentException e) {
-                    logln("IllegalArgumentException is thrown for invalid fields");
-                    continue;
-                }
-            } else {
-                fmt.setNumberFormat(field, override);
-            }
-            String result = fmt.format(test_date);
-            String expected  = DATA[i][1];
-
-            if (!result.equals(expected))
-                errln((String) "FAIL: -> " + result.toString() + " expected -> " + expected);
-        }
-    }
 
     public void TestParsePosition() {
         class ParseTestData {
@@ -4097,9 +4003,9 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             new MonthPatternItem( "en@calendar=gregorian",    -3,               "2012-4-22",             "2012-5-22",                "2012-6-20" ),
             new MonthPatternItem( "en@calendar=chinese",      DateFormat.LONG,  "Month4 2, ren-chen",    "Month4bis 2, ren-chen",    "Month5 2, ren-chen" ),
             new MonthPatternItem( "en@calendar=chinese",      DateFormat.SHORT, "4/2/29",                "4bis/2/29",                "5/2/29" ),
-            new MonthPatternItem( "zh@calendar=chinese",      DateFormat.LONG,  "\u58EC\u8FB0\u5E74\u56DB\u6708\u521D\u4E8C",
-                                                                                "\u58EC\u8FB0\u5E74\u95F0\u56DB\u6708\u521D\u4E8C",
-                                                                                "\u58EC\u8FB0\u5E74\u4E94\u6708\u521D\u4E8C" ),
+            new MonthPatternItem( "zh@calendar=chinese",      DateFormat.LONG,  "\u58EC\u8FB0\u5E74\u56DB\u6708\u4E8C\u65E5",
+                                                                                "\u58EC\u8FB0\u5E74\u95F0\u56DB\u6708\u4E8C\u65E5",
+                                                                                "\u58EC\u8FB0\u5E74\u4E94\u6708\u4E8C\u65E5" ),
             new MonthPatternItem( "zh@calendar=chinese",      DateFormat.SHORT, "\u58EC\u8FB0-4-2",      "\u58EC\u8FB0-\u95F04-2",   "\u58EC\u8FB0-5-2" ),
             new MonthPatternItem( "zh@calendar=chinese",      -3,               "\u58EC\u8FB0-4-2",
                                                                                 "\u58EC\u8FB0-\u95F04-2",
@@ -4107,21 +4013,19 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             new MonthPatternItem( "zh@calendar=chinese",      -4,               "\u58EC\u8FB0 \u56DB\u6708 2",
                                                                                 "\u58EC\u8FB0 \u95F0\u56DB\u6708 2",
                                                                                 "\u58EC\u8FB0 \u4E94\u6708 2" ),
-            new MonthPatternItem( "zh_Hant@calendar=chinese", DateFormat.LONG,  "\u58EC\u8FB0\u5E74\u56DB\u6708\u521D\u4E8C",
-                                                                                "\u58EC\u8FB0\u5E74\u958F\u56DB\u6708\u521D\u4E8C",
-                                                                                "\u58EC\u8FB0\u5E74\u4E94\u6708\u521D\u4E8C" ),
+            new MonthPatternItem( "zh_Hant@calendar=chinese", DateFormat.LONG,  "\u58EC\u8FB0\u5E74\u56DB\u6708\u4E8C\u65E5",
+                                                                                "\u58EC\u8FB0\u5E74\u958F\u56DB\u6708\u4E8C\u65E5",
+                                                                                "\u58EC\u8FB0\u5E74\u4E94\u6708\u4E8C\u65E5" ),
             new MonthPatternItem( "zh_Hant@calendar=chinese", DateFormat.SHORT, "\u58EC\u8FB0/4/2",            "\u58EC\u8FB0/\u958F4/2",         "\u58EC\u8FB0/5/2" ),
             new MonthPatternItem( "fr@calendar=chinese",      DateFormat.LONG,  "2 s\u00ECyu\u00E8 ren-chen",  "2 s\u00ECyu\u00E8bis ren-chen",  "2 w\u01D4yu\u00E8 ren-chen" ),
             new MonthPatternItem( "fr@calendar=chinese",      DateFormat.SHORT, "2/4/29",                      "2/4bis/29",                      "2/5/29" ),
             new MonthPatternItem( "en@calendar=dangi",        DateFormat.LONG,  "Month3bis 2, ren-chen",       "Month4 2, ren-chen",             "Month5 1, ren-chen" ),
             new MonthPatternItem( "en@calendar=dangi",        DateFormat.SHORT, "3bis/2/29",                   "4/2/29",                         "5/1/29" ),
             new MonthPatternItem( "en@calendar=dangi",        -2,               "78x29-3bis-2",                "78x29-4-2",                      "78x29-5-1" ),
-            new MonthPatternItem( "ko@calendar=dangi",        DateFormat.LONG,  "\uC784\uC9C4\uB144 \uC7243\uC6D4 2\uC77C",
+            new MonthPatternItem( "ko@calendar=dangi",        DateFormat.LONG,  "\uC784\uC9C4\uB144 3bis\uC6D4 2\uC77C",
                                                                                 "\uC784\uC9C4\uB144 4\uC6D4 2\uC77C",
                                                                                 "\uC784\uC9C4\uB144 5\uC6D4 1\uC77C" ),
-            new MonthPatternItem( "ko@calendar=dangi",        DateFormat.SHORT, "29. \uC7243. 2.",
-                                                                                "29. 4. 2.",
-                                                                                "29. 5. 1." ),
+            new MonthPatternItem( "ko@calendar=dangi",        DateFormat.SHORT, "29. 3bis. 2.",                "29. 4. 2.",                      "29. 5. 1." ),
         };
         //                         style: -1        -2            -3       -4
         final String[] customPatterns = { "y-Ml-d", "G'x'y-Ml-d", "U-M-d", "U MMM d" }; // previously G and l for chinese cal only handled by ChineseDateFormat
@@ -4292,32 +4196,6 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             new TestContextItem( "cs", "LLLL y", DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,     "\u010Cervenec 2008" ),
             new TestContextItem( "cs", "LLLL y", DisplayContext.CAPITALIZATION_FOR_STANDALONE,          "\u010Dervenec 2008" ),
         };
-        class TestRelativeContextItem {
-            public String locale;
-            public DisplayContext capitalizationContext;
-            public String expectedFormatToday;
-            public String expectedFormatYesterday;
-             // Simple constructor
-            public TestRelativeContextItem(String loc, DisplayContext capCtxt, String expFmtToday, String expFmtYesterday) {
-                locale = loc;
-                capitalizationContext = capCtxt;
-                expectedFormatToday = expFmtToday;
-                expectedFormatYesterday = expFmtYesterday;
-            }
-        };
-        final TestRelativeContextItem[] relItems = {
-            new TestRelativeContextItem( "en", DisplayContext.CAPITALIZATION_NONE,                      "today", "yesterday" ),
-            new TestRelativeContextItem( "en", DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    "today", "yesterday" ),
-            new TestRelativeContextItem( "en", DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, "Today", "Yesterday" ),
-            new TestRelativeContextItem( "en", DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       "Today", "Yesterday" ),
-            new TestRelativeContextItem( "en", DisplayContext.CAPITALIZATION_FOR_STANDALONE,            "Today", "Yesterday" ),
-            new TestRelativeContextItem( "nb", DisplayContext.CAPITALIZATION_NONE,                      "i dag", "i g\u00E5r" ),
-            new TestRelativeContextItem( "nb", DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,    "i dag", "i g\u00E5r" ),
-            new TestRelativeContextItem( "nb", DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, "I dag", "I g\u00E5r" ),
-            new TestRelativeContextItem( "nb", DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,       "i dag", "i g\u00E5r" ),
-            new TestRelativeContextItem( "nb", DisplayContext.CAPITALIZATION_FOR_STANDALONE,            "I dag", "I g\u00E5r" ),
-        };
-
         Calendar cal = new GregorianCalendar(2008, Calendar.JULY, 2);
         for (TestContextItem item: items) {
             ULocale locale = new ULocale(item.locale);
@@ -4325,106 +4203,18 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
             // now try context & standard format call
             sdfmt.setContext(item.capitalizationContext);
-            SimpleDateFormat sdfmtClone = (SimpleDateFormat)sdfmt.clone();
-            if (!sdfmtClone.equals(sdfmt)) {
-                errln("FAIL: for locale " + item.locale +  ", capitalizationContext " + item.capitalizationContext +
-                        ", sdfmt.clone() != sdfmt (for SimpleDateFormat)");
-            }
-            
             StringBuffer result2 = new StringBuffer();
             FieldPosition fpos2 = new FieldPosition(0);
             sdfmt.format(cal, result2, fpos2);
             if (result2.toString().compareTo(item.expectedFormat) != 0) {
-                errln("FAIL: format for locale " + item.locale +  ", capitalizationContext " + item.capitalizationContext +
+                errln("FAIL: format (default context) for locale " + item.locale +  ", capitalizationContext " + item.capitalizationContext +
                         ", expected \"" + item.expectedFormat + "\", got \"" + result2 + "\"");
             }
 
-            // now read back context, make sure it is what we set (testing with DateFormat subclass)
+            // now read back context, make sure it is what we set
             DisplayContext capitalizationContext = sdfmt.getContext(DisplayContext.Type.CAPITALIZATION);
             if (capitalizationContext != item.capitalizationContext) {
-                errln("FAIL: getContext for locale " + item.locale +  ", capitalizationContext " + item.capitalizationContext +
-                        ", but got context " + capitalizationContext);
-            }
-        }
-        for (TestRelativeContextItem relItem: relItems) {
-            ULocale locale = new ULocale(relItem.locale);
-            DateFormat dfmt = DateFormat.getDateInstance(DateFormat.RELATIVE_LONG, locale);
-            Date today = new Date();
-
-            // now try context & standard format call
-            dfmt.setContext(relItem.capitalizationContext);
-
-            // write to stream, then read a copy from stream & compare
-            boolean serializeTestFail = false;
-            ByteArrayOutputStream baos = null;
-            DateFormat dfmtFromStream = null;
-            try {
-                baos = new ByteArrayOutputStream();
-                ObjectOutputStream oos = new ObjectOutputStream(baos);
-                oos.writeObject(dfmt);
-                oos.close();
-            } catch (IOException i) {
-                errln("FAIL: for locale " + relItem.locale +  ", capitalizationContext " + relItem.capitalizationContext +
-                        ", serialization of RELATIVE_LONG DateFormat fails with IOException");
-                serializeTestFail = true;
-            }
-            if (!serializeTestFail) {
-                byte[] buf = baos.toByteArray();
-                try {
-                    ByteArrayInputStream bais = new ByteArrayInputStream(buf);
-                    ObjectInputStream ois = new ObjectInputStream(bais);
-                    dfmtFromStream = (DateFormat)ois.readObject();
-                    ois.close();
-                } catch (IOException i) {
-                    errln("FAIL: for locale " + relItem.locale +  ", capitalizationContext " + relItem.capitalizationContext +
-                            ", deserialization of RELATIVE_LONG DateFormat fails with IOException");
-                    serializeTestFail = true;
-                } catch (ClassNotFoundException c) {
-                    errln("FAIL: for locale " + relItem.locale +  ", capitalizationContext " + relItem.capitalizationContext +
-                            ", deserialization of RELATIVE_LONG DateFormat fails with ClassNotFoundException");
-                    serializeTestFail = true;
-                }
-            }
-            if (!serializeTestFail && dfmtFromStream==null) {
-                errln("FAIL: for locale " + relItem.locale +  ", capitalizationContext " + relItem.capitalizationContext +
-                        ", dfmtFromStream is null (for RELATIVE_LONG)");
-                serializeTestFail = true;
-            }
-            if (!serializeTestFail && !dfmtFromStream.equals(dfmt)) {
-                errln("FAIL: for locale " + relItem.locale +  ", capitalizationContext " + relItem.capitalizationContext +
-                        ", dfmtFromStream != dfmt (for RELATIVE_LONG)");
-                serializeTestFail = true;
-            }
-
-            cal.setTime(today);
-            StringBuffer result2 = new StringBuffer();
-            FieldPosition fpos2 = new FieldPosition(0);
-            dfmt.format(cal, result2, fpos2);
-            if (result2.toString().compareTo(relItem.expectedFormatToday) != 0) {
-                errln("FAIL: format today for locale " + relItem.locale +  ", capitalizationContext " + relItem.capitalizationContext +
-                        ", expected \"" + relItem.expectedFormatToday + "\", got \"" + result2 + "\"");
-            }
-            if (!serializeTestFail) {
-                result2.setLength(0);
-                dfmtFromStream.format(cal, result2, fpos2);
-                if (result2.toString().compareTo(relItem.expectedFormatToday) != 0) {
-                    errln("FAIL: use dfmtFromStream to format today for locale " + relItem.locale +  ", capitalizationContext " +
-                            relItem.capitalizationContext + ", expected \"" + relItem.expectedFormatToday + "\", got \"" + result2 + "\"");
-                }
-            }
-
-            cal.add(Calendar.DATE, -1);
-            result2.setLength(0);
-            dfmt.format(cal, result2, fpos2);
-            if (result2.toString().compareTo(relItem.expectedFormatYesterday) != 0) {
-                errln("FAIL: format yesterday for locale " + relItem.locale +  ", capitalizationContext " + relItem.capitalizationContext +
-                        ", expected \"" + relItem.expectedFormatYesterday + "\", got \"" + result2 + "\"");
-            }
-
-            // now read back context, make sure it is what we set (testing with DateFormat itself)
-            DisplayContext capitalizationContext = dfmt.getContext(DisplayContext.Type.CAPITALIZATION);
-            if (capitalizationContext != relItem.capitalizationContext) {
-                errln("FAIL: getContext for locale " + relItem.locale +  ", capitalizationContext " + relItem.capitalizationContext +
+                errln("FAIL: getDefaultContext for locale " + item.locale +  ", capitalizationContext " + item.capitalizationContext +
                         ", but got context " + capitalizationContext);
             }
         }
@@ -4484,14 +4274,12 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         // For details see http://bugs.icu-project.org/trac/ticket/10261
         
         class TestDateFormatLeniencyItem {
-            public ULocale locale;
             public boolean leniency;
             public String parseString;
             public String pattern;
             public String expectedResult;   // null indicates expected error
              // Simple constructor
-            public TestDateFormatLeniencyItem(ULocale loc, boolean len, String parString, String patt, String expResult) {
-                locale = loc;
+            public TestDateFormatLeniencyItem(boolean len, String parString, String patt, String expResult) {
                 leniency = len;
                 pattern = patt;
                 parseString = parString;
@@ -4500,151 +4288,26 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         };
 
         final TestDateFormatLeniencyItem[] items = {
-            //                             locale               leniency    parse String    pattern             expected result
-            new TestDateFormatLeniencyItem(ULocale.ENGLISH,     true,       "2008-07 02",   "yyyy-LLLL dd",     "2008-July 02"),
-            new TestDateFormatLeniencyItem(ULocale.ENGLISH,     false,      "2008-07 02",   "yyyy-LLLL dd",     null),
-            new TestDateFormatLeniencyItem(ULocale.ENGLISH,     true,       "2008-Jan 02",  "yyyy-LLL. dd",     "2008-Jan. 02"),
-            new TestDateFormatLeniencyItem(ULocale.ENGLISH,     false,      "2008-Jan 02",  "yyyy-LLL. dd",     null),
-            new TestDateFormatLeniencyItem(ULocale.ENGLISH,     true,       "2008-Jan--02", "yyyy-MMM' -- 'dd", "2008-Jan -- 02"),
-            new TestDateFormatLeniencyItem(ULocale.ENGLISH,     false,      "2008-Jan--02", "yyyy-MMM' -- 'dd", null),
-        };
-
-        for (TestDateFormatLeniencyItem item : items) {
-            SimpleDateFormat sdfmt = new SimpleDateFormat(item.pattern, item.locale);
-            sdfmt.setBooleanAttribute(BooleanAttribute.PARSE_ALLOW_WHITESPACE, item.leniency)
-                    .setBooleanAttribute(BooleanAttribute.PARSE_ALLOW_NUMERIC, item.leniency)
-                    .setBooleanAttribute(BooleanAttribute.PARSE_PARTIAL_MATCH, item.leniency);
-
-            ParsePosition p = new ParsePosition(0);
-            Date d = sdfmt.parse(item.parseString, p);
-            if (item.expectedResult == null) {
-                if (p.getErrorIndex() != -1)
-                    continue;
-                else
-                    errln("error: unexpected parse success..." + item.parseString + " w/ lenient=" + item.leniency
-                            + " should have failed");
-            }
-            if (p.getErrorIndex() != -1) {
-                errln("error: parse error for string " + item.parseString + " -- idx[" + p.getIndex() + "] errIdx["
-                        + p.getErrorIndex() + "]");
-                continue;
-            }
-
-            String result = sdfmt.format(d);
-            if (!result.equalsIgnoreCase(item.expectedResult)) {
-                errln("error: unexpected format result. expected - " + item.expectedResult + "  but result was - "
-                        + result);
-            } else {
-                logln("formatted results match! - " + result);
-            }
-        }
-    }
-
-    // A regression test case for ticket#10632.
-    // Make sure RELATIVE style works for getInstance overloads taking
-    // Calendar instance.
-    public void Test10632() {
-        Date[] testDates = new Date[3];
-        Calendar cal = Calendar.getInstance();
-
-        // today
-        testDates[0] = cal.getTime();
-
-        // tomorrow
-        cal.add(Calendar.DATE, 1);
-        testDates[1] = cal.getTime();
-
-        // yesterday
-        cal.add(Calendar.DATE, -2);
-        testDates[2] = cal.getTime();
-
-
-        // Relative styles for testing
-        int[] dateStylesList = {
-                DateFormat.RELATIVE_FULL,
-                DateFormat.RELATIVE_LONG,
-                DateFormat.RELATIVE_MEDIUM,
-                DateFormat.RELATIVE_SHORT
-        };
-
-        Calendar fmtCal = DateFormat.getInstance().getCalendar();
-
-        for (int i = 0; i < dateStylesList.length; i++) {
-            DateFormat fmt0 = DateFormat.getDateTimeInstance(dateStylesList[i], DateFormat.DEFAULT);
-            DateFormat fmt1 = DateFormat.getDateTimeInstance(fmtCal, dateStylesList[i], DateFormat.DEFAULT);
-
-            for (int j = 0; j < testDates.length; j++) {
-                String s0 = fmt0.format(testDates[j]);
-                String s1 = fmt1.format(testDates[j]);
-
-                if (!s0.equals(s1)) {
-                    errln("FAIL: Different results returned by two equivalent relative formatters: s0="
-                            + s0 + ", s1=" + s1);
-                }
-            }
-        }
-    }
-    
-    public void TestParseMultiPatternMatch() {
-        // For details see http://bugs.icu-project.org/trac/ticket/10336
-        
-        class TestMultiPatternMatchItem {
-            public boolean leniency;
-            public String parseString;
-            public String pattern;
-            public String expectedResult;   // null indicates expected error
-             // Simple constructor
-            public TestMultiPatternMatchItem(boolean len, String parString, String patt, String expResult) {
-                leniency = len;
-                pattern = patt;
-                parseString = parString;
-                expectedResult = expResult;
-            }
-        };
-
-        final TestMultiPatternMatchItem[] items = {
-                //                            leniency    parse String                  pattern                 expected result
-                new TestMultiPatternMatchItem(true,       "2013-Sep 13",                "yyyy-MMM dd",          "2013-Sep 13"),
-                new TestMultiPatternMatchItem(true,       "2013-September 14",          "yyyy-MMM dd",          "2013-Sep 14"),
-                new TestMultiPatternMatchItem(false,      "2013-September 15",          "yyyy-MMM dd",          null),
-                new TestMultiPatternMatchItem(false,      "2013-September 16",          "yyyy-MMMM dd",         "2013-September 16"),
-                new TestMultiPatternMatchItem(true,       "2013-Sep 17",                "yyyy-LLL dd",          "2013-Sep 17"),
-                new TestMultiPatternMatchItem(true,       "2013-September 18",          "yyyy-LLL dd",          "2013-Sep 18"),
-                new TestMultiPatternMatchItem(false,      "2013-September 19",          "yyyy-LLL dd",          null),
-                new TestMultiPatternMatchItem(false,      "2013-September 20",          "yyyy-LLLL dd",         "2013-September 20"),
-                new TestMultiPatternMatchItem(true,       "2013 Sat Sep 21",            "yyyy EEE MMM dd",      "2013 Sat Sep 21"),
-                new TestMultiPatternMatchItem(true,       "2013 Sunday Sep 22",         "yyyy EEE MMM dd",      "2013 Sun Sep 22"),
-                new TestMultiPatternMatchItem(false,      "2013 Monday Sep 23",         "yyyy EEE MMM dd",      null),
-                new TestMultiPatternMatchItem(false,      "2013 Tuesday Sep 24",        "yyyy EEEE MMM dd",     "2013 Tuesday Sep 24"),
-                new TestMultiPatternMatchItem(true,       "2013 Wed Sep 25",            "yyyy eee MMM dd",      "2013 Wed Sep 25"),
-                new TestMultiPatternMatchItem(true,       "2013 Thu Sep 26",            "yyyy eee MMM dd",      "2013 Thu Sep 26"),
-                new TestMultiPatternMatchItem(false,      "2013 Friday Sep 27",         "yyyy eee MMM dd",      null),
-                new TestMultiPatternMatchItem(false,      "2013 Saturday Sep 28",       "yyyy eeee MMM dd",    "2013 Saturday Sep 28"),
-                new TestMultiPatternMatchItem(true,       "2013 Sun Sep 29",            "yyyy ccc MMM dd",      "2013 Sun Sep 29"),
-                new TestMultiPatternMatchItem(true,       "2013 Monday Sep 30",         "yyyy ccc MMM dd",      "2013 Mon Sep 30"),
-                new TestMultiPatternMatchItem(false,      "2013 Sunday Oct 13",         "yyyy ccc MMM dd",      null),
-                new TestMultiPatternMatchItem(false,      "2013 Monday Oct 14",         "yyyy cccc MMM dd",     "2013 Monday Oct 14"),
-                new TestMultiPatternMatchItem(true,       "2013 Oct 15 Q4",             "yyyy MMM dd QQQ",      "2013 Oct 15 Q4"),
-                new TestMultiPatternMatchItem(true,       "2013 Oct 16 4th quarter",    "yyyy MMM dd QQQ",      "2013 Oct 16 Q4"),
-                new TestMultiPatternMatchItem(false,      "2013 Oct 17 4th quarter",    "yyyy MMM dd QQQ",      null),
-                new TestMultiPatternMatchItem(false,      "2013 Oct 18 Q4",             "yyyy MMM dd QQQ",      "2013 Oct 18 Q4"),
-                new TestMultiPatternMatchItem(true,       "2013 Oct 19 Q4",             "yyyy MMM dd qqqq",      "2013 Oct 19 4th quarter"),
-                new TestMultiPatternMatchItem(true,       "2013 Oct 20 4th quarter",    "yyyy MMM dd qqqq",      "2013 Oct 20 4th quarter"),
-                new TestMultiPatternMatchItem(false,      "2013 Oct 21 Q4",             "yyyy MMM dd qqqq",      null),
-                new TestMultiPatternMatchItem(false,      "2013 Oct 22 4th quarter",    "yyyy MMM dd qqqq",      "2013 Oct 22 4th quarter"),
+            //                             leniency    parse String       pattern                 expected result
+            new TestDateFormatLeniencyItem(true,       "2008-Jan 02",     "yyyy-LLL. dd",         "2008-Jan. 02"),
+            new TestDateFormatLeniencyItem(false,      "2008-Jan 03",     "yyyy-LLL. dd",         null),
+            new TestDateFormatLeniencyItem(true,       "2008-Jan--04",    "yyyy-MMM' -- 'dd",     "2008-Jan -- 04"),
+            new TestDateFormatLeniencyItem(false,      "2008-Jan--05",    "yyyy-MMM' -- 'dd",     null),
+            new TestDateFormatLeniencyItem(true,       "2008-12-31",      "yyyy-mm-dd",           "2008-12-31")
         };
 
         StringBuffer result = new StringBuffer();
         Date d = new Date();
-        GregorianCalendar cal = new GregorianCalendar(TimeZone.getTimeZone("GMT"), Locale.US); 
+        Calendar cal = GregorianCalendar.getInstance(TimeZone.getTimeZone("GMT"), Locale.US); 
         SimpleDateFormat sdfmt = new SimpleDateFormat();
         ParsePosition p = new ParsePosition(0);
-        for (TestMultiPatternMatchItem item: items) {
+        for (TestDateFormatLeniencyItem item: items) {
             cal.clear();
             sdfmt.setCalendar(cal);
             sdfmt.applyPattern(item.pattern);
             sdfmt.setLenient(item.leniency);
-            sdfmt.setBooleanAttribute(BooleanAttribute.PARSE_MULTIPLE_PATTERNS_FOR_MATCH, item.leniency);
+            sdfmt.setBooleanAttribute(DateFormat.BooleanAttribute.PARSE_ALLOW_WHITESPACE, item.leniency);
+            sdfmt.setBooleanAttribute(DateFormat.BooleanAttribute.PARSE_ALLOW_NUMERIC, item.leniency);
             result.setLength(0);
             p.setIndex(0);
             p.setErrorIndex(-1);
@@ -4653,7 +4316,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 if(p.getErrorIndex() != -1)
                     continue;
                 else
-                    errln("error: unexpected parse success..."+item.parseString + " w/ lenient="+item.leniency+" should have failed");
+                    errln("error: unexpected parse success..."+item.parseString + " w/ lenient="+item.leniency+" should have faile");
             }
             if(p.getErrorIndex() != -1) {
                 errln("error: parse error for string " +item.parseString + " -- idx["+p.getIndex()+"] errIdx["+p.getErrorIndex()+"]");
@@ -4664,56 +4327,9 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             if(!result.toString().equalsIgnoreCase(item.expectedResult)) {
                 errln("error: unexpected format result. expected - " + item.expectedResult + "  but result was - " + result);
             } else {
-                logln("formatted results match! - " + result.toString()); 
+                logln("formatted results match! - " + result.toString());
             }
         }
-        
     }
 
-    public void TestParseLeniencyAPIs() {
-        DateFormat fmt = DateFormat.getInstance();
-
-        assertTrue("isLenient default", fmt.isLenient());
-        assertTrue("isCalendarLenient default", fmt.isCalendarLenient());
-        assertTrue("ALLOW_WHITESPACE default", fmt.getBooleanAttribute(BooleanAttribute.PARSE_ALLOW_WHITESPACE));
-        assertTrue("ALLOW_NUMERIC default", fmt.getBooleanAttribute(BooleanAttribute.PARSE_ALLOW_NUMERIC));
-        assertTrue("PARTIAL_MATCH default", fmt.getBooleanAttribute(BooleanAttribute.PARSE_PARTIAL_MATCH));
-        assertTrue("MULTIPLE_PATTERNS default", fmt.getBooleanAttribute(BooleanAttribute.PARSE_MULTIPLE_PATTERNS_FOR_MATCH));
-
-        // Set calendar to strict
-        fmt.setCalendarLenient(false);
-
-        assertFalse("isLeninent after setCalendarLenient(FALSE)", fmt.isLenient());
-        assertFalse("isCalendarLenient after setCalendarLenient(FALSE)", fmt.isCalendarLenient());
-        assertTrue("ALLOW_WHITESPACE after setCalendarLenient(FALSE)", fmt.getBooleanAttribute(BooleanAttribute.PARSE_ALLOW_WHITESPACE));
-        assertTrue("ALLOW_NUMERIC  after setCalendarLenient(FALSE)", fmt.getBooleanAttribute(BooleanAttribute.PARSE_ALLOW_NUMERIC));
-
-        // Set to strict
-        fmt.setLenient(false);
-
-        assertFalse("isLeninent after setLenient(FALSE)", fmt.isLenient());
-        assertFalse("isCalendarLenient after setLenient(FALSE)", fmt.isCalendarLenient());
-        assertFalse("ALLOW_WHITESPACE after setLenient(FALSE)", fmt.getBooleanAttribute(BooleanAttribute.PARSE_ALLOW_WHITESPACE));
-        assertFalse("ALLOW_NUMERIC  after setLenient(FALSE)", fmt.getBooleanAttribute(BooleanAttribute.PARSE_ALLOW_NUMERIC));
-        // These two boolean attributes are NOT affected according to the API specification
-        assertTrue("PARTIAL_MATCH after setLenient(FALSE)", fmt.getBooleanAttribute(BooleanAttribute.PARSE_PARTIAL_MATCH));
-        assertTrue("MULTIPLE_PATTERNS after setLenient(FALSE)", fmt.getBooleanAttribute(BooleanAttribute.PARSE_MULTIPLE_PATTERNS_FOR_MATCH));
-
-        // Allow white space leniency
-        fmt.setBooleanAttribute(BooleanAttribute.PARSE_ALLOW_WHITESPACE, true);
-
-        assertFalse("isLeninent after ALLOW_WHITESPACE/TRUE", fmt.isLenient());
-        assertFalse("isCalendarLenient after ALLOW_WHITESPACE/TRUE", fmt.isCalendarLenient());
-        assertTrue("ALLOW_WHITESPACE after ALLOW_WHITESPACE/TRUE", fmt.getBooleanAttribute(BooleanAttribute.PARSE_ALLOW_WHITESPACE));
-        assertFalse("ALLOW_NUMERIC  after ALLOW_WHITESPACE/TRUE", fmt.getBooleanAttribute(BooleanAttribute.PARSE_ALLOW_NUMERIC));
-
-        // Set to lenient
-        fmt.setLenient(true);
-
-        assertTrue("isLenient after setLenient(TRUE)", fmt.isLenient());
-        assertTrue("isCalendarLenient after setLenient(TRUE)", fmt.isCalendarLenient());
-        assertTrue("ALLOW_WHITESPACE after setLenient(TRUE)", fmt.getBooleanAttribute(BooleanAttribute.PARSE_ALLOW_WHITESPACE));
-        assertTrue("ALLOW_NUMERIC after setLenient(TRUE)", fmt.getBooleanAttribute(BooleanAttribute.PARSE_ALLOW_NUMERIC));
-
-    }
 }

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2014, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -32,8 +32,6 @@ import java.util.Iterator;
  *   }
  * }
  * </pre>
- * <p><b>Warning: </b>For speed, UnicodeSet iteration does not check for concurrent modification. 
- * Do not alter the UnicodeSet while iterating.
  * @author M. Davis
  * @stable ICU 2.0
  */
@@ -106,8 +104,7 @@ public class UnicodeSetIterator {
      * calls to <tt>next()</tt> and <tt>nextRange()</tt> without
      * calling <tt>reset()</tt> between them.  The results of doing so
      * are undefined.
-     * <p><b>Warning: </b>For speed, UnicodeSet iteration does not check for concurrent modification. 
-     * Do not alter the UnicodeSet while iterating.
+     *
      * @return true if there was another element in the set and this
      * object contains the element.
      * @stable ICU 2.0
@@ -238,7 +235,6 @@ public class UnicodeSetIterator {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public UnicodeSet getSet() {
         return set;
     }
@@ -247,13 +243,11 @@ public class UnicodeSetIterator {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     protected int endElement;
     /**
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     protected int nextElement;
     private Iterator<String> stringIterator = null;
     
@@ -265,7 +259,6 @@ public class UnicodeSetIterator {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     protected void loadRange(int aRange) {
         nextElement = set.getRangeStart(aRange);
         endElement = set.getRangeEnd(aRange);

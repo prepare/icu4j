@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2000-2014, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2013, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -12,15 +12,6 @@
 
 package com.ibm.icu.dev.test.search;
 
-import static com.ibm.icu.text.Collator.IDENTICAL;
-import static com.ibm.icu.text.Collator.PRIMARY;
-import static com.ibm.icu.text.Collator.QUATERNARY;
-import static com.ibm.icu.text.Collator.SECONDARY;
-import static com.ibm.icu.text.Collator.TERTIARY;
-import static com.ibm.icu.text.SearchIterator.ElementComparisonType.ANY_BASE_WEIGHT_IS_WILDCARD;
-import static com.ibm.icu.text.SearchIterator.ElementComparisonType.PATTERN_BASE_WEIGHT_IS_WILDCARD;
-import static com.ibm.icu.text.SearchIterator.ElementComparisonType.STANDARD_ELEMENT_COMPARISON;
-
 import java.text.StringCharacterIterator;
 import java.util.Locale;
 
@@ -29,7 +20,6 @@ import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.Collator;
 import com.ibm.icu.text.RuleBasedCollator;
 import com.ibm.icu.text.SearchIterator;
-import com.ibm.icu.text.SearchIterator.ElementComparisonType;
 import com.ibm.icu.text.StringSearch;
 import com.ibm.icu.util.ULocale;
 
@@ -37,14 +27,12 @@ public class SearchTest extends TestFmwk {
 
     //inner class
     static class SearchData {
-        SearchData(String text, String pattern,
-                    String coll, int strength, ElementComparisonType cmpType, String breaker,
-                    int[] offset, int[] size) {
+        SearchData(String text, String pattern, String coll, int strength, String breaker,
+                   int[] offset, int[] size) {
             this.text = text;
             this.pattern = pattern;
             this.collator = coll;
             this.strength = strength;
-            this.cmpType = cmpType;
             this.breaker = breaker;
             this.offset = offset;
             this.size = size;
@@ -53,7 +41,6 @@ public class SearchTest extends TestFmwk {
         String              pattern;
         String              collator;
         int                 strength;
-        ElementComparisonType   cmpType;
         String              breaker;
         int[]               offset;
         int[]               size;
@@ -66,452 +53,401 @@ public class SearchTest extends TestFmwk {
     BreakIterator     m_en_wordbreaker_;
     BreakIterator     m_en_characterbreaker_;
 
-    // Just calling SearchData constructor, to make the test data source code
-    // nice and short
-    private static SearchData SD(String text, String pattern, String coll, int strength,
-                    ElementComparisonType cmpType, String breaker, int[] offset, int[] size) {
-        return new SearchData(text, pattern, coll, strength, cmpType, breaker, offset, size);
-    }
-
-    // Just returning int[], to make the test data nice and short
-    private static int[] IA(int... elements) {
-        return elements;
-    }
-
     static SearchData[] BASIC = {
-        SD("xxxxxxxxxxxxxxxxxxxx", "fisher", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("silly spring string", "string", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(13, -1), IA(6)),
-        SD("silly spring string string", "string", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(13, 20, -1), IA(6, 6)),
-        SD("silly string spring string", "string", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(6, 20, -1), IA(6, 6)),
-        SD("string spring string", "string", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, 14, -1), IA(6, 6)),
-        SD("Scott Ganyo", "c", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(1, -1), IA(1)),
-        SD("Scott Ganyo", " ", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(5, -1), IA(1)),
-        SD("\u0300\u0325", "\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("a\u0300\u0325", "\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("a\u0300\u0325", "\u0300\u0325", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("a\u0300b", "\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("\u00c9", "e", null, PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(1)),
+        new SearchData("xxxxxxxxxxxxxxxxxxxx",          "fisher",       null, Collator.TERTIARY, null, new int[] {-1},            new int[]{0}),
+        new SearchData("silly spring string",           "string",       null, Collator.TERTIARY, null, new int[]{13, -1},         new int[]{6}),
+        new SearchData("silly spring string string",    "string",       null, Collator.TERTIARY, null, new int[]{13, 20, -1},     new int[]{6, 6}),
+        new SearchData("silly string spring string",    "string",       null, Collator.TERTIARY, null, new int[]{6, 20, -1},      new int[]{6, 6}),
+        new SearchData("string spring string",          "string",       null, Collator.TERTIARY, null, new int[]{0, 14, -1},      new int[]{6, 6}),
+        new SearchData("Scott Ganyo",                   "c",            null, Collator.TERTIARY, null, new int[]{1, -1},          new int[]{1}),
+        new SearchData("Scott Ganyo",                   " ",            null, Collator.TERTIARY, null, new int[]{5, -1},          new int[]{1}),
+        new SearchData("\u0300\u0325",                  "\u0300",       null, Collator.TERTIARY, null, new int[]{-1},             new int[]{0}),
+        new SearchData("a\u0300\u0325",                 "\u0300",       null, Collator.TERTIARY, null, new int[]{-1},             new int[]{0}),
+        new SearchData("a\u0300\u0325",                 "\u0300\u0325", null, Collator.TERTIARY, null, new int[]{1, -1},          new int[]{2}),
+        new SearchData("a\u0300b",                      "\u0300",       null, Collator.TERTIARY, null, new int[]{1, -1},          new int[]{1}),
+        new SearchData("\u00c9",                        "e",            null, Collator.PRIMARY,  null, new int[]{0, -1},          new int[]{1}),
+        new SearchData(null,                            null,           null, Collator.TERTIARY, null, new int[]{-1},             new int[]{0})
     };
 
     SearchData BREAKITERATOREXACT[] = {
-        SD("foxy fox", "fox", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, "characterbreaker", IA(0, 5, -1), IA(3, 3)),
-        SD("foxy fox", "fox", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, "wordbreaker", IA(5, -1), IA(3)),
-        SD("This is a toe T\u00F6ne", "toe", "de", PRIMARY, STANDARD_ELEMENT_COMPARISON, "characterbreaker", IA(10, 14, -1), IA(3, 2)),
-        SD("This is a toe T\u00F6ne", "toe", "de", PRIMARY, STANDARD_ELEMENT_COMPARISON, "wordbreaker", IA(10, -1), IA(3)),
-        SD("Channel, another channel, more channels, and one last Channel", "Channel", "es", TERTIARY, STANDARD_ELEMENT_COMPARISON, "wordbreaker", IA(0, 54, -1), IA(7, 7)),
+        new SearchData("foxy fox", "fox", null, Collator.TERTIARY, "characterbreaker", new int[] {0, 5, -1}, new int[] {3, 3}),
+        new SearchData("foxy fox", "fox", null, Collator.TERTIARY, "wordbreaker", new int[] {5, -1}, new int[] {3}),
+        new SearchData("This is a toe T\u00F6ne", "toe", "de", Collator.PRIMARY, "characterbreaker", new int[] {10, 14, -1}, new int[] {3, 2}),
+        new SearchData("This is a toe T\u00F6ne", "toe", "de", Collator.PRIMARY, "wordbreaker", new int[] {10, -1}, new int[] {3}),
+        new SearchData("Channel, another channel, more channels, and one last Channel", "Channel", "es", Collator.TERTIARY,
+             "wordbreaker", new int[] {0, 54, -1}, new int[] {7, 7}),
         /* jitterbug 1745 */
-        SD("testing that \u00e9 does not match e", "e", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, "characterbreaker", IA(1, 17, 30, -1), IA(1, 1, 1)),
-        SD("testing that string ab\u00e9cd does not match e", "e", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, "characterbreaker", IA(1, 28, 41, -1), IA(1, 1, 1)),
-        SD("\u00c9", "e", "fr", PRIMARY, STANDARD_ELEMENT_COMPARISON, "characterbreaker", IA(0, -1), IA(1)),
+        new SearchData("testing that \u00e9 does not match e", "e", null, Collator.TERTIARY,
+            "characterbreaker", new int[] {1, 17, 30, -1}, new int[] {1, 1, 1}),
+        new SearchData("testing that string ab\u00e9cd does not match e", "e", null, Collator.TERTIARY,
+            "characterbreaker", new int[] {1, 28, 41, -1}, new int[] {1, 1, 1}),
+        new SearchData("\u00c9", "e", "fr", Collator.PRIMARY,  "characterbreaker", new int[]{0, -1}, new int[]{1}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData BREAKITERATORCANONICAL[] = {
-        SD("foxy fox", "fox", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, "characterbreaker", IA(0, 5, -1), IA(3, 3)),
-        SD("foxy fox", "fox", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, "wordbreaker", IA(5, -1), IA(3)),
-        SD("This is a toe T\u00F6ne", "toe", "de", PRIMARY, STANDARD_ELEMENT_COMPARISON, "characterbreaker", IA(10, 14, -1), IA(3, 2)),
-        SD("This is a toe T\u00F6ne", "toe", "de", PRIMARY, STANDARD_ELEMENT_COMPARISON, "wordbreaker", IA(10, -1), IA(3)),
-        SD("Channel, another channel, more channels, and one last Channel", "Channel", "es", TERTIARY, STANDARD_ELEMENT_COMPARISON, "wordbreaker", IA(0, 54, -1), IA(7, 7)),
+        new SearchData("foxy fox", "fox", null, Collator.TERTIARY, "characterbreaker", new int[] {0, 5, -1}, new int[] {3, 3}),
+        new SearchData("foxy fox", "fox", null, Collator.TERTIARY, "wordbreaker", new int[] {5, -1}, new int[] {3}),
+        new SearchData("This is a toe T\u00F6ne", "toe", "de", Collator.PRIMARY, "characterbreaker", new int[] {10, 14, -1}, new int[] {3, 2}),
+        new SearchData("This is a toe T\u00F6ne", "toe", "de", Collator.PRIMARY, "wordbreaker", new int[] {10, -1}, new int[] {3}),
+        new SearchData("Channel, another channel, more channels, and one last Channel", "Channel", "es", Collator.TERTIARY, "wordbreaker",
+                       new int[] {0, 54, -1}, new int[] {7, 7}),
         /* jitterbug 1745 */
-        SD("testing that \u00e9 does not match e", "e", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, "characterbreaker", IA(1, 17, 30, -1), IA(1, 1, 1)),
-        SD("testing that string ab\u00e9cd does not match e", "e", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, "characterbreaker", IA(1, 28, 41, -1), IA(1, 1, 1)),
-        SD("\u00c9", "e", "fr", PRIMARY, STANDARD_ELEMENT_COMPARISON, "characterbreaker", IA(0, -1), IA(1)),
+        new SearchData("testing that \u00e9 does not match e", "e", null, Collator.TERTIARY,
+            "characterbreaker", new int[] {1, 17, 30, -1}, new int[] {1, 1, 1}),
+        new SearchData("testing that string ab\u00e9cd does not match e", "e", null,
+             Collator.TERTIARY, "characterbreaker", new int[] {1, 28, 41, -1}, new int[] {1, 1, 1}),
+        new SearchData("\u00c9", "e", "fr", Collator.PRIMARY,  "characterbreaker", new int[]{0, -1}, new int[]{1}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData BASICCANONICAL[] = {
-        SD("xxxxxxxxxxxxxxxxxxxx", "fisher", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("silly spring string", "string", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(13, -1), IA(6)),
-        SD("silly spring string string", "string", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(13, 20, -1), IA(6, 6)),
-        SD("silly string spring string", "string", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(6, 20, -1), IA(6, 6)),
-        SD("string spring string", "string", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, 14, -1), IA(6, 6)),
-        SD("Scott Ganyo", "c", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(1, -1), IA(1)),
-        SD("Scott Ganyo", " ", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(5, -1), IA(1)),
-
-        SD("\u0300\u0325", "\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("a\u0300\u0325", "\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("a\u0300\u0325", "\u0300\u0325", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("a\u0300b", "\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("a\u0300\u0325b", "\u0300b", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("\u0325\u0300A\u0325\u0300", "\u0300A\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("\u0325\u0300A\u0325\u0300", "\u0325A\u0325", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("a\u0300\u0325b\u0300\u0325c \u0325b\u0300 \u0300b\u0325", "\u0300b\u0325", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        SD("\u00c4\u0323", "A\u0323\u0308", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(2)),
-        SD("\u0308\u0323", "\u0323\u0308", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(2)),
+        new SearchData("xxxxxxxxxxxxxxxxxxxx", "fisher", null, Collator.TERTIARY, null, new int[] {-1}, new int [] {0}),
+        new SearchData("silly spring string", "string", null, Collator.TERTIARY, null, new int[] {13, -1}, new int[] {6}),
+        new SearchData("silly spring string string", "string", null, Collator.TERTIARY, null, new int[] {13, 20, -1}, new int[] {6, 6}),
+        new SearchData("silly string spring string", "string", null, Collator.TERTIARY, null, new int[] {6, 20, -1}, new int[] {6, 6}),
+        new SearchData("string spring string", "string", null, Collator.TERTIARY, null, new int[] {0, 14, -1}, new int[] {6, 6}),
+        new SearchData("Scott Ganyo", "c", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {1}),
+        new SearchData("Scott Ganyo", " ", null, Collator.TERTIARY, null, new int[] {5, -1}, new int[] {1}),
+        new SearchData("\u0300\u0325", "\u0300", null, Collator.TERTIARY, null, new int [] {0, -1}, new int[] {2}),
+        new SearchData("a\u0300\u0325", "\u0300", null, Collator.TERTIARY, null, new int [] {1, -1}, new int[] {2}),
+        new SearchData("a\u0300\u0325", "\u0300\u0325", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[]{2}),
+        new SearchData("a\u0300b", "\u0300", null, Collator.TERTIARY, null, new int[]{1, -1}, new int[] {1}),
+        new SearchData("a\u0300\u0325b", "\u0300b", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {3}),
+        new SearchData("\u0325\u0300A\u0325\u0300", "\u0300A\u0300", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {5}),
+        new SearchData("\u0325\u0300A\u0325\u0300", "\u0325A\u0325", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {5}),
+        new SearchData("a\u0300\u0325b\u0300\u0325c \u0325b\u0300 \u0300b\u0325", "\u0300b\u0325", null, Collator.TERTIARY, null,
+            new int[] {1, 12, -1}, new int[] {5, 3}),
+        new SearchData("\u00c4\u0323", "A\u0323\u0308", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
+        new SearchData("\u0308\u0323", "\u0323\u0308", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData COLLATOR[] = {
         /* english */
-        SD("fox fpx", "fox", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(3)),
+        new SearchData("fox fpx", "fox", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {3}),
         /* tailored */
-        SD("fox fpx", "fox", null, PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, 4, -1), IA(3, 3)),
+        new SearchData("fox fpx", "fox", null, Collator.PRIMARY, null, new int[] {0, 4, -1}, new int[] {3, 3}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     String TESTCOLLATORRULE = "& o,O ; p,P";
     String EXTRACOLLATIONRULE = " & ae ; \u00e4 & AE ; \u00c4 & oe ; \u00f6 & OE ; \u00d6 & ue ; \u00fc & UE ; \u00dc";
 
+
     SearchData COLLATORCANONICAL[] = {
         /* english */
-        SD("fox fpx", "fox", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(3)),
+        new SearchData("fox fpx", "fox", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {3}),
         /* tailored */
-        SD("fox fpx", "fox", null, PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, 4, -1), IA(3, 3)),
+        new SearchData("fox fpx", "fox", null, Collator.PRIMARY, null, new int[] {0, 4, -1}, new int[] {3, 3}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData COMPOSITEBOUNDARIES[] = {
-        SD("\u00C0", "A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("A\u00C0C", "A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(1)),
-        SD("\u00C0A", "A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(1, -1), IA(1)),
-        SD("B\u00C0", "A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("\u00C0B", "A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("\u00C0", "\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        /* first one matches only because it's at the start of the text */
-        SD("\u0300\u00C0", "\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(1)),
-
-        /* \\u0300 blocked by \\u0300 */
-        SD("\u00C0\u0300", "\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
+        new SearchData("\u00C0", "A", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("A\u00C0C", "A", null, Collator.TERTIARY, null, new int[]  {0, 1, -1}, new int[]  {1, 1}),
+        new SearchData("\u00C0A", "A", null, Collator.TERTIARY, null, new int[] {0, 1, -1}, new int[] {1, 1}),
+        new SearchData("B\u00C0", "A", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {1}),
+        new SearchData("\u00C0B", "A", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("\u00C0", "\u0300", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("\u0300\u00C0", "\u0300", null, Collator.TERTIARY, null, new int[] {0, 1, -1}, new int[] {1, 1}),
+        new SearchData("\u00C0\u0300", "\u0300", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         /* A + 030A + 0301 */
-        SD("\u01FA", "\u01FA", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(1)),
-        SD("\u01FA", "A\u030A\u0301", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(1)),
-
-        SD("\u01FA", "\u030A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("\u01FA", "A\u030A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        SD("\u01FA", "\u030AA", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        SD("\u01FA", "\u0301", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        /* blocked accent */
-        SD("\u01FA", "A\u0301", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("\u01FA", "\u0301A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        SD("\u01FA", "\u030A\u0301", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("A\u01FA", "A\u030A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("\u01FAA", "\u0301A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        SD("\u0F73", "\u0F73", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(1)),
-
-        SD("\u0F73", "\u0F71", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("\u0F73", "\u0F72", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        SD("\u0F73", "\u0F71\u0F72", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(1)),
-
-        SD("A\u0F73", "A\u0F71", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("\u0F73A", "\u0F72A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("\u01FA A\u0301\u030A A\u030A\u0301 A\u030A \u01FA", "A\u030A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(10, -1), IA(2)),
+        new SearchData("\u01FA", "\u01FA", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("\u01FA", "\u030A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u01FA", "A\u030A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u01FA", "\u030AA", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u01FA", "\u0301", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u01FA", "A\u0301", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u01FA", "\u0301A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u01FA", "\u030A\u0301", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("A\u01FA", "A\u030A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u01FAA", "\u0301A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u0F73", "\u0F73", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("\u0F73", "\u0F71", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u0F73", "\u0F72", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u0F73", "\u0F71\u0F72", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("A\u0F73", "A\u0F71", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u0F73A", "\u0F72A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData COMPOSITEBOUNDARIESCANONICAL[] = {
-        SD("\u00C0", "A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("A\u00C0C", "A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(1)),
-        SD("\u00C0A", "A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(1, -1), IA(1)),
-        SD("B\u00C0", "A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("\u00C0B", "A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("\u00C0", "\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        /* first one matches only because it's at the start of the text */
-        SD("\u0300\u00C0", "\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(1)),
-
+        new SearchData("\u00C0", "A", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("A\u00C0C", "A", null, Collator.TERTIARY, null, new int[] {0, 1, -1}, new int[] {1, 1}),
+        new SearchData("\u00C0A", "A", null, Collator.TERTIARY, null, new int[] {0, 1, -1}, new int[] {1, 1}),
+        new SearchData("B\u00C0", "A", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {1}),
+        new SearchData("\u00C0B", "A", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("\u00C0", "\u0300", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("\u0300\u00C0", "\u0300", null, Collator.TERTIARY, null, new int[] {0, 1, -1}, new int[] {1, 1}),
         /* \u0300 blocked by \u0300 */
-        SD("\u00C0\u0300", "\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
+        new SearchData("\u00C0\u0300", "\u0300", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
         /* A + 030A + 0301 */
-        SD("\u01FA", "\u01FA", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(1)),
-        SD("\u01FA", "A\u030A\u0301", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(1)),
-
-        SD("\u01FA", "\u030A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("\u01FA", "A\u030A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        SD("\u01FA", "\u030AA", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        SD("\u01FA", "\u0301", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
+        new SearchData("\u01FA", "\u01FA", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("\u01FA", "\u030A", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("\u01FA", "A\u030A", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("\u01FA", "\u030AA", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u01FA", "\u0301", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
         /* blocked accent */
-        SD("\u01FA", "A\u0301", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("\u01FA", "\u0301A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        SD("\u01FA", "\u030A\u0301", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("A\u01FA", "A\u030A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("\u01FAA", "\u0301A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        SD("\u0F73", "\u0F73", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(1)),
-
-        SD("\u0F73", "\u0F71", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("\u0F73", "\u0F72", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        SD("\u0F73", "\u0F71\u0F72", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(1)),
-
-        SD("A\u0F73", "A\u0F71", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("\u0F73A", "\u0F72A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        SD("\u01FA A\u0301\u030A A\u030A\u0301 A\u030A \u01FA", "A\u030A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(10, -1), IA(2)),
+        new SearchData("\u01FA", "A\u0301", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u01FA", "\u0301A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u01FA", "\u030A\u0301", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("A\u01FA", "A\u030A", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {1}),
+        new SearchData("\u01FAA", "\u0301A", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
+        new SearchData("\u0F73", "\u0F73", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("\u0F73", "\u0F71", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("\u0F73", "\u0F72", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("\u0F73", "\u0F71\u0F72", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("A\u0F73", "A\u0F71", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
+        new SearchData("\u0F73A", "\u0F72A", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
+        new SearchData("\u01FA A\u0301\u030A A\u030A\u0301 A\u030A \u01FA", "A\u030A",
+            null, Collator.TERTIARY, null, new int[] {0, 6, 10, 13, -1}, new int[] {1, 3, 2, 1}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData SUPPLEMENTARY[] = {
-        SD("abc \uD800\uDC00 \uD800\uDC01 \uD801\uDC00 \uD800\uDC00abc abc\uD800\uDC00 \uD800\uD800\uDC00 \uD800\uDC00\uDC00",
-                "\uD800\uDC00", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(4, 13, 22, 26, 29, -1), IA(2, 2, 2, 2, 2)),
-        SD("and\uD834\uDDB9this sentence", "\uD834\uDDB9", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(3, -1), IA(2)),
-        SD("and \uD834\uDDB9 this sentence", " \uD834\uDDB9 ", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(3, -1), IA(4)),
-        SD("and-\uD834\uDDB9-this sentence", "-\uD834\uDDB9-", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(3, -1), IA(4)),
-        SD("and,\uD834\uDDB9,this sentence", ",\uD834\uDDB9,", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(3, -1), IA(4)),
-        SD("and?\uD834\uDDB9?this sentence", "?\uD834\uDDB9?", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(3, -1), IA(4)),
+        /* 012345678901234567890123456789012345678901234567890012345678901234567890123456789012345678901234567890012345678901234567890123456789 */
+        new SearchData("abc \uD800\uDC00 \uD800\uDC01 \uD801\uDC00 \uD800\uDC00abc abc\uD800\uDC00 \uD800\uD800\uDC00 \uD800\uDC00\uDC00",
+            "\uD800\uDC00", null, Collator.TERTIARY, null, 
+            new int[] {4, 13, 22, 26, 29, -1}, new int[] {2, 2, 2, 2, 2}),
+        new SearchData("and\uD834\uDDB9this sentence", "\uD834\uDDB9", null, 
+                       Collator.TERTIARY, null, new int[] {3, -1}, 
+                       new int[] {2}),
+        new SearchData("and \uD834\uDDB9 this sentence", " \uD834\uDDB9 ", 
+                       null, Collator.TERTIARY, null, new int[] {3, -1}, 
+                       new int[] {4}),
+        new SearchData("and-\uD834\uDDB9-this sentence", "-\uD834\uDDB9-", 
+                       null, Collator.TERTIARY, null, new int[] {3, -1}, 
+                       new int[] {4}),
+        new SearchData("and,\uD834\uDDB9,this sentence", ",\uD834\uDDB9,", 
+                       null, Collator.TERTIARY, null, new int[] {3, -1}, 
+                       new int[] {4}),
+        new SearchData("and?\uD834\uDDB9?this sentence", "?\uD834\uDDB9?", 
+                       null, Collator.TERTIARY, null, new int[] {3, -1}, 
+                       new int[] {4}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     String CONTRACTIONRULE = "&z = ab/c < AB < X\u0300 < ABC < X\u0300\u0315";
 
     SearchData CONTRACTION[] = {
         /* common discontiguous */
-        SD("A\u0300\u0315", "\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        SD("A\u0300\u0315", "\u0300\u0315", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
+        new SearchData("A\u0300\u0315", "\u0300", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("A\u0300\u0315", "\u0300\u0315", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {2}),
         /* contraction prefix */
-        SD("AB\u0315C", "A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        SD("AB\u0315C", "AB", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("AB\u0315C", "\u0315", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        /*
-         * discontiguous problem here for backwards iteration. accents not found because discontiguous stores all
-         * information
-         */
-        SD("X\u0300\u0319\u0315", "\u0319", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        /* ends not with a contraction character */
-        SD("X\u0315\u0300D", "\u0300\u0315", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("X\u0315\u0300D", "X\u0300\u0315", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(3)),
-        SD("X\u0300\u031A\u0315D", "X\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
+        new SearchData("AB\u0315C", "A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("AB\u0315C", "AB", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
+        new SearchData("AB\u0315C", "\u0315", null, Collator.TERTIARY, null, new int[] {2, -1}, new int[] {1}),
+        /* discontiguous problem here for backwards iteration.
+        accents not found because discontiguous stores all information */
+        new SearchData("X\u0300\u0319\u0315", "\u0319", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+         /* ends not with a contraction character */
+        new SearchData("X\u0315\u0300D", "\u0300\u0315", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("X\u0315\u0300D", "X\u0300\u0315", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {3}),
+        new SearchData("X\u0300\u031A\u0315D", "X\u0300", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         /* blocked discontiguous */
-        SD("X\u0300\u031A\u0315D", "\u031A\u0315D", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        /*
-         * "ab" generates a contraction that's an expansion. The "z" matches the first CE of the expansion but the
-         * match fails because it ends in the middle of an expansion...
-         */
-        SD("ab", "z", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
+        new SearchData("X\u0300\u031A\u0315D", "\u031A\u0315D", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("ab", "z", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData CONTRACTIONCANONICAL[] = {
         /* common discontiguous */
-        SD("A\u0300\u0315", "\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("A\u0300\u0315", "\u0300\u0315", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
+        new SearchData("A\u0300\u0315", "\u0300", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {2}),
+        new SearchData("A\u0300\u0315", "\u0300\u0315", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {2}),
         /* contraction prefix */
-        SD("AB\u0315C", "A", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
+        new SearchData("AB\u0315C", "A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("AB\u0315C", "AB", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
+        new SearchData("AB\u0315C", "\u0315", null, Collator.TERTIARY, null, new int[] {2, -1}, new int[] {1}),
+        /* discontiguous problem here for backwards iteration.
+        forwards gives 0, 4 but backwards give 1, 3 */
+        /* {"X\u0300\u0319\u0315", "\u0319", null, Collator.TERTIARY, null, {0, -1},
+        {4}}, */
 
-        SD("AB\u0315C", "AB", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("AB\u0315C", "\u0315", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        /*
-         * discontiguous problem here for backwards iteration. forwards gives 0, 4 but backwards give 1, 3
-         */
-        /*
-         * {"X\u0300\u0319\u0315", "\u0319", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, {0, -1), {4}),
-         */
-
-        /* ends not with a contraction character */
-        SD("X\u0315\u0300D", "\u0300\u0315", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("X\u0315\u0300D", "X\u0300\u0315", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(3)),
-
-        SD("X\u0300\u031A\u0315D", "X\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
+         /* ends not with a contraction character */
+        new SearchData("X\u0315\u0300D", "\u0300\u0315", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("X\u0315\u0300D", "X\u0300\u0315", null, Collator.TERTIARY, null,
+            new int[] {0, -1}, new int[] {3}),
+        new SearchData("X\u0300\u031A\u0315D", "X\u0300", null, Collator.TERTIARY, null,
+            new int[] {0, -1}, new int[] {4}),
         /* blocked discontiguous */
-        SD("X\u0300\u031A\u0315D", "\u031A\u0315D", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-
-        /*
-         * "ab" generates a contraction that's an expansion. The "z" matches the first CE of the expansion but the
-         * match fails because it ends in the middle of an expansion...
-         */
-        SD("ab", "z", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(2)),
+        new SearchData("X\u0300\u031A\u0315D", "\u031A\u0315D", null, Collator.TERTIARY, null,
+            new int[] {1, -1}, new int[] {4}),
+        new SearchData("ab", "z", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData MATCH[] = {
-        SD("a busy bee is a very busy beeee", "bee", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(7, 26, -1), IA(3, 3)),
-        /*  012345678901234567890123456789012345678901234567890 */
-        SD("a busy bee is a very busy beeee with no bee life", "bee", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(7, 26, 40, -1), IA(3, 3, 3)),
+        new SearchData("a busy bee is a very busy beeee", "bee", null, Collator.TERTIARY, null,
+        new int[] {7, 26, -1}, new int[] {3, 3}),
+        /* 012345678901234567890123456789012345678901234567890 */
+        new SearchData("a busy bee is a very busy beeee with no bee life", "bee", null,
+            Collator.TERTIARY, null, new int[] {7, 26, 40, -1}, new int[] {3, 3, 3}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     String IGNORABLERULE = "&a = \u0300";
 
     SearchData IGNORABLE[] = {
-        /*
-         * This isn't much of a test when matches have to be on grapheme boundiaries. The match at 0 only works because it's
-         * at the start of the text.
-         */
-        SD("\u0300\u0315 \u0300\u0315 ", "\u0300", null, PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(2)),
+        new SearchData("\u0300\u0315 \u0300\u0315 ", "\u0300", null, Collator.PRIMARY, null,
+            new int[] {0, 3, -1}, new int[] {2, 2}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
-
+    
     SearchData DIACTRICMATCH[] = {
-        SD("\u0061\u0061\u00E1", "\u0061\u00E1", null, SECONDARY, STANDARD_ELEMENT_COMPARISON, null, IA(1, -1), IA(2)),
-        SD("\u0020\u00C2\u0303\u0020\u0041\u0061\u1EAA\u0041\u0302\u0303\u00C2\u0303\u1EAB\u0061\u0302\u0303\u00E2\u0303\uD806\uDC01\u0300\u0020", "\u00C2\u0303",
-            null, PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(1, 4, 5, 6, 7, 10, 12, 13, 16, -1), IA(2, 1, 1, 1, 3, 2, 1, 3, 2)),
-        SD("\u03BA\u03B1\u03B9\u0300\u0020\u03BA\u03B1\u1F76", "\u03BA\u03B1\u03B9", null, PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, 5, -1), IA(4, 3)),
+        new SearchData("\u0061\u0061\u00E1", "\u0061\u00E1", null, Collator.SECONDARY, null,
+            new int[] {1, -1}, new int[] {2}),   
+        new SearchData("\u0020\u00C2\u0303\u0020\u0041\u0061\u1EAA\u0041\u0302\u0303\u00C2\u0303\u1EAB\u0061\u0302\u0303\u00E2\u0303\uD806\uDC01\u0300\u0020",
+            "\u00C2\u0303", null, Collator.PRIMARY, null, new int[] {1, 4, 5, 6, 7, 10, 12, 13, 16,-1}, new int[] {2, 1, 1, 1, 3, 2, 1, 3, 2}),
+        new SearchData("\u03BA\u03B1\u03B9\u0300\u0020\u03BA\u03B1\u1F76", "\u03BA\u03B1\u03B9", null, Collator.PRIMARY, null,
+                new int[] {0, 5, -1}, new int[] {4, 3}),   
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData NORMCANONICAL[] = {
-        SD("\u0300\u0325", "\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("\u0300\u0325", "\u0325", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("a\u0300\u0325", "\u0325\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("a\u0300\u0325", "\u0300\u0325", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("a\u0300\u0325", "\u0325", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("a\u0300\u0325", "\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
+        new SearchData("\u0300\u0325", "\u0300", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
+        new SearchData("\u0300\u0325", "\u0325", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
+        new SearchData("a\u0300\u0325", "\u0325\u0300", null, Collator.TERTIARY, null, new int[] {1, -1},
+            new int[] {2}),
+        new SearchData("a\u0300\u0325", "\u0300\u0325", null, Collator.TERTIARY, null, new int[] {1, -1},
+            new int[] {2}),
+        new SearchData("a\u0300\u0325", "\u0325", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {2}),
+        new SearchData("a\u0300\u0325", "\u0300", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {2}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData NORMEXACT[] = {
-        SD("a\u0300\u0325", "a\u0325\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, -1), IA(3)),
+        new SearchData("a\u0300\u0325", "\u0325\u0300", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {2}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData NONNORMEXACT[] = {
-        SD("a\u0300\u0325", "\u0325\u0300", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
+        new SearchData("a\u0300\u0325", "\u0325\u0300", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData OVERLAP[] = {
-        SD("abababab", "abab", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, 2, 4, -1), IA(4, 4, 4)),
+        new SearchData("abababab", "abab", null, Collator.TERTIARY, null, new int[] {0, 2, 4, -1}, new int[] {4, 4, 4}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData NONOVERLAP[] = {
-        SD("abababab", "abab", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, 4, -1), IA(4, 4)),
+        new SearchData("abababab", "abab", null, Collator.TERTIARY, null, new int[] {0, 4, -1}, new int[] {4, 4}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData OVERLAPCANONICAL[] = {
-        SD("abababab", "abab", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, 2, 4, -1), IA(4, 4, 4)),
+        new SearchData("abababab", "abab", null, Collator.TERTIARY, null, new int[] {0, 2, 4, -1},
+                        new int[] {4, 4, 4}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData NONOVERLAPCANONICAL[] = {
-        SD("abababab", "abab", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, 4, -1), IA(4, 4)),
+        new SearchData("abababab", "abab", null, Collator.TERTIARY, null, new int[] {0, 4, -1}, new int[] {4, 4}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData PATTERNCANONICAL[] = {
-        SD("The quick brown fox jumps over the lazy foxes", "the", null, PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, 31, -1), IA(3, 3)),
-        SD("The quick brown fox jumps over the lazy foxes", "fox", null, PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(16, 40, -1), IA(3, 3)),
+        new SearchData("The quick brown fox jumps over the lazy foxes", "the", null,
+                       Collator.PRIMARY, null, new int[] {0, 31, -1}, new int[] {3, 3}),
+        new SearchData("The quick brown fox jumps over the lazy foxes", "fox", null,
+                       Collator.PRIMARY, null, new int[] {16, 40, -1}, new int[] {3, 3}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData PATTERN[] = {
-        SD("The quick brown fox jumps over the lazy foxes", "the", null, PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, 31, -1), IA(3, 3)),
-        SD("The quick brown fox jumps over the lazy foxes", "fox", null, PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(16, 40, -1), IA(3, 3)),
+        new SearchData("The quick brown fox jumps over the lazy foxes", "the", null,
+                       Collator.PRIMARY, null, new int[] {0, 31, -1}, new int[] {3, 3}),
+        new SearchData("The quick brown fox jumps over the lazy foxes", "fox", null,
+                       Collator.PRIMARY, null, new int[] {16, 40, -1}, new int[] {3, 3}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
-    String PECHE_WITH_ACCENTS = "un p\u00E9ch\u00E9, "
-                                + "\u00E7a p\u00E8che par, "
-                                + "p\u00E9cher, "
-                                + "une p\u00EAche, "
-                                + "un p\u00EAcher, "
-                                + "j\u2019ai p\u00EAch\u00E9, "
-                                + "un p\u00E9cheur, "
-                                + "\u201Cp\u00E9che\u201D, "
-                                + "decomp peche\u0301, "
-                                + "base peche";
-    // in the above, the interesting words and their offsets are:
-    //    3 pe<301>che<301>
-    //    13 pe<300>che
-    //    24 pe<301>cher
-    //    36 pe<302>che
-    //    46 pe<302>cher
-    //    59 pe<302>che<301>
-    //    69 pe<301>cheur
-    //    79 pe<301>che
-    //    94 peche<+301>
-    //    107 peche
-
     SearchData STRENGTH[] = {
-        /*  012345678901234567890123456789012345678901234567890123456789 */
-        SD("The quick brown fox jumps over the lazy foxes", "fox", "en", PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(16, 40, -1), IA(3, 3)),
-        SD("The quick brown fox jumps over the lazy foxes", "fox", "en", PRIMARY, STANDARD_ELEMENT_COMPARISON, "wordbreaker", IA(16, -1), IA(3)),
-        SD("blackbirds Pat p\u00E9ch\u00E9 p\u00EAche p\u00E9cher p\u00EAcher Tod T\u00F6ne black Tofu blackbirds Ton PAT toehold blackbird black-bird pat toe big Toe",
-                "peche", "fr", PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(15, 21, 27, 34, -1), IA(5, 5, 5, 5)),
-        SD("This is a toe T\u00F6ne", "toe", "de", PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(10, 14, -1), IA(3, 2)),
-        SD("A channel, another CHANNEL, more Channels, and one last channel...", "channel", "es", PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(2, 19, 33, 56, -1), IA(7, 7, 7, 7)),
-        SD("\u00c0 should match but not A", "A\u0300", "en", IDENTICAL, STANDARD_ELEMENT_COMPARISON,  null, IA(0, -1), IA(1, 0)),
-
-        /* some tests for modified element comparison, ticket #7093 */
-        SD(PECHE_WITH_ACCENTS, "peche", "en", PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(3, 13, 24, 36, 46, 59, 69, 79, 94, 107, -1), IA(5, 5, 5, 5, 5, 5, 5, 5, 6, 5)),
-        SD(PECHE_WITH_ACCENTS, "peche", "en", PRIMARY, STANDARD_ELEMENT_COMPARISON, "wordbreaker", IA(3, 13, 36, 59, 79, 94, 107, -1), IA(5, 5, 5, 5, 5, 6, 5)),
-        SD(PECHE_WITH_ACCENTS, "peche", "en", SECONDARY, STANDARD_ELEMENT_COMPARISON, null, IA(107, -1), IA(5)),
-        SD(PECHE_WITH_ACCENTS, "peche", "en", SECONDARY, PATTERN_BASE_WEIGHT_IS_WILDCARD, null, IA(3, 13, 24, 36, 46, 59, 69, 79, 94, 107, -1), IA(5, 5, 5, 5, 5, 5, 5, 5, 6, 5)),
-        SD(PECHE_WITH_ACCENTS, "peche", "en", SECONDARY, PATTERN_BASE_WEIGHT_IS_WILDCARD, "wordbreaker", IA(3, 13, 36, 59, 79, 94, 107, -1), IA(5, 5, 5, 5, 5, 6, 5)),
-        SD(PECHE_WITH_ACCENTS, "p\u00E9che", "en", SECONDARY, STANDARD_ELEMENT_COMPARISON, null, IA(24, 69, 79, -1), IA(5, 5, 5)),
-        SD(PECHE_WITH_ACCENTS, "p\u00E9che", "en", SECONDARY, STANDARD_ELEMENT_COMPARISON, "wordbreaker", IA(79, -1), IA(5)),
-        SD(PECHE_WITH_ACCENTS, "p\u00E9che", "en", SECONDARY, PATTERN_BASE_WEIGHT_IS_WILDCARD, null, IA(3, 24, 69, 79, -1), IA(5, 5, 5, 5)),
-        SD(PECHE_WITH_ACCENTS, "p\u00E9che", "en", SECONDARY, PATTERN_BASE_WEIGHT_IS_WILDCARD, "wordbreaker", IA(3, 79, -1), IA(5, 5)),
-        SD(PECHE_WITH_ACCENTS, "p\u00E9che", "en", SECONDARY, ANY_BASE_WEIGHT_IS_WILDCARD, null, IA(3, 24, 69, 79, 94, 107, -1), IA(5, 5, 5, 5, 6, 5)),
-        SD(PECHE_WITH_ACCENTS, "p\u00E9che", "en", SECONDARY, ANY_BASE_WEIGHT_IS_WILDCARD, "wordbreaker", IA(3, 79, 94, 107, -1), IA(5, 5, 6, 5)),
-        SD(PECHE_WITH_ACCENTS, "pech\u00E9", "en", SECONDARY, PATTERN_BASE_WEIGHT_IS_WILDCARD, null, IA(3, 59, 94, -1), IA(5, 5, 6)),
-        SD(PECHE_WITH_ACCENTS, "pech\u00E9", "en", SECONDARY, PATTERN_BASE_WEIGHT_IS_WILDCARD, "wordbreaker", IA(3, 59, 94, -1), IA(5, 5, 6)),
-        SD(PECHE_WITH_ACCENTS, "pech\u00E9", "en", SECONDARY, ANY_BASE_WEIGHT_IS_WILDCARD, null, IA(3, 13, 24, 36, 46, 59, 69, 79, 94, 107, -1), IA(5, 5, 5, 5, 5, 5, 5, 5, 6, 5)),
-        SD(PECHE_WITH_ACCENTS, "pech\u00E9", "en", SECONDARY, ANY_BASE_WEIGHT_IS_WILDCARD, "wordbreaker", IA(3, 13, 36, 59, 79, 94, 107, -1), IA(5, 5, 5, 5, 5, 6, 5)),
-        SD(PECHE_WITH_ACCENTS, "peche\u0301", "en", SECONDARY, PATTERN_BASE_WEIGHT_IS_WILDCARD, null, IA(3, 59, 94, -1), IA(5, 5, 6)),
-        SD(PECHE_WITH_ACCENTS, "peche\u0301", "en", SECONDARY, PATTERN_BASE_WEIGHT_IS_WILDCARD, "wordbreaker", IA(3, 59, 94, -1), IA(5, 5, 6)),
-        SD(PECHE_WITH_ACCENTS, "peche\u0301", "en", SECONDARY, ANY_BASE_WEIGHT_IS_WILDCARD, null, IA(3, 13, 24, 36, 46, 59, 69, 79, 94, 107, -1), IA(5, 5, 5, 5, 5, 5, 5, 5, 6, 5)),
-        SD(PECHE_WITH_ACCENTS, "peche\u0301", "en", SECONDARY, ANY_BASE_WEIGHT_IS_WILDCARD, "wordbreaker", IA(3, 13, 36, 59, 79, 94, 107, -1), IA(5, 5, 5, 5, 5, 6, 5)),
-
-        /* more tests for modified element comparison (with fr), ticket #7093 */
-        SD(PECHE_WITH_ACCENTS, "peche", "fr", PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(3, 13, 24, 36, 46, 59, 69, 79, 94, 107, -1), IA(5, 5, 5, 5, 5, 5, 5, 5, 6, 5)),
-        SD(PECHE_WITH_ACCENTS, "peche", "fr", PRIMARY, STANDARD_ELEMENT_COMPARISON, "wordbreaker", IA(3, 13, 36, 59, 79, 94, 107, -1), IA(5, 5, 5, 5, 5, 6, 5)),
-        SD(PECHE_WITH_ACCENTS, "peche", "fr", SECONDARY, STANDARD_ELEMENT_COMPARISON, null, IA(107, -1), IA(5)),
-        SD(PECHE_WITH_ACCENTS, "peche", "fr", SECONDARY, PATTERN_BASE_WEIGHT_IS_WILDCARD, null, IA(3, 13, 24, 36, 46, 59, 69, 79, 94, 107, -1), IA(5, 5, 5, 5, 5, 5, 5, 5, 6, 5)),
-        SD(PECHE_WITH_ACCENTS, "peche", "fr", SECONDARY, PATTERN_BASE_WEIGHT_IS_WILDCARD, "wordbreaker", IA(3, 13, 36, 59, 79, 94, 107, -1), IA(5, 5, 5, 5, 5, 6, 5)),
-        SD(PECHE_WITH_ACCENTS, "p\u00E9che", "fr", SECONDARY, STANDARD_ELEMENT_COMPARISON, null, IA(24, 69, 79, -1), IA(5, 5, 5)),
-        SD(PECHE_WITH_ACCENTS, "p\u00E9che", "fr", SECONDARY, STANDARD_ELEMENT_COMPARISON, "wordbreaker", IA(79, -1), IA(5)),
-        SD(PECHE_WITH_ACCENTS, "p\u00E9che", "fr", SECONDARY, PATTERN_BASE_WEIGHT_IS_WILDCARD, null, IA(3, 24, 69, 79, -1), IA(5, 5, 5, 5)),
-        SD(PECHE_WITH_ACCENTS, "p\u00E9che", "fr", SECONDARY, PATTERN_BASE_WEIGHT_IS_WILDCARD, "wordbreaker", IA(3, 79, -1), IA(5, 5)),
-        SD(PECHE_WITH_ACCENTS, "p\u00E9che", "fr", SECONDARY, ANY_BASE_WEIGHT_IS_WILDCARD, null, IA(3, 24, 69, 79, 94, 107, -1), IA(5, 5, 5, 5, 6, 5)),
-        SD(PECHE_WITH_ACCENTS, "p\u00E9che", "fr", SECONDARY, ANY_BASE_WEIGHT_IS_WILDCARD, "wordbreaker", IA(3, 79, 94, 107, -1), IA(5, 5, 6, 5)),
-        SD(PECHE_WITH_ACCENTS, "pech\u00E9", "fr", SECONDARY, PATTERN_BASE_WEIGHT_IS_WILDCARD, null, IA(3, 59, 94, -1), IA(5, 5, 6)),
-        SD(PECHE_WITH_ACCENTS, "pech\u00E9", "fr", SECONDARY, PATTERN_BASE_WEIGHT_IS_WILDCARD, "wordbreaker", IA(3, 59, 94, -1), IA(5, 5, 6)),
-        SD(PECHE_WITH_ACCENTS, "pech\u00E9", "fr", SECONDARY, ANY_BASE_WEIGHT_IS_WILDCARD, null, IA(3, 13, 24, 36, 46, 59, 69, 79, 94, 107, -1), IA(5, 5, 5, 5, 5, 5, 5, 5, 6, 5)),
-        SD(PECHE_WITH_ACCENTS, "pech\u00E9", "fr", SECONDARY, ANY_BASE_WEIGHT_IS_WILDCARD, "wordbreaker", IA(3, 13, 36, 59, 79, 94, 107, -1), IA(5, 5, 5, 5, 5, 6, 5)),
-        SD(PECHE_WITH_ACCENTS, "peche\u0301", "fr", SECONDARY, PATTERN_BASE_WEIGHT_IS_WILDCARD, null, IA(3, 59, 94, -1), IA(5, 5, 6)),
-        SD(PECHE_WITH_ACCENTS, "peche\u0301", "fr", SECONDARY, PATTERN_BASE_WEIGHT_IS_WILDCARD, "wordbreaker", IA(3, 59, 94, -1), IA(5, 5, 6)),
-        SD(PECHE_WITH_ACCENTS, "peche\u0301", "fr", SECONDARY, ANY_BASE_WEIGHT_IS_WILDCARD, null, IA(3, 13, 24, 36, 46, 59, 69, 79, 94, 107, -1), IA(5, 5, 5, 5, 5, 5, 5, 5, 6, 5)),
-        SD(PECHE_WITH_ACCENTS, "peche\u0301", "fr", SECONDARY, ANY_BASE_WEIGHT_IS_WILDCARD, "wordbreaker", IA(3, 13, 36, 59, 79, 94, 107, -1), IA(5, 5, 5, 5, 5, 6, 5)),
-
+        /*012345678901234567890123456789012345678901234567890123456789*/
+        new SearchData("The quick brown fox jumps over the lazy foxes", "fox", "en",
+                       Collator.PRIMARY, null, new int[] {16, 40, -1}, new int[] {3, 3}),
+        new SearchData("The quick brown fox jumps over the lazy foxes", "fox", "en",
+                       Collator.PRIMARY, "wordbreaker", new int[] {16, -1}, new int[] {3}),
+        new SearchData("blackbirds Pat p\u00E9ch\u00E9 p\u00EAche p\u00E9cher p\u00EAcher Tod T\u00F6ne black Tofu blackbirds Ton PAT toehold blackbird black-bird pat toe big Toe",
+                       "peche", "fr", Collator.PRIMARY, null, new int[] {15, 21, 27, 34, -1}, new int[] {5, 5, 5, 5}),
+        new SearchData("This is a toe T\u00F6ne", "toe", "de", Collator.PRIMARY, null,
+                        new int[] {10, 14, -1}, new int[] {3, 2}),
+        new SearchData("A channel, another CHANNEL, more Channels, and one last channel...", "channel", "es",
+                        Collator.PRIMARY, null, new int[] {2, 19, 33, 56, -1}, new int[] {7, 7, 7, 7}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData STRENGTHCANONICAL[] = {
-        /*  012345678901234567890123456789012345678901234567890123456789 */
-        SD("The quick brown fox jumps over the lazy foxes", "fox", "en", PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(16, 40, -1), IA(3, 3)),
-        SD("The quick brown fox jumps over the lazy foxes", "fox", "en", PRIMARY, STANDARD_ELEMENT_COMPARISON, "wordbreaker", IA(16, -1), IA(3)),
-        SD("blackbirds Pat p\u00E9ch\u00E9 p\u00EAche p\u00E9cher p\u00EAcher Tod T\u00F6ne black Tofu blackbirds Ton PAT toehold blackbird black-bird pat toe big Toe",
-                "peche", "fr", PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(15, 21, 27, 34, -1), IA(5, 5, 5, 5)),
-        SD("This is a toe T\u00F6ne", "toe", "de", PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(10, 14, -1), IA(3, 2)),
-        SD("A channel, another CHANNEL, more Channels, and one last channel...", "channel", "es", PRIMARY, STANDARD_ELEMENT_COMPARISON, null, IA(2, 19, 33, 56, -1), IA(7, 7, 7, 7)),
+        /*012345678901234567890123456789012345678901234567890123456789 */
+        new SearchData("The quick brown fox jumps over the lazy foxes", "fox", "en",
+                       Collator.PRIMARY, null, new int[] {16, 40, -1}, new int[] {3, 3}),
+        new SearchData("The quick brown fox jumps over the lazy foxes", "fox", "en",
+                       Collator.PRIMARY, "wordbreaker", new int[] {16, -1}, new int[] {3}),
+        new SearchData("blackbirds Pat p\u00E9ch\u00E9 p\u00EAche p\u00E9cher p\u00EAcher Tod T\u00F6ne black Tofu blackbirds Ton PAT toehold blackbird black-bird pat toe big Toe",
+                       "peche", "fr", Collator.PRIMARY, null, new int[] {15, 21, 27, 34, -1}, new int[] {5, 5, 5, 5}),
+        new SearchData("This is a toe T\u00F6ne", "toe", "de", Collator.PRIMARY, null,
+                       new int[] {10, 14, -1}, new int[] {3, 2}),
+        new SearchData("A channel, another CHANNEL, more Channels, and one last channel...", "channel", "es",
+                       Collator.PRIMARY, null, new int[]{2, 19, 33, 56, -1}, new int[] {7, 7, 7, 7}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[]{0})
     };
 
     SearchData SUPPLEMENTARYCANONICAL[] = {
-        /*  012345678901234567890123456789012345678901234567890012345678901234567890123456789012345678901234567890012345678901234567890123456789 */
-        SD("abc \uD800\uDC00 \uD800\uDC01 \uD801\uDC00 \uD800\uDC00abc abc\uD800\uDC00 \uD800\uD800\uDC00 \uD800\uDC00\uDC00", "\uD800\uDC00",
-            null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(4, 13, 22, 26, 29, -1), IA(2, 2, 2, 2, 2)),
-        SD("and\uD834\uDDB9this sentence", "\uD834\uDDB9", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(3, -1), IA(2)),
-        SD("and \uD834\uDDB9 this sentence", " \uD834\uDDB9 ", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(3, -1), IA(4)),
-        SD("and-\uD834\uDDB9-this sentence", "-\uD834\uDDB9-", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(3, -1), IA(4)),
-        SD("and,\uD834\uDDB9,this sentence", ",\uD834\uDDB9,", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(3, -1), IA(4)),
-        SD("and?\uD834\uDDB9?this sentence", "?\uD834\uDDB9?", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(3, -1), IA(4)),
+        /*012345678901234567890123456789012345678901234567890012345678901234567890123456789012345678901234567890012345678901234567890123456789 */
+        new SearchData("abc \uD800\uDC00 \uD800\uDC01 \uD801\uDC00 \uD800\uDC00abc abc\uD800\uDC00 \uD800\uD800\uDC00 \uD800\uDC00\uDC00",
+                       "\uD800\uDC00", null, Collator.TERTIARY, null, new int[] {4, 13, 22, 26, 29, -1},
+                       new int[] {2, 2, 2, 2, 2}),
+        new SearchData("and\uD834\uDDB9this sentence", "\uD834\uDDB9", null, 
+                       Collator.TERTIARY, null, new int[] {3, -1}, 
+                       new int[] {2}),
+        new SearchData("and \uD834\uDDB9 this sentence", " \uD834\uDDB9 ", 
+                       null, Collator.TERTIARY, null, new int[] {3, -1}, 
+                       new int[] {4}),
+        new SearchData("and-\uD834\uDDB9-this sentence", "-\uD834\uDDB9-", 
+                       null, Collator.TERTIARY, null, new int[] {3, -1}, 
+                       new int[] {4}),
+        new SearchData("and,\uD834\uDDB9,this sentence", ",\uD834\uDDB9,", 
+                       null, Collator.TERTIARY, null, new int[] {3, -1}, 
+                       new int[] {4}),
+        new SearchData("and?\uD834\uDDB9?this sentence", "?\uD834\uDDB9?", 
+                       null, Collator.TERTIARY, null, new int[] {3, -1}, 
+                       new int[] {4}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     static SearchData VARIABLE[] = {
-        /*  012345678901234567890123456789012345678901234567890123456789 */
-        SD("blackbirds black blackbirds blackbird black-bird", "blackbird", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(0, 17, 28, 38, -1), IA(9, 9, 9, 10)),
+        /*012345678901234567890123456789012345678901234567890123456789*/
+        new SearchData("blackbirds black blackbirds blackbird black-bird", "blackbird", null, Collator.TERTIARY,   null,
+        new int[] {0, 17, 28, 38, -1}, new int[] {9, 9, 9, 10}),
 
-        /*
-         * to see that it doesn't go into an infinite loop if the start of text is a ignorable character
-         */
-        SD(" on", "go", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
-        SD("abcdefghijklmnopqrstuvwxyz", "   ",
-            null, PRIMARY, STANDARD_ELEMENT_COMPARISON, null,
-            IA(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1),
-            IA(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)),
+        /* to see that it doesn't go into an infinite loop if the start of text
+        is a ignorable character */
+        new SearchData(" on",                                              "go",        null, Collator.TERTIARY,   null,
+                       new int[] {-1}, new int[]{0}),
+        new SearchData("abcdefghijklmnopqrstuvwxyz",                       "   ",       null, Collator.PRIMARY,    null,
+                        new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1},
+                        new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
 
         /* testing tightest match */
-        SD(" abc  a bc   ab c    a  bc     ab  c", "abc", null, QUATERNARY, STANDARD_ELEMENT_COMPARISON, null, IA(1, -1), IA(3)),
-        /*  012345678901234567890123456789012345678901234567890123456789 */
-        SD(" abc  a bc   ab c    a  bc     ab  c", "abc", null, SECONDARY, STANDARD_ELEMENT_COMPARISON, null, IA(1, 6, 13, 21, 31, -1), IA(3, 4, 4, 5, 5)),
+        new SearchData(" abc  a bc   ab c    a  bc     ab  c",             "abc",       null, Collator.QUATERNARY, null,
+                       new int[]{1, -1}, new int[] {3}),
+        /*012345678901234567890123456789012345678901234567890123456789 */
+        new SearchData(" abc  a bc   ab c    a  bc     ab  c",             "abc",       null, Collator.SECONDARY,  null,
+                       new int[] {1, 6, 13, 21, 31, -1}, new int[] {3, 4, 4, 5, 5}),
 
         /* totally ignorable text */
-        SD("           ---------------", "abc", null, SECONDARY, STANDARD_ELEMENT_COMPARISON, null, IA(-1), IA(0)),
+        new SearchData("           ---------------",                       "abc",       null, Collator.SECONDARY,  null,
+                       new int[] {-1}, new int[] {0}),
+        new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     static SearchData TEXTCANONICAL[] = {
-        SD("the foxy brown fox", "fox", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(4, 15, -1), IA(3, 3)),
-        SD("the quick brown fox", "fox", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(16, -1), IA(3)),
+        new SearchData("the foxy brown fox",                               "fox",       null, Collator.TERTIARY,   null,
+                       new int[] {4, 15, -1}, new int[] {3, 3}),
+        new SearchData("the quick brown fox",                              "fox",       null, Collator.TERTIARY,   null,
+                       new int[] {16, -1}, new int[]{3}),
+        new SearchData(null, null, null, Collator.TERTIARY,null, new int[] {-1}, new int[] {0})
     };
 
     /**
@@ -576,10 +512,8 @@ public class SearchTest extends TestFmwk {
             breaker.setText(text);
         }
         collator.setStrength(search.strength);
-        collator.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
         try {
             strsrch = new StringSearch(pattern, new StringCharacterIterator(text), (RuleBasedCollator)collator, breaker);
-            strsrch.setElementComparisonType(search.cmpType);
             strsrch.setCanonical(true);
         } catch (Exception e) {
             errln("Error opening string search" + e.getMessage());
@@ -587,12 +521,10 @@ public class SearchTest extends TestFmwk {
         }
 
         if (!assertEqualWithStringSearch(strsrch, search)) {
-            collator.setStrength(TERTIARY);
-            collator.setDecomposition(Collator.NO_DECOMPOSITION);
+            collator.setStrength(Collator.TERTIARY);
             return false;
         }
-        collator.setStrength(TERTIARY);
-        collator.setDecomposition(Collator.NO_DECOMPOSITION);
+        collator.setStrength(Collator.TERTIARY);
         return true;
     }
 
@@ -610,17 +542,16 @@ public class SearchTest extends TestFmwk {
         collator.setStrength(search.strength);
         try {
             strsrch = new StringSearch(pattern, new StringCharacterIterator(text), (RuleBasedCollator)collator, breaker);
-            strsrch.setElementComparisonType(search.cmpType);
         } catch (Exception e) {
             errln("Error opening string search " + e.getMessage());
             return false;
         }
 
         if (!assertEqualWithStringSearch(strsrch, search)) {
-            collator.setStrength(TERTIARY);
+            collator.setStrength(Collator.TERTIARY);
             return false;
         }
-        collator.setStrength(TERTIARY);
+        collator.setStrength(Collator.TERTIARY);
         return true;
     }
 
@@ -640,17 +571,16 @@ public class SearchTest extends TestFmwk {
             strsrch = new StringSearch(pattern, new StringCharacterIterator(text), (RuleBasedCollator)collator, breaker);
             strsrch.setCanonical(canonical);
             strsrch.setOverlapping(overlap);
-            strsrch.setElementComparisonType(search.cmpType);
         } catch (Exception e) {
             errln("Error opening string search " + e.getMessage());
             return false;
         }
 
         if (!assertEqualWithStringSearch(strsrch, search)) {
-            collator.setStrength(TERTIARY);
+            collator.setStrength(Collator.TERTIARY);
             return false;
         }
-        collator.setStrength(TERTIARY);
+        collator.setStrength(Collator.TERTIARY);
         return true;
     }
 
@@ -776,10 +706,12 @@ public class SearchTest extends TestFmwk {
     }
 
     public void TestBasic() {
-        for (int count = 0; count < BASIC.length; count++) {
+        int count = 0;
+        while (BASIC[count].text != null) {
             if (!assertEqual(BASIC[count])) {
                 errln("Error at test number " + count);
             }
+            count ++;
         }
     }
 
@@ -829,7 +761,7 @@ public class SearchTest extends TestFmwk {
                 errln("Error setting break iterator");
             }
             if (!assertEqualWithStringSearch(strsrch, search)) {
-                collator.setStrength(TERTIARY);
+                collator.setStrength(Collator.TERTIARY);
             }
             search   = BREAKITERATOREXACT[count + 1];
             breaker  = getBreakIterator(search.breaker);
@@ -846,10 +778,12 @@ public class SearchTest extends TestFmwk {
             }
             count += 2;
         }
-        for (count = 0; count < BREAKITERATOREXACT.length; count++) {
+        count = 0;
+        while (BREAKITERATOREXACT[count].text != null) {
             if (!assertEqual(BREAKITERATOREXACT[count])) {
                 errln("Error at test number " + count);
             }
+             count++;
         }
     }
 
@@ -878,7 +812,7 @@ public class SearchTest extends TestFmwk {
                 return;
             }
             if (!assertEqualWithStringSearch(strsrch, search)) {
-                collator.setStrength(TERTIARY);
+                collator.setStrength(Collator.TERTIARY);
                 return;
             }
             search  = BREAKITERATOREXACT[count + 1];
@@ -897,20 +831,23 @@ public class SearchTest extends TestFmwk {
             }
             count += 2;
         }
-
-        for (count = 0; count < BREAKITERATORCANONICAL.length; count++) {
+        count = 0;
+        while (BREAKITERATORCANONICAL[count].text != null) {
              if (!assertEqual(BREAKITERATORCANONICAL[count])) {
                  errln("Error at test number " + count);
                  return;
              }
+             count++;
         }
     }
 
     public void TestCanonical() {
-        for (int count = 0; count < BASICCANONICAL.length; count++) {
+        int count = 0;
+        while (BASICCANONICAL[count].text != null) {
             if (!assertCanonicalEqual(BASICCANONICAL[count])) {
                 errln("Error at test number " + count);
             }
+            count ++;
         }
     }
 
@@ -1003,20 +940,24 @@ public class SearchTest extends TestFmwk {
     }
 
     public void TestCompositeBoundaries() {
-        for (int count = 0; count < COMPOSITEBOUNDARIES.length; count++) {
+        int count = 0;
+        while (COMPOSITEBOUNDARIES[count].text != null) {
             // logln("composite " + count);
             if (!assertEqual(COMPOSITEBOUNDARIES[count])) {
                 errln("Error at test number " + count);
             }
+            count++;
         }
     }
 
     public void TestCompositeBoundariesCanonical() {
-        for (int count = 0; count < COMPOSITEBOUNDARIESCANONICAL.length; count++) {
+        int count = 0;
+        while (COMPOSITEBOUNDARIESCANONICAL[count].text != null) {
             // logln("composite " + count);
             if (!assertCanonicalEqual(COMPOSITEBOUNDARIESCANONICAL[count])) {
                 errln("Error at test number " + count);
             }
+            count++;
         }
     }
 
@@ -1025,7 +966,7 @@ public class SearchTest extends TestFmwk {
         RuleBasedCollator collator = null;
         try {
             collator = new RuleBasedCollator(rules);
-            collator.setStrength(TERTIARY);
+            collator.setStrength(Collator.TERTIARY);
             collator.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
         } catch (Exception e) {
             errln("Error opening collator ");
@@ -1039,7 +980,8 @@ public class SearchTest extends TestFmwk {
             errln("Error opening string search ");
         }
 
-        for (int count = 0; count< CONTRACTION.length; count++) {
+        int count = 0;
+        while (CONTRACTION[count].text != null) {
             text = CONTRACTION[count].text;
             pattern = CONTRACTION[count].pattern;
             strsrch.setTarget(new StringCharacterIterator(text));
@@ -1047,6 +989,7 @@ public class SearchTest extends TestFmwk {
             if (!assertEqualWithStringSearch(strsrch, CONTRACTION[count])) {
                 errln("Error at test number " + count);
             }
+            count++;
         }
     }
 
@@ -1055,7 +998,7 @@ public class SearchTest extends TestFmwk {
         RuleBasedCollator collator = null;
         try {
             collator = new RuleBasedCollator(rules);
-            collator.setStrength(TERTIARY);
+            collator.setStrength(Collator.TERTIARY);
             collator.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
         } catch (Exception e) {
             errln("Error opening collator ");
@@ -1070,7 +1013,8 @@ public class SearchTest extends TestFmwk {
             errln("Error opening string search");
         }
 
-        for (int count = 0; count < CONTRACTIONCANONICAL.length; count++) {
+        int count = 0;
+        while (CONTRACTIONCANONICAL[count].text != null) {
             text = CONTRACTIONCANONICAL[count].text;
             pattern = CONTRACTIONCANONICAL[count].pattern;
             strsrch.setTarget(new StringCharacterIterator(text));
@@ -1078,6 +1022,7 @@ public class SearchTest extends TestFmwk {
             if (!assertEqualWithStringSearch(strsrch, CONTRACTIONCANONICAL[count])) {
                 errln("Error at test number " + count);
             }
+            count++;
         }
     }
 
@@ -1158,13 +1103,6 @@ public class SearchTest extends TestFmwk {
             errln("Error setting canonical match false");
         }
 
-        if (strsrch.getElementComparisonType() != STANDARD_ELEMENT_COMPARISON) {
-            errln("Error default element comparison type should be STANDARD_ELEMENT_COMPARISON");
-        }
-        strsrch.setElementComparisonType(ElementComparisonType.PATTERN_BASE_WEIGHT_IS_WILDCARD);
-        if (strsrch.getElementComparisonType() != ElementComparisonType.PATTERN_BASE_WEIGHT_IS_WILDCARD) {
-            errln("Error setting element comparison type PATTERN_BASE_WEIGHT_IS_WILDCARD");
-        }
     }
 
     public void TestGetSetOffset() {
@@ -1194,8 +1132,9 @@ public class SearchTest extends TestFmwk {
             logln("PASS: strsrch.setIndex(128) failed as expected");
         }
 
-        for (int index = 0; index < BASIC.length; index++) {
-            SearchData  search      = BASIC[index];
+        int index   = 0;
+        while (BASIC[index].text != null) {
+            SearchData  search      = BASIC[index ++];
 
             text =search.text;
             pattern = search.pattern;
@@ -1237,7 +1176,7 @@ public class SearchTest extends TestFmwk {
                 return;
             }
         }
-        strsrch.getCollator().setStrength(TERTIARY);
+        strsrch.getCollator().setStrength(Collator.TERTIARY);
     }
 
     public void TestGetSetOffsetCanonical() {
@@ -1252,8 +1191,6 @@ public class SearchTest extends TestFmwk {
             return;
         }
         strsrch.setCanonical(true);
-        //TODO: setCanonical is not sufficient for canonical match. See #10725
-        strsrch.getCollator().setDecomposition(Collator.CANONICAL_DECOMPOSITION);
         /* testing out of bounds error */
         try {
             strsrch.setIndex(-1);
@@ -1268,8 +1205,14 @@ public class SearchTest extends TestFmwk {
             logln("PASS: strsrch.setIndex(128) failed as expected");
         }
 
-        for (int index = 0; index < BASICCANONICAL.length; index++) {
-            SearchData  search      = BASICCANONICAL[index];
+        int   index   = 0;
+        while (BASICCANONICAL[index].text != null) {
+            SearchData  search      = BASICCANONICAL[index ++];
+            if (BASICCANONICAL[index].text == null) {
+                // skip the last one
+                break;
+            }
+
             text = search.text;
             pattern = search.pattern;
             strsrch.setTarget(new StringCharacterIterator(text));
@@ -1306,8 +1249,7 @@ public class SearchTest extends TestFmwk {
                 return;
             }
         }
-        strsrch.getCollator().setStrength(TERTIARY);
-        strsrch.getCollator().setDecomposition(Collator.NO_DECOMPOSITION);
+        strsrch.getCollator().setStrength(Collator.TERTIARY);
     }
 
     public void TestIgnorable() {
@@ -1332,7 +1274,7 @@ public class SearchTest extends TestFmwk {
             return;
         }
 
-        for (; count < IGNORABLE.length; count++) {
+        while (IGNORABLE[count].text != null) {
             text = IGNORABLE[count].text;
             pattern = IGNORABLE[count].pattern;
             strsrch.setTarget(new StringCharacterIterator(text));
@@ -1340,6 +1282,7 @@ public class SearchTest extends TestFmwk {
             if (!assertEqualWithStringSearch(strsrch, IGNORABLE[count])) {
                 errln("Error at test number " + count);
             }
+            count++;
         }
     }
 
@@ -1375,33 +1318,39 @@ public class SearchTest extends TestFmwk {
 
     public void TestNormCanonical() {
         m_en_us_.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
-        for (int count = 0; count < NORMCANONICAL.length; count++) {
+        int count = 0;
+        while (NORMCANONICAL[count].text != null) {
             if (!assertCanonicalEqual(NORMCANONICAL[count])) {
                 errln("Error at test number " + count);
             }
+            count++;
         }
         m_en_us_.setDecomposition(Collator.NO_DECOMPOSITION);
     }
 
     public void TestNormExact() {
-        int count;
-
+        int count = 0;
         m_en_us_.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
-        for (count = 0; count < BASIC.length; count++) {
+        while (BASIC[count].text != null) {
             if (!assertEqual(BASIC[count])) {
                 errln("Error at test number " + count);
             }
+            count++;
         }
-        for (count = 0; count < NORMEXACT.length; count++) {
+        count = 0;
+        while (NORMEXACT[count].text != null) {
             if (!assertEqual(NORMEXACT[count])) {
                 errln("Error at test number " + count);
             }
+            count++;
         }
         m_en_us_.setDecomposition(Collator.NO_DECOMPOSITION);
-        for (count = 0; count < NONNORMEXACT.length; count++) {
+        count = 0;
+        while (NONNORMEXACT[count].text != null) {
             if (!assertEqual(NONNORMEXACT[count])) {
                 errln("Error at test number " + count);
             }
+            count++;
         }
     }
 
@@ -1517,21 +1466,23 @@ public class SearchTest extends TestFmwk {
     }
 
     public void TestOverlap() {
-        int count;
-
-        for (count = 0; count < OVERLAP.length; count++) {
+        int count = 0;
+        while (OVERLAP[count].text != null) {
             if (!assertEqualWithAttribute(OVERLAP[count], false, true)) {
                 errln("Error at overlap test number " + count);
             }
+            count++;
         }
-
-        for (count = 0; count < NONOVERLAP.length; count++) {
+        count = 0;
+        while (NONOVERLAP[count].text != null) {
             if (!assertEqual(NONOVERLAP[count])) {
                 errln("Error at non overlap test number " + count);
             }
+            count++;
         }
 
-        for (count = 0; count < OVERLAP.length && count < NONOVERLAP.length; count++) {
+        count = 0;
+        while (count < 1) {
             SearchData search = (OVERLAP[count]);
             String text = search.text;
             String pattern = search.pattern;
@@ -1562,26 +1513,40 @@ public class SearchTest extends TestFmwk {
             if (!assertEqualWithStringSearch(strsrch, search)) {
                 errln("Error at test number " + count);
              }
+            count ++;
         }
     }
 
     public void TestOverlapCanonical() {
-        int count;
-
-        for (count = 0; count < OVERLAPCANONICAL.length; count++) {
-            if (!assertEqualWithAttribute(OVERLAPCANONICAL[count], true, true)) {
+        int count = 0;
+        while (OVERLAPCANONICAL[count].text != null) {
+            if (!assertEqualWithAttribute(OVERLAPCANONICAL[count], true,
+                                          true)) {
                 errln("Error at overlap test number %d" + count);
             }
+            count ++;
         }
-
-        for (count = 0; count < NONOVERLAP.length; count++) {
+        count = 0;
+        while (NONOVERLAP[count].text != null) {
             if (!assertCanonicalEqual(NONOVERLAPCANONICAL[count])) {
                 errln("Error at non overlap test number %d" + count);
             }
+            count ++;
         }
 
-        for (count = 0; count < OVERLAPCANONICAL.length && count < NONOVERLAPCANONICAL.length; count++) {
+        count = 0;
+        while (count < 1) {
+                 /* UChar       temp[128];
+            const SearchData *search = &(OVERLAPCANONICAL[count]);
+                  UErrorCode  status = U_ZERO_ERROR;*/
             SearchData search = OVERLAPCANONICAL[count];
+
+            /*u_unescape(search.text, temp, 128);
+            UnicodeString text;
+            text.setTo(temp, u_strlen(temp));
+            u_unescape(search.pattern, temp, 128);
+            UnicodeString pattern;
+            pattern.setTo(temp, u_strlen(temp));*/
             RuleBasedCollator collator = getCollator(search.collator);
             StringSearch strsrch = new StringSearch(search.pattern, new StringCharacterIterator(search.text), collator, null);
             strsrch.setCanonical(true);
@@ -1603,6 +1568,9 @@ public class SearchTest extends TestFmwk {
                 strsrch = null;
                 errln("Error at test number %d" + count);
              }
+
+            count ++;
+            strsrch = null;
         }
     }
 
@@ -1610,11 +1578,20 @@ public class SearchTest extends TestFmwk {
         m_en_us_.setStrength(PATTERN[0].strength);
         StringSearch strsrch = new StringSearch(PATTERN[0].pattern, new StringCharacterIterator(PATTERN[0].text), m_en_us_, null);
 
+        /*if (U_FAILURE(status)) {
+            errln("Error opening string search %s", u_errorName(status));
+            m_en_us_.setStrength(getECollationStrength(UCOL_TERTIARY));
+            if (strsrch != NULL) {
+                delete strsrch;
+            }
+            return;
+        }*/
+
         if (strsrch.getPattern() != PATTERN[0].pattern) {
             errln("Error setting pattern");
         }
         if (!assertEqualWithStringSearch(strsrch, PATTERN[0])) {
-            m_en_us_.setStrength(TERTIARY);
+            m_en_us_.setStrength(Collator.TERTIARY);
             if (strsrch != null) {
                 strsrch = null;
             }
@@ -1624,7 +1601,7 @@ public class SearchTest extends TestFmwk {
         strsrch.setPattern(PATTERN[1].pattern);
         if (PATTERN[1].pattern != strsrch.getPattern()) {
             errln("Error setting pattern");
-            m_en_us_.setStrength(TERTIARY);
+            m_en_us_.setStrength(Collator.TERTIARY);
             if (strsrch != null) {
                 strsrch = null;
             }
@@ -1633,7 +1610,7 @@ public class SearchTest extends TestFmwk {
         strsrch.reset();
 
         if (!assertEqualWithStringSearch(strsrch, PATTERN[1])) {
-            m_en_us_.setStrength(TERTIARY);
+            m_en_us_.setStrength(Collator.TERTIARY);
             if (strsrch != null) {
                 strsrch = null;
             }
@@ -1643,7 +1620,7 @@ public class SearchTest extends TestFmwk {
         strsrch.setPattern(PATTERN[0].pattern);
         if (PATTERN[0].pattern != strsrch.getPattern()) {
             errln("Error setting pattern");
-            m_en_us_.setStrength(TERTIARY);
+            m_en_us_.setStrength(Collator.TERTIARY);
             if (strsrch != null) {
                 strsrch = null;
             }
@@ -1652,7 +1629,7 @@ public class SearchTest extends TestFmwk {
             strsrch.reset();
 
         if (!assertEqualWithStringSearch(strsrch, PATTERN[0])) {
-            m_en_us_.setStrength(TERTIARY);
+            m_en_us_.setStrength(Collator.TERTIARY);
             if (strsrch != null) {
                 strsrch = null;
             }
@@ -1669,7 +1646,7 @@ public class SearchTest extends TestFmwk {
             errln("Error setting pattern with size 512");
         }
 
-        m_en_us_.setStrength(TERTIARY);
+        m_en_us_.setStrength(Collator.TERTIARY);
         if (strsrch != null) {
             strsrch = null;
         }
@@ -1686,7 +1663,7 @@ public class SearchTest extends TestFmwk {
             errln("Error setting pattern");
         }
         if (!assertEqualWithStringSearch(strsrch, PATTERNCANONICAL[0])) {
-            m_en_us_.setStrength(TERTIARY);
+            m_en_us_.setStrength(Collator.TERTIARY);
             strsrch = null;
             return;
         }
@@ -1694,7 +1671,7 @@ public class SearchTest extends TestFmwk {
         strsrch.setPattern(PATTERNCANONICAL[1].pattern);
         if (PATTERNCANONICAL[1].pattern != strsrch.getPattern()) {
             errln("Error setting pattern");
-            m_en_us_.setStrength(TERTIARY);
+            m_en_us_.setStrength(Collator.TERTIARY);
             strsrch = null;
             return;
         }
@@ -1702,7 +1679,7 @@ public class SearchTest extends TestFmwk {
         strsrch.setCanonical(true);
 
         if (!assertEqualWithStringSearch(strsrch, PATTERNCANONICAL[1])) {
-            m_en_us_.setStrength(TERTIARY);
+            m_en_us_.setStrength(Collator.TERTIARY);
             strsrch = null;
             return;
         }
@@ -1710,7 +1687,7 @@ public class SearchTest extends TestFmwk {
         strsrch.setPattern(PATTERNCANONICAL[0].pattern);
         if (PATTERNCANONICAL[0].pattern != strsrch.getPattern()) {
             errln("Error setting pattern");
-            m_en_us_.setStrength(TERTIARY);
+            m_en_us_.setStrength(Collator.TERTIARY);
             strsrch = null;
             return;
         }
@@ -1718,7 +1695,7 @@ public class SearchTest extends TestFmwk {
         strsrch.reset();
         strsrch.setCanonical(true);
         if (!assertEqualWithStringSearch(strsrch, PATTERNCANONICAL[0])) {
-            m_en_us_.setStrength(TERTIARY);
+            m_en_us_.setStrength(Collator.TERTIARY);
             strsrch = null;
             return;
         }
@@ -1746,7 +1723,8 @@ public class SearchTest extends TestFmwk {
     }
 
     public void TestSetMatch() {
-        for (int count = 0; count < MATCH.length; count++) {
+        int count = 0;
+        while (MATCH[count].text != null) {
             SearchData     search = MATCH[count];
             StringSearch strsrch = new StringSearch(search.pattern, new StringCharacterIterator(search.text),
                                                     m_en_us_, null);
@@ -1784,45 +1762,64 @@ public class SearchTest extends TestFmwk {
             if (strsrch.preceding(0) != SearchIterator.DONE) {
                 errln("Error expecting out of bounds match");
             }
+            count ++;
+            strsrch = null;
         }
     }
 
     public void TestStrength() {
-        for (int count = 0; count < STRENGTH.length; count++) {
+        int count = 0;
+        while (STRENGTH[count].text != null) {
+            if (count == 3) count ++;
             if (!assertEqual(STRENGTH[count])) {
                 errln("Error at test number " + count);
             }
+            count ++;
         }
     }
 
     public void TestStrengthCanonical() {
-        for (int count = 0; count < STRENGTHCANONICAL.length; count++) {
+        int count = 0;
+        while (STRENGTHCANONICAL[count].text != null) {
+            if (count == 3) count ++;
             if (!assertCanonicalEqual(STRENGTHCANONICAL[count])) {
                 errln("Error at test number" + count);
             }
+            count ++;
         }
     }
 
     public void TestSupplementary() {
-        for (int count = 0; count < SUPPLEMENTARY.length; count++) {
+        if (logKnownIssue("8080", null)) {
+            return;
+        }
+        int count = 0;
+        while (SUPPLEMENTARY[count].text != null) {
             if (!assertEqual(SUPPLEMENTARY[count])) {
                 errln("Error at test number " + count);
             }
+            count ++;
         }
     }
 
     public void TestSupplementaryCanonical() {
-        for (int count = 0; count < SUPPLEMENTARYCANONICAL.length; count++) {
+        if (logKnownIssue("8080", null)) {
+            return;
+        }
+        int count = 0;
+        while (SUPPLEMENTARYCANONICAL[count].text != null) {
             if (!assertCanonicalEqual(SUPPLEMENTARYCANONICAL[count])) {
                 errln("Error at test number" + count);
             }
+            count ++;
         }
     }
 
     public void TestText() {
         SearchData TEXT[] = {
-            SD("the foxy brown fox", "fox", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(4, 15, -1), IA(3, 3)),
-            SD("the quick brown fox", "fox", null, TERTIARY, STANDARD_ELEMENT_COMPARISON, null, IA(16, -1), IA(3))
+            new SearchData("the foxy brown fox", "fox", null, Collator.TERTIARY, null, new int[] {4, 15, -1}, new int[] {3, 3}),
+            new SearchData("the quick brown fox", "fox", null, Collator.TERTIARY, null, new int[] {16, -1}, new int[] {3}),
+            new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[]{0})
         };
         StringCharacterIterator t = new StringCharacterIterator(TEXT[0].text);
         StringSearch strsrch = new StringSearch(TEXT[0].pattern, t, m_en_us_, null);
@@ -1890,23 +1887,27 @@ public class SearchTest extends TestFmwk {
     }
 
     public void TestVariable() {
+        int count = 0;
         m_en_us_.setAlternateHandlingShifted(true);
-        for (int count = 0; count < VARIABLE.length; count++) {
+        while (VARIABLE[count].text != null) {
             // logln("variable" + count);
             if (!assertEqual(VARIABLE[count])) {
                 errln("Error at test number " + count);
             }
+            count ++;
         }
         m_en_us_.setAlternateHandlingShifted(false);
     }
 
     public void TestVariableCanonical() {
+        int count = 0;
         m_en_us_.setAlternateHandlingShifted(true);
-        for (int count = 0; count < VARIABLE.length; count++) {
+        while (VARIABLE[count].text != null) {
             // logln("variable " + count);
             if (!assertCanonicalEqual(VARIABLE[count])) {
                 errln("Error at test number " + count);
             }
+            count ++;
         }
         m_en_us_.setAlternateHandlingShifted(false);
     }
@@ -1997,6 +1998,7 @@ public class SearchTest extends TestFmwk {
         String pattern = "pattern";
         String text = "text";
         StringSearch strsrch = null;
+        int count = 0;
         try {
             strsrch = new StringSearch(pattern, text);
         } catch (Exception e) {
@@ -2004,7 +2006,7 @@ public class SearchTest extends TestFmwk {
             return;
         }
 
-        for (int count = 0; count < DIACTRICMATCH.length; count++) {
+        while (DIACTRICMATCH[count].text != null) {
             strsrch.setCollator(getCollator(DIACTRICMATCH[count].collator));
             strsrch.getCollator().setStrength(DIACTRICMATCH[count].strength);
             strsrch.setBreakIterator(getBreakIterator(DIACTRICMATCH[count].breaker));
@@ -2016,6 +2018,7 @@ public class SearchTest extends TestFmwk {
             if (!assertEqualWithStringSearch(strsrch, DIACTRICMATCH[count])) {
                 errln("Error at test number " + count);
             }
+            count++;
         }
     }
 

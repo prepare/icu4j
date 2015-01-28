@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2003-2014 International Business Machines
+* Copyright (c) 2003-2013 International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -286,7 +286,8 @@ public final class ZoneMeta {
             try {
                 UResourceBundle top = UResourceBundle.getBundleInstance(
                         ICUResourceBundle.ICU_BASE_NAME, ZONEINFORESNAME, ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-                ZONEIDS = top.getStringArray(kNAMES);
+                UResourceBundle names = top.get(kNAMES);
+                ZONEIDS = names.getStringArray();
             } catch (MissingResourceException ex) {
                 // throw away..
             }

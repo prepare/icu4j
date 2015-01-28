@@ -1,7 +1,9 @@
 /*
  *******************************************************************************
- * Copyright (C) 2002-2014, International Business Machines Corporation and
- * others. All Rights Reserved.
+ * Copyright (C) 2002-2012, International Business Machines Corporation and    *
+ * others. All Rights Reserved.                                                *
+ *******************************************************************************
+ *
  *******************************************************************************
  */
 
@@ -214,6 +216,7 @@ public class TestConversion extends ModuleTest {
 
     
     private void FromUnicodeCase(ConversionCase cc) {
+
         // create charset encoder for conversion test
         CharsetProviderICU provider = new CharsetProviderICU();
         CharsetEncoder encoder = null;
@@ -224,21 +227,17 @@ public class TestConversion extends ModuleTest {
                     ? (Charset) provider.charsetForName(cc.charset.substring(1),
                         "com/ibm/icu/dev/data/testdata", this.getClass().getClassLoader())
                     : (Charset) provider.charsetForName(cc.charset);
-            if (charset != null) {
-                encoder = (CharsetEncoder) charset.newEncoder();
-                encoder.onMalformedInput(CodingErrorAction.REPLACE);
-                encoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
-                if (encoder instanceof CharsetEncoderICU) {
-                    ((CharsetEncoderICU)encoder).setFallbackUsed(cc.fallbacks);
-                    if (((CharsetEncoderICU)encoder).isFallbackUsed() != cc.fallbacks) {
-                        errln("Fallback could not be set for " + cc.charset);
-                    }
+            encoder = (CharsetEncoder) charset.newEncoder();
+            encoder.onMalformedInput(CodingErrorAction.REPLACE);
+            encoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
+            if (encoder instanceof CharsetEncoderICU) {
+                ((CharsetEncoderICU)encoder).setFallbackUsed(cc.fallbacks);
+                if (((CharsetEncoderICU)encoder).isFallbackUsed() != cc.fallbacks) {
+                    errln("Fallback could not be set for " + cc.charset);
                 }
             }
+            
         } catch (Exception e) {
-            encoder = null;
-        }
-        if (encoder == null) {
             if (cc.charset.charAt(0) == UNSUPPORTED_CHARSET_SYMBOL) {
                 logln("Skipping test:(" + cc.charset.substring(1) + ") due to ICU Charset not supported at this time");
             } else {
@@ -246,7 +245,7 @@ public class TestConversion extends ModuleTest {
             }
             return;
         }
-
+        
         // set the callback for the encoder 
         if (cc.cbErrorAction != null) {
             if (cc.cbEncoder != null) {
@@ -515,16 +514,12 @@ public class TestConversion extends ModuleTest {
                     ? (Charset) provider.charsetForName(cc.charset.substring(1),
                         "com/ibm/icu/dev/data/testdata", this.getClass().getClassLoader())
                     : (Charset) provider.charsetForName(cc.charset);
-            if (charset != null) {
-                decoder = (CharsetDecoder) charset.newDecoder();
-                decoder.onMalformedInput(CodingErrorAction.REPLACE);
-                decoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
-            }
+            decoder = (CharsetDecoder) charset.newDecoder();
+            decoder.onMalformedInput(CodingErrorAction.REPLACE);
+            decoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
+
         } catch (Exception e) {
             // TODO implement loading of test data.
-            decoder = null;
-        }
-        if (decoder == null) {
             if (cc.charset.charAt(0) == UNSUPPORTED_CHARSET_SYMBOL) {
                 logln("Skipping test:(" + cc.charset.substring(1) + ") due to ICU Charset not supported at this time");
             } else {
@@ -904,12 +899,12 @@ public class TestConversion extends ModuleTest {
            
            //checking for converter that are not supported at this point        
            try{
-                if(charset==null ||
-                        charset.name()=="BOCU-1" ||charset.name()== "SCSU"|| charset.name()=="lmbcs1" || charset.name()== "lmbcs2" ||
+               if(charset.name()=="BOCU-1" ||charset.name()== "SCSU"|| charset.name()=="lmbcs1" || charset.name()== "lmbcs2" ||
                       charset.name()== "lmbcs3" || charset.name()== "lmbcs4" || charset.name()=="lmbcs5" || charset.name()=="lmbcs6" ||
                       charset.name()== "lmbcs8" || charset.name()=="lmbcs11" || charset.name()=="lmbcs16" || charset.name()=="lmbcs17" || 
                       charset.name()=="lmbcs18"|| charset.name()=="lmbcs19"){
-                    logln("Converter not supported at this point :" + cc.charset);
+                   
+                   logln("Converter not supported at this point :" +charset.displayName());
                    return;
                }
                              

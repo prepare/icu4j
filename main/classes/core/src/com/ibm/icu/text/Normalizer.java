@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2000-2014, International Business Machines Corporation and
+ * Copyright (C) 2000-2012, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -12,7 +12,6 @@ import com.ibm.icu.impl.Norm2AllModes;
 import com.ibm.icu.impl.Normalizer2Impl;
 import com.ibm.icu.impl.UCaseProps;
 import com.ibm.icu.lang.UCharacter;
-import com.ibm.icu.util.ICUCloneNotSupportedException;
 
 /**
  * Unicode Normalization 
@@ -149,19 +148,24 @@ public final class Normalizer implements Cloneable {
         private final Normalizer2 normalizer2;
     }
     private static final class NFDModeImpl {
-        private static final ModeImpl INSTANCE = new ModeImpl(Normalizer2.getNFDInstance());
+        private static final ModeImpl INSTANCE =
+            new ModeImpl(Norm2AllModes.getNFCInstance().decomp);
     }
     private static final class NFKDModeImpl {
-        private static final ModeImpl INSTANCE = new ModeImpl(Normalizer2.getNFKDInstance());
+        private static final ModeImpl INSTANCE =
+            new ModeImpl(Norm2AllModes.getNFKCInstance().decomp);
     }
     private static final class NFCModeImpl {
-        private static final ModeImpl INSTANCE = new ModeImpl(Normalizer2.getNFCInstance());
+        private static final ModeImpl INSTANCE =
+            new ModeImpl(Norm2AllModes.getNFCInstance().comp);
     }
     private static final class NFKCModeImpl {
-        private static final ModeImpl INSTANCE = new ModeImpl(Normalizer2.getNFKCInstance());
+        private static final ModeImpl INSTANCE =
+            new ModeImpl(Norm2AllModes.getNFKCInstance().comp);
     }
     private static final class FCDModeImpl {
-        private static final ModeImpl INSTANCE = new ModeImpl(Norm2AllModes.getFCDNormalizer2());
+        private static final ModeImpl INSTANCE =
+            new ModeImpl(Norm2AllModes.getFCDNormalizer2());
     }
 
     private static final class Unicode32 {
@@ -169,22 +173,22 @@ public final class Normalizer implements Cloneable {
     }
     private static final class NFD32ModeImpl {
         private static final ModeImpl INSTANCE =
-            new ModeImpl(new FilteredNormalizer2(Normalizer2.getNFDInstance(),
+            new ModeImpl(new FilteredNormalizer2(Norm2AllModes.getNFCInstance().decomp,
                                                  Unicode32.INSTANCE));
     }
     private static final class NFKD32ModeImpl {
         private static final ModeImpl INSTANCE =
-            new ModeImpl(new FilteredNormalizer2(Normalizer2.getNFKDInstance(),
+            new ModeImpl(new FilteredNormalizer2(Norm2AllModes.getNFKCInstance().decomp,
                                                  Unicode32.INSTANCE));
     }
     private static final class NFC32ModeImpl {
         private static final ModeImpl INSTANCE =
-            new ModeImpl(new FilteredNormalizer2(Normalizer2.getNFCInstance(),
+            new ModeImpl(new FilteredNormalizer2(Norm2AllModes.getNFCInstance().comp,
                                                  Unicode32.INSTANCE));
     }
     private static final class NFKC32ModeImpl {
         private static final ModeImpl INSTANCE =
-            new ModeImpl(new FilteredNormalizer2(Normalizer2.getNFKCInstance(),
+            new ModeImpl(new FilteredNormalizer2(Norm2AllModes.getNFKCInstance().comp,
                                                  Unicode32.INSTANCE));
     }
     private static final class FCD32ModeImpl {
@@ -218,19 +222,9 @@ public final class Normalizer implements Cloneable {
      */
     public static abstract class Mode {
         /**
-         * Sole constructor
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
-        protected Mode() {
-        }
-
-        /**
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        @Deprecated
         protected abstract Normalizer2 getNormalizer2(int options);
     }
 
@@ -324,7 +318,6 @@ public final class Normalizer implements Cloneable {
      * @deprecated ICU 2.8. Use Nomalizer.NONE
      * @see #NONE
      */
-    @Deprecated
     public static final Mode NO_OP = NONE;
 
     /**
@@ -343,7 +336,6 @@ public final class Normalizer implements Cloneable {
      * @deprecated ICU 2.8. Use Normalier.NFC
      * @see #NFC
      */
-    @Deprecated
     public static final Mode COMPOSE = NFC;
 
     /**
@@ -362,7 +354,6 @@ public final class Normalizer implements Cloneable {
      * @deprecated ICU 2.8. Use Normalizer.NFKC
      * @see #NFKC
      */
-    @Deprecated
     public static final Mode COMPOSE_COMPAT = NFKC;
 
     /**
@@ -381,7 +372,6 @@ public final class Normalizer implements Cloneable {
      * @deprecated ICU 2.8. Use Normalizer.NFD
      * @see #NFD
      */
-    @Deprecated
     public static final Mode DECOMP = NFD;
 
     /**
@@ -400,7 +390,6 @@ public final class Normalizer implements Cloneable {
      * @deprecated ICU 2.8. Use Normalizer.NFKD
      * @see #NFKD
      */
-    @Deprecated
     public static final Mode DECOMP_COMPAT = NFKD;
 
     /**
@@ -421,7 +410,6 @@ public final class Normalizer implements Cloneable {
      * @see #setOption
      * @deprecated ICU 2.8. This option is no longer supported.
      */
-    @Deprecated
     public static final int IGNORE_HANGUL = 0x0001;
           
     /**
@@ -580,7 +568,7 @@ public final class Normalizer implements Cloneable {
             norm2 = mode.getNormalizer2(options);
             buffer = new StringBuilder();
         } catch (CloneNotSupportedException e) {
-            throw new ICUCloneNotSupportedException(e);
+            throw new IllegalStateException(e.toString());
         }
     }
 
@@ -608,7 +596,7 @@ public final class Normalizer implements Cloneable {
             return copy;
         }
         catch (CloneNotSupportedException e) {
-            throw new ICUCloneNotSupportedException(e);
+            throw new IllegalStateException(e);
         }
     }
 
@@ -870,7 +858,8 @@ public final class Normalizer implements Cloneable {
      */
     public static String normalize(int char32, Mode mode, int options) {
         if(mode == NFD && options == 0) {
-            String decomposition = Normalizer2.getNFCInstance().getDecomposition(char32);
+            String decomposition =
+                Norm2AllModes.getNFCInstance().impl.getDecomposition(char32);
             if(decomposition == null) {
                 decomposition = UTF16.valueOf(char32);
             }
@@ -1510,7 +1499,6 @@ public final class Normalizer implements Cloneable {
      * @deprecated ICU 3.2
      * @obsolete ICU 3.2
      */
-    @Deprecated
      ///CLOVER:OFF
      public int setIndex(int index) {
          setIndexOnly(index);
@@ -1525,7 +1513,6 @@ public final class Normalizer implements Cloneable {
      * @return The codepoint as an int
      * @see #startIndex
      */
-    @Deprecated
     public int getBeginIndex() {
         return 0;
     }
@@ -1538,7 +1525,6 @@ public final class Normalizer implements Cloneable {
      * @return The codepoint as an int
      * @see #endIndex
      */
-    @Deprecated
     public int getEndIndex() {
         return endIndex();
     }
@@ -1801,7 +1787,7 @@ public final class Normalizer implements Cloneable {
             text = newIter;
             reset();
         }catch(CloneNotSupportedException e) {
-            throw new ICUCloneNotSupportedException("Could not clone the UCharacterIterator", e);
+            throw new IllegalStateException("Could not clone the UCharacterIterator");
         }
     }
 

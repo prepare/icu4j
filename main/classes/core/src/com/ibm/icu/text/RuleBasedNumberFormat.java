@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2014, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2013, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -20,7 +20,6 @@ import java.util.Set;
 import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.PatternProps;
-import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.ULocale.Category;
 import com.ibm.icu.util.UResourceBundle;
@@ -68,7 +67,7 @@ import com.ibm.icu.util.UResourceBundleIterator;
  * <p>In these rules, the <em>base value</em> is spelled out explicitly and set off from the
  * rule's output text with a colon. The rules are in a sorted list, and a rule is applicable
  * to all numbers from its own base value to one less than the next rule's base value. The
- * &quot;&gt;&gt;&quot; token is called a <em>substitution</em> and tells the formatter to
+ * &quot;&gt;&gt;&quot; token is called a <em>substitution</em> and tells the fomatter to
  * isolate the number's ones digit, format it using this same set of rules, and place the
  * result at the position of the &quot;&gt;&gt;&quot; token. Text in brackets is omitted if
  * the number being formatted is an even multiple of 10 (the hyphen is a literal hyphen; 24
@@ -212,7 +211,7 @@ import com.ibm.icu.util.UResourceBundleIterator;
  *     <td width="8%" valign="top"><em>bv</em>:</td>
  *     <td valign="top"><em>bv</em> specifies the rule's base value. <em>bv</em> is a decimal
  *     number expressed using ASCII digits. <em>bv</em> may contain spaces, period, and commas,
- *     which are ignored. The rule's divisor is the highest power of 10 less than or equal to
+ *     which are irgnored. The rule's divisor is the highest power of 10 less than or equal to
  *     the base value.</td>
  *   </tr>
  *   <tr>
@@ -433,24 +432,6 @@ import com.ibm.icu.util.UResourceBundleIterator;
  *     <td width="165" valign="top">in rule in fraction rule set</td>
  *     <td>Omit the optional text if multiplying the number by the rule's base value yields 1.</td>
  *   </tr>
- *   <tr>
- *     <td width="37">$(cardinal,<i>plural syntax</i>)$</td>
- *     <td width="23"></td>
- *     <td width="165" valign="top">in all rule sets</td>
- *     <td>This provides the ability to choose a word based on the number divided by the radix to the power of the
- *     exponent of the base value for the specified locale, which is normally equivalent to the &lt;&lt; value.
- *     This uses the cardinal plural rules from PluralFormat. All strings used in the plural format are treated
- *     as the same base value for parsing.</td>
- *   </tr>
- *   <tr>
- *     <td width="37">$(ordinal,<i>plural syntax</i>)$</td>
- *     <td width="23"></td>
- *     <td width="165" valign="top">in all rule sets</td>
- *     <td>This provides the ability to choose a word based on the number divided by the radix to the power of the
- *     exponent of the base value for the specified locale, which is normally equivalent to the &lt;&lt; value.
- *     This uses the ordinal plural rules from PluralFormat. All strings used in the plural format are treated
- *     as the same base value for parsing.</td>
- *   </tr>
  * </table>
  *
  * <p>The substitution descriptor (i.e., the text between the token characters) may take one
@@ -498,8 +479,6 @@ import com.ibm.icu.util.UResourceBundleIterator;
  * @author Richard Gillam
  * @see NumberFormat
  * @see DecimalFormat
- * @see PluralFormat
- * @see PluralRules
  * @stable ICU 2.0
  */
 public class RuleBasedNumberFormat extends NumberFormat {
@@ -621,15 +600,6 @@ public class RuleBasedNumberFormat extends NumberFormat {
      */
     private String[] publicRuleSetNames;
 
-    /**
-     * Data for handling context-based capitalization
-     */
-    private boolean capitalizationInfoIsSet = false;
-    private boolean capitalizationForListOrMenu = false;
-    private boolean capitalizationForStandAlone = false;
-    private transient BreakIterator capitalizationBrkIter = null;
-
-
     private static final boolean DEBUG  =  ICUDebug.enabled("rbnf");
 
     //-----------------------------------------------------------------------
@@ -732,7 +702,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * See the class documentation for a complete explanation of the description
      * syntax.
      * @param localizations a list of localizations for the rule set names in the description.
-     * @param locale A ULocale that governs which characters are used for
+     * @param locale A ulocale that governs which characters are used for
      * formatting values in numerals, and determines which characters are equivalent in
      * lenient parsing.
      * @stable ICU 3.2
@@ -744,7 +714,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
 
     /**
      * Creates a RuleBasedNumberFormat from a predefined description.  The selector
-     * code chooses among three possible predefined formats: spellout, ordinal,
+     * code choosed among three possible predefined formats: spellout, ordinal,
      * and duration.
      * @param locale The locale for the formatter.
      * @param format A selector code specifying which kind of formatter to create for that
@@ -760,7 +730,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
 
     /**
      * Creates a RuleBasedNumberFormat from a predefined description.  The selector
-     * code chooses among three possible predefined formats: spellout, ordinal,
+     * code choosed among three possible predefined formats: spellout, ordinal,
      * and duration.
      * @param locale The locale for the formatter.
      * @param format A selector code specifying which kind of formatter to create for that
@@ -784,17 +754,23 @@ public class RuleBasedNumberFormat extends NumberFormat {
         ULocale uloc = bundle.getULocale();
         setLocale(uloc, uloc);
 
-        StringBuilder description = new StringBuilder();
+        String description = "";
         String[][] localizations = null;
 
         try {
-            ICUResourceBundle rules = bundle.getWithFallback("RBNFRules/"+rulenames[format-1]);
-            UResourceBundleIterator it = rules.getIterator();
-            while (it.hasNext()) {
-               description.append(it.nextString());
-            }
+            // For backwards compatability - If we have a pre-4.2 style RBNF resource, attempt to read it.
+            description = bundle.getString(rulenames[format-1]);
         }
-        catch (MissingResourceException e1) {
+        catch (MissingResourceException e) {
+            try {
+                ICUResourceBundle rules = bundle.getWithFallback("RBNFRules/"+rulenames[format-1]);
+                UResourceBundleIterator it = rules.getIterator();
+                while (it.hasNext()) {
+                   description = description.concat(it.nextString());
+                }
+            }
+            catch (MissingResourceException e1) {
+            }
         }
 
         try {
@@ -808,7 +784,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
             // might have description and no localizations, or no description...
         }
 
-        init(description.toString(), localizations);
+        init(description, localizations);
 
     }
 
@@ -824,9 +800,9 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * default <code>FORMAT</code> locale.
      * @param format A selector code specifying which kind of formatter to create.
      * There are three legal values: SPELLOUT, which creates a formatter that spells
-     * out a value in words in the default locale's language, ORDINAL, which attaches
+     * out a value in words in the default locale's langyage, ORDINAL, which attaches
      * an ordinal suffix from the default locale's language to a numeral, and
-     * DURATION, which formats a duration in seconds as hours, minutes, and seconds always rounding down.
+     * DURATION, which formats a duration in seconds as hours, minutes, and seconds.
      * or NUMBERING_SYSTEM, which is used for alternate numbering systems such as Hebrew.
      * @see Category#FORMAT
      * @stable ICU 2.0
@@ -857,9 +833,6 @@ public class RuleBasedNumberFormat extends NumberFormat {
     public boolean equals(Object that) {
         // if the other object isn't a RuleBasedNumberFormat, that's
         // all we need to know
-        // Test for capitalization info equality is adequately handled
-        // by the NumberFormat test for capitalizationSetting equality;
-        // the info here is just derived from that.
         if (!(that instanceof RuleBasedNumberFormat)) {
             return false;
         } else {
@@ -892,7 +865,6 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public int hashCode() {
         return super.hashCode();
     }
@@ -975,7 +947,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
     /**
      * Return a list of locales for which there are locale-specific display names
      * for the rule sets in this formatter.  If there are no localized display names, return null.
-     * @return an array of the ULocales for which there is rule set display name information
+     * @return an array of the ulocales for which there is rule set display name information
      * @stable ICU 3.2
      */
     public ULocale[] getRuleSetDisplayNameLocales() {
@@ -1088,7 +1060,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
         if (ruleSet.startsWith("%%")) {
             throw new IllegalArgumentException("Can't use internal rule set");
         }
-        return adjustForContext(format(number, findRuleSet(ruleSet)));
+        return format(number, findRuleSet(ruleSet));
     }
 
     /**
@@ -1107,7 +1079,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
         if (ruleSet.startsWith("%%")) {
             throw new IllegalArgumentException("Can't use internal rule set");
         }
-        return adjustForContext(format(number, findRuleSet(ruleSet)));
+        return format(number, findRuleSet(ruleSet));
     }
 
     /**
@@ -1125,13 +1097,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
         // this is one of the inherited format() methods.  Since it doesn't
         // have a way to select the rule set to use, it just uses the
         // default one
-        // Note, the BigInteger/BigDecimal methods below currently go through this.
-        if (toAppendTo.length() == 0) {
-            toAppendTo.append(adjustForContext(format(number, defaultRuleSet)));
-        } else {
-            // appending to other text, don't capitalize
-            toAppendTo.append(format(number, defaultRuleSet));
-        }
+        toAppendTo.append(format(number, defaultRuleSet));
         return toAppendTo;
     }
 
@@ -1154,12 +1120,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
         // this is one of the inherited format() methods.  Since it doesn't
         // have a way to select the rule set to use, it just uses the
         // default one
-        if (toAppendTo.length() == 0) {
-            toAppendTo.append(adjustForContext(format(number, defaultRuleSet)));
-        } else {
-            // appending to other text, don't capitalize
-            toAppendTo.append(format(number, defaultRuleSet));
-        }
+        toAppendTo.append(format(number, defaultRuleSet));
         return toAppendTo;
     }
 
@@ -1201,7 +1162,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
     }
 
     /**
-     * Parses the specified string, beginning at the specified position, according
+     * Parses the specfied string, beginning at the specified position, according
      * to this formatter's rules.  This will match the string against all of the
      * formatter's public rule sets and return the value corresponding to the longest
      * parseable substring.  This function's behavior is affected by the lenient
@@ -1329,15 +1290,17 @@ public class RuleBasedNumberFormat extends NumberFormat {
         // the same time, but you get what you get, and you shouldn't be using this from
         // multiple threads anyway.
         if (scannerProvider == null && lenientParse && !lookedForScanner) {
+            ///CLOVER:OFF
             try {
                 lookedForScanner = true;
-                Class<?> cls = Class.forName("com.ibm.icu.impl.text.RbnfScannerProviderImpl");
+                Class<?> cls = Class.forName("com.ibm.icu.text.RbnfScannerProviderImpl");
                 RbnfLenientScannerProvider provider = (RbnfLenientScannerProvider)cls.newInstance();
                 setLenientScannerProvider(provider);
             }
             catch (Exception e) {
                 // any failure, we just ignore and return null
             }
+            ///CLOVER:ON
         }
 
         return scannerProvider;
@@ -1417,31 +1380,6 @@ public class RuleBasedNumberFormat extends NumberFormat {
         }
     }
 
-    /**
-     * {@icu} Set a particular DisplayContext value in the formatter,
-     * such as CAPITALIZATION_FOR_STANDALONE. Note: For getContext, see 
-     * NumberFormat.
-     * 
-     * @param context The DisplayContext value to set. 
-     * @draft ICU 53
-     * @provisional This API might change or be removed in a future release.
-     */
-    // Here we override the NumberFormat implementation in order to
-    // lazily initialize relevant items 
-    public void setContext(DisplayContext context) {
-        super.setContext(context);
-        if (!capitalizationInfoIsSet &&
-              (context==DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU || context==DisplayContext.CAPITALIZATION_FOR_STANDALONE)) {
-            initCapitalizationContextInfo(locale);
-            capitalizationInfoIsSet = true;
-        }
-        if (capitalizationBrkIter == null && (context==DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE ||
-              (context==DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU && capitalizationForListOrMenu) ||
-              (context==DisplayContext.CAPITALIZATION_FOR_STANDALONE && capitalizationForStandAlone) )) {
-            capitalizationBrkIter = BreakIterator.getSentenceInstance(locale);
-        }
-    }
-
     //-----------------------------------------------------------------------
     // package-internal API
     //-----------------------------------------------------------------------
@@ -1492,16 +1430,12 @@ public class RuleBasedNumberFormat extends NumberFormat {
     DecimalFormat getDecimalFormat() {
         if (decimalFormat == null) {
             decimalFormat = (DecimalFormat)NumberFormat.getInstance(locale);
-
+            
             if (decimalFormatSymbols != null) {
                 decimalFormat.setDecimalFormatSymbols(decimalFormatSymbols);
             }
         }
         return decimalFormat;
-    }
-
-    PluralFormat createPluralFormat(PluralRules.PluralType pluralType, String pattern) {
-        return new PluralFormat(locale, pluralType, pattern, getDecimalFormat());
     }
 
     //-----------------------------------------------------------------------
@@ -1571,7 +1505,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
 
         // check to see if there's a set of lenient-parse rules.  If there
         // is, pull them out into our temporary holding place for them,
-        // and delete them from the description before the real description-
+        // and delete them from the description before the real desciption-
         // parsing code sees them
 
         lenientParseRules = extractSpecial(descBuf, "%%lenient-parse:");
@@ -1587,7 +1521,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
         }
         ++numRuleSets;
 
-        // our rule list is an array of the appropriate size
+        // our rule list is an array of the apprpriate size
         ruleSets = new NFRuleSet[numRuleSets];
 
         // divide up the descriptions into individual rule-set descriptions
@@ -1613,7 +1547,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
         // now we can take note of the formatter's default rule set, which
         // is the last public rule set in the description (it's the last
         // rather than the first so that a user can create a new formatter
-        // from an existing formatter and change its default behavior just
+        // from an existing formatter and change its default bevhaior just
         // by appending more rule sets to the end)
 
         // {dlf} Initialization of a fraction rule set requires the default rule
@@ -1646,7 +1580,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
         }
 
         // finally, we can go back through the temporary descriptions
-        // list and finish setting up the substructure
+        // list and finish seting up the substructure
         for (int i = 0; i < ruleSets.length; i++) {
             ruleSets[i].parseRules(ruleSetDescriptions[i], this);
         }
@@ -1719,23 +1653,6 @@ public class RuleBasedNumberFormat extends NumberFormat {
     }
 
     /**
-     * Set capitalizationForListOrMenu, capitalizationForStandAlone 
-     */
-    private void initCapitalizationContextInfo(ULocale theLocale) {
-        ICUResourceBundle rb = (ICUResourceBundle) UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, theLocale);
-        try {
-            ICUResourceBundle rdb = rb.getWithFallback("contextTransforms/number-spellout");
-            int[] intVector = rdb.getIntVector();
-            if (intVector.length >= 2) {
-                capitalizationForListOrMenu = (intVector[0] != 0);
-                capitalizationForStandAlone = (intVector[1] != 0);
-            }
-        } catch (MissingResourceException e) {
-            // use default
-        }
-    }
-
-    /**
      * This function is used by init() to strip whitespace between rules (i.e.,
      * after semicolons).
      * @param description The formatter description
@@ -1746,43 +1663,43 @@ public class RuleBasedNumberFormat extends NumberFormat {
         // since we don't have a method that deletes characters (why?!!)
         // create a new StringBuffer to copy the text into
         StringBuilder result = new StringBuilder();
-        int descriptionLength = description.length();
 
         // iterate through the characters...
         int start = 0;
-        while (start < descriptionLength) {
+        while (start != -1 && start < description.length()) {
             // seek to the first non-whitespace character...
-            while (start < descriptionLength
-                   && PatternProps.isWhiteSpace(description.charAt(start)))
-            {
+            while (start < description.length()
+                   && PatternProps.isWhiteSpace(description.charAt(start))) {
                 ++start;
             }
 
             //if the first non-whitespace character is semicolon, skip it and continue
-            if (start < descriptionLength && description.charAt(start) == ';') {
+            if (start < description.length() && description.charAt(start) == ';') {
                 start += 1;
                 continue;
             }
 
             // locate the next semicolon in the text and copy the text from
             // our current position up to that semicolon into the result
-            int p = description.indexOf(';', start);
+            int p;
+            p = description.indexOf(';', start);
             if (p == -1) {
                 // or if we don't find a semicolon, just copy the rest of
                 // the string into the result
                 result.append(description.substring(start));
-                break;
+                start = -1;
             }
-            else if (p < descriptionLength) {
+            else if (p < description.length()) {
                 result.append(description.substring(start, p + 1));
                 start = p + 1;
             }
+
+            // when we get here, we've seeked off the end of the sring, and
+            // we terminate the loop (we continue until *start* is -1 rather
+            // than until *p* is -1, because otherwise we'd miss the last
+            // rule in the description)
             else {
-                // when we get here, we've seeked off the end of the string, and
-                // we terminate the loop (we continue until *start* is -1 rather
-                // than until *p* is -1, because otherwise we'd miss the last
-                // rule in the description)
-                break;
+                start = -1;
             }
         }
         return result;
@@ -1885,26 +1802,6 @@ public class RuleBasedNumberFormat extends NumberFormat {
 
             postProcessor.process(result, ruleSet);
         }
-    }
-
-    /**
-     * Adjust capitalization of formatted result for display context
-     */
-    private String adjustForContext(String result) {
-        if (result != null && result.length() > 0 && UCharacter.isLowerCase(result.codePointAt(0))) {
-            DisplayContext capitalization = getContext(DisplayContext.Type.CAPITALIZATION);
-            if (  capitalization==DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE ||
-                  (capitalization == DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU && capitalizationForListOrMenu) ||
-                  (capitalization == DisplayContext.CAPITALIZATION_FOR_STANDALONE && capitalizationForStandAlone) ) {
-                if (capitalizationBrkIter == null) {
-                    // should only happen when deserializing, etc.
-                    capitalizationBrkIter = BreakIterator.getSentenceInstance(locale);
-                }
-                return UCharacter.toTitleCase(locale, result, capitalizationBrkIter,
-                                UCharacter.TITLECASE_NO_LOWERCASE | UCharacter.TITLECASE_NO_BREAK_ADJUSTMENT);
-            }
-        }
-        return result;
     }
 
     /**

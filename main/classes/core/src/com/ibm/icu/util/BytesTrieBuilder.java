@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-*   Copyright (C) 2011-2014, International Business Machines
+*   Copyright (C) 2011-2013, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 *   created on: 2011jan05
@@ -127,7 +127,6 @@ public final class BytesTrieBuilder extends StringTrieBuilder {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     @Override
     protected boolean matchNodesCanHaveValues() /*const*/ { return false; }
 
@@ -136,7 +135,6 @@ public final class BytesTrieBuilder extends StringTrieBuilder {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     @Override
     protected int getMaxBranchLinearSubNodeLength() /*const*/ { return BytesTrie.kMaxBranchLinearSubNodeLength; }
     /**
@@ -144,7 +142,6 @@ public final class BytesTrieBuilder extends StringTrieBuilder {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     @Override
     protected int getMinLinearMatch() /*const*/ { return BytesTrie.kMinLinearMatch; }
     /**
@@ -152,7 +149,6 @@ public final class BytesTrieBuilder extends StringTrieBuilder {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     @Override
     protected int getMaxLinearMatchLength() /*const*/ { return BytesTrie.kMaxLinearMatchLength; }
 
@@ -173,7 +169,6 @@ public final class BytesTrieBuilder extends StringTrieBuilder {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     @Override
     protected int write(int b) {
         int newLength=bytesLength+1;
@@ -187,7 +182,6 @@ public final class BytesTrieBuilder extends StringTrieBuilder {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     @Override
     protected int write(int offset, int length) {
         int newLength=bytesLength+length;
@@ -216,7 +210,6 @@ public final class BytesTrieBuilder extends StringTrieBuilder {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     @Override
     protected int writeValueAndFinal(int i, boolean isFinal) {
         if(0<=i && i<=BytesTrie.kMaxOneByteValue) {
@@ -255,7 +248,6 @@ public final class BytesTrieBuilder extends StringTrieBuilder {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     @Override
     protected int writeValueAndType(boolean hasValue, int value, int node) {
         int offset=write(node);
@@ -269,7 +261,6 @@ public final class BytesTrieBuilder extends StringTrieBuilder {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     @Override
     protected int writeDeltaTo(int jumpTarget) {
         int i=bytesLength-jumpTarget;

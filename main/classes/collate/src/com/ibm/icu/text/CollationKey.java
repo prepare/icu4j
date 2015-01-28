@@ -1,12 +1,10 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2014, International Business Machines Corporation and
+* Copyright (C) 1996-2012, International Business Machines Corporation and
 * others. All Rights Reserved.
 *******************************************************************************
 */
 package com.ibm.icu.text;
-
-import com.ibm.icu.impl.coll.Collation;
 
 /**
  * <p>A <code>CollationKey</code> represents a <code>String</code>
@@ -24,10 +22,7 @@ import com.ibm.icu.impl.coll.Collation;
  * <code>CollationKey.compareTo(CollationKey)</code> and the method
  * <code>Collator.compare(String, String)</code> compare two strings
  * and returns their relative order.  The performance characterictics
- * of these two approaches can differ.
- * Note that collation keys are often less efficient than simply doing comparison. 
- * For more details, see the ICU User Guide.
- * </p>
+ * of these two approaches can differ.</p>
  *
  * <p>During the construction of a <code>CollationKey</code>, the
  * entire source string is examined and processed into a series of
@@ -178,10 +173,9 @@ public final class CollationKey implements Comparable<CollationKey>
     public CollationKey(String source, RawCollationKey key)
     {
         m_source_ = source;
-        m_length_ = key.size - 1;
         m_key_ = key.releaseBytes();
-        assert m_key_[m_length_] == 0;
         m_hashCode_ = 0;
+        m_length_ = -1;
     }
     
     // public getters -------------------------------------------------------
@@ -229,7 +223,14 @@ public final class CollationKey implements Comparable<CollationKey>
      */
     public byte[] toByteArray() 
     {
-        int length = getLength() + 1;
+        int length = 0;
+        while (true) {
+            if (m_key_[length] == 0) {
+              break;
+            }
+            length ++;
+        }
+        length ++;
         byte result[] = new byte[length];
         System.arraycopy(m_key_, 0, result, 0, length);
         return result;
@@ -432,7 +433,7 @@ public final class CollationKey implements Comparable<CollationKey>
         if (noOfLevels > Collator.PRIMARY) {
             while (offset < m_key_.length && m_key_[offset] != 0) {
                 if (m_key_[offset ++] 
-                        == Collation.LEVEL_SEPARATOR_BYTE) {
+                        == RuleBasedCollator.SORT_LEVEL_TERMINATOR_) {
                     keystrength ++;
                     noOfLevels --;
                     if (noOfLevels == Collator.PRIMARY 
@@ -479,7 +480,8 @@ public final class CollationKey implements Comparable<CollationKey>
     }
 
 
-    /**
+    
+    /** 
      * Merges this CollationKey with another.
      * The levels are merged with their corresponding counterparts
      * (primaries with primaries, secondaries with secondaries etc.).
@@ -487,18 +489,7 @@ public final class CollationKey implements Comparable<CollationKey>
      *
      * <p>This is useful, for example, for combining sort keys from first and last names
      * to sort such pairs.
-     * See http://www.unicode.org/reports/tr10/#Merging_Sort_Keys
-     *
-     * <p>The recommended way to achieve "merged" sorting is by
-     * concatenating strings with U+FFFE between them.
-     * The concatenation has the same sort order as the merged sort keys,
-     * but merge(getSortKey(str1), getSortKey(str2)) may differ from getSortKey(str1 + '\uFFFE' + str2).
-     * Using strings with U+FFFE may yield shorter sort keys.
-     *
-     * <p>For details about Sort Key Features see
-     * http://userguide.icu-project.org/collation/api#TOC-Sort-Key-Features
-     *
-     * <p>It is possible to merge multiple sort keys by consecutively merging
+     * It is possible to merge multiple sort keys by consecutively merging
      * another one with the intermediate result.
      *
      * <p>Only the sort key bytes of the CollationKeys are merged.
@@ -554,12 +545,12 @@ public final class CollationKey implements Comparable<CollationKey>
     
             // if both sort keys have another level, then add a 01 level 
             // separator and continue
-            if (m_key_[index] == Collation.LEVEL_SEPARATOR_BYTE
+            if (m_key_[index] == RuleBasedCollator.SORT_LEVEL_TERMINATOR_
                 && source.m_key_[sourceindex] 
-                        == Collation.LEVEL_SEPARATOR_BYTE) {
+                        == RuleBasedCollator.SORT_LEVEL_TERMINATOR_) {
                 ++index;
                 ++sourceindex;
-                result[rindex++] = Collation.LEVEL_SEPARATOR_BYTE;
+                result[rindex++] = RuleBasedCollator.SORT_LEVEL_TERMINATOR_;
             }
             else {
                 break;

@@ -1,18 +1,14 @@
 /*
  *******************************************************************************
- * Copyright (C) 2009-2014, International Business Machines Corporation and    *
+ * Copyright (C) 2009-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.text;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Locale;
 
-import com.ibm.icu.impl.ICUConfig;
-import com.ibm.icu.lang.UScript;
-import com.ibm.icu.text.DisplayContext.Type;
+import com.ibm.icu.impl.LocaleDisplayNamesImpl;
 import com.ibm.icu.util.ULocale;
 
 /**
@@ -54,18 +50,6 @@ public abstract class LocaleDisplayNames {
     };
 
     /**
-     * Convenience overload of {@link #getInstance(Locale, DisplayContext...)} that specifies
-     * {@link DisplayContext#STANDARD_NAMES}.
-     * @param locale the display JDK locale
-     * @return a LocaleDisplayNames instance
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static LocaleDisplayNames getInstance(Locale locale) {
-        return getInstance(ULocale.forLocale(locale));
-    };
-
-    /**
      * Returns an instance of LocaleDisplayNames that returns names formatted for the provided locale,
      * using the provided dialectHandling.
      * @param locale the display locale
@@ -74,21 +58,7 @@ public abstract class LocaleDisplayNames {
      * @stable ICU 4.4
      */
     public static LocaleDisplayNames getInstance(ULocale locale, DialectHandling dialectHandling) {
-        LocaleDisplayNames result = null;
-        if (FACTORY_DIALECTHANDLING != null) {
-            try {
-                result = (LocaleDisplayNames) FACTORY_DIALECTHANDLING.invoke(null,
-                        locale, dialectHandling);
-            } catch (InvocationTargetException e) {
-                // fall through
-            } catch (IllegalAccessException e) {
-                // fall through
-            }
-        }
-        if (result == null) {
-            result = new LastResortLocaleDisplayNames(locale, dialectHandling);
-        }
-        return result;
+        return LocaleDisplayNamesImpl.getInstance(locale, dialectHandling);
     }
 
     /**
@@ -98,38 +68,11 @@ public abstract class LocaleDisplayNames {
      * @param contexts one or more context settings (e.g. for dialect
      *              handling, capitalization, etc.
      * @return a LocaleDisplayNames instance
-     * @stable ICU 51
-     */
-    public static LocaleDisplayNames getInstance(ULocale locale, DisplayContext... contexts) {
-        LocaleDisplayNames result = null;
-        if (FACTORY_DISPLAYCONTEXT != null) {
-            try {
-                result = (LocaleDisplayNames) FACTORY_DISPLAYCONTEXT.invoke(null,
-                        locale, (Object[])contexts);
-            } catch (InvocationTargetException e) {
-                // fall through
-            } catch (IllegalAccessException e) {
-                // fall through
-            }
-        }
-        if (result == null) {
-            result = new LastResortLocaleDisplayNames(locale, contexts);
-        }
-        return result;
-    }
-
-    /**
-     * Returns an instance of LocaleDisplayNames that returns names formatted for the provided JDK
-     * locale, using the provided DisplayContext settings
-     * @param locale the display JDK locale
-     * @param contexts one or more context settings (e.g. for dialect
-     *              handling, capitalization, etc.
-     * @return a LocaleDisplayNames instance
-     * @draft ICU 54
+     * @draft ICU 51
      * @provisional This API might change or be removed in a future release.
      */
-    public static LocaleDisplayNames getInstance(Locale locale, DisplayContext... contexts) {
-        return getInstance(ULocale.forLocale(locale), contexts);
+    public static LocaleDisplayNames getInstance(ULocale locale, DisplayContext... contexts) {
+        return LocaleDisplayNamesImpl.getInstance(locale, contexts);
     }
 
     // getters for state
@@ -152,7 +95,8 @@ public abstract class LocaleDisplayNames {
      * Returns the current value for a specified DisplayContext.Type.
      * @param type the DisplayContext.Type whose value to return
      * @return the current DisplayContext setting for the specified type
-     * @stable ICU 51
+     * @draft ICU 51
+     * @provisional This API might change or be removed in a future release.
      */
     public abstract DisplayContext getContext(DisplayContext.Type type);
 
@@ -206,7 +150,6 @@ public abstract class LocaleDisplayNames {
      * @internal ICU 49
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public String scriptDisplayNameInContext(String script) {
         return scriptDisplayName(script);
     }
@@ -259,141 +202,6 @@ public abstract class LocaleDisplayNames {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     protected LocaleDisplayNames() {
-    }
-
-    private static final Method FACTORY_DIALECTHANDLING;
-    private static final Method FACTORY_DISPLAYCONTEXT;
-
-    static {
-        String implClassName = ICUConfig.get("com.ibm.icu.text.LocaleDisplayNames.impl", "com.ibm.icu.impl.LocaleDisplayNamesImpl");
-
-        Method factoryDialectHandling = null;
-        Method factoryDisplayContext = null;
-
-        try {
-            Class<?> implClass = Class.forName(implClassName);
-            try {
-                factoryDialectHandling = implClass.getMethod("getInstance",
-                        ULocale.class, DialectHandling.class);
-            } catch (NoSuchMethodException e) {
-            }
-            try {
-                factoryDisplayContext = implClass.getMethod("getInstance",
-                        ULocale.class, DisplayContext[].class);
-            } catch (NoSuchMethodException e) {
-            }
-
-        } catch (ClassNotFoundException e) {
-            // fallback to last resort impl
-        }
-
-        FACTORY_DIALECTHANDLING = factoryDialectHandling;
-        FACTORY_DISPLAYCONTEXT = factoryDisplayContext;
-    }
-
-    /**
-     * Minimum implementation of LocaleDisplayNames
-     */
-    private static class LastResortLocaleDisplayNames extends LocaleDisplayNames {
-
-        private ULocale locale;
-        private DisplayContext[] contexts;
-
-        private LastResortLocaleDisplayNames(ULocale locale, DialectHandling dialectHandling) {
-            this.locale = locale;
-            DisplayContext context = (dialectHandling == DialectHandling.DIALECT_NAMES) ?
-                    DisplayContext.DIALECT_NAMES : DisplayContext.STANDARD_NAMES;
-            this.contexts = new DisplayContext[] {context};
-        }
-
-        private LastResortLocaleDisplayNames(ULocale locale, DisplayContext... contexts) {
-            this.locale = locale;
-            this.contexts = new DisplayContext[contexts.length];
-            System.arraycopy(contexts, 0, this.contexts, 0, contexts.length);
-        }
-
-        @Override
-        public ULocale getLocale() {
-            return locale;
-        }
-
-        @Override
-        public DialectHandling getDialectHandling() {
-            DialectHandling result = DialectHandling.STANDARD_NAMES;
-            for (DisplayContext context : contexts) {
-                if (context.type() == DisplayContext.Type.DIALECT_HANDLING) {
-                    if (context.value() == DisplayContext.DIALECT_NAMES.ordinal()) {
-                        result = DialectHandling.DIALECT_NAMES;
-                        break;
-                    }
-                }
-            }
-            return result;
-        }
-
-        @Override
-        public DisplayContext getContext(Type type) {
-            DisplayContext result = DisplayContext.STANDARD_NAMES;  // final fallback
-            for (DisplayContext context : contexts) {
-                if (context.type() == type) {
-                    result = context;
-                    break;
-                }
-            }
-            return result;
-        }
-
-        @Override
-        public String localeDisplayName(ULocale locale) {
-            return locale.getName();
-        }
-
-        @Override
-        public String localeDisplayName(Locale locale) {
-            return ULocale.forLocale(locale).getName();
-        }
-
-        @Override
-        public String localeDisplayName(String localeId) {
-            return new ULocale(localeId).getName();
-        }
-
-        @Override
-        public String languageDisplayName(String lang) {
-            return lang;
-        }
-
-        @Override
-        public String scriptDisplayName(String script) {
-            return script;
-        }
-
-        @Override
-        public String scriptDisplayName(int scriptCode) {
-            return UScript.getShortName(scriptCode);
-        }
-
-        @Override
-        public String regionDisplayName(String region) {
-            return region;
-        }
-
-        @Override
-        public String variantDisplayName(String variant) {
-            return variant;
-        }
-
-        @Override
-        public String keyDisplayName(String key) {
-            return key;
-        }
-
-        @Override
-        public String keyValueDisplayName(String key, String value) {
-            return value;
-        }
-        
     }
 }

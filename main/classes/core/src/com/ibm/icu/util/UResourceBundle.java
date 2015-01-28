@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2004-2014, International Business Machines Corporation and    *
+ * Copyright (C) 2004-2013, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -324,7 +324,6 @@ public abstract class UResourceBundle extends ResourceBundle {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static void resetBundleCache() {
         /*
          * A HACK!!!!!
@@ -347,7 +346,6 @@ public abstract class UResourceBundle extends ResourceBundle {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     protected static UResourceBundle addToCache(ClassLoader cl, String fullName,
                                                 ULocale defaultLocale, UResourceBundle b) {
         synchronized(cacheKey){
@@ -366,7 +364,6 @@ public abstract class UResourceBundle extends ResourceBundle {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     protected static UResourceBundle loadFromCache(ClassLoader cl, String fullName, 
                                                    ULocale defaultLocale){
         synchronized(cacheKey){
@@ -441,7 +438,7 @@ public abstract class UResourceBundle extends ResourceBundle {
                 return super.clone();
             } catch (CloneNotSupportedException e) {
                 //this should never happen
-                throw new ICUCloneNotSupportedException(e);
+                throw new IllegalStateException();
             }
         }
 
@@ -718,7 +715,6 @@ public abstract class UResourceBundle extends ResourceBundle {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     protected UResourceBundle findTopLevel(String aKey) {
         // NOTE: this only works for top-level resources.  For resources at lower
         // levels, it fails when you fall back to the parent, since you're now
@@ -786,7 +782,6 @@ public abstract class UResourceBundle extends ResourceBundle {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     protected UResourceBundle findTopLevel(int index) {
         // NOTE: this _barely_ works for top-level resources.  For resources at lower
         // levels, it fails when you fall back to the parent, since you're now
@@ -821,21 +816,7 @@ public abstract class UResourceBundle extends ResourceBundle {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public Set<String> keySet() {
-        // TODO: Java 6 ResourceBundle has keySet() which calls handleKeySet()
-        // and caches the results.
-        // When we upgrade to Java 6, we still need to check for isTopLevelResource().
-        // Keep the else branch as is. The if body should just return super.keySet().
-        // Remove then-redundant caching of the keys.
-        Set<String> keys = null;
-        ICUResourceBundle icurb = null;
-        if(isTopLevelResource() && this instanceof ICUResourceBundle) {
-            // We do not cache the top-level keys in this base class so that
-            // not every string/int/binary... resource has to have a keys cache field.
-            icurb = (ICUResourceBundle)this;
-            keys = icurb.getTopLevelKeySet();
-        }
         if(keys == null) {
             if(isTopLevelResource()) {
                 TreeSet<String> newKeySet;
@@ -854,9 +835,6 @@ public abstract class UResourceBundle extends ResourceBundle {
                 }
                 newKeySet.addAll(handleKeySet());
                 keys = Collections.unmodifiableSet(newKeySet);
-                if(icurb != null) {
-                    icurb.setTopLevelKeySet(keys);
-                }
             } else {
                 return handleKeySet();
             }
@@ -864,6 +842,7 @@ public abstract class UResourceBundle extends ResourceBundle {
         return keys;
     }
 
+    private Set<String> keys = null;
     /**
      * Returns a Set of the keys contained <i>only</i> in this ResourceBundle.
      * This does not include further keys from parent bundles.
@@ -872,7 +851,6 @@ public abstract class UResourceBundle extends ResourceBundle {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     protected Set<String> handleKeySet() {
         return Collections.emptySet();
     }
@@ -984,14 +962,14 @@ public abstract class UResourceBundle extends ResourceBundle {
      * {@icu} Actual worker method for fetching a resource based on the given key.
      * Sub classes must override this method if they support resources with keys.
      * @param aKey the key string of the resource to be fetched
-     * @param aliasesVisited hashtable object to hold references of resources already seen
+     * @param table hashtable object to hold references of resources already seen
      * @param requested the original resource bundle object on which the get method was invoked.
      *                  The requested bundle and the bundle on which this method is invoked
      *                  are the same, except in the cases where aliases are involved.
      * @return UResourceBundle a resource associated with the key
      * @stable ICU 3.8
      */
-    protected UResourceBundle handleGet(String aKey, HashMap<String, String> aliasesVisited, 
+    protected UResourceBundle handleGet(String aKey, HashMap<String, String> table, 
                                         UResourceBundle requested) {
         return null;
     }
@@ -1000,14 +978,14 @@ public abstract class UResourceBundle extends ResourceBundle {
      * {@icu} Actual worker method for fetching a resource based on the given index.
      * Sub classes must override this method if they support arrays of resources.
      * @param index the index of the resource to be fetched
-     * @param aliasesVisited hashtable object to hold references of resources already seen
+     * @param table hashtable object to hold references of resources already seen
      * @param requested the original resource bundle object on which the get method was invoked.
      *                  The requested bundle and the bundle on which this method is invoked
      *                  are the same, except in the cases where aliases are involved.
      * @return UResourceBundle a resource associated with the index
      * @stable ICU 3.8
      */
-    protected UResourceBundle handleGet(int index, HashMap<String, String> aliasesVisited, 
+    protected UResourceBundle handleGet(int index, HashMap<String, String> table, 
                                         UResourceBundle requested) {
         return null;
     }
@@ -1097,7 +1075,6 @@ public abstract class UResourceBundle extends ResourceBundle {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     protected abstract void setLoadingStatus(int newStatus);
 
     /**
@@ -1106,7 +1083,6 @@ public abstract class UResourceBundle extends ResourceBundle {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     protected boolean isTopLevelResource() {
         return true;
     }

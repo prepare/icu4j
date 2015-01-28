@@ -1,18 +1,20 @@
-/*
- *******************************************************************************
- * Copyright (C) 2006-2014, International Business Machines Corporation and
- * others. All Rights Reserved.
- *******************************************************************************
- *
- *******************************************************************************
- */
-
+/**
+*******************************************************************************
+* Copyright (C) 2006-2010, International Business Machines Corporation and    *
+* others. All Rights Reserved.                                                *
+*******************************************************************************
+*
+*******************************************************************************
+*/ 
 package com.ibm.icu.charset;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 
-import com.ibm.icu.impl.ICUBinary;
+import com.ibm.icu.impl.ICUData;
+import com.ibm.icu.impl.ICUResourceBundle;
 
 final class UConverterAlias {
     static final int UNNORMALIZED = 0;
@@ -112,12 +114,18 @@ final class UConverterAlias {
         return (alias.length() != 0);
     }
 
-    private static final String CNVALIAS_DATA_FILE_NAME = "cnvalias.icu";
+    private static final String CNVALIAS_DATA_FILE_NAME = ICUResourceBundle.ICU_BUNDLE + "/cnvalias.icu";
+
+    /**
+     * Default buffer size of datafile
+     */
+    private static final int CNVALIAS_DATA_BUFFER_SIZE = 25000;
 
     private static final synchronized boolean haveAliasData() 
                                                throws IOException{
         boolean needInit;
 
+        // agljport:todo umtx_lock(NULL);
         needInit = gAliasData == null;
 
         /* load converter alias data from file if necessary */
@@ -125,8 +133,10 @@ final class UConverterAlias {
             ByteBuffer data = null;
             int[] tableArray = null;
             int tableStart;
+            //byte[] reservedBytes = null;
 
-            ByteBuffer b = ICUBinary.getRequiredData(CNVALIAS_DATA_FILE_NAME);
+            InputStream i = ICUData.getRequiredStream(CNVALIAS_DATA_FILE_NAME);
+            BufferedInputStream b = new BufferedInputStream(i, CNVALIAS_DATA_BUFFER_SIZE);
             UConverterAliasDataReader reader = new UConverterAliasDataReader(b);
             tableArray = reader.readToc(offsetsCount);
 
@@ -154,10 +164,21 @@ final class UConverterAlias {
             if (gOptionTable[0] != STD_NORMALIZED) {
                 throw new IOException("Unsupported alias normalization");
             }
-
+            
+            // agljport:todo umtx_lock(NULL);
             if (gAliasData == null) {
                 gAliasData = data;
                 data = null;
+
+                // agljport:fix ucln_common_registerCleanup(UCLN_COMMON_IO,
+                // io_cleanup);
+            }
+            // agljport:todo umtx_unlock(NULL);
+
+            /* if a different thread set it first, then close the extra data */
+            if (data != null) {
+                // agljport:fix udata_close(data); /* NULL if it was set
+                // correctly */
             }
         }
 

@@ -1,13 +1,15 @@
 /*
- ******************************************************************************
- * Copyright (C) 1996-2014, International Business Machines Corporation and
- * others. All Rights Reserved.
- ******************************************************************************
- */
+******************************************************************************
+* Copyright (C) 1996-2011, International Business Machines Corporation and   *
+* others. All Rights Reserved.                                               *
+******************************************************************************
+*/
 
 package com.ibm.icu.impl;
 
-import java.nio.ByteBuffer;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 
 import com.ibm.icu.lang.UCharacter;
@@ -136,17 +138,22 @@ public abstract class Trie
     // protected constructor -------------------------------------------
 
     /**
-     * Trie constructor for CharTrie use.
-     * @param bytes data of an ICU data file, containing the trie
-     * @param dataManipulate object containing the information to parse the
-     *                       trie data
-     */
-    protected Trie(ByteBuffer bytes, DataManipulate  dataManipulate)
+    * Trie constructor for CharTrie use.
+    * @param inputStream ICU data file input stream which contains the
+    *                        trie
+    * @param dataManipulate object containing the information to parse the 
+    *                       trie data
+    * @throws IOException thrown when input stream does not have the
+    *                        right header.
+    */
+    protected Trie(InputStream inputStream, 
+                   DataManipulate  dataManipulate) throws IOException
     {
+        DataInputStream input = new DataInputStream(inputStream);
         // Magic number to authenticate the data.
-        int signature = bytes.getInt();
-        m_options_    = bytes.getInt();
-
+        int signature = input.readInt();
+        m_options_    = input.readInt();
+        
         if (!checkHeader(signature)) {
             throw new IllegalArgumentException("ICU data file error: Trie header authentication failed, please check if you have the most updated ICU data file");
         }
@@ -158,11 +165,11 @@ public abstract class Trie
         }
         m_isLatin1Linear_ = (m_options_ &
                              HEADER_OPTIONS_LATIN1_IS_LINEAR_MASK_) != 0;
-        m_dataOffset_     = bytes.getInt();
-        m_dataLength_     = bytes.getInt();
-        unserialize(bytes);
+        m_dataOffset_     = input.readInt();
+        m_dataLength_     = input.readInt();
+        unserialize(inputStream);
     }
-
+    
     /**
     * Trie constructor
     * @param index array to be used for index
@@ -354,16 +361,18 @@ public abstract class Trie
     }
 
     /**
-     * <p>Parses the byte buffer and creates the trie index with it.</p>
-     * <p>The position of the input ByteBuffer must be right after the trie header.</p>
-     * <p>This is overwritten by the child classes.
-     * @param bytes buffer containing trie data
-     */
-    protected void unserialize(ByteBuffer bytes)
+    * <p>Parses the inputstream and creates the trie index with it.</p>
+    * <p>This is overwritten by the child classes.
+    * @param inputStream input stream containing the trie information
+    * @exception IOException thrown when data reading fails.
+    */
+    protected void unserialize(InputStream inputStream) throws IOException
     {
-        m_index_ = new char[m_dataOffset_];
+        //indexLength is a multiple of 1024 >> INDEX_STAGE_2_SHIFT_
+        m_index_              = new char[m_dataOffset_];
+        DataInputStream input = new DataInputStream(inputStream);
         for (int i = 0; i < m_dataOffset_; i ++) {
-             m_index_[i] = bytes.getChar();
+             m_index_[i] = input.readChar();
         }
     }
 

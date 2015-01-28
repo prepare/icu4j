@@ -1,12 +1,11 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2014, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.text;
 
-import java.text.FieldPosition;
 import java.text.ParsePosition;
 
 import com.ibm.icu.impl.PatternProps;
@@ -57,7 +56,7 @@ final class NFRule {
     private int radix = 10;
 
     /**
-     * The rule's exponent (the radix raised to the power of the exponent
+     * The rule's exponent (the radx rased to the power of the exponsnt
      * equals the rule's divisor)
      */
     private short exponent = 0;
@@ -68,13 +67,6 @@ final class NFRule {
      * substitutions is inserted into the result string
      */
     private String ruleText = null;
-
-    /**
-     * The rule's plural format when defined. This is not a substitution
-     * because it only works on the current baseValue. It's normally not used
-     * due to the overhead.
-     */
-    private PluralFormat rulePatternFormat = null;
 
     /**
      * The rule's first substitution (the one with the lower offset
@@ -91,7 +83,7 @@ final class NFRule {
     /**
      * The RuleBasedNumberFormat that owns this rule
      */
-    private final RuleBasedNumberFormat formatter;
+    private RuleBasedNumberFormat formatter = null;
 
     //-----------------------------------------------------------------------
     // construction
@@ -114,7 +106,7 @@ final class NFRule {
         // we know we're making at least one rule, so go ahead and
         // new it up and initialize its basevalue and divisor
         // (this also strips the rule descriptor, if any, off the
-        // description string)
+        // descripton string)
         NFRule rule1 = new NFRule(ownersOwner);
         description = rule1.parseRuleDescriptor(description);
 
@@ -129,12 +121,11 @@ final class NFRule {
         // rule text and substitutions, and return that rule
         if (brack1 == -1 || brack2 == -1 || brack1 > brack2
             || rule1.getBaseValue() == PROPER_FRACTION_RULE
-            || rule1.getBaseValue() == NEGATIVE_NUMBER_RULE)
-        {
-            rule1.extractSubstitutions(owner, description, predecessor);
+            || rule1.getBaseValue() == NEGATIVE_NUMBER_RULE) {
+            rule1.ruleText = description;
+            rule1.extractSubstitutions(owner, predecessor, ownersOwner);
             return rule1;
-        }
-        else {
+        } else {
             // if the description does contain a matched pair of brackets,
             // then it's really shorthand for two rules (with one exception)
             NFRule rule2 = null;
@@ -146,8 +137,7 @@ final class NFRule {
             if ((rule1.baseValue > 0
                  && rule1.baseValue % (Math.pow(rule1.radix, rule1.exponent)) == 0)
                 || rule1.baseValue == IMPROPER_FRACTION_RULE
-                || rule1.baseValue == MASTER_RULE)
-            {
+                || rule1.baseValue == MASTER_RULE) {
 
                 // if it passes that test, new up the second rule.  If the
                 // rule set both rules will belong to is a fraction rule
@@ -161,16 +151,18 @@ final class NFRule {
                         ++rule1.baseValue;
                     }
                 }
+
+                // if the description began with "x.x" and contains bracketed
+                // text, it describes both the improper fraction rule and
+                // the proper fraction rule
                 else if (rule1.baseValue == IMPROPER_FRACTION_RULE) {
-                    // if the description began with "x.x" and contains bracketed
-                    // text, it describes both the improper fraction rule and
-                    // the proper fraction rule
                     rule2.baseValue = PROPER_FRACTION_RULE;
                 }
+
+                // if the description began with "x.0" and contains bracketed
+                // text, it describes both the master rule and the
+                // improper fraction rule
                 else if (rule1.baseValue == MASTER_RULE) {
-                    // if the description began with "x.0" and contains bracketed
-                    // text, it describes both the master rule and the
-                    // improper fraction rule
                     rule2.baseValue = rule1.baseValue;
                     rule1.baseValue = IMPROPER_FRACTION_RULE;
                 }
@@ -180,13 +172,14 @@ final class NFRule {
                 rule2.radix = rule1.radix;
                 rule2.exponent = rule1.exponent;
 
-                // rule2's rule text omits the stuff in brackets: initialize
+                // rule2's rule text omits the stuff in brackets: initalize
                 // its rule text and substitutions accordingly
                 sbuf.append(description.substring(0, brack1));
                 if (brack2 + 1 < description.length()) {
                     sbuf.append(description.substring(brack2 + 1));
                 }
-                rule2.extractSubstitutions(owner, sbuf.toString(), predecessor);
+                rule2.ruleText = sbuf.toString();
+                rule2.extractSubstitutions(owner, predecessor, ownersOwner);
             }
 
             // rule1's text includes the text in the brackets but omits
@@ -198,7 +191,8 @@ final class NFRule {
             if (brack2 + 1 < description.length()) {
                 sbuf.append(description.substring(brack2 + 1));
             }
-            rule1.extractSubstitutions(owner, sbuf.toString(), predecessor);
+            rule1.ruleText = sbuf.toString();
+            rule1.extractSubstitutions(owner, predecessor, ownersOwner);
 
             // if we only have one rule, return it; if we have two, return
             // a two-element array containing them (notice that rule2 goes
@@ -231,7 +225,7 @@ final class NFRule {
      * @param description The rule's description
      * @return If "description" included a rule descriptor, this is
      * "description" with the descriptor and any trailing whitespace
-     * stripped off.  Otherwise; it's "descriptor" unchanged.
+     * stripped off.  Otherwise; it's "descriptor" unchangd.
      */
     private String parseRuleDescriptor(String description) {
         String descriptor;
@@ -242,77 +236,90 @@ final class NFRule {
         int p = description.indexOf(":");
         if (p == -1) {
             setBaseValue(0);
-        }
-        else {
+        } else {
             // copy the descriptor out into its own string and strip it,
             // along with any trailing whitespace, out of the original
             // description
             descriptor = description.substring(0, p);
             ++p;
-            while (p < description.length() && PatternProps.isWhiteSpace(description.charAt(p))) {
+            while (p < description.length() && PatternProps.isWhiteSpace(description.charAt(p)))
                 ++p;
-            }
             description = description.substring(p);
 
             // check first to see if the rule descriptor matches the token
             // for one of the special rules.  If it does, set the base
-            // value to the correct identifier value
-            if (descriptor.equals("0.x")) {
+            // value to the correct identfier value
+            if (descriptor.equals("-x")) {
+                setBaseValue(NEGATIVE_NUMBER_RULE);
+            }
+            else if (descriptor.equals("x.x")) {
+                setBaseValue(IMPROPER_FRACTION_RULE);
+            }
+            else if (descriptor.equals("0.x")) {
                 setBaseValue(PROPER_FRACTION_RULE);
             }
+            else if (descriptor.equals("x.0")) {
+                setBaseValue(MASTER_RULE);
+            }
+
+            // if the rule descriptor begins with a digit, it's a descriptor
+            // for a normal rule
             else if (descriptor.charAt(0) >= '0' && descriptor.charAt(0) <= '9') {
-                // if the rule descriptor begins with a digit, it's a descriptor
-                // for a normal rule
-                long tempValue = 0;
-                int descriptorLength = descriptor.length();
-                char c = 0;
+                StringBuilder tempValue = new StringBuilder();
                 p = 0;
+                char c = ' ';
 
                 // begin parsing the descriptor: copy digits
                 // into "tempValue", skip periods, commas, and spaces,
                 // stop on a slash or > sign (or at the end of the string),
                 // and throw an exception on any other character
-                while (p < descriptorLength) {
+                while (p < descriptor.length()) {
                     c = descriptor.charAt(p);
                     if (c >= '0' && c <= '9') {
-                        tempValue = tempValue * 10 + (c - '0');
+                        tempValue.append(c);
                     }
                     else if (c == '/' || c == '>') {
                         break;
                     }
-                    else if (!PatternProps.isWhiteSpace(c) && c != ',' && c != '.') {
-                        throw new IllegalArgumentException("Illegal character " + c + " in rule descriptor");
+                    else if (PatternProps.isWhiteSpace(c) || c == ',' || c == '.') {
+                    }
+                    else {
+                        throw new IllegalArgumentException("Illegal character in rule descriptor");
                     }
                     ++p;
                 }
 
-                // Set the rule's base value according to what we parsed
-                setBaseValue(tempValue);
+                // tempValue now contains a string representation of the
+                // rule's base value with the punctuation stripped out.
+                // Set the rule's base value accordingly
+                setBaseValue(Long.parseLong(tempValue.toString()));
 
                 // if we stopped the previous loop on a slash, we're
                 // now parsing the rule's radix.  Again, accumulate digits
                 // in tempValue, skip punctuation, stop on a > mark, and
                 // throw an exception on anything else
                 if (c == '/') {
-                    tempValue = 0;
+                    tempValue.setLength(0);
                     ++p;
-                    while (p < descriptorLength) {
+                    while (p < descriptor.length()) {
                         c = descriptor.charAt(p);
                         if (c >= '0' && c <= '9') {
-                            tempValue = tempValue * 10 + (c - '0');
+                            tempValue.append(c);
                         }
                         else if (c == '>') {
                             break;
                         }
-                        else if (!PatternProps.isWhiteSpace(c) && c != ',' && c != '.') {
-                            throw new IllegalArgumentException("Illegal character " + c + " in rule descriptor");
+                        else if (PatternProps.isWhiteSpace(c) || c == ',' || c == '.') {
+                        }
+                        else {
+                            throw new IllegalArgumentException("Illegal character is rule descriptor");
                         }
                         ++p;
                     }
 
-                    // tempValue now contains the rule's radix.  Set it
+                    // tempValue now contain's the rule's radix.  Set it
                     // accordingly, and recalculate the rule's exponent
-                    radix = (int)tempValue;
+                    radix = Integer.parseInt(tempValue.toString());
                     if (radix == 0) {
                         throw new IllegalArgumentException("Rule can't have radix of 0");
                     }
@@ -325,7 +332,7 @@ final class NFRule {
                 // If we see another character before reaching the end of
                 // the descriptor, that's also a syntax error.
                 if (c == '>') {
-                    while (p < descriptorLength) {
+                    while (p < descriptor.length()) {
                         c = descriptor.charAt(p);
                         if (c == '>' && exponent > 0) {
                             --exponent;
@@ -335,15 +342,6 @@ final class NFRule {
                         ++p;
                     }
                 }
-            }
-            else if (descriptor.equals("-x")) {
-                setBaseValue(NEGATIVE_NUMBER_RULE);
-            }
-            else if (descriptor.equals("x.x")) {
-                setBaseValue(IMPROPER_FRACTION_RULE);
-            }
-            else if (descriptor.equals("x.0")) {
-                setBaseValue(MASTER_RULE);
             }
         }
 
@@ -364,51 +362,15 @@ final class NFRule {
      * creates the substitutions, and removes the substitution tokens
      * from the rule's rule text.
      * @param owner The rule set containing this rule
-     * @param predecessor The rule preceding this one in "owners" rule list
-     * @param ruleText The rule text
+     * @param predecessor The rule preseding this one in "owners" rule list
+     * @param ownersOwner The RuleBasedFormat that owns this rule
      */
     private void extractSubstitutions(NFRuleSet             owner,
-                                      String                ruleText,
-                                      NFRule                predecessor) {
-        this.ruleText = ruleText;
-        this.rulePatternFormat = null;
-        sub1 = extractSubstitution(owner, predecessor);
-        if (sub1.isNullSubstitution()) {
-            // Small optimization. There is no need to create a redundant NullSubstitution.
-            sub2 = sub1;
-        }
-        else {
-            sub2 = extractSubstitution(owner, predecessor);
-        }
-        ruleText = this.ruleText;
-        int pluralRuleStart = ruleText.indexOf("$(");
-        int pluralRuleEnd = (pluralRuleStart >= 0 ? ruleText.indexOf(")$", pluralRuleStart) : -1);
-        if (pluralRuleEnd >= 0) {
-            int endType = ruleText.indexOf(',', pluralRuleStart);
-            if (endType < 0) {
-                throw new IllegalArgumentException("Rule \"" + ruleText + "\" does not have a defined type");
-            }
-            String type = this.ruleText.substring(pluralRuleStart + 2, endType);
-            PluralRules.PluralType pluralType;
-            if ("cardinal".equals(type)) {
-                pluralType = PluralRules.PluralType.CARDINAL;
-            }
-            else if ("ordinal".equals(type)) {
-                pluralType = PluralRules.PluralType.ORDINAL;
-            }
-            else {
-                throw new IllegalArgumentException(type + " is an unknown type");
-            }
-            rulePatternFormat = formatter.createPluralFormat(pluralType,
-                    ruleText.substring(endType + 1, pluralRuleEnd));
-        }
+                                      NFRule                predecessor,
+                                      RuleBasedNumberFormat ownersOwner) {
+        sub1 = extractSubstitution(owner, predecessor, ownersOwner);
+        sub2 = extractSubstitution(owner, predecessor, ownersOwner);
     }
-
-    private static final String[] RULE_PREFIXES = new String[] {
-            "<<", "<%", "<#", "<0",
-            ">>", ">%", ">#", ">0",
-            "=%", "=#", "=0"
-    };
 
     /**
      * Searches the rule's rule text for the first substitution token,
@@ -417,35 +379,39 @@ final class NFRule {
      * @param owner The rule set containing this rule
      * @param predecessor The rule preceding this one in the rule set's
      * rule list
+     * @param ownersOwner The RuleBasedNumberFormat that owns this rule
      * @return The newly-created substitution.  This is never null; if
      * the rule text doesn't contain any substitution tokens, this will
      * be a NullSubstitution.
      */
     private NFSubstitution extractSubstitution(NFRuleSet             owner,
-                                               NFRule                predecessor) {
-        NFSubstitution result;
+                                               NFRule                predecessor,
+                                               RuleBasedNumberFormat ownersOwner) {
+        NFSubstitution result = null;
         int subStart;
         int subEnd;
 
         // search the rule's rule text for the first two characters of
         // a substitution token
-        subStart = indexOfAny(ruleText, RULE_PREFIXES);
+        subStart = indexOfAny(new String[] { "<<", "<%", "<#", "<0",
+                                             ">>", ">%", ">#", ">0",
+                                             "=%", "=#", "=0" } );
 
         // if we didn't find one, create a null substitution positioned
         // at the end of the rule text
         if (subStart == -1) {
             return NFSubstitution.makeSubstitution(ruleText.length(), this, predecessor,
-                                                   owner, this.formatter, "");
+                                                   owner, ownersOwner, "");
         }
 
         // special-case the ">>>" token, since searching for the > at the
         // end will actually find the > in the middle
         if (ruleText.substring(subStart).startsWith(">>>")) {
             subEnd = subStart + 2;
-        }
-        else {
+
             // otherwise the substitution token ends with the same character
             // it began with
+        } else {
             char c = ruleText.charAt(subStart);
             subEnd = ruleText.indexOf(c, subStart + 1);
             // special case for '<%foo<<'
@@ -463,14 +429,14 @@ final class NFRule {
         // at the end of the rule
         if (subEnd == -1) {
             return NFSubstitution.makeSubstitution(ruleText.length(), this, predecessor,
-                                                   owner, this.formatter, "");
+                                                   owner, ownersOwner, "");
         }
 
         // if we get here, we have a real substitution token (or at least
         // some text bounded by substitution token characters).  Use
         // makeSubstitution() to create the right kind of substitution
         result = NFSubstitution.makeSubstitution(subStart, this, predecessor, owner,
-                this.formatter, ruleText.substring(subStart, subEnd + 1));
+                                                 ownersOwner, ruleText.substring(subStart, subEnd + 1));
 
         // remove the substitution from the rule text
         ruleText = ruleText.substring(0, subStart) + ruleText.substring(subEnd + 1);
@@ -484,7 +450,7 @@ final class NFRule {
      * constructed.  It should not be used at any other time.
      * @param newBaseValue The new base value for the rule.
      */
-    final void setBaseValue(long newBaseValue) {
+    public final void setBaseValue(long newBaseValue) {
         // set the base value
         baseValue = newBaseValue;
 
@@ -507,10 +473,10 @@ final class NFRule {
             if (sub2 != null) {
                 sub2.setDivisor(radix, exponent);
             }
-        }
-        else {
+
             // if this is a special rule, its radix and exponent are basically
             // ignored.  Set them to "safe" default values
+        } else {
             radix = 10;
             exponent = 0;
         }
@@ -549,15 +515,13 @@ final class NFRule {
      * _any_ of the strings in "strings").  If none of the strings in
      * "strings" is found in the rule's rule text, returns -1.
      */
-    private static int indexOfAny(String ruleText, String[] strings) {
+    private int indexOfAny(String[] strings) {
+        int pos;
         int result = -1;
-        if (ruleText.length() > 0) {
-            int pos;
-            for (String string : strings) {
-                pos = ruleText.indexOf(string);
-                if (pos != -1 && (result == -1 || pos < result)) {
-                    result = pos;
-                }
+        for (int i = 0; i < strings.length; i++) {
+            pos = ruleText.indexOf(strings[i]);
+            if (pos != -1 && (result == -1 || pos < result)) {
+                result = pos;
             }
         }
         return result;
@@ -613,16 +577,18 @@ final class NFRule {
         else if (baseValue == MASTER_RULE) {
             result.append("x.0: ");
         }
+
+        // for a normal rule, write out its base value, and if the radix is
+        // something other than 10, write out the radix (with the preceding
+        // slash, of course).  Then calculate the expected exponent and if
+        // if isn't the same as the actual exponent, write an appropriate
+        // number of > signs.  Finally, terminate the whole thing with
+        // a colon.
         else {
-            // for a normal rule, write out its base value, and if the radix is
-            // something other than 10, write out the radix (with the preceding
-            // slash, of course).  Then calculate the expected exponent and if
-            // if isn't the same as the actual exponent, write an appropriate
-            // number of > signs.  Finally, terminate the whole thing with
-            // a colon.
             result.append(String.valueOf(baseValue));
             if (radix != 10) {
-                result.append('/').append(radix);
+                result.append('/');
+                result.append(String.valueOf(radix));
             }
             int numCarets = expectedExponent() - exponent;
             for (int i = 0; i < numCarets; i++)
@@ -690,30 +656,9 @@ final class NFRule {
         // into the right places in toInsertInto (notice we do the
         // substitutions in reverse order so that the offsets don't get
         // messed up)
-        int pluralRuleStart = ruleText.length();
-        int lengthOffset = 0;
-        if (rulePatternFormat == null) {
-            toInsertInto.insert(pos, ruleText);
-        }
-        else {
-            pluralRuleStart = ruleText.indexOf("$(");
-            int pluralRuleEnd = ruleText.indexOf(")$", pluralRuleStart);
-            int initialLength = toInsertInto.length();
-            if (pluralRuleEnd < ruleText.length() - 1) {
-                toInsertInto.insert(pos, ruleText.substring(pluralRuleEnd + 2));
-            }
-            toInsertInto.insert(pos, rulePatternFormat.format((long)(number/Math.pow(radix, exponent))));
-            if (pluralRuleStart > 0) {
-                toInsertInto.insert(pos, ruleText.substring(0, pluralRuleStart));
-            }
-            lengthOffset = ruleText.length() - (toInsertInto.length() - initialLength);
-        }
-        if (!sub2.isNullSubstitution()) {
-            sub2.doSubstitution(number, toInsertInto, pos - (sub2.getPos() > pluralRuleStart ? lengthOffset : 0));
-        }
-        if (!sub1.isNullSubstitution()) {
-            sub1.doSubstitution(number, toInsertInto, pos - (sub1.getPos() > pluralRuleStart ? lengthOffset : 0));
-        }
+        toInsertInto.insert(pos, ruleText);
+        sub2.doSubstitution(number, toInsertInto, pos);
+        sub1.doSubstitution(number, toInsertInto, pos);
     }
 
     /**
@@ -732,30 +677,9 @@ final class NFRule {
         // [again, we have two copies of this routine that do the same thing
         // so that we don't sacrifice precision in a long by casting it
         // to a double]
-        int pluralRuleStart = ruleText.length();
-        int lengthOffset = 0;
-        if (rulePatternFormat == null) {
-            toInsertInto.insert(pos, ruleText);
-        }
-        else {
-            pluralRuleStart = ruleText.indexOf("$(");
-            int pluralRuleEnd = ruleText.indexOf(")$", pluralRuleStart);
-            int initialLength = toInsertInto.length();
-            if (pluralRuleEnd < ruleText.length() - 1) {
-                toInsertInto.insert(pos, ruleText.substring(pluralRuleEnd + 2));
-            }
-            toInsertInto.insert(pos, rulePatternFormat.format((long)(number/Math.pow(radix, exponent))));
-            if (pluralRuleStart > 0) {
-                toInsertInto.insert(pos, ruleText.substring(0, pluralRuleStart));
-            }
-            lengthOffset = ruleText.length() - (toInsertInto.length() - initialLength);
-        }
-        if (!sub2.isNullSubstitution()) {
-            sub2.doSubstitution(number, toInsertInto, pos - (sub2.getPos() > pluralRuleStart ? lengthOffset : 0));
-        }
-        if (!sub1.isNullSubstitution()) {
-            sub1.doSubstitution(number, toInsertInto, pos - (sub1.getPos() > pluralRuleStart ? lengthOffset : 0));
-        }
+        toInsertInto.insert(pos, ruleText);
+        sub2.doSubstitution(number, toInsertInto, pos);
+        sub1.doSubstitution(number, toInsertInto, pos);
     }
 
     /**
@@ -783,8 +707,11 @@ final class NFRule {
         // a modulus substitution, its base value isn't an even multiple
         // of 100, and the value we're trying to format _is_ an even
         // multiple of 100.  This is called the "rollback rule."
-        return ((sub1.isModulusSubstitution()) || (sub2.isModulusSubstitution()))
-                && (number % Math.pow(radix, exponent)) == 0 && (baseValue % Math.pow(radix, exponent)) != 0;
+        if ((sub1.isModulusSubstitution()) || (sub2.isModulusSubstitution())) {
+            return (number % Math.pow(radix, exponent)) == 0
+                && (baseValue % Math.pow(radix, exponent)) != 0;
+        }
+        return false;
     }
 
     //-----------------------------------------------------------------------
@@ -870,8 +797,8 @@ final class NFRule {
             // the substitution, giving us a new partial parse result
             pp.setIndex(0);
             double partialResult = matchToDelimiter(workText, start, tempBaseValue,
-                                                    ruleText.substring(sub1.getPos(), sub2.getPos()), rulePatternFormat,
-                                                    pp, sub1, upperBound).doubleValue();
+                                                    ruleText.substring(sub1.getPos(), sub2.getPos()), pp, sub1,
+                                                    upperBound).doubleValue();
 
             // if we got a successful match (or were trying to match a
             // null substitution), pp is now pointing at the first unmatched
@@ -888,7 +815,7 @@ final class NFRule {
                 // substitution if there's a successful match, giving us
                 // a real result
                 partialResult = matchToDelimiter(workText2, 0, partialResult,
-                                                 ruleText.substring(sub2.getPos()), rulePatternFormat, pp2, sub2,
+                                                 ruleText.substring(sub2.getPos()), pp2, sub2,
                                                  upperBound).doubleValue();
 
                 // if we got a successful match on this second
@@ -1015,7 +942,7 @@ final class NFRule {
      * Double.
      */
     private Number matchToDelimiter(String text, int startPos, double baseVal,
-                                    String delimiter, PluralFormat pluralFormatDelimiter, ParsePosition pp, NFSubstitution sub, double upperBound) {
+                                    String delimiter, ParsePosition pp, NFSubstitution sub, double upperBound) {
         // if "delimiter" contains real (i.e., non-ignorable) text, search
         // it for "delimiter" beginning at "start".  If that succeeds, then
         // use "sub"'s doParse() method to match the text before the
@@ -1028,7 +955,7 @@ final class NFRule {
             // element array: element 0 is the position of the match, and
             // element 1 is the number of characters that matched
             // "delimiter".
-            int[] temp = findText(text, delimiter, pluralFormatDelimiter, startPos);
+            int[] temp = findText(text, delimiter, startPos);
             int dPos = temp[0];
             int dLen = temp[1];
 
@@ -1064,7 +991,7 @@ final class NFRule {
                 // copy of "delimiter" in "text" and repeat the loop if
                 // we find it
                 tempPP.setIndex(0);
-                temp = findText(text, delimiter, pluralFormatDelimiter, dPos + dLen);
+                temp = findText(text, delimiter, dPos + dLen);
                 dPos = temp[0];
                 dLen = temp[1];
             }
@@ -1129,16 +1056,146 @@ final class NFRule {
 
         RbnfLenientScanner scanner = formatter.getLenientScanner();
         if (scanner != null) {
-            return scanner.prefixLength(str, prefix);
+          return scanner.prefixLength(str, prefix);
         }
 
-        // If lenient parsing is turned off, forget all that crap above.
-        // Just use String.startsWith() and be done with it.
-        if (str.startsWith(prefix)) {
-            return prefix.length();
-        }
-        return 0;
+        // go through all this grief if we're in lenient-parse mode
+        // if (formatter.lenientParseEnabled()) {
+        //     // get the formatter's collator and use it to create two
+        //     // collation element iterators, one over the target string
+        //     // and another over the prefix (right now, we'll throw an
+        //     // exception if the collator we get back from the formatter
+        //     // isn't a RuleBasedCollator, because RuleBasedCollator defines
+        //     // the CollationElementIteratoer protocol.  Hopefully, this
+        //     // will change someday.)
+        //     //
+        //     // Previous code was matching "fifty-" against " fifty" and leaving
+        //     // the number " fifty-7" to parse as 43 (50 - 7).
+        //     // Also it seems that if we consume the entire prefix, that's ok even
+        //     // if we've consumed the entire string, so I switched the logic to
+        //     // reflect this.
+        //     RuleBasedCollator collator = (RuleBasedCollator)formatter.getCollator();
+        //     CollationElementIterator strIter = collator.getCollationElementIterator(str);
+        //     CollationElementIterator prefixIter = collator.getCollationElementIterator(prefix);
+
+        //     // match collation elements between the strings
+        //     int oStr = strIter.next();
+        //     int oPrefix = prefixIter.next();
+
+        //     while (oPrefix != CollationElementIterator.NULLORDER) {
+        //         // skip over ignorable characters in the target string
+        //         while (CollationElementIterator.primaryOrder(oStr) == 0 && oStr !=
+        //                CollationElementIterator.NULLORDER) {
+        //             oStr = strIter.next();
+        //         }
+
+        //         // skip over ignorable characters in the prefix
+        //         while (CollationElementIterator.primaryOrder(oPrefix) == 0 && oPrefix !=
+        //                CollationElementIterator.NULLORDER) {
+        //             oPrefix = prefixIter.next();
+        //         }
+
+        //         // if skipping over ignorables brought to the end of
+        //         // the prefix, we DID match: drop out of the loop
+        //         if (oPrefix == CollationElementIterator.NULLORDER) {
+        //             break;
+        //         }
+
+        //         // if skipping over ignorables brought us to the end
+        //         // of the target string, we didn't match and return 0
+        //         if (oStr == CollationElementIterator.NULLORDER) {
+        //             return 0;
+        //         }
+
+        //         // match collation elements from the two strings
+        //         // (considering only primary differences).  If we
+        //         // get a mismatch, dump out and return 0
+        //         if (CollationElementIterator.primaryOrder(oStr) != CollationElementIterator.
+        //             primaryOrder(oPrefix)) {
+        //             return 0;
+        //         }
+        //         // otherwise, advance to the next character in each string
+        //         // and loop (we drop out of the loop when we exhaust
+        //         // collation elements in the prefix)
+
+        //         oStr = strIter.next();
+        //         oPrefix = prefixIter.next();
+        //     }
+
+        //     // we are not compatible with jdk 1.1 any longer
+        //     int result = strIter.getOffset();
+        //     if (oStr != CollationElementIterator.NULLORDER) {
+        //         --result;
+        //     }
+        //     return result;
+
+            /*
+              //----------------------------------------------------------------
+              // JDK 1.2-specific API call
+              // return strIter.getOffset();
+              //----------------------------------------------------------------
+              // JDK 1.1 HACK (take out for 1.2-specific code)
+
+              // if we make it to here, we have a successful match.  Now we
+              // have to find out HOW MANY characters from the target string
+              // matched the prefix (there isn't necessarily a one-to-one
+              // mapping between collation elements and characters).
+              // In JDK 1.2, there's a simple getOffset() call we can use.
+              // In JDK 1.1, on the other hand, we have to go through some
+              // ugly contortions.  First, use the collator to compare the
+              // same number of characters from the prefix and target string.
+              // If they're equal, we're done.
+              collator.setStrength(Collator.PRIMARY);
+              if (str.length() >= prefix.length()
+              && collator.equals(str.substring(0, prefix.length()), prefix)) {
+              return prefix.length();
+              }
+
+              // if they're not equal, then we have to compare successively
+              // larger and larger substrings of the target string until we
+              // get to one that matches the prefix.  At that point, we know
+              // how many characters matched the prefix, and we can return.
+              int p = 1;
+              while (p <= str.length()) {
+              if (collator.equals(str.substring(0, p), prefix)) {
+              return p;
+              } else {
+              ++p;
+              }
+              }
+
+              // SHOULKD NEVER GET HERE!!!
+              return 0;
+              //----------------------------------------------------------------
+            */
+
+            // If lenient parsing is turned off, forget all that crap above.
+            // Just use String.startsWith() and be done with it.
+        //        } else {
+            if (str.startsWith(prefix)) {
+                return prefix.length();
+            } else {
+                return 0;
+            }
+        // }
     }
+
+    /*
+     * Searches a string for another string.  If lenient parsing is off,
+     * this just calls indexOf().  If lenient parsing is on, this function
+     * uses CollationElementIterator to match characters, and only
+     * primary-order differences are significant in determining whether
+     * there's a match.
+     * @param str The string to search
+     * @param key The string to search "str" for
+     * @return A two-element array of ints.  Element 0 is the position
+     * of the match, or -1 if there was no match.  Element 1 is the
+     * number of characters in "str" that matched (which isn't necessarily
+     * the same as the length of "key")
+     */
+/*    private int[] findText(String str, String key) {
+        return findText(str, key, 0);
+    }*/
 
     /**
      * Searches a string for another string.  If lenient parsing is off,
@@ -1155,36 +1212,100 @@ final class NFRule {
      * number of characters in "str" that matched (which isn't necessarily
      * the same as the length of "key")
      */
-    private int[] findText(String str, String key, PluralFormat pluralFormatKey, int startingAt) {
-        RbnfLenientScanner scanner = formatter.getLenientScanner();
-        if (pluralFormatKey != null) {
-            FieldPosition position = new FieldPosition(NumberFormat.INTEGER_FIELD);
-            position.setBeginIndex(startingAt);
-            pluralFormatKey.parseType(str, scanner, position);
-            int start = position.getBeginIndex();
-            if (start >= 0) {
-                int pluralRuleStart = ruleText.indexOf("$(");
-                int pluralRuleSuffix = ruleText.indexOf(")$", pluralRuleStart) + 2;
-                int matchLen = position.getEndIndex() - start;
-                String prefix = ruleText.substring(0, pluralRuleStart);
-                String suffix = ruleText.substring(pluralRuleSuffix);
-                if (str.regionMatches(start - prefix.length(), prefix, 0, prefix.length())
-                        && str.regionMatches(start + matchLen, suffix, 0, suffix.length()))
-                {
-                    return new int[]{start - prefix.length(), matchLen + prefix.length() + suffix.length()};
-                }
-            }
-            return new int[]{-1, 0};
-        }
-
-        if (scanner != null) {
-            // if lenient parsing is turned ON, we've got some work
-            // ahead of us
-            return scanner.findText(str, key, startingAt);
-        }
-        // if lenient parsing is turned off, this is easy. Just call
+    private int[] findText(String str, String key, int startingAt) {
+        // if lenient parsing is turned off, this is easy: just call
         // String.indexOf() and we're done
-        return new int[]{str.indexOf(key, startingAt), key.length()};
+        RbnfLenientScanner scanner = formatter.getLenientScanner();
+//        if (!formatter.lenientParseEnabled()) {
+        if (scanner == null) {
+            return new int[] { str.indexOf(key, startingAt), key.length() };
+
+            // but if lenient parsing is turned ON, we've got some work
+            // ahead of us
+        } else {
+            return scanner.findText(str, key, startingAt);
+
+            // //----------------------------------------------------------------
+            // // JDK 1.1 HACK (take out of 1.2-specific code)
+
+            // // in JDK 1.2, CollationElementIterator provides us with an
+            // // API to map between character offsets and collation elements
+            // // and we can do this by marching through the string comparing
+            // // collation elements.  We can't do that in JDK 1.1.  Insted,
+            // // we have to go through this horrible slow mess:
+            // int p = startingAt;
+            // int keyLen = 0;
+
+            // // basically just isolate smaller and smaller substrings of
+            // // the target string (each running to the end of the string,
+            // // and with the first one running from startingAt to the end)
+            // // and then use prefixLength() to see if the search key is at
+            // // the beginning of each substring.  This is excruciatingly
+            // // slow, but it will locate the key and tell use how long the
+            // // matching text was.
+            // while (p < str.length() && keyLen == 0) {
+            //     keyLen = prefixLength(str.substring(p), key);
+            //     if (keyLen != 0) {
+            //         return new int[] { p, keyLen };
+            //     }
+            //     ++p;
+            // }
+            // // if we make it to here, we didn't find it.  Return -1 for the
+            // // location.  The length should be ignored, but set it to 0,
+            // // which should be "safe"
+            // return new int[] { -1, 0 };
+
+            //----------------------------------------------------------------
+            // JDK 1.2 version of this routine
+            //RuleBasedCollator collator = (RuleBasedCollator)formatter.getCollator();
+            //
+            //CollationElementIterator strIter = collator.getCollationElementIterator(str);
+            //CollationElementIterator keyIter = collator.getCollationElementIterator(key);
+            //
+            //int keyStart = -1;
+            //
+            //str.setOffset(startingAt);
+            //
+            //int oStr = strIter.next();
+            //int oKey = keyIter.next();
+            //while (oKey != CollationElementIterator.NULLORDER) {
+            //    while (oStr != CollationElementIterator.NULLORDER &&
+            //                CollationElementIterator.primaryOrder(oStr) == 0)
+            //        oStr = strIter.next();
+            //
+            //    while (oKey != CollationElementIterator.NULLORDER &&
+            //                CollationElementIterator.primaryOrder(oKey) == 0)
+            //        oKey = keyIter.next();
+            //
+            //    if (oStr == CollationElementIterator.NULLORDER) {
+            //        return new int[] { -1, 0 };
+            //    }
+            //
+            //    if (oKey == CollationElementIterator.NULLORDER) {
+            //        break;
+            //    }
+            //
+            //    if (CollationElementIterator.primaryOrder(oStr) ==
+            //            CollationElementIterator.primaryOrder(oKey)) {
+            //        keyStart = strIter.getOffset();
+            //        oStr = strIter.next();
+            //        oKey = keyIter.next();
+            //    } else {
+            //        if (keyStart != -1) {
+            //            keyStart = -1;
+            //            keyIter.reset();
+            //        } else {
+            //            oStr = strIter.next();
+            //        }
+            //    }
+            //}
+            //
+            //if (oKey == CollationElementIterator.NULLORDER) {
+            //    return new int[] { keyStart, strIter.getOffset() - keyStart };
+            //} else {
+            //    return new int[] { -1, 0 };
+            //}
+        }
     }
 
     /**
@@ -1201,6 +1322,31 @@ final class NFRule {
             return true;
         }
         RbnfLenientScanner scanner = formatter.getLenientScanner();
-        return scanner != null && scanner.allIgnorable(str);
+        if (scanner != null) {
+          return scanner.allIgnorable(str);
+        }
+        return false;
+
+        // if lenient parsing is turned on, walk through the string with
+        // a collation element iterator and make sure each collation
+        // element is 0 (ignorable) at the primary level
+        //        if (formatter.lenientParseEnabled()) {
+          // {dlf}
+        //return false;
+            // RuleBasedCollator collator = (RuleBasedCollator)(formatter.getCollator());
+            // CollationElementIterator iter = collator.getCollationElementIterator(str);
+
+            // int o = iter.next();
+            // while (o != CollationElementIterator.NULLORDER
+            //        && CollationElementIterator.primaryOrder(o) == 0) {
+            //     o = iter.next();
+            // }
+            // return o == CollationElementIterator.NULLORDER;
+
+            // if lenient parsing is turned off, there is no such thing as
+            // an ignorable character: return true only if the string is empty
+        // } else {
+        //     return false;
+        // }
     }
 }

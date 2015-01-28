@@ -1,6 +1,6 @@
  /*
   *******************************************************************************
-  * Copyright (C) 2005-2014, International Business Machines Corporation and    *
+  * Copyright (C) 2005-2013, International Business Machines Corporation and         *
   * others. All Rights Reserved.                                                *
   *******************************************************************************
   */
@@ -275,6 +275,8 @@ public class OlsonTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     @Override
     public void getOffsetFromLocal(long date,
@@ -360,7 +362,6 @@ public class OlsonTimeZone extends BasicTimeZone {
             if (dstOffsetAt(trsIdx - 1) != 0) {
                 return true;
             }
-            trsIdx--;
         }
         return false;
     }
@@ -1261,7 +1262,7 @@ public class OlsonTimeZone extends BasicTimeZone {
     }
 
     // Freezable stuffs
-    private transient volatile boolean isFrozen = false;
+    private transient boolean isFrozen = false;
 
     /* (non-Javadoc)
      * @see com.ibm.icu.util.TimeZone#isFrozen()

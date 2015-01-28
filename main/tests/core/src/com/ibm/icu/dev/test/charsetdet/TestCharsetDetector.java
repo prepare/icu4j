@@ -444,12 +444,10 @@ public class TestCharsetDetector extends TestFmwk
                         
                         // Ignore any other converters that can't
                         // convert from Unicode.
-                        logln("Unsupported encoding" + from);
                         return;
                     } catch (UnsupportedEncodingException uee) {
                         // Ignore any encodings that this runtime
                         // doesn't support.
-                        logln("Unsupported encoding" + from);
                         return;
                     }
                     
