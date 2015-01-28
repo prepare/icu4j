@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2014, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -15,8 +15,6 @@
 package com.ibm.icu.text;
 import java.text.CharacterIterator;
 
-import com.ibm.icu.util.ICUCloneNotSupportedException;
-
 /**
  * <code>StringCharacterIterator</code> implements the
  * <code>CharacterIterater</code> protocol for a <code>String</code>.
@@ -26,7 +24,6 @@ import com.ibm.icu.util.ICUCloneNotSupportedException;
  * @see CharacterIterator
  * @deprecated ICU 2.4. Use java.text.StringCharacterIterator instead.
  */
-@Deprecated
 ///CLOVER:OFF
 public final class StringCharacterIterator implements CharacterIterator
 {
@@ -40,7 +37,6 @@ public final class StringCharacterIterator implements CharacterIterator
      * Constructs an iterator with an initial index of 0.
      * @deprecated ICU 2.4. Use java.text.StringCharacterIterator instead.
      */
-    @Deprecated
     public StringCharacterIterator(String text)
     {
         this(text, 0);
@@ -53,7 +49,6 @@ public final class StringCharacterIterator implements CharacterIterator
      * @param  pos    Initial iterator position     
      * @deprecated ICU 2.4. Use java.text.StringCharacterIterator instead.
      */
-    @Deprecated
     public StringCharacterIterator(String text, int pos)
     {
     this(text, 0, text.length(), pos);
@@ -69,7 +64,6 @@ public final class StringCharacterIterator implements CharacterIterator
      * @param  pos    Initial iterator position 
      * @deprecated ICU 2.4. Use java.text.StringCharacterIterator instead.
      */
-    @Deprecated
     public StringCharacterIterator(String text, int begin, int end, int pos) {
         if (text == null) {
             throw new NullPointerException();
@@ -98,7 +92,6 @@ public final class StringCharacterIterator implements CharacterIterator
      * @param  text   The String to be iterated over 
      * @deprecated ICU 2.4. Use java.text.StringCharacterIterator instead.
      */
-    @Deprecated
     public void setText(String text) {
         if (text == null) {
             throw new NullPointerException();
@@ -114,7 +107,6 @@ public final class StringCharacterIterator implements CharacterIterator
      * @see CharacterIterator#first 
      * @deprecated ICU 2.4. Use java.text.StringCharacterIterator instead.
      */
-    @Deprecated
     public char first()
     {
         pos = begin;
@@ -126,7 +118,6 @@ public final class StringCharacterIterator implements CharacterIterator
      * @see CharacterIterator#last 
      * @deprecated ICU 2.4. Use java.text.StringCharacterIterator instead.
      */
-    @Deprecated
     public char last()
     {
         if (end != begin) {
@@ -142,7 +133,6 @@ public final class StringCharacterIterator implements CharacterIterator
      * @see CharacterIterator#setIndex 
      * @deprecated ICU 2.4. Use java.text.StringCharacterIterator instead.
      */
-    @Deprecated
     public char setIndex(int p)
     {
     if (p < begin || p > end) {
@@ -157,7 +147,6 @@ public final class StringCharacterIterator implements CharacterIterator
      * @see CharacterIterator#current 
      * @deprecated ICU 2.4. Use java.text.StringCharacterIterator instead.
      */
-    @Deprecated
     public char current()
     {
         if (pos >= begin && pos < end) {
@@ -173,7 +162,6 @@ public final class StringCharacterIterator implements CharacterIterator
      * @see CharacterIterator#next 
      * @deprecated ICU 2.4. Use java.text.StringCharacterIterator instead.
      */
-    @Deprecated
     public char next()
     {
         if (pos < end - 1) {
@@ -191,7 +179,6 @@ public final class StringCharacterIterator implements CharacterIterator
      * @see CharacterIterator#previous 
      * @deprecated ICU 2.4. Use java.text.StringCharacterIterator instead.
      */
-    @Deprecated
     public char previous()
     {
         if (pos > begin) {
@@ -208,7 +195,6 @@ public final class StringCharacterIterator implements CharacterIterator
      * @see CharacterIterator#getBeginIndex 
      * @deprecated ICU 2.4. Use java.text.StringCharacterIterator instead.
      */
-    @Deprecated
     public int getBeginIndex()
     {
         return begin;
@@ -219,7 +205,6 @@ public final class StringCharacterIterator implements CharacterIterator
      * @see CharacterIterator#getEndIndex 
      * @deprecated ICU 2.4. Use java.text.StringCharacterIterator instead.
      */
-    @Deprecated
     public int getEndIndex()
     {
         return end;
@@ -230,7 +215,6 @@ public final class StringCharacterIterator implements CharacterIterator
      * @see CharacterIterator#getIndex 
      * @deprecated ICU 2.4. Use java.text.StringCharacterIterator instead.
      */
-    @Deprecated
     public int getIndex()
     {
         return pos;
@@ -243,7 +227,6 @@ public final class StringCharacterIterator implements CharacterIterator
      * StringCharacterIterator object; false otherwise. 
      * @deprecated ICU 2.4. Use java.text.StringCharacterIterator instead.
      */
-    @Deprecated
     public boolean equals(Object obj)
     {
         if (this == obj) {
@@ -272,7 +255,6 @@ public final class StringCharacterIterator implements CharacterIterator
      * @return A hash code 
      * @deprecated ICU 2.4. Use java.text.StringCharacterIterator instead.
      */
-    @Deprecated
     public int hashCode()
     {
         return text.hashCode() ^ pos ^ begin ^ end;
@@ -283,7 +265,6 @@ public final class StringCharacterIterator implements CharacterIterator
      * @return A copy of this 
      * @deprecated ICU 2.4. Use java.text.StringCharacterIterator instead.
      */
-    @Deprecated
     public Object clone()
     {
         try {
@@ -292,7 +273,7 @@ public final class StringCharacterIterator implements CharacterIterator
             return other;
         }
         catch (CloneNotSupportedException e) {
-            throw new ICUCloneNotSupportedException(e);
+            throw new IllegalStateException();
         }
     }
 

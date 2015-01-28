@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2014, International Business Machines Corporation and    *
+* Copyright (C) 1996-2011, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -146,7 +146,6 @@ public final class StringTokenizer implements Enumeration<Object>
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public StringTokenizer(String str, UnicodeSet delim, boolean returndelims, boolean coalescedelims)
     {
         m_source_ = str;
@@ -230,7 +229,6 @@ public final class StringTokenizer implements Enumeration<Object>
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public StringTokenizer(String str, String delim, boolean returndelims, boolean coalescedelims)
     {
         // don't ignore whitespace

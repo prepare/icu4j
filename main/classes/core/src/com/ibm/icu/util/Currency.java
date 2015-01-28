@@ -1,12 +1,13 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2014, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2013, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.util;
 
 import java.io.ObjectStreamException;
+import java.io.Serializable;
 import java.lang.ref.SoftReference;
 import java.text.ParsePosition;
 import java.util.ArrayList;
@@ -52,7 +53,7 @@ import com.ibm.icu.util.ULocale.Category;
  * @author Alan Liu
  * @stable ICU 2.2
  */
-public class Currency extends MeasureUnit {
+public class Currency extends MeasureUnit implements Serializable {
     private static final long serialVersionUID = -5839973855554750484L;
     private static final boolean DEBUG = ICUDebug.enabled("currency");
 
@@ -89,29 +90,6 @@ public class Currency extends MeasureUnit {
             .add("\u20a8", "\u20b9")
             .add("\u00a3", "\u20a4");
 
-    /**
-     * Currency Usage used for Decimal Format
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release. 
-     */
-    public enum CurrencyUsage{
-        /**
-         * a setting to specify currency usage which determines currency digit and rounding
-         * for standard usage, for example: "50.00 NT$"
-         * @draft ICU 54
-         * @provisional This API might change or be removed in a future release.
-         */
-        STANDARD,
-        
-        /**
-         * a setting to specify currency usage which determines currency digit and rounding
-         * for cash usage, for example: "50 NT$"
-         * @draft ICU 54
-         * @provisional This API might change or be removed in a future release.
-         */
-        CASH
-    }
-    
     // begin registry stuff
 
     // shim for service code
@@ -195,21 +173,6 @@ public class Currency extends MeasureUnit {
     }
 
     /**
-     * Returns an array of Strings which contain the currency
-     * identifiers that are valid for the given JDK locale on the 
-     * given date.  If there are no such identifiers, returns null.
-     * Returned identifiers are in preference order.
-     * @param loc the JDK locale for which to retrieve currency codes.
-     * @param d the date for which to retrieve currency codes for the given locale.
-     * @return The array of ISO currency codes.
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static String[] getAvailableCurrencyCodes(Locale loc, Date d) {
-        return getAvailableCurrencyCodes(ULocale.forLocale(loc), d);
-    }
-
-    /**
      * Returns the set of available currencies. The returned set of currencies contains all of the
      * available currencies, including obsolete ones. The result set can be modified without
      * affecting the available currencies in the runtime.
@@ -282,7 +245,7 @@ public class Currency extends MeasureUnit {
             throw new IllegalArgumentException(
                     "The input currency code is not 3-letter alphabetic code.");
         }
-        return (Currency) MeasureUnit.internalGetInstance("currency", theISOCode.toUpperCase(Locale.ENGLISH));
+        return (Currency) MeasureUnit.addUnit("currency", theISOCode.toUpperCase(Locale.ENGLISH), CURRENCY_FACTORY);
     }
     
     
@@ -303,11 +266,6 @@ public class Currency extends MeasureUnit {
     /**
      * Registers a new currency for the provided locale.  The returned object
      * is a key that can be used to unregister this currency object.
-     * 
-     * <p>Because ICU may choose to cache Currency objects internally, this must
-     * be called at application startup, prior to any calls to
-     * Currency.getInstance to avoid undefined behavior.
-     * 
      * @param currency the currency to register
      * @param locale the ulocale under which to register the currency
      * @return a registry key that can be used to unregister this currency
@@ -439,7 +397,7 @@ public class Currency extends MeasureUnit {
      * @stable ICU 2.2
      */
     public String getCurrencyCode() {
-        return subType;
+        return code;
     }
 
     /**
@@ -457,7 +415,7 @@ public class Currency extends MeasureUnit {
                     "currencyNumericCodes",
                     ICUResourceBundle.ICU_DATA_CLASS_LOADER);
             UResourceBundle codeMap = bundle.get("codeMap");
-            UResourceBundle numCode = codeMap.get(subType);
+            UResourceBundle numCode = codeMap.get(code);
             result = numCode.getInt();
         } catch (MissingResourceException e) {
             // fall through
@@ -546,7 +504,7 @@ public class Currency extends MeasureUnit {
         }
 
         CurrencyDisplayNames names = CurrencyDisplayNames.getInstance(locale);
-        return nameStyle == SYMBOL_NAME ? names.getSymbol(subType) : names.getName(subType);
+        return nameStyle == SYMBOL_NAME ? names.getSymbol(code) : names.getName(code);
     }
 
     /**
@@ -595,7 +553,7 @@ public class Currency extends MeasureUnit {
         }
         
         CurrencyDisplayNames names = CurrencyDisplayNames.getInstance(locale);
-        return names.getPluralName(subType, pluralCount);
+        return names.getPluralName(code, pluralCount);
     }
 
     /**
@@ -654,7 +612,6 @@ public class Currency extends MeasureUnit {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static String parse(ULocale locale, String text, int type, ParsePosition pos) {
         List<TextTrieMap<CurrencyStringInfo>> currencyTrieVec = CURRENCY_NAME_CACHE.get(locale);
         if (currencyTrieVec == null) {
@@ -767,52 +724,25 @@ public class Currency extends MeasureUnit {
     /**
      * Returns the number of the number of fraction digits that should
      * be displayed for this currency.
-     * This is equivalent to getDefaultFractionDigits(CurrencyUsage.STANDARD);
      * @return a non-negative number of fraction digits to be
      * displayed
      * @stable ICU 2.2
      */
     public int getDefaultFractionDigits() {
-        return getDefaultFractionDigits(CurrencyUsage.STANDARD);
-    }
-
-    /**
-     * Returns the number of the number of fraction digits that should
-     * be displayed for this currency with Usage.
-     * @param Usage the usage of currency(Standard or Cash)
-     * @return a non-negative number of fraction digits to be
-     * displayed
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release. 
-     */
-    public int getDefaultFractionDigits(CurrencyUsage Usage) {
         CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
-        CurrencyDigits digits = info.currencyDigits(subType, Usage);
+        CurrencyDigits digits = info.currencyDigits(code);
         return digits.fractionDigits;
     }
 
     /**
      * Returns the rounding increment for this currency, or 0.0 if no
      * rounding is done by this currency.
-     * This is equivalent to getRoundingIncrement(CurrencyUsage.STANDARD);
      * @return the non-negative rounding increment, or 0.0 if none
      * @stable ICU 2.2
      */
     public double getRoundingIncrement() {
-        return getRoundingIncrement(CurrencyUsage.STANDARD);
-    }
-
-    /**
-     * Returns the rounding increment for this currency, or 0.0 if no
-     * rounding is done by this currency with the Usage.
-     * @param Usage the usage of currency(Standard or Cash)
-     * @return the non-negative rounding increment, or 0.0 if none
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release. 
-     */
-    public double getRoundingIncrement(CurrencyUsage Usage) {
         CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
-        CurrencyDigits digits = info.currencyDigits(subType, Usage);
+        CurrencyDigits digits = info.currencyDigits(code);
 
         int data1 = digits.roundingIncrement;
 
@@ -829,7 +759,7 @@ public class Currency extends MeasureUnit {
             return 0.0;
         }
 
-        // Return data[1] / 10^(data[0]). The only actual rounding data,
+        // Return data[1] / 10^(data[0]).  The only actual rounding data,
         // as of this writing, is CHF { 2, 25 }.
         return (double) data1 / POW10[data0];
     }
@@ -839,7 +769,7 @@ public class Currency extends MeasureUnit {
      * @stable ICU 2.2
      */
     public String toString() {
-        return subType;
+        return code;
     }
 
     /**
@@ -854,7 +784,7 @@ public class Currency extends MeasureUnit {
 
         // isoCode is kept for readResolve() and Currency class no longer
         // use it. So this statement actually does not have any effect.
-        isoCode = theISOCode;
+        isoCode = code; 
     }
 
     // POW10[i] = 10^i
@@ -974,7 +904,7 @@ public class Currency extends MeasureUnit {
     }
     
     private Object writeReplace() throws ObjectStreamException {
-        return new MeasureUnitProxy(type, subType);
+        return new MeasureUnitProxy(type, code);
     }
 
     // For backward compatibility only
@@ -984,7 +914,6 @@ public class Currency extends MeasureUnit {
     private final String isoCode;
 
     private Object readResolve() throws ObjectStreamException {
-        // The old isoCode field used to determine the currency.
         return Currency.getInstance(isoCode);
     }
 }

@@ -1,22 +1,18 @@
 /*
- *******************************************************************************
- * Copyright (C) 2006-2014, International Business Machines Corporation and
- * others. All Rights Reserved.
- *******************************************************************************
- */
-
+*******************************************************************************
+* Copyright (C) 2006-2010, International Business Machines Corporation and    *
+* others. All Rights Reserved.                                                *
+*******************************************************************************
+*/ 
+ 
 package com.ibm.icu.charset;
 
+import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.IntBuffer;
 
-import com.ibm.icu.charset.CharsetMBCS.MBCSHeader;
-import com.ibm.icu.charset.CharsetMBCS.MBCSToUFallback;
-import com.ibm.icu.charset.CharsetMBCS.UConverterMBCSTable;
 import com.ibm.icu.impl.ICUBinary;
-import com.ibm.icu.impl.InvalidFormatException;
 
 /**
  * ucnvmbcs.h
@@ -401,177 +397,131 @@ import com.ibm.icu.impl.InvalidFormatException;
  *   Indexes and lengths stored in the fromUTableValues[].
  */
 
-final class UConverterDataReader {
+final class UConverterDataReader implements ICUBinary.Authenticate {
     //private final static boolean debug = ICUDebug.enabled("UConverterDataReader");
-
-    private static final class IsAcceptable implements ICUBinary.Authenticate {
-        // @Override when we switch to Java 6
-        public boolean isDataVersionAcceptable(byte formatVersion[]) {
-            return formatVersion[0] == 6;
-        }
-    }
-    private static final IsAcceptable IS_ACCEPTABLE = new IsAcceptable();
 
     /*
      *  UConverterDataReader(UConverterDataReader r)
         {
-            byteBuffer = ICUBinary.getByteBufferFromInputStream(r.byteBuffer);
+            dataInputStream = new DataInputStream(r.dataInputStream);
             unicodeVersion = r.unicodeVersion;
         }
         */
-    /** The buffer position after the static data. */
-    private int posAfterStaticData;
-
+   /* the number bytes read from the stream */ 
+   int bytesRead = 0;
+   /* the number of bytes read for static data */
+   int staticDataBytesRead = 0;
    /**
     * <p>Protected constructor.</p>
-    * @param bytes ICU conversion data file
-    * @exception IOException throw if data file fails authentication
+    * @param inputStream ICU uprop.dat file input stream
+    * @exception IOException throw if data file fails authentication 
     */
-    protected UConverterDataReader(ByteBuffer bytes)
+    protected UConverterDataReader(InputStream inputStream) 
                                         throws IOException{
-        //if(debug) System.out.println("Bytes in buffer " + bytes.remaining());
-
-        byteBuffer = bytes;
-        /*unicodeVersion = */ICUBinary.readHeader(byteBuffer, DATA_FORMAT_ID, IS_ACCEPTABLE);
-
-        //if(debug) System.out.println("Bytes left in byteBuffer " + byteBuffer.remaining());
+        //if(debug) System.out.println("Bytes in inputStream " + inputStream.available());
+        
+        /*unicodeVersion = */ICUBinary.readHeader(inputStream, DATA_FORMAT_ID, this);
+        
+        //if(debug) System.out.println("Bytes left in inputStream " +inputStream.available());
+        
+        dataInputStream = new DataInputStream(inputStream);
+        
+        //if(debug) System.out.println("Bytes left in dataInputStream " +dataInputStream.available());
     }
-
+    
     // protected methods -------------------------------------------------
-
+    
     protected void readStaticData(UConverterStaticData sd) throws IOException
     {
-        sd.structSize = byteBuffer.getInt();
+        int bRead = 0;
+        sd.structSize = dataInputStream.readInt();
+        bRead +=4;
         byte[] name = new byte[UConverterConstants.MAX_CONVERTER_NAME_LENGTH];
-        byteBuffer.get(name);
-        sd.name = new String(name, "US-ASCII");
-        sd.codepage = byteBuffer.getInt();
-        sd.platform = byteBuffer.get();
-        sd.conversionType = byteBuffer.get();
-        sd.minBytesPerChar = byteBuffer.get();
-        sd.maxBytesPerChar = byteBuffer.get();
-        byteBuffer.get(sd.subChar);
-        sd.subCharLen = byteBuffer.get();
-        sd.hasToUnicodeFallback = byteBuffer.get();
-        sd.hasFromUnicodeFallback = byteBuffer.get();
-        sd.unicodeMask = (short)(byteBuffer.get() & 0xff);
-        sd.subChar1 = byteBuffer.get();
-        byteBuffer.get(sd.reserved);
-        posAfterStaticData = byteBuffer.position();
-    }
-
-    int bytesReadAfterStaticData() {
-        return byteBuffer.position() - posAfterStaticData;
+        dataInputStream.readFully(name);
+        bRead +=name.length;
+        sd.name = new String(name, 0, name.length);
+        sd.codepage = dataInputStream.readInt();
+        bRead +=4;
+        sd.platform = dataInputStream.readByte();
+        bRead++;
+        sd.conversionType = dataInputStream.readByte();
+        bRead++;
+        sd.minBytesPerChar = dataInputStream.readByte();
+        bRead++;
+        sd.maxBytesPerChar = dataInputStream.readByte();
+        bRead++;
+        dataInputStream.readFully(sd.subChar);
+        bRead += sd.subChar.length;
+        sd.subCharLen = dataInputStream.readByte();
+        bRead++;
+        sd.hasToUnicodeFallback = dataInputStream.readByte();
+        bRead++;
+        sd.hasFromUnicodeFallback = dataInputStream.readByte();
+        bRead++;
+        sd.unicodeMask = (short)dataInputStream.readUnsignedByte();
+        bRead++;
+        sd.subChar1 = dataInputStream.readByte();
+        bRead++;
+        dataInputStream.readFully(sd.reserved);
+        bRead += sd.reserved.length;
+        staticDataBytesRead = bRead;
+        bytesRead += bRead;
     }
 
     protected void readMBCSHeader(CharsetMBCS.MBCSHeader h) throws IOException
     {
-        byteBuffer.get(h.version);
-        h.countStates = byteBuffer.getInt();
-        h.countToUFallbacks = byteBuffer.getInt();
-        h.offsetToUCodeUnits = byteBuffer.getInt();
-        h.offsetFromUTable = byteBuffer.getInt();
-        h.offsetFromUBytes = byteBuffer.getInt();
-        h.flags = byteBuffer.getInt();
-        h.fromUBytesLength = byteBuffer.getInt();
+        dataInputStream.readFully(h.version);
+        bytesRead += h.version.length;
+        h.countStates = dataInputStream.readInt();
+        bytesRead+=4;
+        h.countToUFallbacks = dataInputStream.readInt();
+        bytesRead+=4;
+        h.offsetToUCodeUnits = dataInputStream.readInt();
+        bytesRead+=4;
+        h.offsetFromUTable = dataInputStream.readInt();
+        bytesRead+=4;
+        h.offsetFromUBytes = dataInputStream.readInt();
+        bytesRead+=4;
+        h.flags = dataInputStream.readInt();
+        bytesRead+=4;
+        h.fromUBytesLength = dataInputStream.readInt();
+        bytesRead+=4;
         if (h.version[0] == 5 && h.version[1] >= 3) {
-            h.options = byteBuffer.getInt();
+            h.options = dataInputStream.readInt();
+            bytesRead+=4;
             if ((h.options & CharsetMBCS.MBCS_OPT_NO_FROM_U) != 0) {
-                h.fullStage2Length = byteBuffer.getInt();
+                h.fullStage2Length = dataInputStream.readInt();
+                bytesRead+=4;
             }
         }
     }
-
-    protected void readMBCSTable(MBCSHeader header, UConverterMBCSTable mbcsTable) throws IOException
+    
+    protected void readMBCSTable(int[][] stateTableArray, CharsetMBCS.MBCSToUFallback[] toUFallbacksArray, char[] unicodeCodeUnitsArray, char[] fromUnicodeTableArray, byte[] fromUnicodeBytesArray) throws IOException
     {
-        IntBuffer intBuffer = byteBuffer.asIntBuffer();
-        mbcsTable.countStates = (byte) header.countStates;
-        mbcsTable.stateTable = new int[header.countStates][256];
-        int i;
-        for(i = 0; i < header.countStates; ++i) {
-            intBuffer.get(mbcsTable.stateTable[i]);
-        }
-
-        mbcsTable.countToUFallbacks = header.countToUFallbacks;
-        mbcsTable.toUFallbacks = new MBCSToUFallback[header.countToUFallbacks];
-        for(i = 0; i < header.countToUFallbacks; ++i) {
-            int offset = intBuffer.get();
-            int codePoint = intBuffer.get();
-            mbcsTable.toUFallbacks[i] = new MBCSToUFallback(offset, codePoint);
-        }
-        // Skip as many bytes as we have read from the IntBuffer.
-        int length = intBuffer.position() * 4;
-        ICUBinary.skipBytes(byteBuffer, length);
-
-        // Consider leaving some large arrays as CharBuffer/IntBuffer rather than
-        // reading them into Java arrays, to reduce initialization time and memory usage,
-        // at the cost of some performance.
-        // For example: unicodeCodeUnits, fromUnicodeTable, fromUnicodeInts.
-        // Take care not to modify the buffer contents for swaplfnl.
-        CharBuffer charBuffer = byteBuffer.asCharBuffer();
-        length = header.offsetFromUTable - header.offsetToUCodeUnits;
-        assert (length & 1) == 0;
-        mbcsTable.unicodeCodeUnits = new char[length / 2];
-        charBuffer.get(mbcsTable.unicodeCodeUnits);
-        // Skip as many bytes as we have read from the CharBuffer.
-        ICUBinary.skipBytes(byteBuffer, length);
-
-        length = header.offsetFromUBytes - header.offsetFromUTable;
-        assert (length & 1) == 0;
-        int fromUTableCharsLength;
-        if (mbcsTable.outputType == CharsetMBCS.MBCS_OUTPUT_1) {
-            // single-byte table stage1 + stage2
-            fromUTableCharsLength = length / 2;
-        } else if (mbcsTable.hasSupplementary()) {
-            // stage1 for Unicode limit 0x110000 >> 10
-            fromUTableCharsLength = 0x440;
-        } else {
-            // stage1 for BMP limit 0x10000 >> 10
-            fromUTableCharsLength = 0x40;
-        }
-        mbcsTable.fromUnicodeTable = new char[fromUTableCharsLength];
-        charBuffer.get(mbcsTable.fromUnicodeTable);
-        if (mbcsTable.outputType != CharsetMBCS.MBCS_OUTPUT_1) {
-            // Read both stage1 and stage2 together into an int[] array.
-            // Keeping the short stage1 in the array avoids offsetting at runtime.
-            // The stage1 part of this array will not be used.
-            assert (length & 3) == 0;
-            mbcsTable.fromUnicodeTableInts = new int[length / 4];
-            byteBuffer.asIntBuffer().get(mbcsTable.fromUnicodeTableInts);
-        }
-        // Skip as many bytes as are in stage1 + stage2.
-        ICUBinary.skipBytes(byteBuffer, length);
-
-        mbcsTable.fromUBytesLength = header.fromUBytesLength;
-        boolean noFromU = ((header.options & CharsetMBCS.MBCS_OPT_NO_FROM_U) != 0);
-        if (!noFromU) {
-            switch (mbcsTable.outputType) {
-            case CharsetMBCS.MBCS_OUTPUT_1:
-            case CharsetMBCS.MBCS_OUTPUT_2:
-            case CharsetMBCS.MBCS_OUTPUT_2_SISO:
-            case CharsetMBCS.MBCS_OUTPUT_3_EUC:
-                mbcsTable.fromUnicodeChars = new char[header.fromUBytesLength / 2];
-                byteBuffer.asCharBuffer().get(mbcsTable.fromUnicodeChars);
-                ICUBinary.skipBytes(byteBuffer, header.fromUBytesLength & ~1);
-                break;
-            case CharsetMBCS.MBCS_OUTPUT_3:
-            case CharsetMBCS.MBCS_OUTPUT_4_EUC:
-                mbcsTable.fromUnicodeBytes = new byte[header.fromUBytesLength];
-                byteBuffer.get(mbcsTable.fromUnicodeBytes);
-                break;
-            case CharsetMBCS.MBCS_OUTPUT_4:
-                mbcsTable.fromUnicodeInts = new int[header.fromUBytesLength / 4];
-                byteBuffer.asIntBuffer().get(mbcsTable.fromUnicodeInts);
-                ICUBinary.skipBytes(byteBuffer, header.fromUBytesLength & ~3);
-                break;
-            default:
-                // Cannot occur, caller checked already.
-                assert false;
+        int i, j;
+        for(i = 0; i < stateTableArray.length; ++i){
+            for(j = 0; j < stateTableArray[i].length; ++j){
+                stateTableArray[i][j] = dataInputStream.readInt();
+                bytesRead+=4;
             }
-        } else {
-            // Optional utf8Friendly mbcsIndex -- _MBCSHeader.version 4.3 (ICU 3.8) and higher.
-            // Needed for reconstituting omitted data.
-            mbcsTable.mbcsIndex = byteBuffer.asCharBuffer();
+        }
+        for(i = 0; i < toUFallbacksArray.length; ++i) {
+            toUFallbacksArray[i].offset = dataInputStream.readInt();
+            bytesRead+=4;
+            toUFallbacksArray[i].codePoint = dataInputStream.readInt();
+            bytesRead+=4;
+        }
+        for(i = 0; i < unicodeCodeUnitsArray.length; ++i){
+            unicodeCodeUnitsArray[i] = dataInputStream.readChar();
+            bytesRead+=2;
+        }
+        for(i = 0; i < fromUnicodeTableArray.length; ++i){
+            fromUnicodeTableArray[i] = dataInputStream.readChar();
+            bytesRead+=2;
+        }
+        for(i = 0; i < fromUnicodeBytesArray.length; ++i){
+            fromUnicodeBytesArray[i] = dataInputStream.readByte();
+            bytesRead++;
         }
     }
 
@@ -579,49 +529,84 @@ final class UConverterDataReader {
     {
         char c;
         StringBuilder name = new StringBuilder();
-        while((c = (char)byteBuffer.get()) !=  0){
+        while((c = (char)dataInputStream.readByte()) !=  0){
             name.append(c);
+            bytesRead++;
         }
+        bytesRead++/*for null terminator*/;
         return name.toString();
     }
 
     //protected int[] readExtIndexes(int skip) throws IOException
-    protected ByteBuffer readExtIndexes(int skip) throws IOException, InvalidFormatException
+    protected ByteBuffer readExtIndexes(int skip) throws IOException
     {
-        ICUBinary.skipBytes(byteBuffer, skip);
-        ByteBuffer b = ICUBinary.sliceWithOrder(byteBuffer);
-        int lengthOfIndexes = b.getInt(0);
-        if (lengthOfIndexes < 32) {
-            throw new InvalidFormatException();
+        int skipped = dataInputStream.skipBytes(skip);
+        if(skipped != skip){
+            throw new IOException("could not skip "+ skip +" bytes");
         }
-        int numBytesExtensionStructure = b.getInt(31 * 4);
-        b.limit(numBytesExtensionStructure);
-        ICUBinary.skipBytes(byteBuffer, numBytesExtensionStructure);
+        int n = dataInputStream.readInt();
+        bytesRead+=4;
+        int[] indexes = new int[n];
+        indexes[0] = n;
+        for(int i = 1; i < n; ++i) {
+            indexes[i] = dataInputStream.readInt();
+            bytesRead+=4;
+        }
+        //return indexes;
+
+        ByteBuffer b = ByteBuffer.allocate(indexes[31]);
+        for(int i = 0; i < n; ++i) {
+            b.putInt(indexes[i]);
+        }
+        int len = dataInputStream.read(b.array(), b.position(), b.remaining());
+        if(len==-1){
+            throw new IOException("Read failed");
+        }
+        bytesRead += len;
         return b;
     }
 
-    /**
-     * Data formatVersion 6.1 and higher has a unicodeMask.
-     */
-    boolean dataFormatHasUnicodeMask() {
-        int formatVersion0 = byteBuffer.get(16) & 0xff;
-        return formatVersion0 > 6 || (formatVersion0 == 6 && byteBuffer.get(17) != 0);
+    /*protected byte[] readExtTables(int n) throws IOException
+    {
+        byte[] tables = new byte[n];
+        int len =dataInputStream.read(tables);
+        if(len==-1){
+            throw new IOException("Read failed");
+        }
+        bytesRead += len;
+        return tables;
+    }*/
+
+    byte[] getDataFormatVersion(){
+        return DATA_FORMAT_VERSION;
     }
-
+    /**
+     * Inherited method
+     */
+    public boolean isDataVersionAcceptable(byte version[]){
+        return version[0] == DATA_FORMAT_VERSION[0];
+    }
+    
+/*    byte[] getUnicodeVersion(){
+        return unicodeVersion;    
+    }*/
     // private data members -------------------------------------------------
-
+      
     /**
     * ICU data file input stream
     */
-    private ByteBuffer byteBuffer;
-
-//    private VersionInfo unicodeVersion;
-
+    DataInputStream dataInputStream;
+    
+//    private byte[] unicodeVersion;
+                                       
     /**
     * File format version that this class understands.
     * No guarantees are made if a older version is used
     * see store.c of gennorm for more information and values
     */
     // DATA_FORMAT_ID_ values taken from icu4c isCnvAcceptable (ucnv_bld.c)
-    private static final int DATA_FORMAT_ID = 0x636e7674; // dataFormat="cnvt"
+    private static final byte DATA_FORMAT_ID[] = {(byte)0x63, (byte)0x6e, (byte)0x76, (byte)0x74}; // dataFormat="cnvt"
+    private static final byte DATA_FORMAT_VERSION[] = {(byte)0x6};
+
 }
+

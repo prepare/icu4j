@@ -1,33 +1,34 @@
 /*
- *******************************************************************************
- *
- *   Copyright (C) 2004-2014, International Business Machines
- *   Corporation and others.  All Rights Reserved.
- *
- *******************************************************************************
- *   file name:  UCaseProps.java
- *   encoding:   US-ASCII
- *   tab size:   8 (not used)
- *   indentation:4
- *
- *   created on: 2005jan29
- *   created by: Markus W. Scherer
- *
- *   Low-level Unicode character/string case mapping code.
- *   Java port of ucase.h/.c.
- */
+*******************************************************************************
+*
+*   Copyright (C) 2004-2012, International Business Machines
+*   Corporation and others.  All Rights Reserved.
+*
+*******************************************************************************
+*   file name:  UCaseProps.java
+*   encoding:   US-ASCII
+*   tab size:   8 (not used)
+*   indentation:4
+*
+*   created on: 2005jan29
+*   created by: Markus W. Scherer
+*
+*   Low-level Unicode character/string case mapping code.
+*   Java port of ucase.h/.c.
+*/
 
 package com.ibm.icu.impl;
 
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.io.InputStream;
 import java.util.Iterator;
 
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
-import com.ibm.icu.util.ICUUncheckedIOException;
 import com.ibm.icu.util.ULocale;
 
 public final class UCaseProps {
@@ -36,17 +37,22 @@ public final class UCaseProps {
 
     // port of ucase_openProps()
     private UCaseProps() throws IOException {
-        ByteBuffer bytes=ICUBinary.getRequiredData(DATA_FILE_NAME);
-        readData(bytes);
+        InputStream is=ICUData.getRequiredStream(ICUResourceBundle.ICU_BUNDLE+"/"+DATA_FILE_NAME);
+        BufferedInputStream b=new BufferedInputStream(is, 4096 /* data buffer size */);
+        readData(b);
+        b.close();
+        is.close();
     }
 
-    private final void readData(ByteBuffer bytes) throws IOException {
+    private final void readData(InputStream is) throws IOException {
+        DataInputStream inputStream=new DataInputStream(is);
+
         // read the header
-        ICUBinary.readHeader(bytes, FMT, new IsAcceptable());
+        ICUBinary.readHeader(inputStream, FMT, new IsAcceptable());
 
         // read indexes[]
         int i, count;
-        count=bytes.getInt();
+        count=inputStream.readInt();
         if(count<IX_TOP) {
             throw new IOException("indexes[0] too small in "+DATA_FILE_NAME);
         }
@@ -54,25 +60,25 @@ public final class UCaseProps {
 
         indexes[0]=count;
         for(i=1; i<count; ++i) {
-            indexes[i]=bytes.getInt();
+            indexes[i]=inputStream.readInt();
         }
 
         // read the trie
-        trie=Trie2_16.createFromSerialized(bytes);
+        trie=Trie2_16.createFromSerialized(inputStream);
         int expectedTrieLength=indexes[IX_TRIE_SIZE];
         int trieLength=trie.getSerializedLength();
         if(trieLength>expectedTrieLength) {
             throw new IOException(DATA_FILE_NAME+": not enough bytes for the trie");
         }
         // skip padding after trie bytes
-        ICUBinary.skipBytes(bytes, expectedTrieLength-trieLength);
+        inputStream.skipBytes(expectedTrieLength-trieLength);
 
         // read exceptions[]
         count=indexes[IX_EXC_LENGTH];
         if(count>0) {
             exceptions=new char[count];
             for(i=0; i<count; ++i) {
-                exceptions[i]=bytes.getChar();
+                exceptions[i]=inputStream.readChar();
             }
         }
 
@@ -81,7 +87,7 @@ public final class UCaseProps {
         if(count>0) {
             unfold=new char[count];
             for(i=0; i<count; ++i) {
-                unfold[i]=bytes.getChar();
+                unfold[i]=inputStream.readChar();
             }
         }
     }
@@ -1316,7 +1322,7 @@ public final class UCaseProps {
     private static final String DATA_FILE_NAME=DATA_NAME+"."+DATA_TYPE;
 
     /* format "cAsE" */
-    private static final int FMT=0x63415345;
+    private static final byte FMT[]={ 0x63, 0x41, 0x53, 0x45 };
 
     /* indexes into indexes[] */
     //private static final int IX_INDEX_TOP=0;
@@ -1428,7 +1434,7 @@ public final class UCaseProps {
         try {
             INSTANCE = new UCaseProps();
         } catch (IOException e) {
-            throw new ICUUncheckedIOException(e);
+            throw new RuntimeException(e);
         }
     }
 }

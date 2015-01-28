@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (c) 2004-2014, International Business Machines
+ * Copyright (c) 2004-2012, International Business Machines
  * Corporation and others.  All Rights Reserved.
  * Copyright (C) 2010 , Yahoo! Inc.                                            
  *******************************************************************************
@@ -29,7 +29,6 @@ public class TestAll extends TestGroup {
                   "com.ibm.icu.dev.test.format.BigNumberFormatTest",
                   "DataDrivenFormatTest",
                   "ListFormatterTest",
-                  "MeasureUnitTest",
                   "TestAll$PluralFormat",
                   "TestAll$MessageFormat",
                   "TestAll$SelectFormat"
@@ -53,18 +52,15 @@ public class TestAll extends TestGroup {
                 "CompactDecimalFormatTest",
                 "IntlTestNumberFormat",
                 "IntlTestNumberFormatAPI",
-                "NumberFormatSpecificationTest",
                 "NumberFormatTest",
                 "NumberFormatRegistrationTest",
                 "NumberFormatRoundTripTest",
                 "NumberRegression",
                 "NumberFormatRegressionTest",
-                "ScientificNumberFormatterTest",
                 "IntlTestDecimalFormatAPI",
                 "IntlTestDecimalFormatAPIC",
                 "IntlTestDecimalFormatSymbols",
                 "IntlTestDecimalFormatSymbolsC",
-                "PluralRangesTest",
             });
         }
     }
@@ -83,8 +79,7 @@ public class TestAll extends TestGroup {
                 "DateTimeGeneratorTest",
                 "IntlTestSimpleDateFormatAPI",
                 "DateFormatRegressionTestJ",
-                "TimeZoneFormatTest",
-                "RelativeDateTimeFormatterTest"
+                "TimeZoneFormatTest"
             });
         }
     }
@@ -111,7 +106,6 @@ public class TestAll extends TestGroup {
                 "PluralFormatUnitTest",
                 "PluralFormatTest",
                 "PluralRulesTest",
-                "PluralRangesTest",
             });
         }
     }

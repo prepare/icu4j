@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2014, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -223,7 +223,7 @@ class EasterRule implements DateRule {
                 //System.out.println("                result  = " + result.toString());
             }
 
-            if (end != null && !result.before(end)) {
+            if (end != null && result.after(end)) {
                 //System.out.println("Result after end, returning null");
                 return null;
             }

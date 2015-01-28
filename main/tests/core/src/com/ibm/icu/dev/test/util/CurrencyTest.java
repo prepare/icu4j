@@ -1,6 +1,6 @@
 /*
  **********************************************************************
- * Copyright (c) 2002-2015, International Business Machines
+ * Copyright (c) 2002-2013, International Business Machines
  * Corporation and others.  All Rights Reserved.
  **********************************************************************
  * Author: Alan Liu
@@ -19,8 +19,6 @@ import java.util.Locale;
 import java.util.Set;
 
 import com.ibm.icu.dev.test.TestFmwk;
-import com.ibm.icu.dev.test.TestUtil;
-import com.ibm.icu.dev.test.TestUtil.JavaVendor;
 import com.ibm.icu.impl.CurrencyData;
 import com.ibm.icu.text.CurrencyDisplayNames;
 import com.ibm.icu.text.CurrencyMetaInfo;
@@ -241,7 +239,7 @@ public class CurrencyTest extends TestFmwk {
         // with no substitute
         cdn = CurrencyDisplayNames.getInstance(ULocale.GERMANY, true);
         assertNotNull("have currency data for Germany", cdn);
-
+        
         // known currency, behavior unchanged
         assertEquals("de_USD_name", "US-Dollar", cdn.getName("USD"));
         assertEquals("de_USD_symbol", "$", cdn.getSymbol("USD"));
@@ -263,12 +261,6 @@ public class CurrencyTest extends TestFmwk {
             ln = " (" + cdn.getULocale().toString() + ")";
         }
         assertNull("no fallback from unknown locale" + ln , cdn);
-
-        // Locale version
-        cdn = CurrencyDisplayNames.getInstance(Locale.GERMANY, true);
-        assertNotNull("have currency data for Germany (Java Locale)", cdn);
-        assertEquals("de_USD_name (Locale)", "US-Dollar", cdn.getName("USD"));
-        assertNull("de_FOO_name (Locale)", cdn.getName("FOO"));
     }
     
     // Coverage-only test of CurrencyData
@@ -430,7 +422,7 @@ public class CurrencyTest extends TestFmwk {
         assertTrue("More than one currency for switzerland", currencies.size() > 1);
         assertEquals(
                 "With tender",
-                Arrays.asList(new String[] {"CHF", "CHE", "CHW"}),
+                Arrays.asList(new String[] {"CHF"}),
                 metainfo.currencies(filter.withTender()));
     }
    
@@ -535,9 +527,9 @@ public class CurrencyTest extends TestFmwk {
             { "eo_AO", "1969-12-31" },
             { "eo_DE@currency=DEM", "2000-12-23", "EUR", "DEM" },
             { "eo-DE-u-cu-dem", "2000-12-23", "EUR", "DEM" },
-            { "en_US", null, "USD", "USN" },
-            { "en_US_PREEURO", null, "USD", "USN" },
-            { "en_US_Q", null, "USD", "USN" },
+            { "en_US", null, "USD" },
+            { "en_US_PREEURO", null, "USD" },
+            { "en_US_Q", null, "USD" },
         };
         
         DateFormat fmt = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
@@ -573,33 +565,6 @@ public class CurrencyTest extends TestFmwk {
                 actualSet.addAll(Arrays.asList(actual));
             }
             assertEquals(locale + " on " + timeString, expectedSet, actualSet);
-
-            // With Java Locale
-            // Note: skip this test on Java 6 or older when keywords are available
-            if (locale.getKeywords() == null || TestUtil.getJavaVendor() == JavaVendor.Android || TestUtil.getJavaVersion() >= 7) {
-                Locale javaloc = locale.toLocale();
-                String[] actualWithJavaLocale = Currency.getAvailableCurrencyCodes(javaloc, date);
-                // should be exactly same with the ULocale version
-                boolean same = true;
-                if (actual == null) {
-                    if (actualWithJavaLocale != null) {
-                        same = false;
-                    }
-                } else {
-                    if (actualWithJavaLocale == null || actual.length != actualWithJavaLocale.length) {
-                        same = false;
-                    } else {
-                        same = true;
-                        for (int i = 0; i < actual.length; i++) {
-                            if (!actual[i].equals(actualWithJavaLocale[i])) {
-                                same = false;
-                                break;
-                            }
-                        }
-                    }
-                }
-                assertTrue("getAvailableCurrencyCodes with ULocale vs Locale", same);
-            }
         }
     }
 
@@ -624,16 +589,16 @@ public class CurrencyTest extends TestFmwk {
         final String[][] PREFERRED = {
             {"root",                 },
             {"und",                  },
-            {"und_ZZ",          "XAG", "XAU", "XBA", "XBB", "XBC", "XBD", "XDR", "XPD", "XPT", "XSU", "XTS", "XUA", "XXX"},
-            {"en_US",           "USD", "USN"},
+            {"und_ZZ",               },
+            {"en_US",           "USD"},
             {"en_029",               },
             {"en_TH",           "THB"},
             {"de",              "EUR"},
             {"de_DE",           "EUR"},
-            {"de_ZZ",           "XAG", "XAU", "XBA", "XBB", "XBC", "XBD", "XDR", "XPD", "XPT", "XSU", "XTS", "XUA", "XXX"},
+            {"de_ZZ",                },
             {"ar",              "EGP"},
             {"ar_PS",           "ILS", "JOD"},
-            {"en@currency=CAD",     "USD", "USN"},
+            {"en@currency=CAD",     "USD"},
             {"fr@currency=ZZZ",     "EUR"},
             {"de_DE@currency=DEM",  "EUR"},
         };

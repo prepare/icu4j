@@ -1,7 +1,9 @@
 /**
 *******************************************************************************
-* Copyright (C) 2006-2015, International Business Machines Corporation and
-* others. All Rights Reserved.
+* Copyright (C) 2006-2012, International Business Machines Corporation and    *
+* others. All Rights Reserved.                                                *
+*******************************************************************************
+*
 *******************************************************************************
 */
 
@@ -31,9 +33,51 @@ import com.ibm.icu.charset.CharsetICU;
 import com.ibm.icu.charset.CharsetProviderICU;
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.text.UTF16;
-import com.ibm.icu.text.UnicodeSet;
 
 public class TestCharset extends TestFmwk {
+    private String m_encoding = "UTF-16";
+    CharsetDecoder m_decoder = null;
+    CharsetEncoder m_encoder = null;
+    Charset m_charset =null;
+    static final String unistr = "abcd\ud800\udc00\u1234\u00a5\u3000\r\n";
+    static final byte[] byteStr ={   
+            (byte) 0x00,(byte) 'a',
+            (byte) 0x00,(byte) 'b',
+            (byte) 0x00,(byte) 'c',
+            (byte) 0x00,(byte) 'd',
+            (byte) 0xd8,(byte) 0x00,
+            (byte) 0xdc,(byte) 0x00,
+            (byte) 0x12,(byte) 0x34,
+            (byte) 0x00,(byte) 0xa5,
+            (byte) 0x30,(byte) 0x00,
+            (byte) 0x00,(byte) 0x0d,
+            (byte) 0x00,(byte) 0x0a };
+    static final byte[] expectedByteStr ={
+        (byte) 0xfe,(byte) 0xff,
+        (byte) 0x00,(byte) 'a',
+        (byte) 0x00,(byte) 'b',
+        (byte) 0x00,(byte) 'c',
+        (byte) 0x00,(byte) 'd',
+        (byte) 0xd8,(byte) 0x00,
+        (byte) 0xdc,(byte) 0x00,
+        (byte) 0x12,(byte) 0x34,
+        (byte) 0x00,(byte) 0xa5,
+        (byte) 0x30,(byte) 0x00,
+        (byte) 0x00,(byte) 0x0d,
+        (byte) 0x00,(byte) 0x0a };
+    
+    protected void init(){
+        try{
+            CharsetProviderICU provider = new CharsetProviderICU();
+            //Charset charset = CharsetICU.forName(encoding);
+            m_charset = provider.charsetForName(m_encoding);
+            m_decoder = (CharsetDecoder) m_charset.newDecoder();
+            m_encoder = (CharsetEncoder) m_charset.newEncoder();   
+        }catch(MissingResourceException ex){
+            warnln("Could not load charset data");
+        }
+    }
+    
     public static void main(String[] args) throws Exception {
         new TestCharset().run(args);
     }
@@ -1135,63 +1179,23 @@ public class TestCharset extends TestFmwk {
 //    }
     
 
-    public void TestAPISemantics(/*String encoding*/) {
-        String encoding = "UTF-16";
-        CharsetDecoder decoder = null;
-        CharsetEncoder encoder = null;
-        try {
-            CharsetProviderICU provider = new CharsetProviderICU();
-            Charset charset = provider.charsetForName(encoding);
-            decoder = charset.newDecoder();
-            encoder = charset.newEncoder();
-        } catch(MissingResourceException ex) {
-            warnln("Could not load charset data: " + encoding);
-            return;
-        }
-
-        final String unistr = "abcd\ud800\udc00\u1234\u00a5\u3000\r\n";
-        final byte[] byteStr = {
-            (byte) 0x00,(byte) 'a',
-            (byte) 0x00,(byte) 'b',
-            (byte) 0x00,(byte) 'c',
-            (byte) 0x00,(byte) 'd',
-            (byte) 0xd8,(byte) 0x00,
-            (byte) 0xdc,(byte) 0x00,
-            (byte) 0x12,(byte) 0x34,
-            (byte) 0x00,(byte) 0xa5,
-            (byte) 0x30,(byte) 0x00,
-            (byte) 0x00,(byte) 0x0d,
-            (byte) 0x00,(byte) 0x0a
-        };
-        final byte[] expectedByteStr = {
-            (byte) 0xfe,(byte) 0xff,
-            (byte) 0x00,(byte) 'a',
-            (byte) 0x00,(byte) 'b',
-            (byte) 0x00,(byte) 'c',
-            (byte) 0x00,(byte) 'd',
-            (byte) 0xd8,(byte) 0x00,
-            (byte) 0xdc,(byte) 0x00,
-            (byte) 0x12,(byte) 0x34,
-            (byte) 0x00,(byte) 0xa5,
-            (byte) 0x30,(byte) 0x00,
-            (byte) 0x00,(byte) 0x0d,
-            (byte) 0x00,(byte) 0x0a
-        };
-
+    public void TestAPISemantics(/*String encoding*/) 
+                throws Exception {
+        int rc;
         ByteBuffer byes = ByteBuffer.wrap(byteStr);
         CharBuffer uniVal = CharBuffer.wrap(unistr);
         ByteBuffer expected = ByteBuffer.wrap(expectedByteStr);
-
-        int rc = 0;
-        if(decoder==null){
+        
+        rc = 0;
+        if(m_decoder==null){
             warnln("Could not load decoder.");
             return;
         }
-        decoder.reset();
+        m_decoder.reset();
         /* Convert the whole buffer to Unicode */
         try {
             CharBuffer chars = CharBuffer.allocate(unistr.length());
-            CoderResult result = decoder.decode(byes, chars, false);
+            CoderResult result = m_decoder.decode(byes, chars, false);
 
             if (result.isError()) {
                 errln("ToChars encountered Error");
@@ -1218,11 +1222,11 @@ public class TestCharset extends TestFmwk {
         try {
             CharBuffer chars = CharBuffer.allocate(unistr.length());
             ByteBuffer b = ByteBuffer.wrap(byteStr);
-            decoder.reset();
+            m_decoder.reset();
             CoderResult result=null;
             for (int i = 1; i <= byteStr.length; i++) {
                 b.limit(i);
-                result = decoder.decode(b, chars, false);
+                result = m_decoder.decode(b, chars, false);
                 if(result.isOverflow()){
                     errln("ToChars single threw an overflow exception");
                 }
@@ -1248,11 +1252,11 @@ public class TestCharset extends TestFmwk {
         /* Convert the buffer one at a time to Unicode */
         try {
             CharBuffer chars = CharBuffer.allocate(unistr.length());
-            decoder.reset();
+            m_decoder.reset();
             byes.rewind();
             for (int i = 1; i <= byteStr.length; i++) {
                 byes.limit(i);
-                CoderResult result = decoder.decode(byes, chars, false);
+                CoderResult result = m_decoder.decode(byes, chars, false);
                 if (result.isError()) {
                     errln("Error while decoding: "+result.toString());
                 }
@@ -1284,8 +1288,8 @@ public class TestCharset extends TestFmwk {
         /* Convert the whole buffer from unicode */
         try {
             ByteBuffer bytes = ByteBuffer.allocate(expectedByteStr.length);
-            encoder.reset();
-            CoderResult result = encoder.encode(uniVal, bytes, false);
+            m_encoder.reset();
+            CoderResult result = m_encoder.encode(uniVal, bytes, false);
             if (result.isError()) {
                 errln("FromChars reported error: " + result.toString());
                 rc = 1;
@@ -1310,11 +1314,11 @@ public class TestCharset extends TestFmwk {
         try {
             ByteBuffer bytes = ByteBuffer.allocate(expectedByteStr.length);
             CharBuffer c = CharBuffer.wrap(unistr);
-            encoder.reset();
+            m_encoder.reset();
             CoderResult result= null;
             for (int i = 1; i <= unistr.length(); i++) {
                 c.limit(i);
-                result = encoder.encode(c, bytes, false);
+                result = m_encoder.encode(c, bytes, false);
                 if(result.isOverflow()){
                     errln("FromChars single threw an overflow exception");
                 }
@@ -1344,12 +1348,12 @@ public class TestCharset extends TestFmwk {
         /* Convert one char at a time to unicode */
         try {
             ByteBuffer bytes = ByteBuffer.allocate(expectedByteStr.length);
-            encoder.reset();
+            m_encoder.reset();
             char[] temp = unistr.toCharArray();
             CoderResult result=null;
             for (int i = 0; i <= temp.length; i++) {
                 uniVal.limit(i);
-                result = encoder.encode(uniVal, bytes, false);
+                result = m_encoder.encode(uniVal, bytes, false);
                 if(result.isOverflow()){
                     errln("FromChars simple threw an overflow exception");
                 }
@@ -1373,7 +1377,7 @@ public class TestCharset extends TestFmwk {
             rc = 9;
         }
         if (rc != 0) {
-            errln("Test Simple FromChars " + encoding + " --FAILED");
+            errln("Test Simple FromChars " + m_encoding + " --FAILED");
         }
     }
 
@@ -1580,18 +1584,13 @@ public class TestCharset extends TestFmwk {
             '\u22B5','\u22B6','\u22B7','\u22B8','\u22B9',
             '\u22BA','\u22BB','\u22BC','\u22BD','\u22BE' 
             };
-        String encoding = "UTF-16";
-        CharsetEncoder encoder = null;
-        try {
-            CharsetProviderICU provider = new CharsetProviderICU();
-            Charset charset = provider.charsetForName(encoding);
-            encoder = charset.newEncoder();
-        } catch(MissingResourceException ex) {
-            warnln("Could not load charset data: " + encoding);
+        if(m_encoder==null){
+            warnln("Could not load encoder.");
             return;
         }
-        if (!encoder.canEncode(new String(mySource))) {
-            errln("Test canConvert() " + encoding + " failed. "+encoder);
+        m_encoder.reset();
+        if (!m_encoder.canEncode(new String(mySource))) {
+            errln("Test canConvert() " + m_encoding + " failed. "+m_encoder);
         }
 
     }
@@ -1610,7 +1609,30 @@ public class TestCharset extends TestFmwk {
         }
         logln("Total Number of chasets = " + map.size());
     }
-
+    /* ticket 5580 */
+    public void TestJavaCanonicalNameOnAvailableCharsets() {
+        CharsetProviderICU provider = new CharsetProviderICU();
+        Iterator allCharsets = provider.charsets();
+        String errorMessage = null;
+        
+        while (allCharsets.hasNext()) {
+            Charset _chset = (Charset)allCharsets.next();
+            Charset chset = Charset.forName(_chset.name());
+            
+            if (!chset.name().equals(_chset.name())) {
+                if (errorMessage == null) {
+                    errorMessage = new String("Error: Charset.forName( " + _chset.name() + " ) returned " + chset + " instead of " + _chset);
+                } else {
+                    errorMessage = errorMessage + "\nError: Charset.forName( " + _chset.name() + " ) returned " + chset + " instead of " + _chset;
+                }
+            }
+        }
+        
+        if (errorMessage != null) {
+            errln(errorMessage);
+        }
+    }
+    
     public void TestWindows936(){
         CharsetProviderICU icu = new CharsetProviderICU();
         Charset cs = icu.charsetForName("windows-936-2000");
@@ -2098,27 +2120,15 @@ public class TestCharset extends TestFmwk {
     }
 
     public void convertAllTest(ByteBuffer bSource, CharBuffer uSource) throws Exception {
-        String encoding = "UTF-16";
-        CharsetDecoder decoder = null;
-        CharsetEncoder encoder = null;
-        try {
-            CharsetProviderICU provider = new CharsetProviderICU();
-            Charset charset = provider.charsetForName(encoding);
-            decoder = charset.newDecoder();
-            encoder = charset.newEncoder();
-        } catch(MissingResourceException ex) {
-            warnln("Could not load charset data: " + encoding);
-            return;
-        }
         {
             try {
-                decoder.reset();
+                m_decoder.reset();
                 ByteBuffer mySource = bSource.duplicate();
-                CharBuffer myTarget = decoder.decode(mySource);
+                CharBuffer myTarget = m_decoder.decode(mySource);
                 if (!equals(myTarget, uSource)) {
                     errln(
                         "--Test convertAll() "
-                            + encoding
+                            + m_encoding
                             + " to Unicode  --FAILED");
                 }
             } catch (Exception e) {
@@ -2128,13 +2138,13 @@ public class TestCharset extends TestFmwk {
         }
         {
             try {
-                encoder.reset();
+                m_encoder.reset();
                 CharBuffer mySource = CharBuffer.wrap(uSource);
-                ByteBuffer myTarget = encoder.encode(mySource);
+                ByteBuffer myTarget = m_encoder.encode(mySource);
                 if (!equals(myTarget, bSource)) {
                     errln(
                         "--Test convertAll() "
-                            + encoding
+                            + m_encoding
                             + " to Unicode  --FAILED");
                 }
             } catch (Exception e) {
@@ -2741,9 +2751,7 @@ public class TestCharset extends TestFmwk {
         };
         ByteBuffer bb = ByteBuffer.wrap(byteout);
         CharBuffer cb = CharBuffer.wrap(charin);
-        // Cast up to CharSequence to insulate against the CharBuffer.subSequence() return type change
-        // which makes code compiled for a newer JDK not run on an older one.
-        CharBuffer cb2 = CharBuffer.wrap(((CharSequence)cb).subSequence(0, 2));
+        CharBuffer cb2 = CharBuffer.wrap(cb.subSequence(0, 2));
         encoder.reset();
         if (!(encoder.encode(cb2, bb, true)).isOverflow()) {
             errln("Overflow error while encoding ASCII should have occurred.");
@@ -5726,44 +5734,5 @@ public class TestCharset extends TestFmwk {
             errln("Error calling getBytes(): " + ex);
         }
         
-    }
-    
-    public void TestDefaultIgnorableCallback() {
-        String cnv_name = "euc-jp-2007";
-        String pattern_ignorable = "[:Default_Ignorable_Code_Point:]";
-        String pattern_not_ignorable = "[:^Default_Ignorable_Code_Point:]";
-        UnicodeSet set_ignorable = new UnicodeSet(pattern_ignorable);
-        UnicodeSet set_not_ignorable = new UnicodeSet(pattern_not_ignorable);
-        CharsetEncoder encoder =  CharsetICU.forNameICU(cnv_name).newEncoder();
-
-        // set callback for the converter
-        encoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
-        encoder.onMalformedInput(CodingErrorAction.REPLACE);
-
-        // test ignorable code points are ignored
-        int size = set_ignorable.size();
-        for (int i = 0; i < size; i++) {
-            encoder.reset();
-            try {
-                if(encoder.encode(CharBuffer.wrap(Character.toChars(set_ignorable.charAt(i)))).limit() > 0) {
-                    errln("Callback should have ignore default ignorable: U+" + Integer.toHexString(set_ignorable.charAt(i)));
-                }
-            } catch (Exception ex) {
-                errln("Error received converting +" + Integer.toHexString(set_ignorable.charAt(i)));
-            }
-        }
-        
-        // test non-ignorable code points are not ignored
-        size = set_not_ignorable.size();
-        for (int i = 0; i < size; i++) {
-            encoder.reset();
-            try {
-                if(encoder.encode(CharBuffer.wrap(Character.toChars(set_not_ignorable.charAt(i)))).limit() == 0) {
-                    errln("Callback should not have ignored: U+" + Integer.toHexString(set_not_ignorable.charAt(i)));
-                }
-            } catch (Exception ex) {
-                errln("Error received converting U+" + Integer.toHexString(set_not_ignorable.charAt(i)));
-            }
-        }
     }
 }

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2002-2014, International Business Machines Corporation and
+ * Copyright (C) 2002-2013, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -62,16 +62,7 @@ public class CollationAPITest extends TestFmwk {
         byte[] bytes = sortk1.toByteArray();
         doAssert(bytes.length == 3 && bytes[0] == 1 && bytes[1] == 1 
                  && bytes[2] == 0, 
-                 "Empty string should return a collation key with empty levels");
-
-        // Most control codes and CGJ are completely ignorable.
-        // A string with only completely ignorables must compare equal to an empty string.
-        CollationKey sortkIgnorable = col.getCollationKey("\u0001\u034f");
-        doAssert(sortkIgnorable != null && sortkIgnorable.toByteArray().length == 3,
-                 "Completely ignorable string should return a collation key with empty levels");
-        doAssert(sortkIgnorable.compareTo(sortk1) == 0,
-                 "Completely ignorable string should compare equal to empty string");
-
+                 "Empty string should return an empty collation key");
         // bogus key returned here
         sortk1 = col.getCollationKey(null);
         doAssert(sortk1 == null, "Error code should return bogus collation key");
@@ -251,12 +242,12 @@ public class CollationAPITest extends TestFmwk {
         
         // Collator col2 = (Collator)col1.clone();
         // doAssert(col1.equals(col2), "Cloned object is not equal to the orginal");
-        String ruleset = "&9 < a, A < b, B < c, C < d, D, e, E";
+        String ruleset = "< a, A < b, B < c, C < d, D, e, E";
         RuleBasedCollator col3 = null;
         try {
             col3 = new RuleBasedCollator(ruleset);
         } catch (Exception e) {
-            errln("Failure creating RuleBasedCollator with rule: \"" + ruleset + "\"\n" + e);
+            errln("Failure creating RuleBasedCollator with rule:" + ruleset);
             return;
         }
         doAssert(!col1.equals(col3), "Cloned object is equal to some dummy");
@@ -302,11 +293,8 @@ public class CollationAPITest extends TestFmwk {
         order1 = iterator1.next();
         doAssert(!(iterator1.equals(iterator2)), "The first iterator advance failed");
         order2 = iterator2.next();
-
-        // In ICU 52 and earlier we had iterator1.equals(iterator2)
-        // but in ICU 53 this fails because the iterators differ (String vs. CharacterIterator).
-        // doAssert((iterator1.equals(iterator2)), "The second iterator advance failed");
-        doAssert(iterator1.getOffset() == iterator2.getOffset(), "The second iterator advance failed");
+        
+        doAssert((iterator1.equals(iterator2)), "The second iterator advance failed"); 
         doAssert((order1 == order2), "The order result should be the same");
         order3 = iterator3.next();
         
@@ -341,11 +329,8 @@ public class CollationAPITest extends TestFmwk {
         doAssert(!(iterator1.equals(iterator2)), "The first iterator advance failed");
         
         order2 = iterator2.next();
-
-        // In ICU 52 and earlier we had iterator1.equals(iterator2)
-        // but in ICU 53 this fails because the iterators differ (String vs. CharacterIterator).
-        // doAssert((iterator1.equals(iterator2)), "The second iterator advance failed");
-        doAssert(iterator1.getOffset() == iterator2.getOffset(), "The second iterator advance failed");
+        
+        doAssert((iterator1.equals(iterator2)), "The second iterator advance failed");
         doAssert((order1 == order2), "The order result should be the same");
     
         order3 = iterator3.next();
@@ -452,7 +437,9 @@ public class CollationAPITest extends TestFmwk {
         // rather than hardcoding (and updating each time) a particular UCA version.
         VersionInfo ucdVersion = UCharacter.getUnicodeVersion();
         VersionInfo ucaVersion = col.getUCAVersion();
-        doAssert(ucaVersion.equals(ucdVersion),
+        doAssert(logKnownIssue("9101", "update to collv2 & UCA 6.3") ?
+                    ucdVersion.getMajor() == 6 && ucdVersion.getMinor() == 3 :
+                    ucaVersion.equals(ucdVersion),
                 "Expected UCA version "+ucdVersion.toString()+" got "+col.getUCAVersion().toString());
 
         doAssert((col.compare("ab", "abc") < 0), "ab < abc comparison failed");
@@ -698,8 +685,8 @@ public class CollationAPITest extends TestFmwk {
                 coll = new RuleBasedCollator(rules[i]);
                 set = coll.getTailoredSet();
                 logln("Got set: "+set.toPattern(true));
-                if(set.size() < data[i].length) {
-                    errln("Tailored set size smaller ("+set.size()+") than expected ("+data[i].length+")");
+                if(set.size() != data[i].length) {
+                    errln("Tailored set size different ("+set.size()+") than expected ("+data[i].length+")");
                 }
                 for(j = 0; j < data[i].length; j++) {
                     logln("Checking to see whether "+data[i][j]+" is in set");
@@ -720,28 +707,23 @@ public class CollationAPITest extends TestFmwk {
     {
         class TestCollator extends Collator
         {
-            @Override
             public boolean equals(Object that) {
                 return this == that;
             }
     
-            @Override
             public int hashCode() {
                 return 0;
             }
             
-            @Override
             public int compare(String source, String target) {
                 return source.compareTo(target);
             }
             
-            @Override
             public CollationKey getCollationKey(String source)
             {   return new CollationKey(source, 
                           getRawCollationKey(source, new RawCollationKey()));
             }
             
-            @Override
             public RawCollationKey getRawCollationKey(String source, 
                                                       RawCollationKey key)
             {
@@ -757,7 +739,6 @@ public class CollationAPITest extends TestFmwk {
                 return key;
             }
             
-            @Override
             public void setVariableTop(int ce)
             {
                 if (isFrozen()) {
@@ -765,7 +746,6 @@ public class CollationAPITest extends TestFmwk {
                 }
             }
             
-            @Override
             public int setVariableTop(String str) 
             {
                 if (isFrozen()) {
@@ -775,17 +755,14 @@ public class CollationAPITest extends TestFmwk {
                 return 0;
             }
             
-            @Override
             public int getVariableTop()
             {
                 return 0;
             }
-            @Override
             public VersionInfo getVersion()
             {
                 return VersionInfo.getInstance(0);
             }
-            @Override
             public VersionInfo getUCAVersion()
             {
                 return VersionInfo.getInstance(0);
@@ -820,10 +797,9 @@ public class CollationAPITest extends TestFmwk {
             errln("Error getting default tailored set");
         }
     }
-
-    /** 
-     * Simple test the collator setter and getters.
-     * Similar to C++ apicoll.cpp TestAttribute().
+    
+     /** 
+     * Simple test the collator setter and getters
      */
     public void TestSetGet() 
     {
@@ -899,188 +875,7 @@ public class CollationAPITest extends TestFmwk {
             errln("Setting case first handling default failed");
         }
     }
-
-    public void TestVariableTopSetting() {
-        // Use the root collator, not the default collator.
-        // This test fails with en_US_POSIX which tailors the dollar sign after 'A'.
-        RuleBasedCollator coll = (RuleBasedCollator)Collator.getInstance(ULocale.ROOT);
-
-        int oldVarTop = coll.getVariableTop();
-
-        // ICU 53+: The character must be in a supported reordering group,
-        // and the variable top is pinned to the end of that group.
-        try {
-            coll.setVariableTop("A");
-            errln("setVariableTop(letter) did not detect illegal argument");
-        } catch(IllegalArgumentException expected) {
-        }
-
-        // dollar sign (currency symbol)
-        int newVarTop = coll.setVariableTop("$");
-
-        if(newVarTop != coll.getVariableTop()) {
-            errln("setVariableTop(dollar sign) != following getVariableTop()");
-        }
-
-        String dollar = "$";
-        String euro = "\u20AC";
-        int newVarTop2 = coll.setVariableTop(euro);
-        assertEquals("setVariableTop(Euro sign) == following getVariableTop()",
-                     newVarTop2, coll.getVariableTop());
-        assertEquals("setVariableTop(Euro sign) == setVariableTop(dollar sign) (should pin to top of currency group)",
-                     newVarTop2, newVarTop);
-
-        coll.setAlternateHandlingShifted(true);
-        assertEquals("empty==dollar", 0, coll.compare("", dollar));  // UCOL_EQUAL
-        assertEquals("empty==euro", 0, coll.compare("", euro));  // UCOL_EQUAL
-        assertEquals("dollar<zero", -1, coll.compare(dollar, "0"));  // UCOL_LESS
-
-        coll.setVariableTop(oldVarTop);
-
-        int newerVarTop = coll.setVariableTop("$");
-
-        if(newVarTop != newerVarTop) {
-          errln("Didn't set vartop properly from String!\n");
-        }
-    }
-
-    public void TestMaxVariable() {
-        RuleBasedCollator coll = (RuleBasedCollator)Collator.getInstance(ULocale.ROOT);
-
-        try {
-            coll.setMaxVariable(Collator.ReorderCodes.OTHERS);
-            errln("setMaxVariable(others) did not detect illegal argument");
-        } catch(IllegalArgumentException expected) {
-        }
-
-        coll.setMaxVariable(Collator.ReorderCodes.CURRENCY);
-
-        if(Collator.ReorderCodes.CURRENCY != coll.getMaxVariable()) {
-          errln("setMaxVariable(currency) != following getMaxVariable()");
-        }
-
-        coll.setAlternateHandlingShifted(true);
-        assertEquals("empty==dollar", 0, coll.compare("", "$"));  // UCOL_EQUAL
-        assertEquals("empty==euro", 0, coll.compare("", "\u20AC"));  // UCOL_EQUAL
-        assertEquals("dollar<zero", -1, coll.compare("$", "0"));  // UCOL_LESS
-    }
-
-    public void TestGetLocale() {
-        String rules = "&a<x<y<z";
-
-        Collator coll = Collator.getInstance(new ULocale("root"));
-        ULocale locale = coll.getLocale(ULocale.ACTUAL_LOCALE);
-        if(!locale.equals(ULocale.ROOT)) {
-          errln("Collator.getInstance(\"root\").getLocale(actual) != ULocale.ROOT; " +
-                "getLocale().getName() = \"" + locale.getName() + "\"");
-        }
-
-        coll = Collator.getInstance(new ULocale(""));
-        locale = coll.getLocale(ULocale.ACTUAL_LOCALE);
-        if(!locale.equals(ULocale.ROOT)) {
-            errln("Collator.getInstance(\"\").getLocale(actual) != ULocale.ROOT; " +
-                  "getLocale().getName() = \"" + locale.getName() + "\"");
-        }
-
-        int i = 0;
-
-        String[][] testStruct = {
-          // requestedLocale, validLocale, actualLocale
-          // Note: ULocale.ROOT.getName() == "" not "root".
-          { "de_DE", "de", "" },
-          { "sr_RS", "sr_Cyrl_RS", "sr" },
-          { "en_US_CALIFORNIA", "en_US", "" },
-          { "fr_FR_NONEXISTANT", "fr", "" },
-          // pinyin is the default, therefore suppressed.
-          { "zh_CN", "zh_Hans_CN", "zh" },
-          // zh_Hant has default=stroke but the data is in zh.
-          { "zh_TW", "zh_Hant_TW", "zh@collation=stroke" },
-          { "zh_TW@collation=pinyin", "zh_Hant_TW@collation=pinyin", "zh" },
-          { "zh_CN@collation=stroke", "zh_Hans_CN@collation=stroke", "zh@collation=stroke" }
-        };
-
-        /* test opening collators for different locales */
-        for(i = 0; i<testStruct.length; i++) {
-            String requestedLocale = testStruct[i][0];
-            String validLocale = testStruct[i][1];
-            String actualLocale = testStruct[i][2];
-            try {
-                coll = Collator.getInstance(new ULocale(requestedLocale));
-            } catch(Exception e) {
-                errln(String.format("Failed to open collator for %s with %s", requestedLocale, e));
-                continue;
-            }
-            // Note: C++ getLocale() recognizes ULOC_REQUESTED_LOCALE
-            // which does not exist in Java.
-            locale = coll.getLocale(ULocale.VALID_LOCALE);
-            if(!locale.equals(new ULocale(validLocale))) {
-              errln(String.format("[Coll %s]: Error in valid locale, expected %s, got %s",
-                    requestedLocale, validLocale, locale.getName()));
-            }
-            locale = coll.getLocale(ULocale.ACTUAL_LOCALE);
-            if(!locale.equals(new ULocale(actualLocale))) {
-              errln(String.format("[Coll %s]: Error in actual locale, expected %s, got %s",
-                    requestedLocale, actualLocale, locale.getName()));
-            }
-            // If we open a collator for the actual locale, we should get an equivalent one again.
-            Collator coll2;
-            try {
-                coll2 = Collator.getInstance(locale);
-            } catch(Exception e) {
-                errln(String.format("Failed to open collator for actual locale \"%s\" with %s",
-                        locale.getName(), e));
-                continue;
-            }
-            ULocale actual2 = coll2.getLocale(ULocale.ACTUAL_LOCALE);
-            if(!actual2.equals(locale)) {
-              errln(String.format("[Coll actual \"%s\"]: Error in actual locale, got different one: \"%s\"",
-                    locale.getName(), actual2.getName()));
-            }
-            if(!coll2.equals(coll)) {
-              errln(String.format("[Coll actual \"%s\"]: Got different collator than before",
-                      locale.getName()));
-            }
-        }
-
-        /* completely non-existent locale for collator should get a root collator */
-        {
-            try {
-                coll = Collator.getInstance(new ULocale("blahaha"));
-            } catch(Exception e) {
-                errln("Failed to open collator with " + e);
-                return;
-            }
-            ULocale valid = coll.getLocale(ULocale.VALID_LOCALE);
-            String name = valid.getName();
-            if(name.length() != 0 && !name.equals("root")) {
-                errln("Valid locale for nonexisting locale collator is \"" + name + "\" not root");
-            }
-            ULocale actual = coll.getLocale(ULocale.ACTUAL_LOCALE);
-            name = actual.getName();
-            if(name.length() != 0 && !name.equals("root")) {
-                errln("Actual locale for nonexisting locale collator is \"" + name + "\" not root");
-            }
-        }
-
-        /* collator instantiated from rules should have all locales null */
-        try {
-            coll = new RuleBasedCollator(rules);
-        } catch (Exception e) {
-            errln("RuleBasedCollator(" + rules + ") failed: " + e);
-            return;
-        }
-        locale = coll.getLocale(ULocale.VALID_LOCALE);
-        if(locale != null) {
-            errln(String.format("For collator instantiated from rules, valid locale %s is not bogus",
-                    locale.getName()));
-        }
-        locale = coll.getLocale(ULocale.ACTUAL_LOCALE);
-        if(locale != null) {
-            errln(String.format("For collator instantiated from rules, actual locale %s is not bogus",
-                    locale.getName()));
-        }
-    }
-
+    
     public void TestBounds() 
     {
         Collator coll = Collator.getInstance(new Locale("sh", ""));
@@ -1240,9 +1035,8 @@ public class CollationAPITest extends TestFmwk {
         }
         return ok;
     }
-
-    // capitst.c/TestGetContractionsAndUnsafes()
-    public void TestGetContractions() throws Exception {
+    
+    public void TestGetContractions()throws Exception {
         /*        static struct {
          const char* locale;
          const char* inConts;
@@ -1279,19 +1073,7 @@ public class CollationAPITest extends TestFmwk {
                     "[jabv]"
                 },
                 { "ja",
-                    /*
-                     * The "collv2" builder omits mappings if the collator maps their
-                     * character sequences to the same CEs.
-                     * For example, it omits Japanese contractions for NFD forms
-                     * of the voiced iteration mark (U+309E = U+309D + U+3099), such as
-                     * {\u3053\u3099\u309D\u3099}{\u3053\u309D\u3099}
-                     * {\u30B3\u3099\u30FD\u3099}{\u30B3\u30FD\u3099}.
-                     * It does add mappings for the precomposed forms.
-                     */
-                    "[{\u3053\u3099\u309D}{\u3053\u3099\u309E}{\u3053\u3099\u30FC}" +
-                     "{\u3053\u309D}{\u3053\u309E}{\u3053\u30FC}" +
-                     "{\u30B3\u3099\u30FC}{\u30B3\u3099\u30FD}{\u30B3\u3099\u30FE}" +
-                     "{\u30B3\u30FC}{\u30B3\u30FD}{\u30B3\u30FE}]",
+                    "[{\u3053\u3099\u309D}{\u3053\u3099\u309D\u3099}{\u3053\u3099\u309E}{\u3053\u3099\u30FC}{\u3053\u309D}{\u3053\u309D\u3099}{\u3053\u309E}{\u3053\u30FC}{\u30B3\u3099\u30FC}{\u30B3\u3099\u30FD}{\u30B3\u3099\u30FD\u3099}{\u30B3\u3099\u30FE}{\u30B3\u30FC}{\u30B3\u30FD}{\u30B3\u30FD\u3099}{\u30B3\u30FE}]",
                     "[{\u30FD\u3099}{\u309D\u3099}{\u3053\u3099}{\u30B3\u3099}{lj}{nj}]",
                     "[\u30FE\u00e6]",
                     "[a]",
@@ -1299,7 +1081,10 @@ public class CollationAPITest extends TestFmwk {
                     "[]"
                 }
         };
-
+        
+        
+        
+        
         RuleBasedCollator coll = null;
         int i = 0;
         UnicodeSet conts = new UnicodeSet();
@@ -1474,7 +1259,7 @@ public class CollationAPITest extends TestFmwk {
         }
         
         /*
-         * Tests the method public String getDisplayName(Locale objectLocale, Locale displayLocale) using TestCreateCollator1 class
+         * Tests the method gpublic String getDisplayName(Locale objectLocale, Locale displayLocale) using TestCreateCollator1 class
          */
         try {
             TestCreateCollator tcc = new TestCreateCollator();
@@ -1508,41 +1293,6 @@ public class CollationAPITest extends TestFmwk {
                 errln("Collator.getKeywordValues(String) is suppose to return " +
                         "an exception for an invalid keyword.");
             } catch(Exception e){}
-        }
-    }
-
-    public void TestBadKeywords() {
-        // Test locale IDs with errors.
-        // Valid locale IDs are tested via data-driven tests.
-        // Note: ICU4C tests with a bogus Locale. There is no such thing in ICU4J.
-
-        // Unknown value.
-        String localeID = "it-u-ks-xyz";
-        try {
-            Collator.getInstance(new ULocale(localeID));
-            errln("Collator.getInstance(" + localeID + ") did not fail as expected");
-        } catch(IllegalArgumentException expected) {
-        } catch(Exception other) {
-            errln("Collator.getInstance(" + localeID + ") did not fail as expected - " + other);
-        }
-
-        // Unsupported attributes.
-        localeID = "it@colHiraganaQuaternary=true";
-        try {
-            Collator.getInstance(new ULocale(localeID));
-            errln("Collator.getInstance(" + localeID + ") did not fail as expected");
-        } catch(UnsupportedOperationException expected) {
-        } catch(Exception other) {
-            errln("Collator.getInstance(" + localeID + ") did not fail as expected - " + other);
-        }
-
-        localeID = "it-u-vt-u24";
-        try {
-            Collator.getInstance(new ULocale(localeID));
-            errln("Collator.getInstance(" + localeID + ") did not fail as expected");
-        } catch(UnsupportedOperationException expected) {
-        } catch(Exception other) {
-            errln("Collator.getInstance(" + localeID + ") did not fail as expected - " + other);
         }
     }
 }

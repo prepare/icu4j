@@ -1,14 +1,16 @@
-/*
- *******************************************************************************
- * Copyright (C) 1996-2014, International Business Machines Corporation and
- * others. All Rights Reserved.
- *******************************************************************************
- */
+/**
+*******************************************************************************
+* Copyright (C) 1996-2013, International Business Machines Corporation and
+* others. All Rights Reserved.
+*******************************************************************************
+*/
 
 package com.ibm.icu.impl;
 
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.io.InputStream;
 import java.util.Iterator;
 import java.util.MissingResourceException;
 
@@ -18,10 +20,8 @@ import com.ibm.icu.lang.UCharacter.NumericType;
 import com.ibm.icu.lang.UCharacterCategory;
 import com.ibm.icu.lang.UProperty;
 import com.ibm.icu.lang.UScript;
-import com.ibm.icu.text.Normalizer2;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
-import com.ibm.icu.util.ICUException;
 import com.ibm.icu.util.VersionInfo;
 
 /**
@@ -490,7 +490,7 @@ public final class UCharacterProperty
         new IntProperty(0, BLOCK_MASK_, BLOCK_SHIFT_),
         new CombiningClassIntProperty(SRC_NFC) {  // CANONICAL_COMBINING_CLASS
             int getValue(int c) {
-                return Normalizer2.getNFDInstance().getCombiningClass(c);
+                return Norm2AllModes.getNFCInstance().decomp.getCombiningClass(c);
             }
         },
         new IntProperty(2, DECOMPOSITION_TYPE_MASK_, 0),
@@ -970,7 +970,12 @@ public final class UCharacterProperty
     /**
     * Default name of the datafile
     */
-    private static final String DATA_FILE_NAME_ = "uprops.icu";
+    private static final String DATA_FILE_NAME_ = ICUResourceBundle.ICU_BUNDLE+"/uprops.icu";
+
+    /**
+    * Default buffer size of datafile
+    */
+    private static final int DATA_BUFFER_SIZE_ = 25000;
 
     /**
     * Shift value for lead surrogate to form a supplementary character.
@@ -1177,59 +1182,61 @@ public final class UCharacterProperty
     {
         // consistency check
         if(binProps.length!=UProperty.BINARY_LIMIT) {
-            throw new ICUException("binProps.length!=UProperty.BINARY_LIMIT");
+            throw new RuntimeException("binProps.length!=UProperty.BINARY_LIMIT");
         }
         if(intProps.length!=(UProperty.INT_LIMIT-UProperty.INT_START)) {
-            throw new ICUException("intProps.length!=(UProperty.INT_LIMIT-UProperty.INT_START)");
+            throw new RuntimeException("intProps.length!=(UProperty.INT_LIMIT-UProperty.INT_START)");
         }
 
         // jar access
-        ByteBuffer bytes=ICUBinary.getRequiredData(DATA_FILE_NAME_);
-        m_unicodeVersion_ = ICUBinary.readHeaderAndDataVersion(bytes, DATA_FORMAT, new IsAcceptable());
+        InputStream is = ICUData.getRequiredStream(DATA_FILE_NAME_);
+        BufferedInputStream bis = new BufferedInputStream(is, DATA_BUFFER_SIZE_);
+        m_unicodeVersion_ = ICUBinary.readHeaderAndDataVersion(bis, DATA_FORMAT, new IsAcceptable());
+        DataInputStream ds = new DataInputStream(bis);
         // Read or skip the 16 indexes.
-        int propertyOffset = bytes.getInt();
-        /* exceptionOffset = */ bytes.getInt();
-        /* caseOffset = */ bytes.getInt();
-        int additionalOffset = bytes.getInt();
-        int additionalVectorsOffset = bytes.getInt();
-        m_additionalColumnsCount_ = bytes.getInt();
-        int scriptExtensionsOffset = bytes.getInt();
-        int reservedOffset7 = bytes.getInt();
-        /* reservedOffset8 = */ bytes.getInt();
-        /* dataTopOffset = */ bytes.getInt();
-        m_maxBlockScriptValue_ = bytes.getInt();
-        m_maxJTGValue_ = bytes.getInt();
-        ICUBinary.skipBytes(bytes, (16 - 12) << 2);
+        int propertyOffset = ds.readInt();
+        /* exceptionOffset = */ ds.readInt();
+        /* caseOffset = */ ds.readInt();
+        int additionalOffset = ds.readInt();
+        int additionalVectorsOffset = ds.readInt();
+        m_additionalColumnsCount_ = ds.readInt();
+        int scriptExtensionsOffset = ds.readInt();
+        int reservedOffset7 = ds.readInt();
+        /* reservedOffset8 = */ ds.readInt();
+        /* dataTopOffset = */ ds.readInt();
+        m_maxBlockScriptValue_ = ds.readInt();
+        m_maxJTGValue_ = ds.readInt();
+        ds.skipBytes((16 - 12) << 2);
 
         // read the main properties trie
-        m_trie_ = Trie2_16.createFromSerialized(bytes);
+        m_trie_ = Trie2_16.createFromSerialized(ds);
         int expectedTrieLength = (propertyOffset - 16) * 4;
         int trieLength = m_trie_.getSerializedLength();
         if(trieLength > expectedTrieLength) {
             throw new IOException("uprops.icu: not enough bytes for main trie");
         }
         // skip padding after trie bytes
-        ICUBinary.skipBytes(bytes, expectedTrieLength - trieLength);
+        ds.skipBytes(expectedTrieLength - trieLength);
 
         // skip unused intervening data structures
-        ICUBinary.skipBytes(bytes, (additionalOffset - propertyOffset) * 4);
+        ds.skipBytes((additionalOffset - propertyOffset) * 4);
 
         if(m_additionalColumnsCount_ > 0) {
             // reads the additional property block
-            m_additionalTrie_ = Trie2_16.createFromSerialized(bytes);
+            m_additionalTrie_ = Trie2_16.createFromSerialized(ds);
             expectedTrieLength = (additionalVectorsOffset-additionalOffset)*4;
             trieLength = m_additionalTrie_.getSerializedLength();
             if(trieLength > expectedTrieLength) {
                 throw new IOException("uprops.icu: not enough bytes for additional-properties trie");
             }
             // skip padding after trie bytes
-            ICUBinary.skipBytes(bytes, expectedTrieLength - trieLength);
+            ds.skipBytes(expectedTrieLength - trieLength);
 
             // additional properties
             int size = scriptExtensionsOffset - additionalVectorsOffset;
             m_additionalVectors_ = new int[size];
             for (int i = 0; i < size; i ++) {
-                m_additionalVectors_[i] = bytes.getInt();
+                m_additionalVectors_[i] = ds.readInt();
             }
         }
 
@@ -1238,9 +1245,10 @@ public final class UCharacterProperty
         if(numChars > 0) {
             m_scriptExtensions_ = new char[numChars];
             for(int i = 0; i < numChars; ++i) {
-                m_scriptExtensions_[i] = bytes.getChar();
+                m_scriptExtensions_[i] = ds.readChar();
             }
         }
+        is.close();
     }
 
     private static final class IsAcceptable implements ICUBinary.Authenticate {
@@ -1249,7 +1257,7 @@ public final class UCharacterProperty
             return version[0] == 7;
         }
     }
-    private static final int DATA_FORMAT = 0x5550726F;  // "UPro"
+    private static final byte DATA_FORMAT[] = { 0x55, 0x50, 0x72, 0x6F };  // "UPro"
 
     // private methods -------------------------------------------------------
 

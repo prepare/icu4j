@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2014, International Business Machines Corporation and
+ * Copyright (C) 2007-2013, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -15,7 +15,6 @@ import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -175,13 +174,11 @@ public class PluralRules implements Serializable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static final String CATEGORY_SEPARATOR = ";  ";
     /**
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static final String KEYWORD_RULE_SEPARATOR = ": ";
 
     private static final long serialVersionUID = 1;
@@ -192,20 +189,10 @@ public class PluralRules implements Serializable {
     /**
      * Provides a factory for returning plural rules
      * 
-     * @internal
      * @deprecated This API is ICU internal only.
+     * @internal
      */
-    @Deprecated
     public static abstract class Factory {
-        /**
-         * Sole constructor
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        @Deprecated
-        protected Factory() {
-        }
-
         /**
          * Provides access to the predefined <code>PluralRules</code> for a given locale and the plural type.
          * 
@@ -220,20 +207,18 @@ public class PluralRules implements Serializable {
          * @return The predefined <code>PluralRules</code> object for this locale. If there's no predefined rules for
          *         this locale, the rules for the closest parent in the locale hierarchy that has one will be returned.
          *         The final fallback always returns the default rules.
-         * @internal
          * @deprecated This API is ICU internal only.
+         * @internal
          */
-        @Deprecated
         public abstract PluralRules forLocale(ULocale locale, PluralType type);
 
         /**
          * Utility for getting CARDINAL rules.
          * @param locale the locale
          * @return plural rules.
-         * @internal
          * @deprecated This API is ICU internal only.
+         * @internal
          */
-        @Deprecated
         public final PluralRules forLocale(ULocale locale) {
             return forLocale(locale, PluralType.CARDINAL);
         }
@@ -241,10 +226,9 @@ public class PluralRules implements Serializable {
         /**
          * Returns the locales for which there is plurals data.
          * 
-         * @internal
          * @deprecated This API is ICU internal only.
+         * @internal
          */
-        @Deprecated
         public abstract ULocale[] getAvailableULocales();
 
         /**
@@ -260,28 +244,25 @@ public class PluralRules implements Serializable {
          *            if not null and of length > 0, this will hold 'true' at index 0 if locale is directly defined
          *            (without fallback) as having plural rules
          * @return the functionally-equivalent locale
-         * @internal
          * @deprecated This API is ICU internal only.
+         * @internal
          */
-        @Deprecated
         public abstract ULocale getFunctionalEquivalent(ULocale locale, boolean[] isAvailable);
 
         /**
          * Returns the default factory.
-         * @internal
          * @deprecated This API is ICU internal only.
+         * @internal
          */
-        @Deprecated
         public static PluralRulesLoader getDefaultFactory() {
             return PluralRulesLoader.loader;
         }
 
         /**
          * Returns whether or not there are overrides.
-         * @internal
          * @deprecated This API is ICU internal only.
+         * @internal
          */
-        @Deprecated
         public abstract boolean hasOverride(ULocale locale);
     }
     // Standard keywords.
@@ -415,7 +396,7 @@ public class PluralRules implements Serializable {
         t,
         v,
         w,
-        /* deprecated */
+        /**@deprecated*/
         j;
     }
 
@@ -423,56 +404,47 @@ public class PluralRules implements Serializable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static class FixedDecimal extends Number implements Comparable<FixedDecimal> {
         private static final long serialVersionUID = -4756200506571685661L;
         /**
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public final double source;
         /**
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public final int visibleDecimalDigitCount;
         /**
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public final int visibleDecimalDigitCountWithoutTrailingZeros;
         /**
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public final long decimalDigits;
         /**
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public final long decimalDigitsWithoutTrailingZeros;
         /**
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public final long integerValue;
         /**
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public final boolean hasIntegerValue;
         /**
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public final boolean isNegative;
         private final int baseFactor;
 
@@ -480,7 +452,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public double getSource() {
             return source;
         }
@@ -489,7 +460,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public int getVisibleDecimalDigitCount() {
             return visibleDecimalDigitCount;
         }
@@ -498,7 +468,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public int getVisibleDecimalDigitCountWithoutTrailingZeros() {
             return visibleDecimalDigitCountWithoutTrailingZeros;
         }
@@ -507,7 +476,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public long getDecimalDigits() {
             return decimalDigits;
         }
@@ -516,7 +484,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public long getDecimalDigitsWithoutTrailingZeros() {
             return decimalDigitsWithoutTrailingZeros;
         }
@@ -525,7 +492,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public long getIntegerValue() {
             return integerValue;
         }
@@ -534,7 +500,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public boolean isHasIntegerValue() {
             return hasIntegerValue;
         }
@@ -543,7 +508,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public boolean isNegative() {
             return isNegative;
         }
@@ -552,12 +516,9 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public int getBaseFactor() {
             return baseFactor;
         }
-
-        static final long MAX = (long)1E18;
 
         /**
          * @internal
@@ -567,15 +528,12 @@ public class PluralRules implements Serializable {
          * @param f Corresponds to f in the plural rules grammar.
          *   The digits to the right of the decimal place as an integer. e.g 1.10 = 10
          */
-        @Deprecated
         public FixedDecimal(double n, int v, long f) {
             isNegative = n < 0;
             source = isNegative ? -n : n;
             visibleDecimalDigitCount = v;
             decimalDigits = f;
-            integerValue = n > MAX 
-                    ? MAX 
-                            : (long)n;
+            integerValue = (long)n;
             hasIntegerValue = source == integerValue;
             // check values. TODO make into unit test.
             //            
@@ -610,7 +568,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public FixedDecimal(double n, int v) {
             this(n,v,getFractionalDigits(n, v));
         }
@@ -619,9 +576,6 @@ public class PluralRules implements Serializable {
             if (v == 0) {
                 return 0;
             } else {
-                if (n < 0) {
-                    n = -n;
-                }
                 int baseFactor = (int) Math.pow(10, v);
                 long scaled = Math.round(n * baseFactor);
                 return (int) (scaled % baseFactor);
@@ -632,7 +586,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public FixedDecimal(double n) {
             this(n, decimals(n));
         }
@@ -641,68 +594,24 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public FixedDecimal(long n) {
             this(n,0);
         }
 
-        private static final long MAX_INTEGER_PART = 1000000000;
         /**
-         * Return a guess as to the number of decimals that would be displayed. This is only a guess; callers should
-         * always supply the decimals explicitly if possible. Currently, it is up to 6 decimals (without trailing zeros).
-         * Returns 0 for infinities and nans.
          * @internal
          * @deprecated This API is ICU internal only.
-         * 
          */
-        @Deprecated
         public static int decimals(double n) {
             // Ugly...
-            if (Double.isInfinite(n) || Double.isNaN(n)) {
-                return 0;
-            }
-            if (n < 0) {
-                n = -n;
-            }
-            if (n == Math.floor(n)) {
-                return 0;
-            }
-            if (n < MAX_INTEGER_PART) {
-                long temp = (long)(n * 1000000) % 1000000; // get 6 decimals
-                for (int mask = 10, digits = 6; digits > 0; mask *= 10, --digits) {
-                    if ((temp % mask) != 0) {
-                        return digits;
-                    }
-                }
-                return 0;
-            } else {
-                String buf = String.format(Locale.ENGLISH, "%1.15e", n);
-                int ePos = buf.lastIndexOf('e');
-                int expNumPos = ePos + 1;
-                if (buf.charAt(expNumPos) == '+') {
-                    expNumPos++;
-                }
-                String exponentStr = buf.substring(expNumPos);
-                int exponent = Integer.parseInt(exponentStr);
-                int numFractionDigits = ePos - 2 - exponent;
-                if (numFractionDigits < 0) {
-                    return 0;
-                }
-                for (int i=ePos-1; numFractionDigits > 0; --i) {
-                    if (buf.charAt(i) != '0') {
-                        break;
-                    }
-                    --numFractionDigits; 
-                }
-                return numFractionDigits;
-            }
+            String temp = String.valueOf(n);
+            return temp.endsWith(".0") ? 0 : temp.length() - temp.indexOf('.') - 1;
         }
 
         /**
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public FixedDecimal (String n) {
             // Ugly, but for samples we don't care.
             this(Double.parseDouble(n), getVisibleFractionCount(n));
@@ -722,7 +631,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public double get(Operand operand) {
             switch(operand) {
             default: return source;
@@ -738,7 +646,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public static Operand getOperand(String t) {
             return Operand.valueOf(t);
         }
@@ -748,7 +655,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public int compareTo(FixedDecimal other) {
             if (integerValue != other.integerValue) {
                 return integerValue < other.integerValue ? -1 : 1;
@@ -770,7 +676,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         @Override
         public boolean equals(Object arg0) {
             if (arg0 == null) {
@@ -790,7 +695,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         @Override
         public int hashCode() {
             // TODO Auto-generated method stub
@@ -801,7 +705,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         @Override
         public String toString() {
             return String.format("%." + visibleDecimalDigitCount + "f", source);
@@ -811,7 +714,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public boolean hasIntegerValue() {
             return hasIntegerValue;
         }
@@ -820,7 +722,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         @Override
         public int intValue() {
             // TODO Auto-generated method stub
@@ -831,7 +732,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         @Override
         public long longValue() {
             return integerValue;
@@ -841,7 +741,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         @Override
         public float floatValue() {
             return (float) source;
@@ -851,17 +750,15 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         @Override
         public double doubleValue() {
-            return isNegative ? -source : source;
+            return source;
         }
 
         /**
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public long getShiftedValue() {
             return integerValue * baseFactor + decimalDigits;
         }
@@ -883,46 +780,28 @@ public class PluralRules implements Serializable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
-    public enum SampleType {
-        /**
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        @Deprecated
-        INTEGER,
-        /**
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        @Deprecated
-        DECIMAL
-    }
+    public enum SampleType {INTEGER, DECIMAL}
 
     /**
      * A range of NumberInfo that includes all values with the same visibleFractionDigitCount.
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static class FixedDecimalRange {
         /**
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public final FixedDecimal start;
         /**
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public final FixedDecimal end;
         /**
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public FixedDecimalRange(FixedDecimal start, FixedDecimal end) {
             if (start.visibleDecimalDigitCount != end.visibleDecimalDigitCount) {
                 throw new IllegalArgumentException("Ranges must have the same number of visible decimals: " + start + "~" + end);
@@ -934,7 +813,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         @Override
         public String toString() {
             return start + (end == start ? "" : "~" + end);
@@ -946,25 +824,21 @@ public class PluralRules implements Serializable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static class FixedDecimalSamples {
         /**
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public final SampleType sampleType;
         /**
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public final Set<FixedDecimalRange> samples;
         /**
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public final boolean bounded;
         /**
          * The samples must be immutable.
@@ -1034,7 +908,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public Set<Double> addSamples(Set<Double> result) {
             for (FixedDecimalRange item : samples) {
                 // we have to convert to longs so we don't get strange double issues
@@ -1052,7 +925,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         @Override
         public String toString() {
             StringBuilder b = new StringBuilder("@").append(sampleType.toString().toLowerCase(Locale.ENGLISH));
@@ -1075,7 +947,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public Set<FixedDecimalRange> getSamples() {
             return samples;
         }
@@ -1084,7 +955,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public void getStartEndSamples(Set<FixedDecimal> target) {
             for (FixedDecimalRange item : samples) {
                 target.add(item.start);
@@ -1647,7 +1517,6 @@ public class PluralRules implements Serializable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         @Override
         public int hashCode() {
             return keyword.hashCode() ^ constraint.hashCode();
@@ -1701,10 +1570,11 @@ public class PluralRules implements Serializable {
         }
 
         public String select(FixedDecimal n) {
-            if (Double.isInfinite(n.source) || Double.isNaN(n.source)) {
-                return KEYWORD_OTHER;
-            }
             Rule r = selectRule(n);
+            // since we have explict 'other', we don't need this.
+            //            if (r == null) {
+            //                return KEYWORD_OTHER;
+            //            }
             return r.getKeyword();
         }
 
@@ -1782,61 +1652,16 @@ public class PluralRules implements Serializable {
     }
 
     /**
-     * @internal
      * @deprecated This API is ICU internal only.
+     * @internal
      */
-    @Deprecated
     public enum StandardPluralCategories {
-        /**
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        @Deprecated
         zero,
-        /**
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        @Deprecated
         one,
-        /**
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        @Deprecated
         two,
-        /**
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        @Deprecated
         few,
-        /**
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        @Deprecated
         many,
-        /**
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        @Deprecated
         other;
-        /**
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        @Deprecated
-        public static final List<StandardPluralCategories> VALUES 
-        = Collections.unmodifiableList(Arrays.asList(values()));
-        /**
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        @Deprecated
-        public static final int COUNT = values().length;
-
         static StandardPluralCategories forString(String s) {
             StandardPluralCategories a;
             try {
@@ -1890,29 +1715,6 @@ public class PluralRules implements Serializable {
     }
 
     /**
-     * Provides access to the predefined cardinal-number <code>PluralRules</code> for a given
-     * JDK locale.
-     * Same as forLocale(locale, PluralType.CARDINAL).
-     *
-     * <p>ICU defines plural rules for many locales based on CLDR <i>Language Plural Rules</i>.
-     * For these predefined rules, see CLDR page at
-     * http://unicode.org/repos/cldr-tmp/trunk/diff/supplemental/language_plural_rules.html
-     *
-     * @param locale The JDK locale for which a <code>PluralRules</code> object is
-     *   returned.
-     * @return The predefined <code>PluralRules</code> object for this locale.
-     *   If there's no predefined rules for this locale, the rules
-     *   for the closest parent in the locale hierarchy that has one will
-     *   be returned.  The final fallback always returns the default
-     *   rules.
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static PluralRules forLocale(Locale locale) {
-        return forLocale(ULocale.forLocale(locale));
-    }
-
-    /**
      * Provides access to the predefined <code>PluralRules</code> for a given
      * locale and the plural type.
      *
@@ -1932,29 +1734,6 @@ public class PluralRules implements Serializable {
      */
     public static PluralRules forLocale(ULocale locale, PluralType type) {
         return Factory.getDefaultFactory().forLocale(locale, type);
-    }
-
-    /**
-     * Provides access to the predefined <code>PluralRules</code> for a given
-     * JDK locale and the plural type.
-     *
-     * <p>ICU defines plural rules for many locales based on CLDR <i>Language Plural Rules</i>.
-     * For these predefined rules, see CLDR page at
-     * http://unicode.org/repos/cldr-tmp/trunk/diff/supplemental/language_plural_rules.html
-     *
-     * @param locale The JDK locale for which a <code>PluralRules</code> object is
-     *   returned.
-     * @param type The plural type (e.g., cardinal or ordinal).
-     * @return The predefined <code>PluralRules</code> object for this locale.
-     *   If there's no predefined rules for this locale, the rules
-     *   for the closest parent in the locale hierarchy that has one will
-     *   be returned.  The final fallback always returns the default
-     *   rules.
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static PluralRules forLocale(Locale locale, PluralType type) {
-        return forLocale(ULocale.forLocale(locale), type);
     }
 
     /*
@@ -1979,7 +1758,6 @@ public class PluralRules implements Serializable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     @Override
     public int hashCode() {
         return rules.hashCode();
@@ -2005,7 +1783,6 @@ public class PluralRules implements Serializable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public String select(double number, int countVisibleFractionDigits, long fractionaldigits) {
         return rules.select(new FixedDecimal(number, countVisibleFractionDigits, fractionaldigits));
     }
@@ -2019,7 +1796,6 @@ public class PluralRules implements Serializable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public String select(FixedDecimal sample) {
         return rules.select(sample);
     }
@@ -2033,7 +1809,6 @@ public class PluralRules implements Serializable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public boolean matches(FixedDecimal sample, String keyword) {
         return rules.select(sample, keyword);
     }
@@ -2083,14 +1858,12 @@ public class PluralRules implements Serializable {
      * values is unlimited.
      *
      * @param keyword the keyword
-     * @param type the type of samples requested, INTEGER or DECIMAL
      * @return the values that trigger this keyword, or null.  The returned collection
      * is immutable. It will be empty if the keyword is not defined.
      * 
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public Collection<Double> getAllKeywordValues(String keyword, SampleType type) {
         if (!isLimited(keyword, type)) {
             return null;
@@ -2100,7 +1873,7 @@ public class PluralRules implements Serializable {
     }
 
     /**
-     * Returns a list of integer values for which select() would return that keyword,
+     * Returns a list of values for which select() would return that keyword,
      * or null if the keyword is not defined. The returned collection is unmodifiable.
      * The returned list is not complete, and there might be additional values that
      * would return the keyword.
@@ -2122,12 +1895,10 @@ public class PluralRules implements Serializable {
      * IF there are samples for the other sampleType.
      *
      * @param keyword the keyword to test
-     * @param sampleType the type of samples requested, INTEGER or DECIMAL
      * @return a list of values matching the keyword.
-     * @internal
      * @deprecated ICU internal only
+     * @internal 
      */
-    @Deprecated
     public Collection<Double> getSamples(String keyword, SampleType sampleType) {
         if (!keywords.contains(keyword)) {
             return null;
@@ -2168,7 +1939,6 @@ public class PluralRules implements Serializable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public boolean addSample(String keyword, Number sample, int maxCount, Set<Double> result) {
         String selectedKeyword = sample instanceof FixedDecimal ? select((FixedDecimal)sample) : select(sample.doubleValue());
         if (selectedKeyword.equals(keyword)) {
@@ -2188,12 +1958,10 @@ public class PluralRules implements Serializable {
      * would return the keyword.
      *
      * @param keyword the keyword to test
-     * @param sampleType the type of samples requested, INTEGER or DECIMAL
      * @return a list of values matching the keyword.
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public FixedDecimalSamples getDecimalSamples(String keyword, SampleType sampleType) {
         return rules.getDecimalSamples(keyword, sampleType);
     }
@@ -2201,7 +1969,7 @@ public class PluralRules implements Serializable {
     /**
      * Returns the set of locales for which PluralRules are known.
      * @return the set of locales for which PluralRules are known, as a list
-     * @draft ICU 4.2 (retain)
+     * @draft ICU 4.2
      * @provisional This API might change or be removed in a future release.
      */
     public static ULocale[] getAvailableULocales() {
@@ -2222,7 +1990,7 @@ public class PluralRules implements Serializable {
      * @param isAvailable if not null and of length > 0, this will hold 'true' at
      * index 0 if locale is directly defined (without fallback) as having plural rules
      * @return the functionally-equivalent locale
-     * @draft ICU 4.2 (retain)
+     * @draft ICU 4.2
      * @provisional This API might change or be removed in a future release.
      */
     public static ULocale getFunctionalEquivalent(ULocale locale, boolean[] isAvailable) {
@@ -2330,15 +2098,12 @@ public class PluralRules implements Serializable {
      *            checking against the keyword values.
      * @param explicits
      *            a set of Doubles that are used explicitly (eg [=0], "[=1]"). May be empty or null.
-     * @param sampleType
-     *            request KeywordStatus relative to INTEGER or DECIMAL values
      * @param uniqueValue
      *            If non null, set to the unique value.
      * @return the KeywordStatus
      * @internal
-     * @deprecated This API is ICU internal only.
+     * @provisional This API might change or be removed in a future release.
      */
-    @Deprecated
     public KeywordStatus getKeywordStatus(String keyword, int offset, Set<Double> explicits,
             Output<Double> uniqueValue, SampleType sampleType) {
         if (uniqueValue != null) {
@@ -2394,7 +2159,6 @@ public class PluralRules implements Serializable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public String getRules(String keyword) {
         return rules.getRules(keyword);
     }
@@ -2418,7 +2182,6 @@ public class PluralRules implements Serializable {
      * @internal
      * @deprecated internal
      */
-    @Deprecated
     public int compareTo(PluralRules other) {
         return toString().compareTo(other.toString());
     }
@@ -2427,7 +2190,6 @@ public class PluralRules implements Serializable {
      * @internal
      * @deprecated internal
      */
-    @Deprecated
     public Boolean isLimited(String keyword) {
         return rules.isLimited(keyword, SampleType.INTEGER);
     }
@@ -2436,7 +2198,6 @@ public class PluralRules implements Serializable {
      * @internal
      * @deprecated internal
      */
-    @Deprecated
     public boolean isLimited(String keyword, SampleType sampleType) {
         return rules.isLimited(keyword, sampleType);
     }
@@ -2445,7 +2206,6 @@ public class PluralRules implements Serializable {
      * @internal
      * @deprecated internal
      */
-    @Deprecated
     public boolean computeLimited(String keyword, SampleType sampleType) {
         return rules.computeLimited(keyword, sampleType);
     }

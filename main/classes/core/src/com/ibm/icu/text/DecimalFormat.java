@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2014, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2015, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -29,7 +29,6 @@ import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.math.MathContext;
 import com.ibm.icu.text.PluralRules.FixedDecimal;
 import com.ibm.icu.util.Currency;
-import com.ibm.icu.util.Currency.CurrencyUsage;
 import com.ibm.icu.util.CurrencyAmount;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.ULocale.Category;
@@ -887,39 +886,11 @@ public class DecimalFormat extends NumberFormat {
             addPadding(result, fieldPosition, prefixLen, suffixLen);
             return result;
         }
-        
-        int precision = precision(false);
-        
-        // This is to fix rounding for scientific notation. See ticket:10542.
-        // This code should go away when a permanent fix is done for ticket:9931.
-        //
-        // This block of code only executes for scientific notation so it will not interfere with the
-        // previous fix in {@link #resetActualRounding} for fixed decimal numbers.
-        // Moreover this code only runs when there is rounding to be done (precision > 0) and when the
-        // rounding mode is something other than ROUND_HALF_EVEN.
-        // This block of code does the correct rounding of number in advance so that it will fit into
-        // the number of digits indicated by precision. In this way, we avoid using the default
-        // ROUND_HALF_EVEN behavior of DigitList. For example, if number = 0.003016 and roundingMode =
-        // ROUND_DOWN and precision = 3 then after this code executes, number = 0.00301 (3 significant digits)
-        if (useExponentialNotation && precision > 0 && number != 0.0 && roundingMode != BigDecimal.ROUND_HALF_EVEN) {
-           int log10RoundingIncr = 1 - precision + (int) Math.floor(Math.log10(Math.abs(number)));
-           double roundingIncReciprocal = 0.0;
-           double roundingInc = 0.0;
-           if (log10RoundingIncr < 0) {
-               roundingIncReciprocal =
-                       BigDecimal.ONE.movePointRight(-log10RoundingIncr).doubleValue();
-           } else {
-               roundingInc =
-                       BigDecimal.ONE.movePointRight(log10RoundingIncr).doubleValue();
-           }
-           number = DecimalFormat.round(number, roundingInc, roundingIncReciprocal, roundingMode, isNegative);
-        }
-        // End fix for ticket:10542
 
         // At this point we are guaranteed a nonnegative finite
         // number.
         synchronized (digitList) {
-            digitList.set(number, precision, !useExponentialNotation &&
+            digitList.set(number, precision(false), !useExponentialNotation &&
                           !areSignificantDigitsUsed());
             return subformat(number, result, fieldPosition, isNegative, false, parseAttr);
         }
@@ -935,7 +906,7 @@ public class DecimalFormat extends NumberFormat {
      * @return The number rounded to the correct number of significant digits
      * with negative sign stripped off.
      * @internal
-     * @deprecated This API is ICU internal only.
+     * @deprecated
      */
     @Deprecated
     double adjustNumberAsInFormatting(double number) {
@@ -963,7 +934,7 @@ public class DecimalFormat extends NumberFormat {
       * @param number The number to format.
       * @return True if number is negative.
       * @internal
-      * @deprecated This API is ICU internal only.
+      * @deprecated
       */
      @Deprecated
      boolean isNumberNegative(double number) {
@@ -985,7 +956,7 @@ public class DecimalFormat extends NumberFormat {
      * @param roundingInc
      *            the rounding increment
      * @param roundingIncReciprocal
-     *            if non-zero, is the reciprocal of rounding inc.
+     *            if non-zero, is the
      * @param mode
      *            a BigDecimal rounding mode
      * @param isNegative
@@ -1782,7 +1753,7 @@ public class DecimalFormat extends NumberFormat {
         boolean negativeExponent = exponent < 0;
         if (negativeExponent) {
             exponent = -exponent;
-            result.append(symbols.getMinusString());
+            result.append(symbols.getMinusSign());
             // [Spark/CDL] If exponent has sign, then add an exponent sign
             // attribute.
             if (parseAttr) {
@@ -1790,7 +1761,7 @@ public class DecimalFormat extends NumberFormat {
                 addAttribute(Field.EXPONENT_SIGN, result.length() - 1, result.length());
             }
         } else if (exponentSignAlwaysShown) {
-            result.append(symbols.getPlusString());
+            result.append(symbols.getPlusSign());
             // [Spark/CDL] Add an plus sign attribute.
             if (parseAttr) {
                 // Length of exponent sign is 1.
@@ -2280,7 +2251,7 @@ public class DecimalFormat extends NumberFormat {
                 0xFF0E, 0xFF0E,
                 0xFF61, 0xFF61).freeze();
     
-    static final UnicodeSet minusSigns =
+    private static final UnicodeSet minusSigns =
         new UnicodeSet(
                 0x002D, 0x002D,
                 0x207B, 0x207B,
@@ -2290,7 +2261,7 @@ public class DecimalFormat extends NumberFormat {
                 0xFE63, 0xFE63,
                 0xFF0D, 0xFF0D).freeze();
     
-    static final UnicodeSet plusSigns =
+    private static final UnicodeSet plusSigns =
             new UnicodeSet(
                 0x002B, 0x002B,
                 0x207A, 0x207A,
@@ -2299,14 +2270,12 @@ public class DecimalFormat extends NumberFormat {
                 0xFB29, 0xFB29,
                 0xFE62, 0xFE62,
                 0xFF0B, 0xFF0B).freeze();
-    
+
     // equivalent grouping and decimal support
     static final boolean skipExtendedSeparatorParsing = ICUConfig.get(
         "com.ibm.icu.text.DecimalFormat.SkipExtendedSeparatorParsing", "false")
         .equals("true");
 
-    // allow control of requiring a matching decimal point when parsing
-    boolean parseRequireDecimalPoint = false;
 
     // When parsing a number with big exponential value, it requires to transform the
     // value into a string representation to construct BigInteger instance.  We want to
@@ -2630,14 +2599,6 @@ public class DecimalFormat extends NumberFormat {
                 }
             }
 
-            if(digits.decimalAt == 0 && isDecimalPatternMatchRequired()) {
-                if(this.formatPattern.indexOf(decimal) != -1) {
-                    parsePosition.setIndex(oldStart);
-                    parsePosition.setErrorIndex(position);
-                    return false;
-                }
-            }
-            
             if (backup != -1)
                 position = backup;
 
@@ -2809,6 +2770,7 @@ public class DecimalFormat extends NumberFormat {
     /**
      * Remove bidi marks from affix
      */
+    private static final int TRIM_BUFLEN = 32;
     private static String trimMarksFromAffix(String affix) { 
         boolean hasBidiMark = false; 
         int idx = 0; 
@@ -3776,31 +3738,6 @@ public class DecimalFormat extends NumberFormat {
     public boolean isDecimalSeparatorAlwaysShown() {
         return decimalSeparatorAlwaysShown;
     }
-    
-    /**
-     * When decimal match is not required, the input does not have to
-     * contain a decimal mark when there is a decimal mark specified in the
-     * pattern. 
-     * @param value true if input must contain a match to decimal mark in pattern  
-     * Default is false.
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release.
-     */
-     public void setDecimalPatternMatchRequired(boolean value) {
-         parseRequireDecimalPoint = value;
-     }
-
-    /**
-     * {@icu} Returns whether the input to parsing must contain a decimal mark if there
-     * is a decimal mark in the pattern.
-     * @return true if input must contain a match to decimal mark in pattern
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release.
-     */
-    public boolean isDecimalPatternMatchRequired() {
-        return parseRequireDecimalPoint;
-    }
-
 
     /**
      * Sets the behavior of the decimal separator with integers. (The decimal separator
@@ -3868,7 +3805,6 @@ public class DecimalFormat extends NumberFormat {
                 other.currencyPluralInfo = (CurrencyPluralInfo) currencyPluralInfo.clone();
             }
             other.attributes = new ArrayList<FieldPosition>(); // #9240
-            other.currencyUsage = currencyUsage;
 
             // TODO: We need to figure out whether we share a single copy of DigitList by
             // multiple cloned copies.  format/subformat are designed to use a single
@@ -3910,8 +3846,7 @@ public class DecimalFormat extends NumberFormat {
                 && (!useSignificantDigits || minSignificantDigits == other.minSignificantDigits
                         && maxSignificantDigits == other.maxSignificantDigits)
                 && symbols.equals(other.symbols)
-                && Utility.objectEquals(currencyPluralInfo, other.currencyPluralInfo)
-                && currencyUsage.equals(other.currencyUsage);
+                && Utility.objectEquals(currencyPluralInfo, other.currencyPluralInfo);
     }
 
     // method to unquote the strings and compare
@@ -5068,8 +5003,8 @@ public class DecimalFormat extends NumberFormat {
             // by the currency
             Currency theCurrency = getCurrency();
             if (theCurrency != null) {
-                setRoundingIncrement(theCurrency.getRoundingIncrement(currencyUsage));
-                int d = theCurrency.getDefaultFractionDigits(currencyUsage);
+                setRoundingIncrement(theCurrency.getRoundingIncrement());
+                int d = theCurrency.getDefaultFractionDigits();
                 setMinimumFractionDigits(d);
                 _setMaximumFractionDigits(d);
             }
@@ -5232,8 +5167,8 @@ public class DecimalFormat extends NumberFormat {
 
         if (currencySignCount != CURRENCY_SIGN_COUNT_ZERO) {
             if (theCurrency != null) {
-                setRoundingIncrement(theCurrency.getRoundingIncrement(currencyUsage));
-                int d = theCurrency.getDefaultFractionDigits(currencyUsage);
+                setRoundingIncrement(theCurrency.getRoundingIncrement());
+                int d = theCurrency.getDefaultFractionDigits();
                 setMinimumFractionDigits(d);
                 setMaximumFractionDigits(d);
             }
@@ -5244,40 +5179,7 @@ public class DecimalFormat extends NumberFormat {
             }
         }
     }
-    
-    /**
-     * Sets the <tt>Currency Usage</tt> object used to display currency.
-     * This takes effect immediately, if this format is a
-     * currency format.  
-     * @param newUsage new currency context object to use.  
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release. 
-     */
-    public void setCurrencyUsage(CurrencyUsage newUsage) {
-        if (newUsage == null) {
-            throw new NullPointerException("return value is null at method AAA");
-        }
-        currencyUsage = newUsage;
-        Currency theCurrency = this.getCurrency();
 
-        // We set rounding/digit based on currency context
-        if (theCurrency != null) {
-            setRoundingIncrement(theCurrency.getRoundingIncrement(currencyUsage));
-            int d = theCurrency.getDefaultFractionDigits(currencyUsage);
-            setMinimumFractionDigits(d);
-            _setMaximumFractionDigits(d);
-        }
-    }
-
-    /**
-     * Returns the <tt>Currency Usage</tt> object used to display currency
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release. 
-     */
-    public CurrencyUsage getCurrencyUsage() {
-        return currencyUsage;
-    }
-    
     /**
      * Returns the currency in effect for this formatter. Subclasses should override this
      * method as needed. Unlike getCurrency(), this method should never return null.
@@ -5355,7 +5257,8 @@ public class DecimalFormat extends NumberFormat {
     * If the limit is set too high, an OutOfMemoryException may be triggered.
     * The default value is 1000.
     * @param newValue the new limit
-    * @stable ICU 51
+    * @draft ICU 51
+    * @provisional This API might change or be removed in a future release.
     */
     public void setParseMaxDigits(int newValue) {
         if (newValue > 0) {
@@ -5366,8 +5269,9 @@ public class DecimalFormat extends NumberFormat {
     /**
     * Get the current maximum number of exponent digits when parsing a
     * number.
-    * @return the maximum number of exponent digits for parsing
-    * @stable ICU 51
+    *
+    * @draft ICU 51
+    * @provisional This API might change or be removed in a future release.
     */
     public int getParseMaxDigits() {
         return PARSE_MAX_EXPONENT;
@@ -5432,9 +5336,6 @@ public class DecimalFormat extends NumberFormat {
             // Versions prior to 3 do not store a currency object.  Create one to match
             // the DecimalFormatSymbols object.
             setCurrencyForSymbols();
-        }
-        if (serialVersionOnStream < 4) {
-            currencyUsage = CurrencyUsage.STANDARD;
         }
         serialVersionOnStream = currentSerialVersion;
         digitList = new DigitList();
@@ -5742,16 +5643,9 @@ public class DecimalFormat extends NumberFormat {
      */
     private boolean parseBigDecimal = false;
 
-    /**
-     * The currency usage for the NumberFormat(standard or cash usage).
-     * It is used as STANDARD by default
-     * @since ICU 54
-     */
-    private CurrencyUsage currencyUsage = CurrencyUsage.STANDARD;
-    
     // ----------------------------------------------------------------------
 
-    static final int currentSerialVersion = 4;
+    static final int currentSerialVersion = 3;
 
     /**
      * The internal serial version which says which version was written Possible values
@@ -5769,8 +5663,6 @@ public class DecimalFormat extends NumberFormat {
      *
      * <li><b>3</b>: ICU 2.2. Adds currency object.
      *
-     * <li><b>4</b>: ICU 54. Adds currency usage(standard vs cash)
-     * 
      * </ul>
      *
      * @serial
@@ -6082,16 +5974,11 @@ public class DecimalFormat extends NumberFormat {
                 actualRoundingIncrementICU = byWidth.equals(BigDecimal.ONE) ? null : byWidth;
             }
         } else {
-            if (roundingMode == BigDecimal.ROUND_HALF_EVEN || isScientificNotation()) {
-                // This rounding fix is irrelevant if mode is ROUND_HALF_EVEN as DigitList
-                // does ROUND_HALF_EVEN for us.  This rounding fix won't work at all for
-                // scientific notation.
+            if (roundingMode == BigDecimal.ROUND_HALF_EVEN) {
                 actualRoundingIncrementICU = null;
             } else {
                 if (getMaximumFractionDigits() > 0) {
                     actualRoundingIncrementICU = BigDecimal.ONE.movePointLeft(getMaximumFractionDigits());
-                }  else {
-                    actualRoundingIncrementICU = BigDecimal.ONE;
                 }
             }
         }

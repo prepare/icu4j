@@ -1,7 +1,7 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2014, International Business Machines Corporation and
- * others. All Rights Reserved.
+ * Copyright (C) 1996-2010, International Business Machines Corporation and    *
+ * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.text;
@@ -9,7 +9,6 @@ package com.ibm.icu.text;
 import java.text.CharacterIterator;
 
 import com.ibm.icu.lang.UCharacter;
-import com.ibm.icu.util.ICUCloneNotSupportedException;
 import com.ibm.icu.util.ULocale;
 
 
@@ -383,7 +382,7 @@ final class BreakTransliterator extends Transliterator {
                 return other;
             }
             catch (CloneNotSupportedException e) {
-                throw new ICUCloneNotSupportedException();
+                throw new IllegalStateException();
             }
         }
 

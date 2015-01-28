@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2014, International Business Machines Corporation and    *
+ * Copyright (C) 2007-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -158,70 +158,82 @@ public class CollationThreadTest extends TestFmwk {
         return true;
     }
 
-    private static class Control {
-        private boolean go;
-        private String fail;
+    public void testThreads() {
+        final Collator theCollator = Collator.getInstance(new Locale("pl", "", ""));
+        final String[] theData = threadTestData;
+        final Random r = new Random();
 
-        synchronized void start() {
-            go = true;
-            notifyAll();
-        }
+        class Control {
+            private boolean go;
+            private String fail;
 
-        synchronized void stop() {
-            go = false;
-            notifyAll();
-        }
+            synchronized void start() {
+                go = true;
+                notifyAll();
+            }
 
-        boolean go() {
-            return go;
-        }
+            synchronized void stop() {
+                go = false;
+                notifyAll();
+            }
 
-        void fail(String msg) {
-            fail = msg;
-            stop();
-        }
-    }
+            boolean go() {
+                return go;
+            }
 
-    private static class Test implements Runnable {
-        private String[] data;
-        private Collator collator;
-        private String name;
-        private Control control;
-        private Random r;
-
-        Test(String name, String[] data, Collator collator, Random r, Control control) {
-            this.name = name;
-            this.data = data;
-            this.collator = collator;
-            this.control = control;
-            this.r = r;
-        }
-
-        public void run() {
-            try {
-                synchronized (control) {
-                    while (!control.go()) {
-                        control.wait();
-                    }
-                }
-
-                while (control.go()) {
-                    scramble(this.data, r);
-                    sort(this.data, this.collator);
-                    if (!verifySort(this.data)) {
-                        control.fail(name + ": incorrect sort");
-                    }
-                }
-            } catch (InterruptedException e) {
-                // die
-            } catch (IndexOutOfBoundsException e) {
-                control.fail(name + " " + e.getMessage());
+            void fail(String msg) {
+                fail = msg;
+                stop();
             }
         }
-    }
 
-    private void runThreads(Thread[] threads, Control control) {
+        final Control control = new Control();
+
+        class Test implements Runnable {
+            private String[] data;
+            private Collator collator;
+            private String name;
+
+            Test(String name) {
+                this.name = name;
+
+                try {
+                    data = (String[]) theData.clone();
+                    collator = (Collator) theCollator.clone();
+                } catch (CloneNotSupportedException e) {
+                    // should not happen, if it does we'll get an exception right away
+                    errln("could not clone");
+                    data = null;
+                    collator = null;
+                }
+            }
+
+            public void run() {
+                try {
+                    synchronized (control) {
+                        while (!control.go()) {
+                            control.wait();
+                        }
+                    }
+
+                    while (control.go()) {
+                        scramble(this.data, r);
+                        sort(this.data, this.collator);
+                        if (!verifySort(this.data)) {
+                            control.fail(name + ": incorrect sort");
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    // die
+                } catch (IndexOutOfBoundsException e) {
+                    control.fail(name + " " + e.getMessage());
+                }
+            }
+        }
+
+        Thread[] threads = new Thread[10];
         for (int i = 0; i < threads.length; ++i) {
+            threads[i] = new Thread(new Test("test " + i));
             threads[i].start();
         }
 
@@ -247,42 +259,51 @@ public class CollationThreadTest extends TestFmwk {
         }
     }
 
-    public void testThreads() {
-        final Collator theCollator = Collator.getInstance(new Locale("pl", "", ""));
-        final Random r = new Random();
-        final Control control = new Control();
 
-        Thread[] threads = new Thread[10];
-        for (int i = 0; i < threads.length; ++i) {
-            Collator coll;
-            try {
-                coll = (Collator)theCollator.clone();
-            } catch (CloneNotSupportedException e) {
-                // should not happen, if it does we'll get an exception right away
-                errln("could not clone");
-                return;
-            }
-            Test test = new Test("Collation test thread" + i, threadTestData.clone(), coll,
-                    r, control);
-            threads[i] = new Thread(test);
+    class FrozenCollatorTest implements Runnable {
+        private final String name;
+        private final Collator collator;
+        private final String[] data;
+        private final Random r;
+
+        public FrozenCollatorTest(String name, Collator collator, String[] data, Random r) {
+            this.name = name;
+            this.collator = collator;
+            this.data = data;
+            this.r = r;
         }
 
-        runThreads(threads, control);
+        public void run() {
+            while(true) {
+                try {
+                    scramble(this.data, r);
+                    sort(this.data, this.collator);
+                    if (!verifySort(this.data)) {
+                        errln("Error in frozen collation test: thread (" + this.name + ") incorrect sort");
+                    }
+                } catch (Exception e) {
+                    errln("Error in frozen collation test: thread (" + this.name + ") exception = " + e);
+                }
+            }
+        }   
     }
 
-    public void testFrozen() {
+    public void testFrozenThreads() throws Exception {
         final Collator theCollator = Collator.getInstance(new Locale("pl", "", ""));
         theCollator.freeze();
         final Random r = new Random();
-        Control control = new Control();
 
         Thread[] threads = new Thread[10];
         for (int i = 0; i < threads.length; ++i) {
-            Test test = new Test("Frozen collation test thread " + i, threadTestData.clone(), theCollator,
-                    r, control);
-            threads[i] = new Thread(test);
+            threads[i] = new Thread(new FrozenCollatorTest("test " + i, theCollator, threadTestData.clone(), r));
         }
 
-        runThreads(threads, control);
+        for (int i = 0; i < threads.length; ++i) {
+            threads[i].start();
+        }
+
+        for (int i = 0; i < threads.length; ++i) {
+            threads[i].join(500);
+        }
     }
 }

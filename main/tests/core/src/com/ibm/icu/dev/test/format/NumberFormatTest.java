@@ -1,7 +1,6 @@
 /*
  *******************************************************************************
-
- * Copyright (C) 2001-2014, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2015, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -31,7 +30,6 @@ import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.math.MathContext;
 import com.ibm.icu.text.DecimalFormat;
 import com.ibm.icu.text.DecimalFormatSymbols;
-import com.ibm.icu.text.DisplayContext;
 import com.ibm.icu.text.MeasureFormat;
 import com.ibm.icu.text.NumberFormat;
 import com.ibm.icu.text.NumberFormat.NumberFormatFactory;
@@ -44,134 +42,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
     public static void main(String[] args) throws Exception {
         new NumberFormatTest().run(args);
-    }
-    
-    public void TestRoundingScientific10542() {
-        DecimalFormat format =
-                new DecimalFormat("0.00E0");
-        
-        int[] roundingModes = {
-              BigDecimal.ROUND_CEILING,
-              BigDecimal.ROUND_DOWN,
-              BigDecimal.ROUND_FLOOR,
-              BigDecimal.ROUND_HALF_DOWN,
-              BigDecimal.ROUND_HALF_EVEN,
-              BigDecimal.ROUND_HALF_UP,
-              BigDecimal.ROUND_UP};
-        String[] descriptions = {
-                "Round Ceiling",
-                "Round Down",
-                "Round Floor",
-                "Round half down",
-                "Round half even",
-                "Round half up",
-                "Round up"};
-        
-        double[] values = {-0.003006, -0.003005, -0.003004, 0.003014, 0.003015, 0.003016};
-        // The order of these expected values correspond to the order of roundingModes and the order of values.
-        String[][] expected = {
-                {"-3.00E-3", "-3.00E-3", "-3.00E-3", "3.02E-3", "3.02E-3", "3.02E-3"},
-                {"-3.00E-3", "-3.00E-3", "-3.00E-3", "3.01E-3", "3.01E-3", "3.01E-3"},
-                {"-3.01E-3", "-3.01E-3", "-3.01E-3", "3.01E-3", "3.01E-3", "3.01E-3"},
-                {"-3.01E-3", "-3.00E-3", "-3.00E-3", "3.01E-3", "3.01E-3", "3.02E-3"},
-                {"-3.01E-3", "-3.00E-3", "-3.00E-3", "3.01E-3", "3.02E-3", "3.02E-3"},
-                {"-3.01E-3", "-3.01E-3", "-3.00E-3", "3.01E-3", "3.02E-3", "3.02E-3"},
-                {"-3.01E-3", "-3.01E-3", "-3.01E-3", "3.02E-3", "3.02E-3", "3.02E-3"}};
-        verifyRounding(format, values, expected, roundingModes, descriptions);
-        values = new double[]{-3006.0, -3005, -3004, 3014, 3015, 3016};
-        // The order of these expected values correspond to the order of roundingModes and the order of values.
-        expected = new String[][]{
-                {"-3.00E3", "-3.00E3", "-3.00E3", "3.02E3", "3.02E3", "3.02E3"},
-                {"-3.00E3", "-3.00E3", "-3.00E3", "3.01E3", "3.01E3", "3.01E3"},
-                {"-3.01E3", "-3.01E3", "-3.01E3", "3.01E3", "3.01E3", "3.01E3"},
-                {"-3.01E3", "-3.00E3", "-3.00E3", "3.01E3", "3.01E3", "3.02E3"},
-                {"-3.01E3", "-3.00E3", "-3.00E3", "3.01E3", "3.02E3", "3.02E3"},
-                {"-3.01E3", "-3.01E3", "-3.00E3", "3.01E3", "3.02E3", "3.02E3"},
-                {"-3.01E3", "-3.01E3", "-3.01E3", "3.02E3", "3.02E3", "3.02E3"}};
-        verifyRounding(format, values, expected, roundingModes, descriptions);
-        values = new double[]{0.0, -0.0};
-        // The order of these expected values correspond to the order of roundingModes and the order of values.
-        expected = new String[][]{
-                {"0.00E0", "-0.00E0"},
-                {"0.00E0", "-0.00E0"},
-                {"0.00E0", "-0.00E0"},
-                {"0.00E0", "-0.00E0"},
-                {"0.00E0", "-0.00E0"},
-                {"0.00E0", "-0.00E0"},
-                {"0.00E0", "-0.00E0"}};
-        verifyRounding(format, values, expected, roundingModes, descriptions);
-        values = new double[]{1e25, 1e25 + 1e15, 1e25 - 1e15};
-        // The order of these expected values correspond to the order of roundingModes and the order of values.
-        expected = new String[][]{
-                {"1.00E25", "1.01E25", "1.00E25"},
-                {"1.00E25", "1.00E25", "9.99E24"},
-                {"1.00E25", "1.00E25", "9.99E24"},
-                {"1.00E25", "1.00E25", "1.00E25"},
-                {"1.00E25", "1.00E25", "1.00E25"},
-                {"1.00E25", "1.00E25", "1.00E25"},
-                {"1.00E25", "1.01E25", "1.00E25"}};
-        verifyRounding(format, values, expected, roundingModes, descriptions);
-        values = new double[]{-1e25, -1e25 + 1e15, -1e25 - 1e15};
-        // The order of these expected values correspond to the order of roundingModes and the order of values.
-        expected = new String[][]{
-                {"-1.00E25", "-9.99E24", "-1.00E25"},
-                {"-1.00E25", "-9.99E24", "-1.00E25"},
-                {"-1.00E25", "-1.00E25", "-1.01E25"},
-                {"-1.00E25", "-1.00E25", "-1.00E25"},
-                {"-1.00E25", "-1.00E25", "-1.00E25"},
-                {"-1.00E25", "-1.00E25", "-1.00E25"},
-                {"-1.00E25", "-1.00E25", "-1.01E25"}};
-        verifyRounding(format, values, expected, roundingModes, descriptions);
-        values = new double[]{1e-25, 1e-25 + 1e-35, 1e-25 - 1e-35};
-        // The order of these expected values correspond to the order of roundingModes and the order of values.
-        expected = new String[][]{
-                {"1.00E-25", "1.01E-25", "1.00E-25"},
-                {"1.00E-25", "1.00E-25", "9.99E-26"},
-                {"1.00E-25", "1.00E-25", "9.99E-26"},
-                {"1.00E-25", "1.00E-25", "1.00E-25"},
-                {"1.00E-25", "1.00E-25", "1.00E-25"},
-                {"1.00E-25", "1.00E-25", "1.00E-25"},
-                {"1.00E-25", "1.01E-25", "1.00E-25"}};
-        verifyRounding(format, values, expected, roundingModes, descriptions);
-        values = new double[]{-1e-25, -1e-25 + 1e-35, -1e-25 - 1e-35};
-        // The order of these expected values correspond to the order of roundingModes and the order of values.
-        expected = new String[][]{
-                {"-1.00E-25", "-9.99E-26", "-1.00E-25"},
-                {"-1.00E-25", "-9.99E-26", "-1.00E-25"},
-                {"-1.00E-25", "-1.00E-25", "-1.01E-25"},
-                {"-1.00E-25", "-1.00E-25", "-1.00E-25"},
-                {"-1.00E-25", "-1.00E-25", "-1.00E-25"},
-                {"-1.00E-25", "-1.00E-25", "-1.00E-25"},
-                {"-1.00E-25", "-1.00E-25", "-1.01E-25"}};
-        verifyRounding(format, values, expected, roundingModes, descriptions);
-    }
-
-    private void verifyRounding(DecimalFormat format, double[] values, String[][] expected, int[] roundingModes,
-            String[] descriptions) {
-        for (int i = 0; i < roundingModes.length; i++) {
-            format.setRoundingMode(roundingModes[i]);
-            for (int j = 0; j < values.length; j++) {
-                assertEquals(descriptions[i]+" " +values[j], expected[i][j], format.format(values[j]));
-            }
-        }
-    }
-    
-    public void Test10419RoundingWith0FractionDigits() {
-        Object[][] data = new Object[][]{
-                {BigDecimal.ROUND_CEILING, 1.488, "2"},
-                {BigDecimal.ROUND_DOWN, 1.588, "1"},
-                {BigDecimal.ROUND_FLOOR, 1.588, "1"},
-                {BigDecimal.ROUND_HALF_DOWN, 1.5, "1"},
-                {BigDecimal.ROUND_HALF_EVEN, 2.5, "2"},
-                {BigDecimal.ROUND_HALF_UP, 2.5, "3"},
-                {BigDecimal.ROUND_UP, 1.5, "2"},
-        };
-        NumberFormat nff = NumberFormat.getNumberInstance(ULocale.ENGLISH);
-        nff.setMaximumFractionDigits(0);
-        for (Object[] item : data) {
-          nff.setRoundingMode(((Integer) item[0]).intValue());
-          assertEquals("Test10419", item[2], nff.format(item[1]));
-        }
     }
 
     public void TestParseNegativeWithFaLocale() {
@@ -561,7 +431,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         String[] DATA = {
                 "fr", "CA", "", "1,50\u00a0$",
                 "de", "DE", "", "1,50\u00a0\u20AC",
-                "de", "DE", "PREEURO", "1,50\u00a0DM",
+                "de", "DE", "PREEURO", "1,50\u00a0DEM",
                 "fr", "FR", "", "1,50\u00a0\u20AC",
                 "fr", "FR", "PREEURO", "1,50\u00a0F",
         };
@@ -848,7 +718,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         expectCurrency(fmt, null, 1234.56, "1 234,56 \u20AC");
 
         expectCurrency(fmt, Currency.getInstance(Locale.JAPAN),
-                1234.56, "1 235 JPY"); // Yen
+                1234.56, "1 235 \u00A5JP"); // Yen
 
         expectCurrency(fmt, Currency.getInstance(new Locale("fr", "CH", "")),
                 1234.56, "1 234,56 CHF"); // no more rounding here, see cldrbug 5548
@@ -2338,7 +2208,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         CurrencyAmount cAmt = new CurrencyAmount(1150.50, curr);
         logln("CurrencyAmount object's hashCode is: " + cAmt.hashCode()); //cover hashCode
         String str = format.format(cAmt);
-        String expected = "1,150$50\u00a0\u200b";
+        String expected = "1,150$50\u00a0Esc.";
         if(!expected.equals(str)){
             errln("Did not get the expected output Expected: "+expected+" Got: "+ str);
         }
@@ -2735,12 +2605,11 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
      */
     public void TestGetInstance() {
         // Tests "public final static NumberFormat getInstance(int style)"
-        int maxStyle = NumberFormat.CASHCURRENCYSTYLE;
 
         int[] invalid_cases = { NumberFormat.NUMBERSTYLE - 1, NumberFormat.NUMBERSTYLE - 2,
-                maxStyle + 1, maxStyle + 2 };
+                NumberFormat.PLURALCURRENCYSTYLE + 1, NumberFormat.PLURALCURRENCYSTYLE + 2 };
 
-        for (int i = NumberFormat.NUMBERSTYLE; i < maxStyle; i++) {
+        for (int i = NumberFormat.NUMBERSTYLE; i < NumberFormat.PLURALCURRENCYSTYLE; i++) {
             try {
                 NumberFormat.getInstance(i);
             } catch (Exception e) {
@@ -2761,7 +2630,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         // Tests "public static NumberFormat getInstance(Locale inLocale, int style)"
         String[] localeCases = { "en_US", "fr_FR", "de_DE", "jp_JP" };
 
-        for (int i = NumberFormat.NUMBERSTYLE; i < maxStyle; i++) {
+        for (int i = NumberFormat.NUMBERSTYLE; i < NumberFormat.PLURALCURRENCYSTYLE; i++) {
             for (int j = 0; j < localeCases.length; j++) {
                 try {
                     NumberFormat.getInstance(new Locale(localeCases[j]), i);
@@ -3133,8 +3002,8 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         String[] DATA = {
                 "es", "CO", "", "1.250,75",
                 "es", "CR", "", "1.250,75",
-                "es", "ES", "", "1.250,75",
-                "es", "GQ", "", "1.250,75",
+                "es", "ES", "", "1\u00A0250,75",
+                "es", "GQ", "", "1\u00A0250,75",
                 "es", "MX", "", "1,250.75",
                 "es", "US", "", "1,250.75",
                 "es", "VE", "", "1.250,75",
@@ -3414,17 +3283,15 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 {"en", "USD", "1", "1 US dollar"},
                 {"en", "USD", "1.0", "1.0 US dollars"},
                 {"en", "USD", "1.00", "1.00 US dollars"},
-                {"en", "USD", "1.99", "1.99 US dollars"},
                 {"en", "AUD", "1", "1 Australian dollar"},
                 {"en", "AUD", "1.00", "1.00 Australian dollars"},
-                {"sl", "USD", "1", "1 ameri\u0161ki dolar"},
-                {"sl", "USD", "2", "2 ameri\u0161ka dolarja"},
-                {"sl", "USD", "3", "3 ameri\u0161ki dolarji"},
+                {"sl", "USD", "1", "1 ameriški dolar"},
+                {"sl", "USD", "2", "2 ameriška dolarja"},
+                {"sl", "USD", "3", "3 ameriški dolarji"},
                 {"sl", "USD", "5", "5 ameriških dolarjev"},
-                {"fr", "USD", "1.99", "1,99 dollar des États-Unis"},
-                {"ru", "RUB", "1", "1 \u0440\u043E\u0441\u0441\u0438\u0439\u0441\u043A\u0438\u0439 \u0440\u0443\u0431\u043B\u044C"},
-                {"ru", "RUB", "2", "2 \u0440\u043E\u0441\u0441\u0438\u0439\u0441\u043A\u0438\u0445 \u0440\u0443\u0431\u043B\u044F"},
-                {"ru", "RUB", "5", "5 \u0440\u043E\u0441\u0441\u0438\u0439\u0441\u043A\u0438\u0445 \u0440\u0443\u0431\u043B\u0435\u0439"},
+                {"ru", "RUB", "1", "1 российский рубль"},
+                {"ru", "RUB", "2", "2 российского рубля"},
+                {"ru", "RUB", "5", "5 российских рублей"},
         };
         for (String test[] : tests) {
             DecimalFormat numberFormat = (DecimalFormat) DecimalFormat.getInstance(new ULocale(test[0]), NumberFormat.PLURALCURRENCYSTYLE);
@@ -3573,163 +3440,4 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             }
         }
     }
-
-    public void TestContext() {
-        // just a minimal sanity check for now
-        NumberFormat nfmt = NumberFormat.getInstance();
-        DisplayContext context = nfmt.getContext(DisplayContext.Type.CAPITALIZATION);
-        if (context != DisplayContext.CAPITALIZATION_NONE) {
-            errln("FAIL: Initial NumberFormat.getContext() is not CAPITALIZATION_NONE");
-        }
-        nfmt.setContext(DisplayContext.CAPITALIZATION_FOR_STANDALONE);
-        context = nfmt.getContext(DisplayContext.Type.CAPITALIZATION);
-        if (context != DisplayContext.CAPITALIZATION_FOR_STANDALONE) {
-            errln("FAIL: NumberFormat.getContext() does not return the value set, CAPITALIZATION_FOR_STANDALONE");
-        }
-    }
-
-    public void TestAccountingCurrency() {
-        String[][] tests = {
-                {"en_US", "1234.5", "$1,234.50", "true"},
-                {"en_US", "-1234.5", "($1,234.50)", "true"},
-                {"en_US", "0", "$0.00", "true"},
-                {"en_US", "-0.2", "($0.20)", "true"},
-                {"ja_JP", "10000", "￥10,000", "true"},
-                {"ja_JP", "-1000.5", "(￥1,000)", "false"},
-                {"de_DE", "-23456.7", "-23.456,70\u00A0€", "true"},
-        };
-        for (String[] data : tests) {
-            ULocale loc = new ULocale(data[0]);
-            double num = Double.parseDouble(data[1]);
-            String fmt = data[2];
-            boolean rt = Boolean.parseBoolean(data[3]);
-
-            NumberFormat acfmt = NumberFormat.getInstance(loc, NumberFormat.ACCOUNTINGCURRENCYSTYLE);
-            expect(acfmt, num, fmt, rt);
-        }
-    }
-    
-    public void TestCurrencyUsage() {
-        // the 1st one is checking setter/getter, while the 2nd one checks for getInstance
-        // compare the Currency and Currency Cash Digits
-        // Note that as of CLDR 26:
-        // * TWD switches from 0 decimals to 2; PKR still has 0, so change test to that
-        // * CAD and all other currencies that rounded to .05 no longer do
-        for (int i = 0; i < 2; i++) {
-            String original_expected = "PKR124";
-            DecimalFormat custom = null;
-            if (i == 0) {
-                custom = (DecimalFormat) DecimalFormat.getInstance(new ULocale("en_US@currency=PKR"),
-                        DecimalFormat.CURRENCYSTYLE);
-
-                String original = custom.format(123.567);
-                assertEquals("Test Currency Context", original_expected, original);
-
-                // test the getter
-                assertEquals("Test Currency Context Purpose", custom.getCurrencyUsage(),
-                        Currency.CurrencyUsage.STANDARD);
-                custom.setCurrencyUsage(Currency.CurrencyUsage.CASH);
-                assertEquals("Test Currency Context Purpose", custom.getCurrencyUsage(), Currency.CurrencyUsage.CASH);
-            } else {
-                custom = (DecimalFormat) DecimalFormat.getInstance(new ULocale("en_US@currency=PKR"),
-                        DecimalFormat.CASHCURRENCYSTYLE);
-
-                // test the getter
-                assertEquals("Test Currency Context Purpose", custom.getCurrencyUsage(), Currency.CurrencyUsage.CASH);
-            }
-
-            String cash_currency = custom.format(123.567);
-            String cash_currency_expected = "PKR124";
-            assertEquals("Test Currency Context", cash_currency_expected, cash_currency);
-        }
-
-        // the 1st one is checking setter/getter, while the 2nd one checks for getInstance
-        // compare the Currency and Currency Cash Rounding
-        for (int i = 0; i < 2; i++) {
-            String original_rounding_expected = "CA$123.57";
-            DecimalFormat fmt = null;
-            if (i == 0) {
-                fmt = (DecimalFormat) DecimalFormat.getInstance(new ULocale("en_US@currency=CAD"),
-                        DecimalFormat.CURRENCYSTYLE);
-
-                String original_rounding = fmt.format(123.566);
-                assertEquals("Test Currency Context", original_rounding_expected, original_rounding);
-
-                fmt.setCurrencyUsage(Currency.CurrencyUsage.CASH);
-            } else {
-                fmt = (DecimalFormat) DecimalFormat.getInstance(new ULocale("en_US@currency=CAD"),
-                        DecimalFormat.CASHCURRENCYSTYLE);
-            }
-
-            String cash_rounding_currency = fmt.format(123.567);
-            String cash__rounding_currency_expected = "CA$123.57";
-            assertEquals("Test Currency Context", cash__rounding_currency_expected, cash_rounding_currency);
-        }
-
-        // the 1st one is checking setter/getter, while the 2nd one checks for getInstance
-        // Test the currency change
-        for (int i = 0; i < 2; i++) {
-            DecimalFormat fmt2 = null;
-            if (i == 1) {
-                fmt2 = (DecimalFormat) NumberFormat.getInstance(new ULocale("en_US@currency=JPY"),
-                        NumberFormat.CURRENCYSTYLE);
-                fmt2.setCurrencyUsage(Currency.CurrencyUsage.CASH);
-            } else {
-                fmt2 = (DecimalFormat) NumberFormat.getInstance(new ULocale("en_US@currency=JPY"),
-                        NumberFormat.CASHCURRENCYSTYLE);
-            }
-
-            fmt2.setCurrency(Currency.getInstance("PKR"));
-            String PKR_changed = fmt2.format(123.567);
-            String PKR_changed_expected = "PKR124";
-            assertEquals("Test Currency Context", PKR_changed_expected, PKR_changed);
-        }
-    }
-
-    public void TestParseRequiredDecimalPoint() {
-        
-        String[] testPattern = { "00.####", "00.0", "00" };
-        
-        String value2Parse = "99";
-        double parseValue  =  99;
-        DecimalFormat parser = new DecimalFormat();
-        double result;
-        boolean hasDecimalPoint; 
-        for (int i = 0; i < testPattern.length; i++) {            
-            parser.applyPattern(testPattern[i]);
-            hasDecimalPoint = testPattern[i].contains(".");
-            
-            parser.setDecimalPatternMatchRequired(false);
-            try {
-                result = parser.parse(value2Parse).doubleValue();
-                assertEquals("wrong parsed value", parseValue, result);
-            } catch (ParseException e) {
-               this.errln("Parsing " + value2Parse + " should have succeeded with " + testPattern[i] + 
-                            " and isDecimalPointMatchRequired set to: " + parser.isDecimalPatternMatchRequired());
-            }
-            
-            parser.setDecimalPatternMatchRequired(true);
-            try {
-                result = parser.parse(value2Parse).doubleValue();
-                if(hasDecimalPoint){
-                    this.errln("Parsing " + value2Parse + " should NOT have succeeded with " + testPattern[i] + 
-                            " and isDecimalPointMatchRequired set to: " + parser.isDecimalPatternMatchRequired());
-                }
-            } catch (ParseException e) {
-                    // OK, should fail
-            }
-        }
-        
-    }
-
-    public void TestCurrFmtNegSameAsPositive() {
-        DecimalFormatSymbols decfmtsym = DecimalFormatSymbols.getInstance(Locale.US);
-        decfmtsym.setMinusSign('\u200B'); // ZERO WIDTH SPACE, in ICU4J cannot set to empty string
-        DecimalFormat decfmt = new DecimalFormat("\u00A4#,##0.00;\u00A4#,##0.00", decfmtsym);
-        String currFmtResult = decfmt.format(-100.0);
-        if (!currFmtResult.equals("\u200B$100.00")) {
-            errln("decfmt.toPattern results wrong, expected \u200B$100.00, got " + currFmtResult);
-        }
-    }
-
 }

@@ -1,14 +1,14 @@
-/*
- *******************************************************************************
- * Copyright (C) 1996-2014, International Business Machines Corporation and
- * others. All Rights Reserved.
- *******************************************************************************
- */
-
+/**
+*******************************************************************************
+* Copyright (C) 1996-2013, International Business Machines Corporation and    *
+* others. All Rights Reserved.                                                *
+*******************************************************************************
+*/
 package com.ibm.icu.impl;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.io.InputStream;
 import java.util.Locale;
 import java.util.MissingResourceException;
 
@@ -1038,7 +1038,7 @@ public final class UCharacterName
     /**
     * Default name of the name datafile
     */
-    private static final String FILE_NAME_ = "unames.icu";
+    private static final String NAME_FILE_NAME_ = ICUResourceBundle.ICU_BUNDLE+"/unames.icu";
     /**
     * Shift count to retrieve group information
     */
@@ -1047,6 +1047,10 @@ public final class UCharacterName
     * Mask to retrieve the offset for a particular character within a group
     */
     private static final int GROUP_MASK_ = LINES_PER_GROUP_ - 1;
+    /**
+    * Default buffer size of datafile
+    */
+    private static final int NAME_BUFFER_SIZE_ = 100000;
 
     /**
     * Position of offsethigh in group information array
@@ -1167,9 +1171,11 @@ public final class UCharacterName
     */
     private UCharacterName() throws IOException
     {
-        ByteBuffer b = ICUBinary.getRequiredData(FILE_NAME_);
+        InputStream is = ICUData.getRequiredStream(NAME_FILE_NAME_);
+        BufferedInputStream b = new BufferedInputStream(is, NAME_BUFFER_SIZE_);
         UCharacterNameReader reader = new UCharacterNameReader(b);
         reader.read(this);
+        b.close();
     }
 
     // private methods ---------------------------------------------------

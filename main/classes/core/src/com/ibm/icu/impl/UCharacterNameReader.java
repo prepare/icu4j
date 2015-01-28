@@ -1,14 +1,14 @@
-/*
- *******************************************************************************
- * Copyright (C) 1996-2014, International Business Machines Corporation and
- * others. All Rights Reserved.
- *******************************************************************************
- */
-
+/**
+*******************************************************************************
+* Copyright (C) 1996-2010, International Business Machines Corporation and    *
+* others. All Rights Reserved.                                                *
+*******************************************************************************
+*/
 package com.ibm.icu.impl;
 
+import java.io.DataInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.io.InputStream;
 import java.util.Arrays;
 
 /**
@@ -30,24 +30,25 @@ final class UCharacterNameReader implements ICUBinary.Authenticate
     
     public boolean isDataVersionAcceptable(byte version[])
     {
-        return version[0] == 1;
+        return version[0] == DATA_FORMAT_VERSION_[0];
     }
-
+    
     // protected constructor ---------------------------------------------
-
+    
     /**
     * <p>Protected constructor.</p>
-    * @param bytes ICU uprop.dat file buffer
-    * @exception IOException throw if data file fails authentication
+    * @param inputStream ICU uprop.dat file input stream
+    * @exception IOException throw if data file fails authentication 
     */
-    protected UCharacterNameReader(ByteBuffer bytes) throws IOException
+    protected UCharacterNameReader(InputStream inputStream) 
+                                                        throws IOException
     {
-        ICUBinary.readHeader(bytes, DATA_FORMAT_ID_, this);
-        m_byteBuffer_ = bytes;
+        ICUBinary.readHeader(inputStream, DATA_FORMAT_ID_, this);
+        m_dataInputStream_ = new DataInputStream(inputStream);
     }
-
+  
     // protected methods -------------------------------------------------
-
+      
     /**
     * Read and break up the stream of data passed in as arguments
     * and fills up UCharacterName.
@@ -58,38 +59,38 @@ final class UCharacterNameReader implements ICUBinary.Authenticate
     protected void read(UCharacterName data) throws IOException
     {
         // reading index
-        m_tokenstringindex_ = m_byteBuffer_.getInt();
-        m_groupindex_       = m_byteBuffer_.getInt();
-        m_groupstringindex_ = m_byteBuffer_.getInt();
-        m_algnamesindex_    = m_byteBuffer_.getInt();
+        m_tokenstringindex_ = m_dataInputStream_.readInt();
+        m_groupindex_       = m_dataInputStream_.readInt();
+        m_groupstringindex_ = m_dataInputStream_.readInt();
+        m_algnamesindex_    = m_dataInputStream_.readInt();
         
         // reading tokens
-        int count = m_byteBuffer_.getChar();
+        int count = m_dataInputStream_.readChar();
         char token[] = new char[count];
         for (char i = 0; i < count; i ++) {
-            token[i] = m_byteBuffer_.getChar();
+            token[i] = m_dataInputStream_.readChar();
         }
         int size = m_groupindex_ - m_tokenstringindex_;
         byte tokenstr[] = new byte[size];
-        m_byteBuffer_.get(tokenstr);
+        m_dataInputStream_.readFully(tokenstr);
         data.setToken(token, tokenstr);
         
         // reading the group information records
-        count = m_byteBuffer_.getChar();
+        count = m_dataInputStream_.readChar();
         data.setGroupCountSize(count, GROUP_INFO_SIZE_);
         count *= GROUP_INFO_SIZE_;
         char group[] = new char[count];
         for (int i = 0; i < count; i ++) {
-            group[i] = m_byteBuffer_.getChar();
+            group[i] = m_dataInputStream_.readChar();
         }
         
         size = m_algnamesindex_ - m_groupstringindex_;
         byte groupstring[] = new byte[size];
-        m_byteBuffer_.get(groupstring);
+        m_dataInputStream_.readFully(groupstring);
     
         data.setGroup(group, groupstring);
         
-        count = m_byteBuffer_.getInt();
+        count = m_dataInputStream_.readInt();
         UCharacterName.AlgorithmName alg[] = 
                                  new UCharacterName.AlgorithmName[count];
      
@@ -114,19 +115,17 @@ final class UCharacterNameReader implements ICUBinary.Authenticate
     protected boolean authenticate(byte dataformatid[],
                                    byte dataformatversion[])
     {
-        return Arrays.equals(
-                ICUBinary.getVersionByteArrayFromCompactInt(DATA_FORMAT_ID_),
-                dataformatid) &&
-               isDataVersionAcceptable(dataformatversion);
+        return Arrays.equals(DATA_FORMAT_ID_, dataformatid) &&
+               Arrays.equals(DATA_FORMAT_VERSION_, dataformatversion);
     }
     ///CLOVER:ON
     
     // private variables -------------------------------------------------
-
+  
     /**
-    * Byte buffer for names
+    * Data input stream for names 
     */
-    private ByteBuffer m_byteBuffer_;
+    private DataInputStream m_dataInputStream_;
     /**
     * Size of the group information block in number of char
     */
@@ -146,12 +145,16 @@ final class UCharacterNameReader implements ICUBinary.Authenticate
     * size of data size
     */
     private static final int ALG_INFO_SIZE_ = 12;
-
+      
     /**
-    * File format id that this class understands.
+    * File format version and id that this class understands.
+    * No guarantees are made if a older version is used
     */
-    private static final int DATA_FORMAT_ID_ = 0x756E616D;
-
+    private static final byte DATA_FORMAT_VERSION_[] = 
+                                    {(byte)0x1, (byte)0x0, (byte)0x0, (byte)0x0};
+    private static final byte DATA_FORMAT_ID_[] = {(byte)0x75, (byte)0x6E, 
+                                                    (byte)0x61, (byte)0x6D};                                                 
+      
     // private methods ---------------------------------------------------
       
     /**
@@ -163,20 +166,20 @@ final class UCharacterNameReader implements ICUBinary.Authenticate
     {
         UCharacterName.AlgorithmName result = 
                                        new UCharacterName.AlgorithmName();
-        int rangestart = m_byteBuffer_.getInt();
-        int rangeend   = m_byteBuffer_.getInt();
-        byte type      = m_byteBuffer_.get();
-        byte variant   = m_byteBuffer_.get();
+        int rangestart = m_dataInputStream_.readInt();
+        int rangeend   = m_dataInputStream_.readInt();
+        byte type      = m_dataInputStream_.readByte();
+        byte variant   = m_dataInputStream_.readByte();
         if (!result.setInfo(rangestart, rangeend, type, variant)) {
             return null;
         }
                          
-        int size = m_byteBuffer_.getChar();
+        int size = m_dataInputStream_.readChar();
         if (type == UCharacterName.AlgorithmName.TYPE_1_)
         {
             char factor[] = new char[variant];
             for (int j = 0; j < variant; j ++) {
-                factor[j] = m_byteBuffer_.getChar();
+                factor[j] = m_dataInputStream_.readChar();
             }
                   
             result.setFactor(factor);
@@ -184,11 +187,11 @@ final class UCharacterNameReader implements ICUBinary.Authenticate
         }
           
         StringBuilder prefix = new StringBuilder();
-        char c = (char)(m_byteBuffer_.get() & 0x00FF);
+        char c = (char)(m_dataInputStream_.readByte() & 0x00FF);
         while (c != 0)
         {
             prefix.append(c);
-            c = (char)(m_byteBuffer_.get() & 0x00FF);
+            c = (char)(m_dataInputStream_.readByte() & 0x00FF);
         }
         
         result.setPrefix(prefix.toString());
@@ -198,9 +201,10 @@ final class UCharacterNameReader implements ICUBinary.Authenticate
         if (size > 0)
         {
             byte string[] = new byte[size];
-            m_byteBuffer_.get(string);
+            m_dataInputStream_.readFully(string);
             result.setFactorString(string);
         }
         return result;
     }
 }
+

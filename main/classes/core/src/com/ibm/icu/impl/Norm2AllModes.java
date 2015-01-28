@@ -1,18 +1,16 @@
 /*
- *******************************************************************************
- *   Copyright (C) 2009-2014, International Business Machines
- *   Corporation and others.  All Rights Reserved.
- *******************************************************************************
- */
-
+*******************************************************************************
+*   Copyright (C) 2009-2011, International Business Machines
+*   Corporation and others.  All Rights Reserved.
+*******************************************************************************
+*/
 package com.ibm.icu.impl;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.io.InputStream;
 
 import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.Normalizer2;
-import com.ibm.icu.util.ICUUncheckedIOException;
 
 public final class Norm2AllModes {
     // Public API dispatch via Normalizer2 subclasses -------------------------- ***
@@ -34,7 +32,7 @@ public final class Norm2AllModes {
                 try {
                     return dest.append(src);
                 } catch(IOException e) {
-                    throw new ICUUncheckedIOException(e);  // Avoid declaring "throws IOException".
+                    throw new RuntimeException(e);  // Avoid declaring "throws IOException".
                 }
             } else {
                 throw new IllegalArgumentException();
@@ -319,8 +317,8 @@ public final class Norm2AllModes {
         default: return null;
         }
     }
-    public static Norm2AllModes getInstance(ByteBuffer bytes, String name) {
-        if(bytes==null) {
+    public static Norm2AllModes getInstance(InputStream data, String name) {
+        if(data==null) {
             Norm2AllModesSingleton singleton;
             if(name.equals("nfc")) {
                 singleton=NFCSingleton.INSTANCE;
@@ -338,16 +336,16 @@ public final class Norm2AllModes {
                 return singleton.allModes;
             }
         }
-        return cache.getInstance(name, bytes);
+        return cache.getInstance(name, data);
     }
-    private static CacheBase<String, Norm2AllModes, ByteBuffer> cache =
-        new SoftCache<String, Norm2AllModes, ByteBuffer>() {
-            protected Norm2AllModes createInstance(String key, ByteBuffer bytes) {
+    private static CacheBase<String, Norm2AllModes, InputStream> cache =
+        new SoftCache<String, Norm2AllModes, InputStream>() {
+            protected Norm2AllModes createInstance(String key, InputStream data) {
                 Normalizer2Impl impl;
-                if(bytes==null) {
-                    impl=new Normalizer2Impl().load(key+".nrm");
+                if(data==null) {
+                    impl=new Normalizer2Impl().load(ICUResourceBundle.ICU_BUNDLE+"/"+key+".nrm");
                 } else {
-                    impl=new Normalizer2Impl().load(bytes);
+                    impl=new Normalizer2Impl().load(data);
                 }
                 return new Norm2AllModes(impl);
             }
@@ -365,7 +363,8 @@ public final class Norm2AllModes {
     private static final class Norm2AllModesSingleton {
         private Norm2AllModesSingleton(String name) {
             try {
-                Normalizer2Impl impl=new Normalizer2Impl().load(name+".nrm");
+                Normalizer2Impl impl=new Normalizer2Impl().load(
+                        ICUResourceBundle.ICU_BUNDLE+"/"+name+".nrm");
                 allModes=new Norm2AllModes(impl);
             } catch(RuntimeException e) {
                 exception=e;

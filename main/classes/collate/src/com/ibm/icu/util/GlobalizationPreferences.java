@@ -1,7 +1,7 @@
 /*
  *******************************************************************************
- * Copyright (C) 2004-2014, International Business Machines Corporation and
- * others. All Rights Reserved.
+ * Copyright (C) 2004-2011, International Business Machines Corporation and    *
+ * others. All Rights Reserved.                                                *
  *******************************************************************************
 */
 package com.ibm.icu.util;
@@ -482,7 +482,7 @@ public class GlobalizationPreferences implements Freezable<GlobalizationPreferen
         try {
             return (Collator) collator.clone();  // clone for safety
         } catch (CloneNotSupportedException e) {
-            throw new ICUCloneNotSupportedException("Error in cloning collator", e);
+            throw new IllegalStateException("Error in cloning collator");
         }
     }
 
@@ -500,7 +500,7 @@ public class GlobalizationPreferences implements Freezable<GlobalizationPreferen
         try {
             this.collator = (Collator) collator.clone(); // clone for safety         
         } catch (CloneNotSupportedException e) {
-                throw new ICUCloneNotSupportedException("Error in cloning collator", e);
+                throw new IllegalStateException("Error in cloning collator");
         }
         return this;
     }
@@ -1476,7 +1476,7 @@ public class GlobalizationPreferences implements Freezable<GlobalizationPreferen
 
     // Freezable implementation
     
-    private volatile boolean frozen;
+    private boolean frozen;
 
     /**
      * @draft ICU 3.6

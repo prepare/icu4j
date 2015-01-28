@@ -1,20 +1,17 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2015, International Business Machines Corporation and
- * others. All Rights Reserved.
+ * Copyright (C) 2007-2009, International Business Machines Corporation and    *
+ * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.dev.test.duration;
 
-import java.math.BigDecimal;
 import java.text.FieldPosition;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.MissingResourceException;
 
-import javax.xml.datatype.DatatypeConstants.Field;
-import javax.xml.datatype.DatatypeConstants;
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.Duration;
 
 import com.ibm.icu.dev.test.TestFmwk;
@@ -27,134 +24,6 @@ import com.ibm.icu.util.ULocale;
  *
  */
 public class ICUDurationTest extends TestFmwk {
-    /**
-     * Allows us to not depend on javax.xml.datatype.DatatypeFactory.
-     * We need just a tiny subset of the Duration API:
-     * The ICU DurationFormat just extracts the field values,
-     * to convert the Duration into an internal Period type.
-     */
-    private static final class ICUTestDuration extends javax.xml.datatype.Duration {
-        private final int sign;
-        // Duration docs say BigInteger/BigDecimal but
-        // ICU only cares about intValue() and floatValue().
-        private final Map<Field, Number> fields;
-
-        ICUTestDuration(long millis) {
-            fields = new HashMap<Field, Number>();
-            if (millis > 0) {
-                sign = 1;
-            } else if (millis == 0) {
-                sign = 0;
-                return;
-            } else {
-                sign = -1;
-                millis = -millis;
-            }
-            long d = millis / 86400000L;
-            millis %= 86400000L;
-            if (d > 0) {
-                fields.put(DatatypeConstants.DAYS, d);
-            }
-            long h = millis / 3600000L;
-            millis %= 3600000L;
-            if (h > 0) {
-                fields.put(DatatypeConstants.HOURS, h);
-            }
-            long m = millis / 60000L;
-            millis %= 60000L;
-            if (m > 0) {
-                fields.put(DatatypeConstants.MINUTES, m);
-            }
-            fields.put(DatatypeConstants.SECONDS, (float)millis / 1000);
-        }
-
-        /**
-         * Pass in negative values for fields not to be set.
-         */
-        ICUTestDuration(int sgn, int y, int months, int d, int h, int m, float s) {
-            sign = sgn;
-            fields = new HashMap<Field, Number>();
-            if (y >= 0) { fields.put(DatatypeConstants.YEARS, y); }
-            if (months >= 0) { fields.put(DatatypeConstants.MONTHS, months); }
-            if (d >= 0) { fields.put(DatatypeConstants.DAYS, d); }
-            if (h >= 0) { fields.put(DatatypeConstants.HOURS, h); }
-            if (m >= 0) { fields.put(DatatypeConstants.MINUTES, m); }
-            if (s >= 0) { fields.put(DatatypeConstants.SECONDS, s); }
-        }
-
-        private ICUTestDuration(int sgn, Map<Field, Number> f) {
-            sign = sgn;
-            fields = f;
-        }
-
-        @Override
-        public Duration add(Duration rhs) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void addTo(java.util.Calendar calendar) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public int compare(Duration duration) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Number getField(Field field) {
-            return fields.get(field);
-        }
-
-        @Override
-        public int getSign() {
-            return sign;
-        }
-
-        @Override
-        public int hashCode() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean isSet(Field field) {
-            return fields.containsKey(field);
-        }
-
-        @Override
-        public Duration multiply(BigDecimal factor) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Duration negate() {
-            return new ICUTestDuration(-sign, fields);
-        }
-
-        @Override
-        public Duration normalizeWith(java.util.Calendar startTimeInstant) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public String toString() {
-            String signString = sign > 0 ? "positive" : sign == 0 ? "zero" : "negative";
-            return signString + " fields=" + fields;
-        }
-    }
-    private static final ICUTestDuration newDuration(long millis) {
-        return new ICUTestDuration(millis);
-    }
-    private static final ICUTestDuration newDuration(int sgn, int d, int h, int m, float s) {
-        return new ICUTestDuration(sgn, -1, -1, d, h, m, s);
-    }
-    private static final ICUTestDuration newDuration(int sgn, int h, int m, float s) {
-        return new ICUTestDuration(sgn, -1, -1, -1, h, m, s);
-    }
-    private static final ICUTestDuration newDuration(int sgn, float s) {
-        return new ICUTestDuration(sgn, -1, -1, -1, -1, -1, s);
-    }
 
     /**
      * 
@@ -190,7 +59,7 @@ public class ICUDurationTest extends TestFmwk {
         formatted = df.formatDurationFromNowTo(new Date(0));
         Calendar cal = Calendar.getInstance();
         int years = cal.get(Calendar.YEAR) - 1970; // year of Date(0)
-        expect = years + " anni fa";
+        expect = "fra " + years + " anni";
         if(!expect.equals(formatted)) {
             errln("Expected " + expect + " but got " + formatted);
         } else {
@@ -215,6 +84,14 @@ public class ICUDurationTest extends TestFmwk {
     }
 
     public void TestSimpleXMLDuration() {
+        DatatypeFactory factory = null;
+        try {
+            factory = DatatypeFactory.newInstance();
+        } catch (DatatypeConfigurationException e) {
+            errln("Error instantiating XML DatatypeFactory.");
+            e.printStackTrace();
+        }
+        
         Duration d;
         DurationFormat df;
         String out;
@@ -222,7 +99,7 @@ public class ICUDurationTest extends TestFmwk {
         String expected2;
         
         // test 1
-        d = newDuration(1, 2, 46, 40);  // "PT2H46M40S"
+        d = factory.newDuration("PT2H46M40S");
         df = DurationFormat.getInstance(new ULocale("en"));
         expected = "2 hours, 46 minutes, and 40 seconds";
         out = df.format(d);
@@ -233,7 +110,7 @@ public class ICUDurationTest extends TestFmwk {
         }
         
         // test 2
-        d = newDuration(10000);
+        d = factory.newDuration(10000);
         df = DurationFormat.getInstance(new ULocale("en"));
         expected = "10 seconds";
         out = df.format(d);
@@ -243,7 +120,7 @@ public class ICUDurationTest extends TestFmwk {
             errln("FAIL: got " + out + " wanted " + expected + " from " + d);
         }
         // test 3
-        d = newDuration(1, 0, 0, 0, 10);  // "P0DT0H0M10.0S"
+        d = factory.newDuration("P0DT0H0M10.0S");
         df = DurationFormat.getInstance(new ULocale("en"));
         expected = "10 seconds";
         out = df.format(d);
@@ -253,7 +130,7 @@ public class ICUDurationTest extends TestFmwk {
             errln("FAIL: got " + out + " wanted " + expected + " from " + d);
         }
         // test 4
-        d = newDuration(86400000);
+        d = factory.newDuration(86400000);
         df = DurationFormat.getInstance(new ULocale("en"));
         expected = "1 day, 0 hours, 0 minutes, and 0 seconds";
         expected2 = "1 day and 0 seconds"; // This is the expected result for Windows with IBM JRE6
@@ -269,49 +146,47 @@ public class ICUDurationTest extends TestFmwk {
         }
     }
 
+
     public void TestXMLDuration() {
-        final class TestCase {
-            final String localeString;
-            final ULocale locale;
-            final String durationString;
-            final Duration duration;
-            final String expected;
-
-            TestCase(String loc, String ds, Duration d, String exp) {
-                localeString = loc;
-                locale = new ULocale(loc);
-                durationString = ds;
-                duration = d;
-                expected = exp;
-            }
+        DatatypeFactory factory = null;
+        try {
+            factory = DatatypeFactory.newInstance();
+        } catch (DatatypeConfigurationException e) {
+            errln("Error instantiating XML DatatypeFactory.");
+            e.printStackTrace();
         }
-
-        TestCase cases[] = {
-            new TestCase("en", "PT10.00099S",  newDuration(1, 10.00099F),  "10 seconds"),
-            new TestCase("en", "#10000",       newDuration(10000),         "10 seconds"),
-            new TestCase("en", "-PT10.00099S", newDuration(-1, 10.00099F), "10 seconds"),
-            new TestCase("en", "#-10000",      newDuration(-10000),        "10 seconds"),
-
-            // from BD req's
-            new TestCase("en", "PT2H46M40S",   newDuration(1, 2, 46, 40),  "2 hours, 46 minutes, and 40 seconds"),
-            new TestCase("it", "PT2H46M40S",   newDuration(1, 2, 46, 40),  "due ore, 46 minuti e 40 secondi"),
-
-            // more cases
-            new TestCase("en", "PT10S",        newDuration(1, 10),         "10 seconds"),
-            new TestCase("en", "PT88M70S",     newDuration(1, -1, 88, 70), "88 minutes and 70 seconds"),
-            new TestCase("en", "PT10.100S",    newDuration(1, 10.100F),    "10 seconds and 100 milliseconds"),
-            new TestCase("en", "-PT10S",       newDuration(-1, 10),        "10 seconds"),
-            new TestCase("en", "PT0H5M0S",     newDuration(1, 0, 5, 0),    "5 minutes and 0 seconds")
+        
+        String cases[] = {
+                "en",   "PT10.00099S",   "10 seconds",
+                "en",   "#10000",   "10 seconds",
+                "en",   "-PT10.00099S",   "10 seconds",
+                "en",   "#-10000",   "10 seconds",
+                
+                // from BD req's
+                "en",   "PT2H46M40S",   "2 hours, 46 minutes, and 40 seconds",
+                "it",   "PT2H46M40S",   "due ore, 46 minuti e 40 secondi",
+                
+                // more cases
+                "en",   "PT10S",        "10 seconds",
+                "en",   "PT88M70S",        "88 minutes and 70 seconds",
+                "en",   "PT10.100S",    "10 seconds and 100 milliseconds",
+                "en",   "-PT10S",       "10 seconds",
+                "en",   "PT0H5M0S",     "5 minutes and 0 seconds"
         };
-
-        for (TestCase tc : cases) {
-            String loc = tc.localeString;
-            String from = tc.durationString;
-            String to = tc.expected;
-
-            ULocale locale = tc.locale;
-            Duration d = tc.duration;
-
+        
+        for(int n=0;n<cases.length;n+=3) {
+            String loc = cases[n+0];
+            String from = cases[n+1];
+            String to = cases[n+2];
+            
+            ULocale locale = new ULocale(loc);
+            Duration d;
+            if(from.startsWith("#")) {
+                d = factory.newDuration(Long.parseLong(from.substring(1)));
+            } else {
+                d = factory.newDuration(from);
+            }
+            
             DurationFormat df = DurationFormat.getInstance(locale);
             String output = df.format(d);
             
@@ -385,42 +260,5 @@ public class ICUDurationTest extends TestFmwk {
             errln("DurationFormat.parseObjet(String,ParsePosition) was " +
                     "to return an exception for an unsupported operation.");
         } catch(Exception e){}
-    }
-
-    public void TestFromNowTo() {
-        class TestCase {
-            ULocale locale;
-            int diffInSeconds;
-            String expected;
-            TestCase(ULocale locale, int diffInSeconds, String expected) {
-                this.locale = locale;
-                this.diffInSeconds = diffInSeconds;
-                this.expected = expected;
-            }
-        }
-        TestCase[] testCases = {
-            new TestCase(ULocale.US, 10, "10 seconds from now"),
-            new TestCase(ULocale.US, -10, "10 seconds ago"),
-            new TestCase(ULocale.US, -1800, "30 minutes ago"),
-            new TestCase(ULocale.US, 3600, "1 hour from now"),
-            new TestCase(ULocale.US, 10000, "2 hours from now"),
-            new TestCase(ULocale.US, -20000, "5 hours ago"),
-            new TestCase(ULocale.FRANCE, -1800, "il y a 30 minutes"),
-            new TestCase(ULocale.ITALY, 10000, "fra due ore"),
-        };
-
-        final long delayMS = 10;    // Safe margin - 10 milliseconds
-                                    // See the comments below
-        for (TestCase test : testCases) {
-            DurationFormat df = DurationFormat.getInstance(test.locale);
-            long target = System.currentTimeMillis() + test.diffInSeconds * 1000;
-            // Need some adjustment because time difference is recalculated in
-            // formatDurationFromNowTo method.
-            target = test.diffInSeconds > 0 ? target + delayMS : target - delayMS;
-            Date d = new Date(target);
-            String result = df.formatDurationFromNowTo(d);
-            assertEquals("TestFromNowTo (" + test.locale + ", " + test.diffInSeconds + "sec)",
-                    test.expected, result);
-        }
     }
 }

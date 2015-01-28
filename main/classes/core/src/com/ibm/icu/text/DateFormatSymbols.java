@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2014, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2013, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -24,7 +24,6 @@ import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.TimeZoneNames.NameType;
 import com.ibm.icu.util.Calendar;
-import com.ibm.icu.util.ICUCloneNotSupportedException;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.ULocale.Category;
@@ -96,21 +95,11 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     public static final int STANDALONE = 1;
 
     /**
-     * {@icu} Constant for context. NUMERIC context
-     * is only supported for leapMonthPatterns.
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    @Deprecated
-    public static final int NUMERIC = 2;
-
-    /**
      * {@icu} Constant for context.
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
-    public static final int DT_CONTEXT_COUNT = 3;
+    public static final int DT_CONTEXT_COUNT = 2;
 
     // Constants for width
 
@@ -134,7 +123,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
 
     /**
      * {@icu} Constant for width; only supported for weekdays.
-     * @stable ICU 51
+     * @draft ICU 51
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int SHORT = 3;
 
@@ -143,69 +133,55 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static final int DT_WIDTH_COUNT = 4;
 
-    /**
+     /**
      * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
      * @internal
      */
     static final int DT_LEAP_MONTH_PATTERN_FORMAT_WIDE = 0;
 
-    /**
+     /**
      * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
      * @internal
      */
     static final int DT_LEAP_MONTH_PATTERN_FORMAT_ABBREV = 1;
 
-    /**
+     /**
      * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
      * @internal
      */
     static final int DT_LEAP_MONTH_PATTERN_FORMAT_NARROW = 2;
 
-    /**
+     /**
      * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
      * @internal
      */
     static final int DT_LEAP_MONTH_PATTERN_STANDALONE_WIDE = 3;
 
-    /**
+     /**
      * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
      * @internal
      */
     static final int DT_LEAP_MONTH_PATTERN_STANDALONE_ABBREV = 4;
 
-    /**
+     /**
      * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
      * @internal
      */
     static final int DT_LEAP_MONTH_PATTERN_STANDALONE_NARROW = 5;
 
-    /**
+     /**
      * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
      * @internal
      */
     static final int DT_LEAP_MONTH_PATTERN_NUMERIC = 6;
 
-    /**
+     /**
      * {@icu} Somewhat temporary constant for month pattern count, adequate for Chinese calendar.
      * @internal
      */
     static final int DT_MONTH_PATTERN_COUNT = 7;
-
-    /**
-     * {@icu} This default time separator is used for formatting when the locale
-     * doesn't specify any time separator, and always recognized when parsing.
-     * @internal
-     */
-    static final String DEFAULT_TIME_SEPARATOR = ":";
-
-    /**
-     * {@icu} This alternate time separator is always recognized when parsing.
-     * @internal
-     */
-    static final String ALTERNATE_TIME_SEPARATOR = ".";
 
    /**
      * Constructs a DateFormatSymbols object by loading format data from
@@ -487,12 +463,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     String ampms[] = null;
 
     /**
-     * Time separator string. For example: ":".
-     * @serial
-     */
-    private String timeSeparator = null;
-
-    /**
      * Abbreviated quarter names. For example: "Q1", "Q2", "Q3", "Q4". An array
      * of 4 strings indexed by the month divided by 3.
      * @serial
@@ -528,22 +498,11 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     String leapMonthPatterns[] = null;
 
      /**
-     * Cyclic year names, for example: "jia-zi", "yi-chou", ... "gui-hai".
+     * (Format) Short cyclic year names, for example: "jia-zi", "yi-chou", ... "gui-hai".
      * An array of (normally) 60 strings, corresponding to cyclic years 1-60 (in Calendar YEAR field).
-     * Currently we only have data for format/abbreviated.
-     * For the others, just get from format/abbreviated, ignore set.
      * @serial
      */
     String shortYearNames[] = null;
-
-     /**
-     * Cyclic zodiac names, for example: "Rat", "Ox", "Tiger", etc.
-     * An array of (normally) 12 strings.
-     * Currently we only have data for format/abbreviated.
-     * For the others, just get from format/abbreviated, ignore set.
-     * @serial
-     */
-    String shortZodiacNames[] = null;
 
    /**
      * Localized names of time zones in this locale.  This is a
@@ -584,7 +543,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * Unlocalized date-time pattern characters. For example: 'y', 'd', etc.
      * All locales use the same unlocalized pattern characters.
      */
-    static final String patternChars = "GyMdkHmsSEDFwWahKzYeugAZvcLQqVUOXx:";
+    static final String  patternChars = "GyMdkHmsSEDFwWahKzYeugAZvcLQqVUOXx";
 
     /**
      * Localized date-time pattern characters. For example, a locale may
@@ -1058,180 +1017,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     }
 
     /**
-     * Returns cyclic year name strings if the calendar has them,
-     * for example: "jia-zi", "yi-chou", etc.
-     * @param context   The usage context: FORMAT, STANDALONE.
-     * @param width     The requested name width: WIDE, ABBREVIATED, SHORT, NARROW.
-     * @return          The year name strings, or null if they are not
-     *                  available for this calendar.
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release.
-     */
-    public String[] getYearNames(int context, int width) {
-        // context & width ignored for now, one set of names for all uses
-        if (shortYearNames != null) {
-            return duplicate(shortYearNames);
-        }
-        return null;
-    }
-
-    /**
-     * Sets cyclic year name strings, for example: "jia-zi", "yi-chou", etc.
-     * @param yearNames The new cyclic year name strings.
-     * @param context   The usage context: FORMAT, STANDALONE (currently only FORMAT is supported).
-     * @param width     The name width: WIDE, ABBREVIATED, NARROW (currently only ABBREVIATED is supported).
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release.
-     */
-    public void setYearNames(String[] yearNames, int context, int width) {
-        if (context == FORMAT && width == ABBREVIATED) {
-            shortYearNames = duplicate(yearNames);
-        }
-    }
-
-    /**
-     * Returns calendar zodiac name strings if the calendar has them,
-     * for example: "Rat", "Ox", "Tiger", etc.
-     * @param context   The usage context: FORMAT, STANDALONE.
-     * @param width     The requested name width: WIDE, ABBREVIATED, SHORT, NARROW.
-     * @return          The zodiac name strings, or null if they are not
-     *                  available for this calendar.
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release.
-     */
-    public String[] getZodiacNames(int context, int width) {
-        // context & width ignored for now, one set of names for all uses
-        if (shortZodiacNames != null) {
-            return duplicate(shortZodiacNames);
-        }
-        return null;
-    }
-
-    /**
-     * Sets calendar zodiac name strings, for example: "Rat", "Ox", "Tiger", etc.
-     * @param zodiacNames   The new zodiac name strings.
-     * @param context   The usage context: FORMAT, STANDALONE (currently only FORMAT is supported).
-     * @param width     The name width: WIDE, ABBREVIATED, NARROW (currently only ABBREVIATED is supported).
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release.
-     */
-    public void setZodiacNames(String[] zodiacNames, int context, int width) {
-        if (context == FORMAT && width == ABBREVIATED) {
-            shortZodiacNames = duplicate(zodiacNames);
-        }
-    }
-
-    /**
-     * Returns the appropriate leapMonthPattern if the calendar has them,
-     * for example: "{0}bis"
-     * @param context   The usage context: FORMAT, STANDALONE, NUMERIC.
-     * @param width     The requested pattern width: WIDE, ABBREVIATED, SHORT, NARROW.
-     * @return          The leapMonthPattern, or null if not available for
-     *                  this calendar.
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    @Deprecated
-    public String getLeapMonthPattern(int context, int width) {
-        if (leapMonthPatterns != null) {
-            int leapMonthPatternIndex = -1;
-            switch (context) {
-               case FORMAT :
-                  switch(width) {
-                     case WIDE :
-                        leapMonthPatternIndex = DT_LEAP_MONTH_PATTERN_FORMAT_WIDE;
-                        break;
-                     case ABBREVIATED :
-                     case SHORT : // no month data for this, defaults to ABBREVIATED
-                        leapMonthPatternIndex = DT_LEAP_MONTH_PATTERN_FORMAT_ABBREV;
-                        break;
-                     case NARROW :
-                        leapMonthPatternIndex = DT_LEAP_MONTH_PATTERN_FORMAT_NARROW;
-                        break;
-                  }
-                  break;
-               case STANDALONE :
-                  switch(width) {
-                     case WIDE :
-                        leapMonthPatternIndex = DT_LEAP_MONTH_PATTERN_STANDALONE_WIDE;
-                        break;
-                     case ABBREVIATED :
-                     case SHORT : // no month data for this, defaults to ABBREVIATED
-                        leapMonthPatternIndex = DT_LEAP_MONTH_PATTERN_FORMAT_ABBREV;
-                        break;
-                     case NARROW :
-                        leapMonthPatternIndex = DT_LEAP_MONTH_PATTERN_STANDALONE_NARROW;
-                        break;
-                  }
-                  break;
-               case NUMERIC :
-                  leapMonthPatternIndex = DT_LEAP_MONTH_PATTERN_NUMERIC;
-                  break;
-            }
-            if (leapMonthPatternIndex < 0) {
-                throw new IllegalArgumentException("Bad context or width argument");
-            }
-            return leapMonthPatterns[leapMonthPatternIndex];
-        }
-        return null;
-    }
-
-    /**
-     * Sets a leapMonthPattern, for example: "{0}bis"
-     * @param leapMonthPattern  The new leapMonthPattern.
-     * @param context   The usage context: FORMAT, STANDALONE, NUMERIC.
-     * @param width     The name width: WIDE, ABBREVIATED, NARROW.
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    @Deprecated
-    public void setLeapMonthPattern(String leapMonthPattern, int context, int width) {
-        if (leapMonthPatterns != null) {
-            int leapMonthPatternIndex = -1;
-            switch (context) {
-               case FORMAT :
-                  switch(width) {
-                     case WIDE :
-                        leapMonthPatternIndex = DT_LEAP_MONTH_PATTERN_FORMAT_WIDE;
-                        break;
-                     case ABBREVIATED :
-                        leapMonthPatternIndex = DT_LEAP_MONTH_PATTERN_FORMAT_ABBREV;
-                        break;
-                     case NARROW :
-                        leapMonthPatternIndex = DT_LEAP_MONTH_PATTERN_FORMAT_NARROW;
-                        break;
-                     default : // HANDLE SHORT, etc.
-                        break;
-                  }
-                  break;
-               case STANDALONE :
-                  switch(width) {
-                     case WIDE :
-                        leapMonthPatternIndex = DT_LEAP_MONTH_PATTERN_STANDALONE_WIDE;
-                        break;
-                     case ABBREVIATED :
-                        leapMonthPatternIndex = DT_LEAP_MONTH_PATTERN_FORMAT_ABBREV;
-                        break;
-                     case NARROW :
-                        leapMonthPatternIndex = DT_LEAP_MONTH_PATTERN_STANDALONE_NARROW;
-                        break;
-                     default : // HANDLE SHORT, etc.
-                        break;
-                  }
-                  break;
-               case NUMERIC :
-                  leapMonthPatternIndex = DT_LEAP_MONTH_PATTERN_NUMERIC;
-                  break;
-               default :
-                  break;
-            }
-            if (leapMonthPatternIndex >= 0) {
-                leapMonthPatterns[leapMonthPatternIndex] = leapMonthPattern;
-            }
-        }
-    }
-
-    /**
      * Returns am/pm strings. For example: "AM" and "PM".
      * @return the weekday strings.
      * @stable ICU 2.0
@@ -1247,22 +1032,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      */
     public void setAmPmStrings(String[] newAmpms) {
         ampms = duplicate(newAmpms);
-    }
-
-    /**
-     * Returns the time separator string. For example: ":".
-     * @return the time separator string.
-     */
-    String getTimeSeparatorString() {
-        return timeSeparator;
-    }
-
-    /**
-     * Sets the time separator string. For example: ":".
-     * @param newTimeSeparator the new time separator string.
-     */
-    void setTimeSeparatorString(String newTimeSeparator) {
-        timeSeparator = newTimeSeparator;
     }
 
     /**
@@ -1370,7 +1139,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
             return other;
         } catch (CloneNotSupportedException e) {
             ///CLOVER:OFF
-            throw new ICUCloneNotSupportedException(e);
+            throw new IllegalStateException();
             ///CLOVER:ON
         }
     }
@@ -1411,7 +1180,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                 && Utility.arrayEquals(standaloneShorterWeekdays, that.standaloneShorterWeekdays)
                 && Utility.arrayEquals(standaloneNarrowWeekdays, that.standaloneNarrowWeekdays)
                 && Utility.arrayEquals(ampms, that.ampms)
-                && Utility.arrayEquals(timeSeparator, that.timeSeparator)
                 && arrayOfArrayEquals(zoneStrings, that.zoneStrings)
                 // getDiplayName maps deprecated country and language codes to the current ones
                 // too bad there is no way to get the current codes!
@@ -1443,10 +1211,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     protected void initializeData(ULocale desiredLocale, String type)
     {
         String key = desiredLocale.getBaseName() + "+" + type;
-        String ns = desiredLocale.getKeywordValue("numbers");
-        if (ns != null && ns.length() > 0) {
-            key += "+" + ns;
-        }
         DateFormatSymbols dfs = DFSCACHE.get(key);
         if (dfs == null) {
             // Initialize data from scratch put a clone of this instance into the cache
@@ -1486,14 +1250,12 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         this.standaloneShorterWeekdays = dfs.standaloneShorterWeekdays;
         this.standaloneNarrowWeekdays = dfs.standaloneNarrowWeekdays;
         this.ampms = dfs.ampms;
-        this.timeSeparator = dfs.timeSeparator;
         this.shortQuarters = dfs.shortQuarters;
         this.quarters = dfs.quarters;
         this.standaloneShortQuarters = dfs.standaloneShortQuarters;
         this.standaloneQuarters = dfs.standaloneQuarters;
         this.leapMonthPatterns = dfs.leapMonthPatterns;
         this.shortYearNames = dfs.shortYearNames;
-        this.shortZodiacNames = dfs.shortZodiacNames;
 
         this.zoneStrings = dfs.zoneStrings; // always null at initialization time for now
         this.localPatternChars = dfs.localPatternChars;
@@ -1512,7 +1274,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     // This API was accidentally marked as @stable ICU 3.0 formerly.
     protected void initializeData(ULocale desiredLocale, CalendarData calData)
     {
@@ -1625,7 +1386,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         }
         if (cyclicNameSetsBundle != null) {
             shortYearNames = calData.get("cyclicNameSets", "years", "format", "abbreviated").getStringArray();
-            shortZodiacNames = calData.get("cyclicNameSets", "zodiacs", "format", "abbreviated").getStringArray();
         }
  
         requestedLocale = desiredLocale;
@@ -1676,15 +1436,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                     }
                 }
             }
-        }
-
-        NumberingSystem ns = NumberingSystem.getInstance(desiredLocale);
-        String nsName = ns == null ? "latn" : ns.getName();  // Latin is default.
-        String tsPath = "NumberElements/" + nsName + "/symbols/timeSeparator";
-        try {
-            setTimeSeparatorString(rb.getStringWithFallback(tsPath));
-        } catch (MissingResourceException e) {
-            setTimeSeparatorString(DEFAULT_TIME_SEPARATOR);
         }
     }
 
@@ -1947,7 +1698,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * this API no longer works as described.  This method always returns null.
      * @deprecated ICU 4.0
      */
-    @Deprecated
     // This API was formerly @stable ICU 2.0
     static public ResourceBundle getDateFormatBundle(Class<? extends Calendar> calendarClass,
                                                      Locale locale)
@@ -1969,7 +1719,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * this API no longer works as described.  This method always returns null.
      * @deprecated ICU 4.0
      */
-    @Deprecated
     // This API was formerly @stable ICU 3.2
     static public ResourceBundle getDateFormatBundle(Class<? extends Calendar> calendarClass,
                                                      ULocale locale)
@@ -1986,7 +1735,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @see #getDateFormatBundle(java.lang.Class, java.util.Locale)
      * @deprecated ICU 4.0
      */
-    @Deprecated
     // This API was formerly @stable ICU 2.2
     public static ResourceBundle getDateFormatBundle(Calendar cal, Locale locale)
         throws MissingResourceException {
@@ -2002,7 +1750,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @see #getDateFormatBundle(java.lang.Class, java.util.Locale)
      * @deprecated ICU 4.0
      */
-    @Deprecated
     // This API was formerly @stable ICU 3.2
     public static ResourceBundle getDateFormatBundle(Calendar cal, ULocale locale)
         throws MissingResourceException {

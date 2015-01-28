@@ -1,6 +1,6 @@
 /*
  **********************************************************************
- * Copyright (c) 2002-2014, International Business Machines
+ * Copyright (c) 2002-2011, International Business Machines
  * Corporation and others.  All Rights Reserved.
  **********************************************************************
  * Author: Alan Liu
@@ -12,8 +12,10 @@
 
 package com.ibm.icu.impl;
 
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.io.InputStream;
 import java.util.MissingResourceException;
 
 import com.ibm.icu.lang.UProperty;
@@ -72,19 +74,21 @@ public final class UPropertyAliases {
         }
     }
     private static final IsAcceptable IS_ACCEPTABLE=new IsAcceptable();
-    private static final int DATA_FORMAT=0x706E616D;  // "pnam"
+    private static final byte DATA_FORMAT[]={ 0x70, 0x6E, 0x61, 0x6D  };  // "pnam"
 
-    private void load(ByteBuffer bytes) throws IOException {
-        //dataVersion=ICUBinary.readHeaderAndDataVersion(bytes, DATA_FORMAT, IS_ACCEPTABLE);
-        ICUBinary.readHeader(bytes, DATA_FORMAT, IS_ACCEPTABLE);
-        int indexesLength=bytes.getInt()/4;  // inIndexes[IX_VALUE_MAPS_OFFSET]/4
+    private void load(InputStream data) throws IOException {
+        BufferedInputStream bis=new BufferedInputStream(data);
+        //dataVersion=ICUBinary.readHeaderAndDataVersion(bis, DATA_FORMAT, IS_ACCEPTABLE);
+        ICUBinary.readHeader(bis, DATA_FORMAT, IS_ACCEPTABLE);
+        DataInputStream ds=new DataInputStream(bis);
+        int indexesLength=ds.readInt()/4;  // inIndexes[IX_VALUE_MAPS_OFFSET]/4
         if(indexesLength<8) {  // formatVersion 2 initially has 8 indexes
             throw new IOException("pnames.icu: not enough indexes");
         }
         int[] inIndexes=new int[indexesLength];
         inIndexes[0]=indexesLength*4;
         for(int i=1; i<indexesLength; ++i) {
-            inIndexes[i]=bytes.getInt();
+            inIndexes[i]=ds.readInt();
         }
 
         // Read the valueMaps.
@@ -93,7 +97,7 @@ public final class UPropertyAliases {
         int numInts=(nextOffset-offset)/4;
         valueMaps=new int[numInts];
         for(int i=0; i<numInts; ++i) {
-            valueMaps[i]=bytes.getInt();
+            valueMaps[i]=ds.readInt();
         }
 
         // Read the bytesTries.
@@ -101,7 +105,7 @@ public final class UPropertyAliases {
         nextOffset=inIndexes[IX_NAME_GROUPS_OFFSET];
         int numBytes=nextOffset-offset;
         bytesTries=new byte[numBytes];
-        bytes.get(bytesTries);
+        ds.readFully(bytesTries);
 
         // Read the nameGroups and turn them from ASCII bytes into a Java String.
         offset=nextOffset;
@@ -109,14 +113,15 @@ public final class UPropertyAliases {
         numBytes=nextOffset-offset;
         StringBuilder sb=new StringBuilder(numBytes);
         for(int i=0; i<numBytes; ++i) {
-            sb.append((char)bytes.get());
+            sb.append((char)ds.readByte());
         }
         nameGroups=sb.toString();
+
+        data.close();
     }
 
     private UPropertyAliases() throws IOException {
-        ByteBuffer bytes = ICUBinary.getRequiredData("pnames.icu");
-        load(bytes);
+        load(ICUData.getRequiredStream(ICUResourceBundle.ICU_BUNDLE+"/pnames.icu"));
     }
 
     private int findProperty(int property) {
@@ -300,24 +305,6 @@ public final class UPropertyAliases {
             throw new IllegalArgumentException(
                     "Property "+property+" (0x"+Integer.toHexString(property)+
                     ") does not have named values");
-        }
-        // valueMapIndex is the start of the property's valueMap,
-        // where the first word is the BytesTrie offset.
-        return getPropertyOrValueEnum(valueMaps[valueMapIndex], alias);
-    }
-
-    /**
-     * Returns a value enum given a property enum and one of its value names. Does not throw.
-     * @return value enum, or UProperty.UNDEFINED if not defined for that property
-     */
-    public int getPropertyValueEnumNoThrow(int property, CharSequence alias) {
-        int valueMapIndex=findProperty(property);
-        if(valueMapIndex==0) {
-            return UProperty.UNDEFINED;
-        }
-        valueMapIndex=valueMaps[valueMapIndex+1];
-        if(valueMapIndex==0) {
-            return UProperty.UNDEFINED;
         }
         // valueMapIndex is the start of the property's valueMap,
         // where the first word is the BytesTrie offset.

@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2000-2014, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2013, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -2358,26 +2358,6 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
         logln("sdf2: " + pos2.getErrorIndex() + "/" + pos2.getIndex());
         assertTrue("Fail: failed to detect bad parse", pos2.getErrorIndex() == 0);
     }
-    
-    public void TestWeekendData_10560() {
-        final Calendar.WeekData worldWeekData = new Calendar.WeekData(2, 1, 7, 0, 1, 86400000);
-        final Calendar.WeekData usWeekData = new Calendar.WeekData(1, 1, 7, 0, 1, 86400000);
-        final Calendar.WeekData testWeekData = new Calendar.WeekData(1, 2, 3, 4, 5, 86400000);
-
-        assertEquals("World", worldWeekData, Calendar.getWeekDataForRegion("001"));
-        assertEquals("Illegal code => world", Calendar.getWeekDataForRegion("001"), Calendar.getWeekDataForRegion("xx"));
-        assertEquals("FR = DE", Calendar.getWeekDataForRegion("FR"), Calendar.getWeekDataForRegion("DE"));
-        assertNotEquals("IN ≠ world", Calendar.getWeekDataForRegion("001"), Calendar.getWeekDataForRegion("IN"));
-        assertNotEquals("FR ≠ EG", Calendar.getWeekDataForRegion("FR"), Calendar.getWeekDataForRegion("EG"));  
-        
-        Calendar aCalendar = Calendar.getInstance(Locale.US);
-        assertEquals("US", usWeekData, aCalendar.getWeekData());
-        
-        aCalendar.setWeekData(testWeekData);
-        assertEquals("Custom", testWeekData, aCalendar.getWeekData());
-    }
-
-
 }
 
 //eof

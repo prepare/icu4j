@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2014, International Business Machines Corporation and
+ * Copyright (C) 1996-2015, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -150,12 +150,6 @@ public final class VersionInfo implements Comparable<VersionInfo>
     public static final VersionInfo UNICODE_6_3;
 
     /**
-     * Unicode 7.0 version
-     * @stable ICU 54
-     */
-    public static final VersionInfo UNICODE_7_0;
-
-    /**
      * ICU4J current release version
      * @stable ICU 2.8
      */
@@ -167,15 +161,13 @@ public final class VersionInfo implements Comparable<VersionInfo>
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
-    public static final String ICU_DATA_VERSION_PATH = "55b";
+    public static final String ICU_DATA_VERSION_PATH = "52b";
     
     /**
      * Data version in ICU4J.
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static final VersionInfo ICU_DATA_VERSION;
 
     /**
@@ -196,12 +188,10 @@ public final class VersionInfo implements Comparable<VersionInfo>
     public static final VersionInfo UCOL_BUILDER_VERSION;
 
     /**
-     * Constant version 1.
-     * This was intended to be the version of collation tailorings,
-     * but instead the tailoring data carries a version number.
-     * @deprecated ICU 54
+     * This is the version of collation tailorings.
+     * This value may change in subsequent releases of ICU.
+     * @stable ICU 2.8
      */
-    @Deprecated
     public static final VersionInfo UCOL_TAILORINGS_VERSION;
 
 
@@ -334,7 +324,6 @@ public final class VersionInfo implements Comparable<VersionInfo>
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static VersionInfo javaVersion() {
         if (javaVersion == null) {
             synchronized(VersionInfo.class) {
@@ -523,14 +512,13 @@ public final class VersionInfo implements Comparable<VersionInfo>
         UNICODE_6_1   = getInstance(6, 1, 0, 0);
         UNICODE_6_2   = getInstance(6, 2, 0, 0);
         UNICODE_6_3   = getInstance(6, 3, 0, 0);
-        UNICODE_7_0   = getInstance(7, 0, 0, 0);
 
-        ICU_VERSION   = getInstance(55, 0, 1, 0);
-        ICU_DATA_VERSION = getInstance(55, 0, 1, 0);
-        UNICODE_VERSION = UNICODE_7_0;
+        ICU_VERSION   = getInstance(52, 1, 1, 0);
+        ICU_DATA_VERSION = getInstance(52, 1, 0, 0);
+        UNICODE_VERSION = UNICODE_6_3;
 
-        UCOL_RUNTIME_VERSION = getInstance(9);
-        UCOL_BUILDER_VERSION = getInstance(9);
+        UCOL_RUNTIME_VERSION = getInstance(7);
+        UCOL_BUILDER_VERSION = getInstance(8);
         UCOL_TAILORINGS_VERSION = getInstance(1);
     }
 
@@ -594,7 +582,7 @@ public final class VersionInfo implements Comparable<VersionInfo>
         System.out.println("Implementation Version: " + ICU_VERSION.getVersionString(2, 4));
         System.out.println("Unicode Data Version:   " + UNICODE_VERSION.getVersionString(2, 4));
         System.out.println("CLDR Data Version:      " + LocaleData.getCLDRVersion().getVersionString(2, 4));
-        System.out.println("Time Zone Data Version: " + getTZDataVersion());
+        System.out.println("Time Zone Data Version: " + TimeZone.getTZDataVersion());
     }
 
     /**
@@ -604,11 +592,8 @@ public final class VersionInfo implements Comparable<VersionInfo>
      * @param minDigits Minimum number of version digits
      * @param maxDigits Maximum number of version digits
      * @return A tailored version string
-     * @internal
-     * @deprecated This API is ICU internal only. (For use in CLDR, etc.)
      */
-    @Deprecated
-    public String getVersionString(int minDigits, int maxDigits) {
+    private String getVersionString(int minDigits, int maxDigits) {
         if (minDigits < 1 || maxDigits < 1
                 || minDigits > 4 || maxDigits > 4 || minDigits > maxDigits) {
             throw new IllegalArgumentException("Invalid min/maxDigits range");
@@ -638,21 +623,4 @@ public final class VersionInfo implements Comparable<VersionInfo>
         return verStr.toString();
     }
     ///CLOVER:ON
-
-
-    // Moved from TimeZone class
-    private static volatile String TZDATA_VERSION = null;
-
-    static String getTZDataVersion() {
-        if (TZDATA_VERSION == null) {
-            synchronized (VersionInfo.class) {
-                if (TZDATA_VERSION == null) {
-                    UResourceBundle tzbundle = UResourceBundle.getBundleInstance("com/ibm/icu/impl/data/icudt"
-                            + VersionInfo.ICU_DATA_VERSION_PATH, "zoneinfo64");
-                    TZDATA_VERSION = tzbundle.getString("TZVersion");
-                }
-            }
-        }
-        return TZDATA_VERSION;
-    }
 }

@@ -1,9 +1,9 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2014, International Business Machines Corporation and    *
+ * Copyright (C) 2003-2013, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
- */
+*/
 package com.ibm.icu.dev.test.util;
 
 import java.util.Arrays;
@@ -14,7 +14,6 @@ import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.lang.UScript;
 import com.ibm.icu.text.UnicodeSet;
 import com.ibm.icu.text.UnicodeSetIterator;
-import com.ibm.icu.util.ICUException;
 import com.ibm.icu.util.LocaleData;
 import com.ibm.icu.util.ULocale;
 
@@ -29,9 +28,9 @@ public class LocaleDataTest extends TestFmwk{
     public static void main(String[] args) throws Exception{
         new LocaleDataTest().run(args);
     }
-
+    
     private ULocale[] availableLocales = null;
-
+    
     public LocaleDataTest(){
     }
     protected void init(){
@@ -48,26 +47,26 @@ public class LocaleDataTest extends TestFmwk{
             }
             ULocale fullLoc = ULocale.addLikelySubtags(locale);
             if(fullLoc.toString().indexOf("_BZ") >= 0 || fullLoc.toString().indexOf("_CA") >= 0 ||
-                    fullLoc.toString().indexOf("_CL") >= 0 || fullLoc.toString().indexOf("_CO") >= 0 ||
-                    fullLoc.toString().indexOf("_CR") >= 0 || fullLoc.toString().indexOf("_GT") >= 0 ||
-                    fullLoc.toString().indexOf("_MX") >= 0 || fullLoc.toString().indexOf("_NI") >= 0 ||
-                    fullLoc.toString().indexOf("_PA") >= 0 || fullLoc.toString().indexOf("_PH") >= 0 ||
-                    fullLoc.toString().indexOf("_PR") >= 0 || fullLoc.toString().indexOf("_SV") >= 0 ||
-                    fullLoc.toString().indexOf("_US") >= 0 || fullLoc.toString().indexOf("_VE") >= 0 ){
+               fullLoc.toString().indexOf("_CL") >= 0 || fullLoc.toString().indexOf("_CO") >= 0 ||
+               fullLoc.toString().indexOf("_CR") >= 0 || fullLoc.toString().indexOf("_GT") >= 0 ||
+               fullLoc.toString().indexOf("_MX") >= 0 || fullLoc.toString().indexOf("_NI") >= 0 ||
+               fullLoc.toString().indexOf("_PA") >= 0 || fullLoc.toString().indexOf("_PH") >= 0 ||
+               fullLoc.toString().indexOf("_PR") >= 0 || fullLoc.toString().indexOf("_SV") >= 0 ||
+               fullLoc.toString().indexOf("_US") >= 0 || fullLoc.toString().indexOf("_VE") >= 0 ){
                 if(paperSize.getHeight()!= 279 || paperSize.getWidth() != 216 ){
                     errln("PaperSize did not return the expected value for locale "+ locale+
-                            " Expected height: 279 width: 216."+
-                            " Got height: "+paperSize.getHeight()+" width: "+paperSize.getWidth()
-                            );
+                          " Expected height: 279 width: 216."+
+                          " Got height: "+paperSize.getHeight()+" width: "+paperSize.getWidth()
+                           );
                 }else{
                     logln("PaperSize returned the expected values for locale " + locale);
                 }
             }else{
                 if(paperSize.getHeight()!= 297 || paperSize.getWidth() != 210 ){
                     errln("PaperSize did not return the expected value for locale "+ locale +
-                            " Expected height: 297 width: 210."+
-                            " Got height: "+paperSize.getHeight() +" width: "+paperSize.getWidth() 
-                            );
+                          " Expected height: 297 width: 210."+
+                          " Got height: "+paperSize.getHeight() +" width: "+paperSize.getWidth() 
+                           );
                 }else{
                     logln("PaperSize returned the expected values for locale " + locale);
                 }
@@ -90,12 +89,6 @@ public class LocaleDataTest extends TestFmwk{
                 }else{
                     errln("Did not get the expected measurement system for locale: "+ locale);
                 }
-            } else if(fullLoc.toString().indexOf("_GB") >= 0){
-                if(ms == LocaleData.MeasurementSystem.UK){
-                    logln("Got the expected measurement system for locale: " + locale);
-                }else{
-                    errln("Did not get the expected measurement system for locale: "+ locale);
-                }
             }else{
                 if(ms == LocaleData.MeasurementSystem.SI){
                     logln("Got the expected measurement system for locale: " + locale);
@@ -109,11 +102,11 @@ public class LocaleDataTest extends TestFmwk{
     // Simple test case for checking exemplar character type coverage
     public void TestEnglishExemplarCharacters() {
         final char[] testChars = {
-                0x61,   // standard
-                0xE1,   // auxiliary
-                0x41,   // index
-                0,      // filler for deprecated currency exemplar
-                0x2D,   // punctuation
+            0x61,   // standard
+            0xE1,   // auxiliary
+            0x41,   // index
+            0,      // filler for deprecated currency exemplar
+            0x2D,   // punctuation
         };
         LocaleData ld = LocaleData.getInstance(ULocale.ENGLISH);
         for (int type = 0; type < LocaleData.ES_COUNT; type++) {
@@ -124,13 +117,6 @@ public class LocaleDataTest extends TestFmwk{
                 }
             }
         }
-        try {
-            ld.getExemplarSet(0, LocaleData.ES_COUNT); // out of bounds value
-            throw new ICUException("Test failure; should throw exception");
-        } catch (IllegalArgumentException e) {
-            assertEquals("", "java.lang.ArrayIndexOutOfBoundsException", e.getCause().getClass().getName());
-        }
-
     }
 
     // Bundle together a UnicodeSet (of expemplars) and ScriptCode combination.
@@ -140,7 +126,7 @@ public class LocaleDataTest extends TestFmwk{
     static class ExemplarGroup {
         private int[] scs;
         private UnicodeSet set;
-
+        
         ExemplarGroup(UnicodeSet s, int[] scriptCodes) {
             set = s;
             scs = scriptCodes;
@@ -155,11 +141,11 @@ public class LocaleDataTest extends TestFmwk{
         public boolean equals(Object other) {
             ExemplarGroup o = (ExemplarGroup)other;
             boolean r = Arrays.equals(scs, o.scs) &&
-                    set.equals(o.set);
+                         set.equals(o.set);
             return r;
         }
     }
-
+    
     public void TestExemplarSet(){
         HashSet  testedExemplars = new HashSet();
         int equalCount = 0;
@@ -228,7 +214,7 @@ public class LocaleDataTest extends TestFmwk{
         // Note: The case-folded set should sometimes be a strict superset
         // and sometimes be equal.
         assertTrue("case-folded is sometimes a strict superset, and sometimes equal",
-                equalCount > 0 && equalCount < availableLocales.length);
+                   equalCount > 0 && equalCount < availableLocales.length);
     }
     public void TestExemplarSet2(){
         int equalCount = 0;
@@ -316,18 +302,18 @@ public class LocaleDataTest extends TestFmwk{
     // See #9785, #9794 and #9795
     public void TestExemplarSetTypes() {
         final String[] testLocales = {
-                "am",   // No auxiliary / index exemplars as of ICU 50
-                "en",
-                "th",   // #9785
-                "foo",  // Bogus locale
+            "am",   // No auxiliary / index exemplars as of ICU 50
+            "en",
+            "th",   // #9785
+            "foo",  // Bogus locale
         };
 
         final int[] testTypes = {
-                LocaleData.ES_STANDARD,
-                LocaleData.ES_AUXILIARY,
-                LocaleData.ES_INDEX,
-                LocaleData.ES_CURRENCY,
-                LocaleData.ES_PUNCTUATION,
+            LocaleData.ES_STANDARD,
+            LocaleData.ES_AUXILIARY,
+            LocaleData.ES_INDEX,
+            LocaleData.ES_CURRENCY,
+            LocaleData.ES_PUNCTUATION,
         };
 
         final String[] testTypeNames = {
@@ -336,7 +322,7 @@ public class LocaleDataTest extends TestFmwk{
                 "ES_INDEX",
                 "ES_CURRENCY",
                 "ES_PUNCTUATION",
-        };
+            };
 
         for (String locstr : testLocales) {
             ULocale loc = new ULocale(locstr);
@@ -364,7 +350,7 @@ public class LocaleDataTest extends TestFmwk{
         assertEquals("LocaleData get/set NoSubstitute",
                 t,
                 ld.getNoSubstitute());
-
+    
         logln(ld.getDelimiter(LocaleData.QUOTATION_START));
         logln(ld.getDelimiter(LocaleData.QUOTATION_END));
         logln(ld.getDelimiter(LocaleData.ALT_QUOTATION_START));
@@ -389,11 +375,11 @@ public class LocaleDataTest extends TestFmwk{
         String separator = ld.getLocaleSeparator();
         logln("LocaleDisplayPattern for locale " + locale + ": " + pattern);
         if (!pattern.equals("{0} ({1})")) {
-            errln("Unexpected LocaleDisplayPattern for locale: "+ locale);
+          errln("Unexpected LocaleDisplayPattern for locale: "+ locale);
         }
         logln("LocaleSeparator for locale " + locale + ": " + separator);
         if (!separator.equals(", ")) {
-            errln("Unexpected LocaleSeparator for locale: "+ locale);
+          errln("Unexpected LocaleSeparator for locale: "+ locale);
         }
 
         locale = ULocale.CHINESE;
@@ -402,18 +388,18 @@ public class LocaleDataTest extends TestFmwk{
         separator = ld.getLocaleSeparator();
         logln("LocaleDisplayPattern for locale " + locale + ": " + pattern);
         if (!pattern.equals("{0}\uFF08{1}\uFF09")) {
-            errln("Unexpected LocaleDisplayPattern for locale: "+ locale);
+          errln("Unexpected LocaleDisplayPattern for locale: "+ locale);
         }
         logln("LocaleSeparator for locale " + locale + ": " + separator);
         if (!separator.equals("\u3001")) {
-            errln("Unexpected LocaleSeparator for locale: "+ locale);
+          errln("Unexpected LocaleSeparator for locale: "+ locale);
         }
 
         for(int i = 0; i < availableLocales.length; i++){
-            locale = availableLocales[i];
-            ld = LocaleData.getInstance(locale);
-            logln(locale.toString() + " LocaleDisplayPattern:" + ld.getLocaleDisplayPattern());
-            logln(locale.toString() + " LocaleSeparator:" + ld.getLocaleSeparator());
+          locale = availableLocales[i];
+          ld = LocaleData.getInstance(locale);
+          logln(locale.toString() + " LocaleDisplayPattern:" + ld.getLocaleDisplayPattern());
+          logln(locale.toString() + " LocaleSeparator:" + ld.getLocaleSeparator());
         }
     }
 }

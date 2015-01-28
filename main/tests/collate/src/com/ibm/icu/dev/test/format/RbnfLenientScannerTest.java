@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2009-2014, International Business Machines Corporation and    *
+ * Copyright (C) 2009-2013, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -12,8 +12,8 @@ import java.util.Locale;
 import java.util.Random;
 
 import com.ibm.icu.dev.test.TestFmwk;
-import com.ibm.icu.impl.text.RbnfScannerProviderImpl;
 import com.ibm.icu.text.RbnfLenientScannerProvider;
+import com.ibm.icu.text.RbnfScannerProviderImpl;
 import com.ibm.icu.text.RuleBasedNumberFormat;
 import com.ibm.icu.util.ULocale;
 

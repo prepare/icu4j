@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2014, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -55,7 +55,7 @@ public final class UnicodeMap<T> implements Cloneable, Freezable, StringTransfor
     private transient boolean staleAvailableValues;
 
     private transient boolean errorOnReset;
-    private volatile transient boolean locked;
+    private transient boolean locked;
     private int lastIndex;
     private Map<String,T> stringMap;
 
@@ -387,9 +387,6 @@ public final class UnicodeMap<T> implements Cloneable, Freezable, StringTransfor
     public UnicodeMap<T> put(String string, T value) {
         int v = UnicodeSet.getSingleCodePoint(string);
         if (v == Integer.MAX_VALUE) {
-            if (locked) {
-                throw new UnsupportedOperationException("Attempt to modify locked object");
-            }
             if (value != null) {
                 if (stringMap == null) {
                     stringMap = new TreeMap<String,T>();
@@ -415,11 +412,10 @@ public final class UnicodeMap<T> implements Cloneable, Freezable, StringTransfor
     public UnicodeMap<T> putAll(UnicodeSet codepoints, T value) {
         UnicodeSetIterator it = new UnicodeSetIterator(codepoints);
         while (it.nextRange()) {
-            if (it.string == null) {
-                _putAll(it.codepoint, it.codepointEnd, value);
-            } else {
-                put(it.string, value);
-            }
+            _putAll(it.codepoint, it.codepointEnd, value);
+        }
+        for (String key : codepoints.strings()) {
+            put(key, value);
         }
         return this;
     }
@@ -922,57 +918,33 @@ public final class UnicodeMap<T> implements Cloneable, Freezable, StringTransfor
 
     }
     
-    /**
-     * Struct-like class used to iterate over a UnicodeMap in a for loop. 
-     * If the value is a string, then codepoint == codepointEnd == -1. Otherwise the string is null;
-     * Caution: The contents may change during the iteration!
-     */
     public static class EntryRange<T> {
         public int codepoint;
         public int codepointEnd;
         public String string;
         public T value;
-        @Override
-        public String toString() {
-            return (string != null ? Utility.hex(string)
-                    : Utility.hex(codepoint) + (codepoint == codepointEnd ? "" : ".." + Utility.hex(codepointEnd)))
-                    + "=" + value;
-        }
     }
     
-    /**
-     * Returns an Iterable over EntryRange, designed for efficient for loops over UnicodeMaps. 
-     * Caution: For efficiency, the EntryRange may be reused, so the EntryRange may change on each iteration!
-     * The value is guaranteed never to be null.
-     * @return entry range, for for loops
-     */
-    public Iterable<EntryRange<T>> entryRanges() {
+    public Iterable<EntryRange> entryRanges() {
         return new EntryRanges();
     }
 
-    private class EntryRanges implements Iterable<EntryRange<T>>, Iterator<EntryRange<T>> {
-        private int pos;
-        private EntryRange<T> result = new EntryRange<T>();
-        private int lastRealRange = values[length-2] == null ? length - 2 : length - 1;
-        private Iterator<Entry<String, T>> stringIterator = stringMap == null ? null : stringMap.entrySet().iterator();
-        
-        public Iterator<EntryRange<T>> iterator() {
+    private class EntryRanges implements Iterable<EntryRange>, Iterator<EntryRange> {
+        int pos;
+        EntryRange result = new EntryRange();
+        Iterator<Entry<String, T>> stringIterator = stringMap == null ? null : stringMap.entrySet().iterator();
+        public Iterator<EntryRange> iterator() {
             return this;
         }
         public boolean hasNext() {
-            return pos < lastRealRange || (stringIterator != null && stringIterator.hasNext());
+            return pos < length-1 || (stringIterator != null && stringIterator.hasNext());
         }
-        public EntryRange<T> next() {
-            // a range may be null, but then the next one must not be (except the final range)
-            if (pos < lastRealRange) {
-                T temp = values[pos];
-                if (temp == null) {
-                    temp = values[++pos];
-                }
+        public EntryRange next() {
+            if (pos < length-1) {
                 result.codepoint = transitions[pos];
                 result.codepointEnd = transitions[pos+1]-1;
                 result.string = null;
-                result.value = temp;
+                result.value = values[pos];
                 ++pos;
             } else {
                 Entry<String, T> entry = stringIterator.next();
@@ -1124,62 +1096,4 @@ public final class UnicodeMap<T> implements Cloneable, Freezable, StringTransfor
     //        if (DEBUG_WRITE) System.out.println("Trans: " + transitions[i] + ",\t" + currentValue);
     //        }
     //    }
-    
-    public final UnicodeMap<T> removeAll(UnicodeSet set) {
-        return putAll(set, null);
-    }
-
-    public final UnicodeMap<T> removeAll(UnicodeMap<T> reference) {
-        return removeRetainAll(reference, true);
-    }
-
-    public final UnicodeMap<T> retainAll(UnicodeSet set) {
-        UnicodeSet toNuke = new UnicodeSet();
-        // TODO Optimize
-        for (EntryRange<T> ae : entryRanges()) {
-            if (ae.string != null) {
-                if (!set.contains(ae.string)) {
-                    toNuke.add(ae.string);
-                }
-            } else {
-                for (int i = ae.codepoint; i <= ae.codepointEnd; ++i) {
-                    if (!set.contains(i)) {
-                        toNuke.add(i);
-                    }
-                }
-            }
-        }
-        return putAll(toNuke, null);
-    }
-
-    public final UnicodeMap<T> retainAll(UnicodeMap<T> reference) {
-        return removeRetainAll(reference, false);
-    }
-
-    private final UnicodeMap<T> removeRetainAll(UnicodeMap<T> reference, boolean remove) {
-        UnicodeSet toNuke = new UnicodeSet();
-        // TODO Optimize
-        for (EntryRange<T> ae : entryRanges()) {
-            if (ae.string != null) {
-                if (ae.value.equals(reference.get(ae.string)) == remove) {
-                    toNuke.add(ae.string);
-                }
-            } else {
-                for (int i = ae.codepoint; i <= ae.codepointEnd; ++i) {
-                    if (ae.value.equals(reference.get(i)) == remove) {
-                        toNuke.add(i);
-                    }
-                }
-            }
-        }
-        return putAll(toNuke, null);
-    }
-    
-    /**
-     * Returns the keys that consist of multiple code points.
-     * @return
-     */
-    public Set<String> stringKeys() {
-        return stringMap.keySet();
-    }
 }

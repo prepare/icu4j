@@ -1,34 +1,30 @@
 /*
- *******************************************************************************
- *   Copyright (C) 2009-2014, International Business Machines
- *   Corporation and others.  All Rights Reserved.
- *******************************************************************************
- */
-
+*******************************************************************************
+*   Copyright (C) 2009-2012, International Business Machines
+*   Corporation and others.  All Rights Reserved.
+*******************************************************************************
+*/
 package com.ibm.icu.impl;
 
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
-import com.ibm.icu.util.ICUUncheckedIOException;
 import com.ibm.icu.util.VersionInfo;
 
 public final class Normalizer2Impl {
     public static final class Hangul {
         /* Korean Hangul and Jamo constants */
         public static final int JAMO_L_BASE=0x1100;     /* "lead" jamo */
-        public static final int JAMO_L_END=0x1112;
         public static final int JAMO_V_BASE=0x1161;     /* "vowel" jamo */
-        public static final int JAMO_V_END=0x1175;
         public static final int JAMO_T_BASE=0x11a7;     /* "trail" jamo */
-        public static final int JAMO_T_END=0x11c2;
 
         public static final int HANGUL_BASE=0xac00;
-        public static final int HANGUL_END=0xd7a3;
 
         public static final int JAMO_L_COUNT=19;
         public static final int JAMO_V_COUNT=21;
@@ -75,7 +71,7 @@ public final class Normalizer2Impl {
                 }
             } catch(IOException e) {
                 // Will not occur because we do not write to I/O.
-                throw new ICUUncheckedIOException(e);
+                throw new RuntimeException(e);
             }
         }
 
@@ -98,7 +94,7 @@ public final class Normalizer2Impl {
                 }
             } catch(IOException e) {
                 // Will not occur because we do not write to I/O.
-                throw new ICUUncheckedIOException(e);
+                throw new RuntimeException(e);
             }
         }
     }
@@ -248,7 +244,7 @@ public final class Normalizer2Impl {
                     str.setLength(0);
                     reorderStart=0;
                 } catch(IOException e) {
-                    throw new ICUUncheckedIOException(e);  // Avoid declaring "throws IOException".
+                    throw new RuntimeException(e);  // Avoid declaring "throws IOException".
                 }
             }
             lastCC=0;
@@ -269,7 +265,7 @@ public final class Normalizer2Impl {
                     str.setLength(0);
                     reorderStart=0;
                 } catch(IOException e) {
-                    throw new ICUUncheckedIOException(e);  // Avoid declaring "throws IOException".
+                    throw new RuntimeException(e);  // Avoid declaring "throws IOException".
                 }
             }
             lastCC=0;
@@ -416,40 +412,42 @@ public final class Normalizer2Impl {
         }
     }
     private static final IsAcceptable IS_ACCEPTABLE = new IsAcceptable();
-    private static final int DATA_FORMAT = 0x4e726d32;  // "Nrm2"
+    private static final byte DATA_FORMAT[] = { 0x4e, 0x72, 0x6d, 0x32  };  // "Nrm2"
 
-    public Normalizer2Impl load(ByteBuffer bytes) {
+    public Normalizer2Impl load(InputStream data) {
         try {
-            dataVersion=ICUBinary.readHeaderAndDataVersion(bytes, DATA_FORMAT, IS_ACCEPTABLE);
-            int indexesLength=bytes.getInt()/4;  // inIndexes[IX_NORM_TRIE_OFFSET]/4
+            BufferedInputStream bis=new BufferedInputStream(data);
+            dataVersion=ICUBinary.readHeaderAndDataVersion(bis, DATA_FORMAT, IS_ACCEPTABLE);
+            DataInputStream ds=new DataInputStream(bis);
+            int indexesLength=ds.readInt()/4;  // inIndexes[IX_NORM_TRIE_OFFSET]/4
             if(indexesLength<=IX_MIN_MAYBE_YES) {
-                throw new ICUUncheckedIOException("Normalizer2 data: not enough indexes");
+                throw new IOException("Normalizer2 data: not enough indexes");
             }
             int[] inIndexes=new int[indexesLength];
             inIndexes[0]=indexesLength*4;
             for(int i=1; i<indexesLength; ++i) {
-                inIndexes[i]=bytes.getInt();
+                inIndexes[i]=ds.readInt();
             }
-
+    
             minDecompNoCP=inIndexes[IX_MIN_DECOMP_NO_CP];
             minCompNoMaybeCP=inIndexes[IX_MIN_COMP_NO_MAYBE_CP];
-
+    
             minYesNo=inIndexes[IX_MIN_YES_NO];
             minYesNoMappingsOnly=inIndexes[IX_MIN_YES_NO_MAPPINGS_ONLY];
             minNoNo=inIndexes[IX_MIN_NO_NO];
             limitNoNo=inIndexes[IX_LIMIT_NO_NO];
             minMaybeYes=inIndexes[IX_MIN_MAYBE_YES];
-
+    
             // Read the normTrie.
             int offset=inIndexes[IX_NORM_TRIE_OFFSET];
             int nextOffset=inIndexes[IX_EXTRA_DATA_OFFSET];
-            normTrie=Trie2_16.createFromSerialized(bytes);
+            normTrie=Trie2_16.createFromSerialized(ds);
             int trieLength=normTrie.getSerializedLength();
             if(trieLength>(nextOffset-offset)) {
-                throw new ICUUncheckedIOException("Normalizer2 data: not enough bytes for normTrie");
+                throw new IOException("Normalizer2 data: not enough bytes for normTrie");
             }
-            ICUBinary.skipBytes(bytes, (nextOffset-offset)-trieLength);  // skip padding after trie bytes
-
+            ds.skipBytes((nextOffset-offset)-trieLength);  // skip padding after trie bytes
+    
             // Read the composition and mapping data.
             offset=nextOffset;
             nextOffset=inIndexes[IX_SMALL_FCD_OFFSET];
@@ -458,7 +456,7 @@ public final class Normalizer2Impl {
             if(numChars!=0) {
                 chars=new char[numChars];
                 for(int i=0; i<numChars; ++i) {
-                    chars[i]=bytes.getChar();
+                    chars[i]=ds.readChar();
                 }
                 maybeYesCompositions=new String(chars);
                 extraData=maybeYesCompositions.substring(MIN_NORMAL_MAYBE_YES-minMaybeYes);
@@ -468,7 +466,7 @@ public final class Normalizer2Impl {
             offset=nextOffset;
             smallFCD=new byte[0x100];
             for(int i=0; i<0x100; ++i) {
-                smallFCD[i]=bytes.get();
+                smallFCD[i]=ds.readByte();
             }
 
             // Build tccc180[].
@@ -488,53 +486,14 @@ public final class Normalizer2Impl {
                 }
             }
 
+            data.close();
             return this;
         } catch(IOException e) {
-            throw new ICUUncheckedIOException(e);
+            throw new RuntimeException(e);
         }
     }
     public Normalizer2Impl load(String name) {
-        return load(ICUBinary.getRequiredData(name));
-    }
-
-    private void enumLcccRange(int start, int end, int norm16, UnicodeSet set) {
-        if(isAlgorithmicNoNo(norm16)) {
-            // Range of code points with same-norm16-value algorithmic decompositions.
-            // They might have different non-zero FCD16 values.
-            do {
-                int fcd16=getFCD16(start);
-                if(fcd16>0xff) { set.add(start); }
-            } while(++start<=end);
-        } else {
-            int fcd16=getFCD16(start);
-            if(fcd16>0xff) { set.add(start, end); }
-        }
-    }
-
-    private void enumNorm16PropertyStartsRange(int start, int end, int value, UnicodeSet set) {
-        /* add the start code point to the USet */
-        set.add(start);
-        if(start!=end && isAlgorithmicNoNo(value)) {
-            // Range of code points with same-norm16-value algorithmic decompositions.
-            // They might have different non-zero FCD16 values.
-            int prevFCD16=getFCD16(start);
-            while(++start<=end) {
-                int fcd16=getFCD16(start);
-                if(fcd16!=prevFCD16) {
-                    set.add(start);
-                    prevFCD16=fcd16;
-                }
-            }
-        }
-    }
-
-    public void addLcccChars(UnicodeSet set) {
-        /* add the start code point of each same-value range of each trie */
-        Iterator<Trie2.Range> trieIterator=normTrie.iterator();
-        Trie2.Range range;
-        while(trieIterator.hasNext() && !(range=trieIterator.next()).leadSurrogate) {
-            enumLcccRange(range.startCodePoint, range.endCodePoint, range.value, set);
-        }
+        return load(ICUData.getRequiredStream(name));
     }
 
     public void addPropertyStarts(UnicodeSet set) {
@@ -542,7 +501,8 @@ public final class Normalizer2Impl {
         Iterator<Trie2.Range> trieIterator=normTrie.iterator();
         Trie2.Range range;
         while(trieIterator.hasNext() && !(range=trieIterator.next()).leadSurrogate) {
-            enumNorm16PropertyStartsRange(range.startCodePoint, range.endCodePoint, range.value, set);
+            /* add the start code point to the USet */
+            set.add(range.startCodePoint);
         }
 
         /* add Hangul LV syllables and LV+1 because of skippables */
@@ -680,7 +640,6 @@ public final class Normalizer2Impl {
             return 0;  // no
         }
     }
-    public boolean isAlgorithmicNoNo(int norm16) { return limitNoNo<=norm16 && norm16<minMaybeYes; }
     public boolean isCompNo(int norm16) { return minNoNo<=norm16 && norm16<minMaybeYes; }
     public boolean isDecompYes(int norm16) { return norm16<minYesNo || minMaybeYes<=norm16; }
 
@@ -921,26 +880,6 @@ public final class Normalizer2Impl {
     public static final int COMP_2_TRAIL_MASK=0xffc0;
 
     // higher-level functionality ------------------------------------------ ***
-
-    // NFD without an NFD Normalizer2 instance.
-    public Appendable decompose(CharSequence s, StringBuilder dest) {
-        decompose(s, 0, s.length(), dest, s.length());
-        return dest;
-    }
-    /**
-     * Decomposes s[src, limit[ and writes the result to dest.
-     * limit can be NULL if src is NUL-terminated.
-     * destLengthEstimate is the initial dest buffer capacity and can be -1.
-     */
-    public void decompose(CharSequence s, int src, int limit, StringBuilder dest,
-                   int destLengthEstimate) {
-        if(destLengthEstimate<0) {
-            destLengthEstimate=limit-src;
-        }
-        dest.setLength(0);
-        ReorderingBuffer buffer=new ReorderingBuffer(this, dest, destLengthEstimate);
-        decompose(s, src, limit, buffer);
-    }
 
     // Dual functionality:
     // buffer!=NULL: normalize

@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2004-2014, International Business Machines Corporation and    *
+* Copyright (C) 2004-2010, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -18,10 +18,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
-import java.util.Set;
 import java.util.TreeSet;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
@@ -63,7 +61,7 @@ public final class APIData {
         }
     }
 
-    public static APIData read(File file, boolean internal) {
+    static APIData read(File file, boolean internal) {
         String fileName = file.getName();
         try {
             InputStream is;
@@ -137,17 +135,13 @@ public final class APIData {
         pw.println("total apis: " + tt);
     }
 
-    public Set<APIInfo> getAPIInfoSet() {
-        return Collections.unmodifiableSet(set);
-    }
-
     public static void main(String[] args) {
         PrintWriter pw = new PrintWriter(System.out);
 
         boolean internal = false;
         String path = "src/com/ibm/icu/dev/tool/docs/";
 
-        String fn = "icu4j52.api3.gz";
+        String fn = "icu4j341.api.gz";
         if (args.length == 0) {
             args = new String[] { "-file", fn };
         }

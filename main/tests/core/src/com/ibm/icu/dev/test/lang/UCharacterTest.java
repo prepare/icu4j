@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2014, International Business Machines Corporation and
+* Copyright (C) 1996-2013, International Business Machines Corporation and
 * others. All Rights Reserved.
 *******************************************************************************
 */
@@ -46,7 +46,7 @@ public final class UCharacterTest extends TestFmwk
     /**
     * ICU4J data version number
     */
-    private final VersionInfo VERSION_ = VersionInfo.getInstance("7.0.0.0");
+    private final VersionInfo VERSION_ = VersionInfo.getInstance("6.3.0.0");
 
     // constructor ===================================================
 
@@ -1214,33 +1214,6 @@ public final class UCharacterTest extends TestFmwk
 
     }
 
-    public void TestUCharFromNameUnderflow() {
-        // Ticket #10889: Underflow crash when there is no dash.
-        int c = UCharacter.getCharFromExtendedName("<NO BREAK SPACE>");
-        if(c >= 0) {
-            errln("UCharacter.getCharFromExtendedName(<NO BREAK SPACE>) = U+" + hex(c) +
-                    " but should fail (-1)");
-        }
-
-        // Test related edge cases.
-        c = UCharacter.getCharFromExtendedName("<-00a0>");
-        if(c >= 0) {
-            errln("UCharacter.getCharFromExtendedName(<-00a0>) = U+" + hex(c) +
-                    " but should fail (-1)");
-        }
-
-        c = UCharacter.getCharFromExtendedName("<control->");
-        if(c >= 0) {
-            errln("UCharacter.getCharFromExtendedName(<control->) = U+" + hex(c) +
-                    " but should fail (-1)");
-        }
-
-        c = UCharacter.getCharFromExtendedName("<control-111111>");
-        if(c >= 0) {
-            errln("UCharacter.getCharFromExtendedName(<control-111111>) = U+" + hex(c) +
-                    " but should fail (-1)");
-        }
-    }
 
     /**
     * Testing name iteration
@@ -1898,7 +1871,8 @@ public final class UCharacterTest extends TestFmwk
             { 0x10909, UProperty.BIDI_CLASS, UCharacterDirection.RIGHT_TO_LEFT },
             { 0x10fe4, UProperty.BIDI_CLASS, UCharacterDirection.RIGHT_TO_LEFT },
 
-            { 0x061d, UProperty.BIDI_CLASS, UCharacterDirection.RIGHT_TO_LEFT_ARABIC },
+            { 0x0605, UProperty.BIDI_CLASS, UCharacterDirection.RIGHT_TO_LEFT_ARABIC },
+            { 0x061c, UProperty.BIDI_CLASS, UCharacterDirection.RIGHT_TO_LEFT_ARABIC },
             { 0x063f, UProperty.BIDI_CLASS, UCharacterDirection.RIGHT_TO_LEFT_ARABIC },
             { 0x070e, UProperty.BIDI_CLASS, UCharacterDirection.RIGHT_TO_LEFT_ARABIC },
             { 0x0775, UProperty.BIDI_CLASS, UCharacterDirection.RIGHT_TO_LEFT_ARABIC },
@@ -1911,7 +1885,7 @@ public final class UCharacterTest extends TestFmwk
             { 0x155A, UProperty.BLOCK, UCharacter.UnicodeBlock.UNIFIED_CANADIAN_ABORIGINAL_SYLLABICS.getID() },
             { 0x1717, UProperty.BLOCK, UCharacter.UnicodeBlock.TAGALOG.getID() },
             { 0x1900, UProperty.BLOCK, UCharacter.UnicodeBlock.LIMBU.getID() },
-            { 0x1CBF, UProperty.BLOCK, UCharacter.UnicodeBlock.NO_BLOCK.getID()},
+            { 0x1AFF, UProperty.BLOCK, UCharacter.UnicodeBlock.NO_BLOCK.getID()},
             { 0x3040, UProperty.BLOCK, UCharacter.UnicodeBlock.HIRAGANA.getID()},
             { 0x1D0FF, UProperty.BLOCK, UCharacter.UnicodeBlock.BYZANTINE_MUSICAL_SYMBOLS.getID()},
             { 0x50000, UProperty.BLOCK, UCharacter.UnicodeBlock.NO_BLOCK.getID() },
@@ -2118,15 +2092,6 @@ public final class UCharacterTest extends TestFmwk
             { 0xFF5C, UProperty.BIDI_PAIRED_BRACKET_TYPE, UCharacter.BidiPairedBracketType.NONE },
             { 0xFF5B, UProperty.BIDI_PAIRED_BRACKET_TYPE, UCharacter.BidiPairedBracketType.OPEN },
             { 0xFF5D, UProperty.BIDI_PAIRED_BRACKET_TYPE, UCharacter.BidiPairedBracketType.CLOSE },
-
-            { -1, 0x700, 0 }, /* version break for Unicode 7.0 */
-
-            /* new character range with Joining_Group values */
-            { 0x10ABF, UProperty.JOINING_GROUP, UCharacter.JoiningGroup.NO_JOINING_GROUP },
-            { 0x10AC0, UProperty.JOINING_GROUP, UCharacter.JoiningGroup.MANICHAEAN_ALEPH },
-            { 0x10AC1, UProperty.JOINING_GROUP, UCharacter.JoiningGroup.MANICHAEAN_BETH },
-            { 0x10AEF, UProperty.JOINING_GROUP, UCharacter.JoiningGroup.MANICHAEAN_HUNDRED },
-            { 0x10AF0, UProperty.JOINING_GROUP, UCharacter.JoiningGroup.NO_JOINING_GROUP },
 
             /* undefined UProperty values */
             { 0x61, 0x4a7, 0 },
@@ -2940,7 +2905,7 @@ public final class UCharacterTest extends TestFmwk
         
         // Calls the function "String toTitleCase(ULocale locale, String str, BreakIterator titleIter, int options)"
         // Tests when "if (locale == null)" is true
-        UCharacter.toTitleCase((ULocale)null, "", null, 0);
+        UCharacter.toTitleCase(null, "", null, 0);
         
         // TODO: Tests when "if(index==BreakIterator.DONE || index>srcLength)" is true
         // TODO: Tests when "while((c=iter.nextCaseMapCP())>=0 && UCaseProps.NONE==gCsp.getType(c))" is false
@@ -3359,7 +3324,7 @@ public final class UCharacterTest extends TestFmwk
                 UCharacter.codePointCount(reg_text, invalid_startCases[i], 1);
                 errln("UCharacter.codePointCount was suppose to return an exception " +
                         "but got " + UCharacter.codePointCount(reg_text, invalid_startCases[i], 1) +
-                        ". The following passed parameters were Text: " + String.valueOf(reg_text) + ", Start: " + 
+                        ". The following passed parameters were Text: " + reg_text.toString() + ", Start: " + 
                         invalid_startCases[i] + ", Limit: " + 1 + ".");
             } catch(Exception e){
             }

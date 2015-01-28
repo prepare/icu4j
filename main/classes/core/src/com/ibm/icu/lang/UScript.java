@@ -1,17 +1,20 @@
 /**
- *******************************************************************************
- * Copyright (C) 2001-2014 International Business Machines Corporation and
- * others. All Rights Reserved.
- *******************************************************************************
- */
+*******************************************************************************
+* Copyright (C) 2001-2013 International Business Machines Corporation and
+* others. All Rights Reserved.
+*******************************************************************************
+*/
 
 package com.ibm.icu.lang;
 
 import java.util.BitSet;
 import java.util.Locale;
+import java.util.MissingResourceException;
 
+import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.UResourceBundle;
 
 /**
  * A class to reflect UTR #24: Script Names
@@ -585,7 +588,7 @@ public final class UScript {
      * @stable ICU 3.6
      */
     public static final int UNKNOWN                       = 103;/* Zzzz */ /* Unknown="Code for uncoded script", for unassigned code points */
-
+    
     /**
      * ISO 15924 script code
      * @stable ICU 3.8
@@ -646,7 +649,7 @@ public final class UScript {
      * @stable ICU 3.8
      */
     public static final int MEITEI_MAYEK                  = 115;/* Mtei */
-
+    
     /**
      * ISO 15924 script code
      * @stable ICU 4.0
@@ -759,15 +762,9 @@ public final class UScript {
     public static final int BASSA_VAH                     = 134;/* Bass */
     /**
      * ISO 15924 script code
-     * @stable ICU 54
+     * @stable ICU 4.6
      */
-    public static final int DUPLOYAN                      = 135;/* Dupl */
-    /**
-     * Typo, use DUPLOYAN
-     * @deprecated ICU 54
-     */
-    @Deprecated
-    public static final int DUPLOYAN_SHORTAND             = DUPLOYAN;
+    public static final int DUPLOYAN_SHORTAND             = 135;/* Dupl */
     /**
      * ISO 15924 script code
      * @stable ICU 4.6
@@ -789,7 +786,6 @@ public final class UScript {
      */
     public static final int LOMA                          = 139;/* Loma */
     /**
-     * Mende Kikakui
      * ISO 15924 script code
      * @stable ICU 4.6
      */
@@ -816,14 +812,9 @@ public final class UScript {
     public static final int PALMYRENE                     = 144;/* Palm */
     /**
      * ISO 15924 script code
-     * @stable ICU 54
-     */
-    public static final int KHUDAWADI                     = 145;/* Sind */
-    /**
-     * ISO 15924 script code
      * @stable ICU 4.6
      */
-    public static final int SINDHI = KHUDAWADI;
+    public static final int SINDHI                        = 145;/* Sind */
     /**
      * ISO 15924 script code
      * @stable ICU 4.6
@@ -902,37 +893,6 @@ public final class UScript {
      */
     public static final int MAHAJANI = 160; /* Mahj */
 
-    /**
-     * ISO 15924 script code
-     * @stable ICU 54
-     */
-    public static final int AHOM = 161; /* Ahom */
-    /**
-     * ISO 15924 script code
-     * @stable ICU 54
-     */
-    public static final int HATRAN = 162; /* Hatr */
-    /**
-     * ISO 15924 script code
-     * @stable ICU 54
-     */
-    public static final int MODI = 163; /* Modi */
-    /**
-     * ISO 15924 script code
-     * @stable ICU 54
-     */
-    public static final int MULTANI = 164; /* Mult */
-    /**
-     * ISO 15924 script code
-     * @stable ICU 54
-     */
-    public static final int PAU_CIN_HAU = 165; /* Pauc */
-    /**
-     * ISO 15924 script code
-     * @stable ICU 54
-     */
-    public static final int SIDDHAM = 166; /* Sidd */
-
     /* Private use codes from Qaaa - Qabx are not supported */
 
     /**
@@ -941,46 +901,57 @@ public final class UScript {
      * for which integer constants are added above.
      * @stable ICU 2.4
      */
-    public static final int CODE_LIMIT   = 167;
+    public static final int CODE_LIMIT   = 161;
 
-    private static int[] getCodesFromLocale(ULocale locale) {
-        // Multi-script languages, equivalent to the LocaleScript data
-        // that we used to load from locale resource bundles.
-        String lang = locale.getLanguage();
-        if(lang.equals("ja")) {
-            return new int[] { UScript.KATAKANA, UScript.HIRAGANA, UScript.HAN };
-        }
-        if(lang.equals("ko")) {
-            return new int[] { UScript.HANGUL, UScript.HAN };
-        }
-        String script = locale.getScript();
-        if(lang.equals("zh") && script.equals("Hant")) {
-            return new int[] { UScript.HAN, UScript.BOPOMOFO };
-        }
-        // Explicit script code.
-        if(script.length() != 0) {
-            int scriptCode = UScript.getCodeFromName(script);
-            if(scriptCode != UScript.INVALID_CODE) {
-                if(scriptCode == UScript.SIMPLIFIED_HAN || scriptCode == UScript.TRADITIONAL_HAN) {
-                    scriptCode = UScript.HAN;
-                }
-                return new int[] { scriptCode };
-            }
-        }
-        return null;
-    }
-
+    private static final String kLocaleScript = "LocaleScript";
+    
+    //private static final String INVALID_NAME = "Invalid";
     /**
      * Helper function to find the code from locale.
      * @param locale The locale.
      */
     private static int[] findCodeFromLocale(ULocale locale) {
-        int[] result = getCodesFromLocale(locale);
-        if(result != null) {
-            return result;
+        ICUResourceBundle rb;
+        
+        try {
+            rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
+        } catch (MissingResourceException e) {
+            /* This part seems to never be called since "UResourceBundle.getBundleInstance"
+             * corrects this by setting to ICUResourceBundle.FROM_DEFAULT
+             * when such an invalid locale is passed.
+             */
+            ///CLOVER:OFF
+            return null;
+            ///CLOVER:ON
         }
-        ULocale likely = ULocale.addLikelySubtags(locale);
-        return getCodesFromLocale(likely);
+        
+        rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
+        
+        // if rb is not a strict fallback of the requested locale, return null
+        //if(!LocaleUtility.isFallbackOf(rb.getULocale().toString(), locale.toString())){
+        //    return null;
+        //}
+        //non existent locale check
+        if(rb.getLoadingStatus()==ICUResourceBundle.FROM_DEFAULT && ! locale.equals(ULocale.getDefault())){
+            return null;
+        }
+        UResourceBundle sub = rb.get(kLocaleScript);
+        
+        int[] result = new int[sub.getSize()];
+        int w = 0;
+        for (int i = 0; i < result.length; ++i) {
+            int code = UCharacter.getPropertyValueEnum(UProperty.SCRIPT,
+                                                       sub.getString(i));
+            result[w++] = code;
+
+        }
+
+        if (w < result.length) {
+            throw new IllegalStateException("bad locale data, listed " + 
+                 result.length + " scripts but found only " + w);
+        }
+
+        return result;
     }
 
     /**
@@ -1006,54 +977,45 @@ public final class UScript {
         return findCodeFromLocale(locale);
     }
     /**
-     * Gets the script codes associated with the given locale or ISO 15924 abbreviation or name.
+     * Gets a script codes associated with the given locale or ISO 15924 abbreviation or name.
      * Returns MALAYAM given "Malayam" OR "Mlym".
      * Returns LATIN given "en" OR "en_US"
      *
      * <p>Note: To search by short or long script alias only, use
-     * {@link #getCodeFromName(String)} instead.
-     * That does a fast lookup with no access of the locale data.
-     *
+     * UCharacater.getPropertyValueEnum(UProperty.SCRIPT, alias)
+     * instead.  This does a fast lookup with no access of the locale
+     * data.
      * @param nameOrAbbrOrLocale name of the script or ISO 15924 code or locale
      * @return The script codes array. null if the the code cannot be found.
      * @stable ICU 2.4
      */
-    public static final int[] getCode(String nameOrAbbrOrLocale) {
-        boolean triedCode = false;
-        if (nameOrAbbrOrLocale.indexOf('_') < 0 && nameOrAbbrOrLocale.indexOf('-') < 0) {
-            int propNum = UCharacter.getPropertyValueEnumNoThrow(UProperty.SCRIPT, nameOrAbbrOrLocale);
-            if (propNum != UProperty.UNDEFINED) {
-                return new int[] {propNum};
-            }
-            triedCode = true;
+    public static final int[] getCode(String nameOrAbbrOrLocale){
+        try {
+            return new int[] {
+                UCharacter.getPropertyValueEnum(UProperty.SCRIPT,
+                                                nameOrAbbrOrLocale)
+            };
+        } catch (IllegalArgumentException e) {
+            return findCodeFromLocale(new ULocale(nameOrAbbrOrLocale));
         }
-        int[] scripts = findCodeFromLocale(new ULocale(nameOrAbbrOrLocale));
-        if (scripts != null) {
-            return scripts;
-        }
-        if (!triedCode) {
-            int propNum = UCharacter.getPropertyValueEnumNoThrow(UProperty.SCRIPT, nameOrAbbrOrLocale);
-            if (propNum != UProperty.UNDEFINED) {
-                return new int[] {propNum};
-            }
-        }
-        return null;
     }
 
     /**
-     * Returns the script code associated with the given Unicode script property alias
-     * (name or abbreviation).
-     * Short aliases are ISO 15924 script codes.
+     * Gets a script codes associated with the given ISO 15924 abbreviation or name.
      * Returns MALAYAM given "Malayam" OR "Mlym".
      *
      * @param nameOrAbbr name of the script or ISO 15924 code
-     * @return The script code value, or INVALID_CODE if the code cannot be found.
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release.
+     * @return The script code value or INVALID_CODE if the code cannot be found.
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public static final int getCodeFromName(String nameOrAbbr) {
-        int propNum = UCharacter.getPropertyValueEnumNoThrow(UProperty.SCRIPT, nameOrAbbr);
-        return propNum == UProperty.UNDEFINED ? INVALID_CODE : propNum;
+        try {
+            return UCharacter.getPropertyValueEnum(UProperty.SCRIPT,
+                                                   nameOrAbbr);
+        } catch (IllegalArgumentException e) {
+            return INVALID_CODE;
+        }
     }
 
     /**
@@ -1170,35 +1132,29 @@ public final class UScript {
     }
 
     /**
-     * Returns the long Unicode script name, if there is one.
-     * Otherwise returns the 4-letter ISO 15924 script code.
-     * Returns "Malayam" given MALAYALAM.
-     *
+     * Gets a script name associated with the given script code.
+     * Returns  "Malayam" given MALAYAM
      * @param scriptCode int script code
-     * @return long script name as given in PropertyValueAliases.txt, or the 4-letter code
-     * @throws IllegalArgumentException if the script code is not valid
+     * @return script name as a string in full as given in TR#24
      * @stable ICU 2.4
      */
     public static final String getName(int scriptCode){
         return UCharacter.getPropertyValueName(UProperty.SCRIPT,
-                scriptCode,
-                UProperty.NameChoice.LONG);
+                                               scriptCode,
+                                               UProperty.NameChoice.LONG);
     }
 
     /**
-     * Returns the 4-letter ISO 15924 script code,
-     * which is the same as the short Unicode script name if Unicode has names for the script.
-     * Returns "Mlym" given MALAYALAM.
-     *
+     * Gets a script name associated with the given script code.
+     * Returns  "Mlym" given MALAYAM
      * @param scriptCode int script code
-     * @return short script name (4-letter code)
-     * @throws IllegalArgumentException if the script code is not valid
+     * @return script abbreviated name as a string  as given in TR#24
      * @stable ICU 2.4
      */
     public static final String getShortName(int scriptCode){
         return UCharacter.getPropertyValueName(UProperty.SCRIPT,
-                scriptCode,
-                UProperty.NameChoice.SHORT);
+                                               scriptCode,
+                                               UProperty.NameChoice.SHORT);
     }
 
     /**
@@ -1208,24 +1164,24 @@ public final class UScript {
     private static final class ScriptMetadata {
         // 0 = NOT_ENCODED, no sample character, default false script properties.
         // Bits 20.. 0: sample character
-
+    
         // Bits 23..21: usage
         private static final int UNKNOWN = 1 << 21;
         private static final int EXCLUSION = 2 << 21;
         private static final int LIMITED_USE = 3 << 21;
         private static final int ASPIRATIONAL = 4 << 21;
         private static final int RECOMMENDED = 5 << 21;
-
+    
         // Bits 31..24: Single-bit flags
         private static final int RTL = 1 << 24;
         private static final int LB_LETTERS = 1 << 25;
         private static final int CASED = 1 << 26;
-
+    
         private static final int SCRIPT_PROPS[] = {
             // Begin copy-paste output from
             // tools/trunk/unicode/py/parsescriptmetadata.py
             // or from icu/trunk/source/common/uscript_props.cpp
-            0x0040 | RECOMMENDED,  // Zyyy
+            0x0040 | UNKNOWN,  // Zyyy
             0x0308 | UNKNOWN,  // Zinh
             0x0628 | RECOMMENDED | RTL,  // Arab
             0x0531 | RECOMMENDED | CASED,  // Armn
@@ -1287,7 +1243,7 @@ public final class UScript {
             0x1980 | LIMITED_USE | LB_LETTERS,  // Talu
             0x2D30 | ASPIRATIONAL,  // Tfng
             0x103A0 | EXCLUSION,  // Xpeo
-            0x1B05 | LIMITED_USE,  // Bali
+            0x1B05 | LIMITED_USE | LB_LETTERS,  // Bali
             0x1BC0 | LIMITED_USE,  // Batk
             0,
             0x11005 | EXCLUSION,  // Brah
@@ -1300,21 +1256,21 @@ public final class UScript {
             0,
             0x5B57 | RECOMMENDED | LB_LETTERS,  // Hans
             0x5B57 | RECOMMENDED | LB_LETTERS,  // Hant
-            0x16B1C | EXCLUSION,  // Hmng
             0,
             0,
-            0xA984 | LIMITED_USE,  // Java
+            0,
+            0xA984 | LIMITED_USE | LB_LETTERS,  // Java
             0xA90A | LIMITED_USE,  // Kali
             0,
             0,
             0x1C00 | LIMITED_USE,  // Lepc
-            0x10647 | EXCLUSION,  // Lina
+            0,
             0x0840 | LIMITED_USE | RTL,  // Mand
             0,
             0x10980 | EXCLUSION | RTL,  // Mero
             0x07CA | LIMITED_USE | RTL,  // Nkoo
             0x10C00 | EXCLUSION | RTL,  // Orkh
-            0x1036B | EXCLUSION,  // Perm
+            0,
             0xA840 | EXCLUSION,  // Phag
             0x10900 | EXCLUSION | RTL,  // Phnx
             0x16F00 | ASPIRATIONAL,  // Plrd
@@ -1346,9 +1302,9 @@ public final class UScript {
             0x11103 | LIMITED_USE,  // Cakm
             0xAC00 | RECOMMENDED,  // Kore
             0x11083 | EXCLUSION,  // Kthi
-            0x10AD8 | EXCLUSION | RTL,  // Mani
+            0,
             0x10B60 | EXCLUSION | RTL,  // Phli
-            0x10B8F | EXCLUSION | RTL,  // Phlp
+            0,
             0,
             0x10B40 | EXCLUSION | RTL,  // Prti
             0x0800 | EXCLUSION | RTL,  // Samr
@@ -1359,22 +1315,22 @@ public final class UScript {
             0xA4D0 | LIMITED_USE,  // Lisu
             0,
             0x10A60 | EXCLUSION | RTL,  // Sarb
-            0x16AE6 | EXCLUSION,  // Bass
-            0x1BC20 | EXCLUSION,  // Dupl
-            0x10500 | EXCLUSION,  // Elba
-            0x11315 | EXCLUSION,  // Gran
             0,
             0,
-            0x1E802 | EXCLUSION | RTL,  // Mend
+            0,
+            0,
+            0,
+            0,
+            0,
             0x109A0 | EXCLUSION | RTL,  // Merc
-            0x10A95 | EXCLUSION | RTL,  // Narb
-            0x10896 | EXCLUSION | RTL,  // Nbat
-            0x10873 | EXCLUSION | RTL,  // Palm
-            0x112BE | EXCLUSION,  // Sind
-            0x118B4 | EXCLUSION | CASED,  // Wara
             0,
             0,
-            0x16A4F | EXCLUSION,  // Mroo
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
             0,
             0x11183 | EXCLUSION,  // Shrd
             0x110D0 | EXCLUSION,  // Sora
@@ -1382,16 +1338,10 @@ public final class UScript {
             0,
             0,
             0,
-            0x11208 | EXCLUSION,  // Khoj
-            0x11484 | EXCLUSION,  // Tirh
-            0x10537 | EXCLUSION,  // Aghb
-            0x11152 | EXCLUSION,  // Mahj
             0,
             0,
-            0x1160E | EXCLUSION,  // Modi
             0,
-            0x11AC0 | EXCLUSION,  // Pauc
-            0x1158E | EXCLUSION,  // Sidd
+            0,
             // End copy-paste from parsescriptmetadata.py
         };
 
@@ -1409,37 +1359,44 @@ public final class UScript {
      * See UAX #31 Unicode Identifier and Pattern Syntax.
      * http://www.unicode.org/reports/tr31/#Table_Candidate_Characters_for_Exclusion_from_Identifiers
      *
-     * @stable ICU 51
+     * @draft ICU 51
+     * @provisional This API might change or be removed in a future release.
      */
     public enum ScriptUsage {
         /**
          * Not encoded in Unicode.
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         NOT_ENCODED,
         /**
          * Unknown script usage.
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         UNKNOWN,
         /**
          * Candidate for Exclusion from Identifiers.
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         EXCLUDED,
         /**
          * Limited Use script.
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         LIMITED_USE,
         /**
          * Aspirational Use script.
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         ASPIRATIONAL,
         /**
          * Recommended script.
-         * @stable ICU 51
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
          */
         RECOMMENDED
     }
@@ -1452,7 +1409,8 @@ public final class UScript {
      *
      * @param script script code
      * @return the sample character string
-     * @stable ICU 51
+     * @draft ICU 51
+     * @provisional This API might change or be removed in a future release.
      */
     public static final String getSampleString(int script) {
         int sampleChar = ScriptMetadata.getScriptProps(script) & 0x1fffff;
@@ -1469,7 +1427,8 @@ public final class UScript {
      * @param script script code
      * @return script usage
      * @see ScriptUsage
-     * @stable ICU 51
+     * @draft ICU 51
+     * @provisional This API might change or be removed in a future release.
      */
     public static final ScriptUsage getUsage(int script) {
         return usageValues[(ScriptMetadata.getScriptProps(script) >> 21) & 7];
@@ -1481,7 +1440,8 @@ public final class UScript {
      *
      * @param script script code
      * @return true if the script is right-to-left
-     * @stable ICU 51
+     * @draft ICU 51
+     * @provisional This API might change or be removed in a future release.
      */
     public static final boolean isRightToLeft(int script) {
         return (ScriptMetadata.getScriptProps(script) & ScriptMetadata.RTL) != 0;
@@ -1494,7 +1454,8 @@ public final class UScript {
      *
      * @param script script code
      * @return true if the script allows line breaks between letters
-     * @stable ICU 51
+     * @draft ICU 51
+     * @provisional This API might change or be removed in a future release.
      */
     public static final boolean breaksBetweenLetters(int script) {
         return (ScriptMetadata.getScriptProps(script) & ScriptMetadata.LB_LETTERS) != 0;
@@ -1506,7 +1467,8 @@ public final class UScript {
      *
      * @param script script code
      * @return true if the script is cased
-     * @stable ICU 51
+     * @draft ICU 51
+     * @provisional This API might change or be removed in a future release.
      */
     public static final boolean isCased(int script) {
         return (ScriptMetadata.getScriptProps(script) & ScriptMetadata.CASED) != 0;

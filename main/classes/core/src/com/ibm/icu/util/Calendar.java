@@ -1,7 +1,7 @@
 /*
- *   Copyright (C) 1996-2014, International Business Machines
- *   Corporation and others.  All Rights Reserved.
- */
+*   Copyright (C) 1996-2014, International Business Machines
+*   Corporation and others.  All Rights Reserved.
+*/
 
 package com.ibm.icu.util;
 
@@ -14,13 +14,13 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 import java.util.MissingResourceException;
+import java.util.Set;
 
 import com.ibm.icu.impl.CalendarData;
 import com.ibm.icu.impl.CalendarUtil;
 import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.SimpleCache;
-import com.ibm.icu.impl.SoftCache;
 import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DateFormatSymbols;
 import com.ibm.icu.text.MessageFormat;
@@ -136,9 +136,9 @@ import com.ibm.icu.util.ULocale.Category;
  * </blockquote>
  * 
  * <p><strong>Ambiguous Wall Clock Time.</strong> When time offset from UTC has
- * changed, it produces an ambiguous time slot around the transition. For example,
+ * changed, it produces ambiguous time slot around the transition. For example,
  * many US locations observe daylight saving time. On the date switching to daylight
- * saving time in US, wall clock time jumps from 12:59 AM (standard) to 2:00 AM
+ * saving time in US, wall clock time jumps from 1:00 AM (standard) to 2:00 AM
  * (daylight). Therefore, wall clock time from 1:00 AM to 1:59 AM do not exist on
  * the date. When the input wall time fall into this missing time slot, the ICU
  * Calendar resolves the time using the UTC offset before the transition by default.
@@ -951,24 +951,11 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     public static final int IS_LEAP_MONTH = 22;
 
     /**
-     * Field number for <code>get</code> and <code>set</code> separating
-     * <code>HOUR</code>, <code>MINUTE</code> and <code>SECOND</code>.
-     * E.g., at 10:04 the <code>TIME_SEPARATOR</code> is <code>:</code>.
-     * @see #HOUR
-     * @see #MINUTE
-     * @see #SECOND
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    @Deprecated
-    public static final int TIME_SEPARATOR = 23;
-
-    /**
      * The number of fields defined by this class.  Subclasses may define
      * addition fields starting with this number.
      * @stable ICU 2.0
      */
-    protected static final int BASE_FIELD_COUNT = 24;
+    protected static final int BASE_FIELD_COUNT = 23;
 
     /**
      * The maximum number of fields possible.  Subclasses must not define
@@ -1139,9 +1126,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @see #WEEKEND_ONSET
      * @see #WEEKEND_CEASE
      * @see #getDayOfWeekType
-     * @deprecated ICU 54 use {@link #getWeekDataForRegion(String)}, {@link #getWeekData()}, {@link #setWeekData(WeekData)}
+     * @stable ICU 2.0
      */
-    @Deprecated
     public static final int WEEKDAY = 0;
 
     /**
@@ -1151,9 +1137,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @see #WEEKEND_ONSET
      * @see #WEEKEND_CEASE
      * @see #getDayOfWeekType
-     * @deprecated  ICU 54 use {@link #getWeekDataForRegion(String)}, {@link #getWeekData()}, {@link #setWeekData(WeekData)}
+     * @stable ICU 2.0
      */
-    @Deprecated
     public static final int WEEKEND = 1;
 
     /**
@@ -1164,9 +1149,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @see #WEEKEND
      * @see #WEEKEND_CEASE
      * @see #getDayOfWeekType
-     * @deprecated ICU 54 use {@link #getWeekDataForRegion(String)}, {@link #getWeekData()}, {@link #setWeekData(WeekData)}
+     * @stable ICU 2.0
      */
-    @Deprecated
     public static final int WEEKEND_ONSET = 2;
 
     /**
@@ -1177,9 +1161,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @see #WEEKEND
      * @see #WEEKEND_ONSET
      * @see #getDayOfWeekType
-     * @deprecated ICU 54 use {@link #getWeekDataForRegion(String)}, {@link #getWeekData()}, {@link #setWeekData(WeekData)}
+     * @stable ICU 2.0
      */
-    @Deprecated
     public static final int WEEKEND_CEASE = 3;
 
     /**
@@ -1453,6 +1436,12 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     private int skippedWallTime = WALLTIME_LAST;
 
     /**
+     * Cache to hold the firstDayOfWeek and minimalDaysInFirstWeek
+     * of a Locale.
+     */
+    private static ICUCache<ULocale, WeekData> cachedLocaleData = new SimpleCache<ULocale, WeekData>();
+
+    /**
      * Value of the time stamp <code>stamp[]</code> indicating that
      * a field has not been set since the last call to <code>clear()</code>.
      * @see #INTERNALLY_SET
@@ -1485,9 +1474,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @serial
      */
     private transient int             nextStamp = MINIMUM_USER_STAMP;
-
-    /* Max value for stamp allowable before recalcution */
-    private static int STAMP_MAX = 10000;
 
     // the internal serial version which says which version was written
     // - 0 (default) for version up to JDK 1.1.5
@@ -1592,72 +1578,28 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     protected Calendar(TimeZone zone, ULocale locale)
     {
         this.zone = zone;
-
-        // week data
-        setWeekData(getRegionForCalendar(locale));
-
-        // set valid/actual locale
-        setCalendarLocale(locale);
-
+        setWeekData(locale);
         initInternal();
     }
-
-    /*
-     * Set valid/actual locale to this calendar during initialization.
-     * 
-     * Valid or actual locale does not make much sense for Calendar
-     * object. An instance of Calendar is initialized by week data
-     * determine by region and calendar type (either region or keyword).
-     * Language is not really used for calendar creation.
-     */
-    private void setCalendarLocale(ULocale locale) {
-        ULocale calLocale = locale;
-
-        if (locale.getVariant().length() != 0 || locale.getKeywords() != null) {
-            // Construct a ULocale, without variant and keywords (except calendar).
-            StringBuilder buf = new StringBuilder();
-
-            buf.append(locale.getLanguage());
-
-            String script = locale.getScript();
-            if (script.length() > 0) {
-                buf.append("_").append(script);
-            }
-
-            String region = locale.getCountry();
-            if (region.length() > 0) {
-                buf.append("_").append(region);
-            }
-
-            String calType = locale.getKeywordValue("calendar");
-            if (calType != null) {
-                buf.append("@calendar=").append(calType);
-            }
-
-            calLocale = new ULocale(buf.toString());
-        }
-
-        setLocale(calLocale, calLocale);
-    }
-
+    
     private void recalculateStamp() {
         int index;
         int currentValue;
         int j, i;
-
+        
         nextStamp = 1;
-
+        
         for (j = 0; j < stamp.length; j++) {
             currentValue = STAMP_MAX;
             index = -1;
-
+            
             for (i = 0; i < stamp.length; i++) {
                 if (stamp[i] > nextStamp && stamp[i] < currentValue) {
                     currentValue = stamp[i];
                     index = i;
                 }
             }
-
+            
             if (index >= 0) {
                 stamp[index] = ++nextStamp;
             } else {
@@ -1666,7 +1608,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         }
         nextStamp++;
     }
-
+    
     private void initInternal()
     {
         // Allocate fields through the framework method.  Subclasses
@@ -1675,18 +1617,18 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         ///CLOVER:OFF
         // todo: fix, difficult to test without subclassing
         if (fields == null || fields.length < BASE_FIELD_COUNT ||
-                fields.length > MAX_FIELD_COUNT) {
+            fields.length > MAX_FIELD_COUNT) {
             throw new IllegalStateException("Invalid fields[]");
         }
         ///CLOVER:ON
         stamp = new int[fields.length];
         int mask = (1 << ERA) |
-                (1 << YEAR) |
-                (1 << MONTH) |
-                (1 << DAY_OF_MONTH) |
-                (1 << DAY_OF_YEAR) |
-                (1 << EXTENDED_YEAR) |
-                (1 << IS_LEAP_MONTH);
+            (1 << YEAR) |
+            (1 << MONTH) |
+            (1 << DAY_OF_MONTH) |
+            (1 << DAY_OF_YEAR) |
+            (1 << EXTENDED_YEAR) |
+            (1 << IS_LEAP_MONTH);
         for (int i=BASE_FIELD_COUNT; i<fields.length; ++i) {
             mask |= (1 << i);
         }
@@ -1698,7 +1640,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @return a Calendar.
      * @stable ICU 2.0
      */
-    public static Calendar getInstance()
+    public static synchronized Calendar getInstance()
     {
         return getInstanceInternal(null, null);
     }
@@ -1709,7 +1651,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @return a Calendar.
      * @stable ICU 2.0
      */
-    public static Calendar getInstance(TimeZone zone)
+    public static synchronized Calendar getInstance(TimeZone zone)
     {
         return getInstanceInternal(zone, null);
     }
@@ -1720,7 +1662,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @return a Calendar.
      * @stable ICU 2.0
      */
-    public static Calendar getInstance(Locale aLocale)
+    public static synchronized Calendar getInstance(Locale aLocale)
     {
         return getInstanceInternal(null, ULocale.forLocale(aLocale));
     }
@@ -1731,7 +1673,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @return a Calendar.
      * @stable ICU 3.2
      */
-    public static Calendar getInstance(ULocale locale)
+    public static synchronized Calendar getInstance(ULocale locale)
     {
         return getInstanceInternal(null, locale);
     }
@@ -1743,7 +1685,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @return a Calendar.
      * @stable ICU 2.0
      */
-    public static Calendar getInstance(TimeZone zone, Locale aLocale) {
+    public static synchronized Calendar getInstance(TimeZone zone,
+                                                    Locale aLocale) {
         return getInstanceInternal(zone, ULocale.forLocale(aLocale));
     }
 
@@ -1754,7 +1697,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @return a Calendar.
      * @stable ICU 3.2
      */
-    public static Calendar getInstance(TimeZone zone, ULocale locale) {
+    public static synchronized Calendar getInstance(TimeZone zone,
+                                                    ULocale locale) {
         return getInstanceInternal(zone, locale);
     }
 
@@ -1769,137 +1713,67 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         if (tz == null) {
             tz = TimeZone.getDefault();
         }
-
-        Calendar cal = createInstance(locale);
+        Calendar cal = getShim().createInstance(locale);
         cal.setTimeZone(tz);
         cal.setTimeInMillis(System.currentTimeMillis());
         return cal;
     }
+    /* Max value for stamp allowable before recalcution */
+    private static int STAMP_MAX = 10000;
 
-    private static String getRegionForCalendar(ULocale loc) {
-        String region = loc.getCountry();
-        if (region.length() == 0) {
-            ULocale maxLocale = ULocale.addLikelySubtags(loc);
-            region = maxLocale.getCountry();
-            if (region.length() == 0) {
-                region = "001";
-            }
-        }
-        return region;
-    }
+    private static final String[] calTypes = {
+        "gregorian",
+        "japanese",
+        "buddhist",
+        "roc",
+        "persian",
+        "islamic-civil",
+        "islamic",
+        "hebrew",
+        "chinese",
+        "indian",
+        "coptic",
+        "ethiopic",
+        "ethiopic-amete-alem",
+        "iso8601",
+        "dangi",
+        "islamic-umalqura",
+        "islamic-tbla",
+        "islamic-rgsa",
+    };
 
-    private enum CalType {
-        GREGORIAN("gregorian"),
-        ISO8601("iso8601"),
+    // must be in the order of calTypes above
+    private static final int CALTYPE_GREGORIAN = 0;
+    private static final int CALTYPE_JAPANESE = 1;
+    private static final int CALTYPE_BUDDHIST = 2;
+    private static final int CALTYPE_ROC = 3;
+    private static final int CALTYPE_PERSIAN = 4;
+    private static final int CALTYPE_ISLAMIC_CIVIL = 5;
+    private static final int CALTYPE_ISLAMIC = 6;
+    private static final int CALTYPE_HEBREW = 7;
+    private static final int CALTYPE_CHINESE = 8;
+    private static final int CALTYPE_INDIAN = 9;
+    private static final int CALTYPE_COPTIC = 10;
+    private static final int CALTYPE_ETHIOPIC = 11;
+    private static final int CALTYPE_ETHIOPIC_AMETE_ALEM = 12;
+    private static final int CALTYPE_ISO8601 = 13;
+    private static final int CALTYPE_DANGI = 14;
+    private static final int CALTYPE_ISLAMIC_UMALQURA = 15;
+    private static final int CALTYPE_ISLAMIC_TBLA = 16;
+    private static final int CALTYPE_ISLAMIC_RGSA = 17;
+    private static final int CALTYPE_UNKNOWN = -1;
 
-        BUDDHIST("buddhist"),
-        CHINESE("chinese"),
-        COPTIC("coptic"),
-        DANGI("dangi"),
-        ETHIOPIC("ethiopic"),
-        ETHIOPIC_AMETE_ALEM("ethiopic-amete-alem"),
-        HEBREW("hebrew"),
-        INDIAN("indian"),
-        ISLAMIC("islamic"),
-        ISLAMIC_CIVIL("islamic-civil"),
-        ISLAMIC_RGSA("islamic-rgsa"),
-        ISLAMIC_TBLA("islamic-tbla"),
-        ISLAMIC_UMALQURA("islamic-umalqura"),
-        JAPANESE("japanese"),
-        PERSIAN("persian"),
-        ROC("roc"),
-
-        UNKNOWN("unknown");
-
-        String id;
-
-        CalType(String id) {
-            this.id = id;
-        }
-    }
-
-    private static CalType getCalendarTypeForLocale(ULocale l) {
+    private static int getCalendarTypeForLocale(ULocale l) {
         String s = CalendarUtil.getCalendarType(l);
         if (s != null) {
             s = s.toLowerCase(Locale.ENGLISH);
-            for (CalType type : CalType.values()) {
-                if (s.equals(type.id)) {
-                    return type;
+            for (int i = 0; i < calTypes.length; ++i) {
+                if (s.equals(calTypes[i])) {
+                    return i;
                 }
             }
         }
-        return CalType.UNKNOWN;
-    }
-
-    private static Calendar createInstance(ULocale locale) {
-        Calendar cal = null;
-        TimeZone zone = TimeZone.getDefault();
-        CalType calType = getCalendarTypeForLocale(locale);
-        if (calType == CalType.UNKNOWN) {
-            // fallback to Gregorian
-            calType = CalType.GREGORIAN;
-        }
-
-        switch (calType) {
-        case GREGORIAN:
-            cal = new GregorianCalendar(zone, locale);
-            break;
-        case ISO8601:
-            // Only differs week numbering rule from Gregorian
-            cal = new GregorianCalendar(zone, locale);
-            cal.setFirstDayOfWeek(MONDAY);
-            cal.setMinimalDaysInFirstWeek(4);
-            break;
-
-        case BUDDHIST:
-            cal = new BuddhistCalendar(zone, locale);
-            break;
-        case CHINESE:
-            cal = new ChineseCalendar(zone, locale);
-            break;
-        case COPTIC:
-            cal = new CopticCalendar(zone, locale);
-            break;
-        case DANGI:
-            cal = new DangiCalendar(zone, locale);
-            break;
-        case ETHIOPIC:
-            cal = new EthiopicCalendar(zone, locale);
-            break;
-        case ETHIOPIC_AMETE_ALEM:
-            cal = new EthiopicCalendar(zone, locale);
-            ((EthiopicCalendar)cal).setAmeteAlemEra(true);
-            break;
-        case HEBREW:
-            cal = new HebrewCalendar(zone, locale);
-            break;
-        case INDIAN:
-            cal = new IndianCalendar(zone, locale);
-            break;
-        case ISLAMIC_CIVIL:
-        case ISLAMIC_UMALQURA :
-        case ISLAMIC_TBLA:
-        case ISLAMIC_RGSA:
-        case ISLAMIC:
-            cal = new IslamicCalendar(zone, locale);
-            break;
-        case JAPANESE:
-            cal = new JapaneseCalendar(zone, locale);
-            break;
-        case PERSIAN:
-            cal = new PersianCalendar(zone, locale);
-            break;
-        case ROC:
-            cal = new TaiwanCalendar(zone, locale);
-            break;
-
-        default:
-            // we must not get here, because unknown type is mapped to
-            // Gregorian at the beginning of this method.
-            throw new IllegalArgumentException("Unknown calendar type");
-        }
-
-        return cal;
+        return CALTYPE_UNKNOWN;
     }
 
     /**
@@ -1909,8 +1783,10 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      */
     public static Locale[] getAvailableLocales()
     {
-        // TODO
-        return ICUResourceBundle.getAvailableLocales();
+        if (shim == null) {
+            return ICUResourceBundle.getAvailableLocales();
+        }
+        return getShim().getAvailableLocales();
     }
 
     /**
@@ -1921,9 +1797,209 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      */
     public static ULocale[] getAvailableULocales()
     {
-        // TODO
-        return ICUResourceBundle.getAvailableULocales();
+        if (shim == null) {
+            return ICUResourceBundle.getAvailableULocales();
+        }
+        return getShim().getAvailableULocales();
     }
+
+    // ==== Factory Stuff ====
+    ///CLOVER:OFF
+    /**
+     * A CalendarFactory is used to register new calendar implementation.
+     * The factory should be able to create a calendar instance for the
+     * specified locale.
+     *
+     * @prototype
+     */
+    /* public */ static abstract class CalendarFactory {
+        public boolean visible() {
+            return true;
+        }
+
+        public abstract Set<String> getSupportedLocaleNames();
+
+        public Calendar createCalendar(ULocale loc) {
+            return null;
+        }
+
+        protected CalendarFactory() {
+        }
+    }
+    ///CLOVER:ON
+
+    //  shim so we can build without service code
+    static abstract class CalendarShim {
+        abstract Locale[] getAvailableLocales();
+        abstract ULocale[] getAvailableULocales();
+        abstract Object registerFactory(CalendarFactory factory);
+        abstract boolean unregister(Object k);
+        abstract Calendar createInstance(ULocale l);
+    }
+
+    private static CalendarShim shim;
+    private static CalendarShim getShim() {
+        if (shim == null) {
+            try {
+                Class<?> cls = Class.forName("com.ibm.icu.util.CalendarServiceShim");
+                shim = (CalendarShim)cls.newInstance();
+            }
+            catch (MissingResourceException e) {
+                throw e;
+            }
+            catch (Exception e) {
+                throw new RuntimeException(e.getMessage());
+            }
+        }
+        return shim;
+    }
+
+    static Calendar createInstance(ULocale locale) {
+        Calendar cal = null;
+        TimeZone zone = TimeZone.getDefault();
+        int calType = getCalendarTypeForLocale(locale);
+        if (calType == CALTYPE_UNKNOWN) {
+            // fallback to Gregorian
+            calType = CALTYPE_GREGORIAN;
+        }
+
+        switch (calType) {
+        case CALTYPE_GREGORIAN:
+            cal = new GregorianCalendar(zone, locale);
+            break;
+        case CALTYPE_JAPANESE:
+            cal = new JapaneseCalendar(zone, locale);
+            break;
+        case CALTYPE_BUDDHIST:
+            cal = new BuddhistCalendar(zone, locale);
+            break;
+        case CALTYPE_ROC:
+            cal = new TaiwanCalendar(zone, locale);
+            break;
+        case CALTYPE_PERSIAN:
+            cal = new PersianCalendar(zone, locale);
+            break;
+        case CALTYPE_ISLAMIC_CIVIL:
+        case CALTYPE_ISLAMIC_UMALQURA :
+        case CALTYPE_ISLAMIC_TBLA:
+        case CALTYPE_ISLAMIC_RGSA:
+        case CALTYPE_ISLAMIC:
+            cal = new IslamicCalendar(zone, locale);
+            break;
+        case CALTYPE_HEBREW:
+            cal = new HebrewCalendar(zone, locale);
+            break;
+        case CALTYPE_CHINESE:
+            cal = new ChineseCalendar(zone, locale);
+            break;
+        case CALTYPE_INDIAN:
+            cal = new IndianCalendar(zone, locale);
+            break;
+        case CALTYPE_COPTIC:
+            cal = new CopticCalendar(zone, locale);
+            break;
+        case CALTYPE_ETHIOPIC:
+            cal = new EthiopicCalendar(zone, locale);
+            break;
+        case CALTYPE_ETHIOPIC_AMETE_ALEM:
+            cal = new EthiopicCalendar(zone, locale);
+            ((EthiopicCalendar)cal).setAmeteAlemEra(true);
+            break;
+        case CALTYPE_DANGI:
+            cal = new DangiCalendar(zone, locale);
+            break;
+        case CALTYPE_ISO8601:
+            // Only differs week numbering rule from Gregorian
+            cal = new GregorianCalendar(zone, locale);
+            cal.setFirstDayOfWeek(MONDAY);
+            cal.setMinimalDaysInFirstWeek(4);
+            break;
+        default:
+            // we must not get here, because unknown type is mapped to
+            // Gregorian at the beginning of this method.
+            throw new IllegalArgumentException("Unknown calendar type");
+        }
+
+        return cal;
+    }
+
+    ///CLOVER:OFF
+    /**
+     * Register a new CalendarFactory.  getInstance(TimeZone, ULocale, String) will
+     * try to locate a registered factories matching the factoryName.  Only registered
+     * factories will be found.
+     * @prototype
+     */
+    /* public */ static Object registerFactory(CalendarFactory factory) {
+        if (factory == null) {
+            throw new IllegalArgumentException("factory must not be null");
+        }
+        return getShim().registerFactory(factory);
+    }
+
+    /**
+     * Unregister the CalendarFactory associated with this key
+     * (obtained from register).
+     * @prototype
+     */
+    /* public */ static boolean unregister(Object registryKey) {
+        if (registryKey == null) {
+            throw new IllegalArgumentException("registryKey must not be null");
+        }
+
+        if (shim == null) {
+            return false;
+        }
+
+        return shim.unregister(registryKey);
+    }
+
+    ///CLOVER:ON
+    // ==== End of factory Stuff ====
+
+//    //TODO: The table below should be retrieved from ICU resource when CLDR supplementalData
+//    // is fully updated.
+//    private static final String[][] CALPREF = {
+//        {"001", "gregorian"},
+//        {"AE", "gregorian", "islamic", "islamic-civil"},
+//        {"AF", "gregorian", "islamic", "islamic-civil", "persian"},
+//        {"BH", "gregorian", "islamic", "islamic-civil"},
+//        {"CN", "gregorian", "chinese"},
+//        {"CX", "gregorian", "chinese"},
+//        {"DJ", "gregorian", "islamic", "islamic-civil"},
+//        {"DZ", "gregorian", "islamic", "islamic-civil"},
+//        {"EG", "gregorian", "islamic", "islamic-civil", "coptic"},
+//        {"EH", "gregorian", "islamic", "islamic-civil"},
+//        {"ER", "gregorian", "islamic", "islamic-civil"},
+//        {"ET", "gregorian", "ethiopic", "ethiopic-amete-alem"},
+//        {"HK", "gregorian", "chinese"},
+//        {"IL", "gregorian", "hebrew"},
+//        {"IL", "gregorian", "islamic", "islamic-civil"},
+//        {"IN", "gregorian", "indian"},
+//        {"IQ", "gregorian", "islamic", "islamic-civil"},
+//        {"IR", "gregorian", "islamic", "islamic-civil", "persian"},
+//        {"JO", "gregorian", "islamic", "islamic-civil"},
+//        {"JP", "gregorian", "japanese"},
+//        {"KM", "gregorian", "islamic", "islamic-civil"},
+//        {"KW", "gregorian", "islamic", "islamic-civil"},
+//        {"LB", "gregorian", "islamic", "islamic-civil"},
+//        {"LY", "gregorian", "islamic", "islamic-civil"},
+//        {"MA", "gregorian", "islamic", "islamic-civil"},
+//        {"MO", "gregorian", "chinese"},
+//        {"MR", "gregorian", "islamic", "islamic-civil"},
+//        {"OM", "gregorian", "islamic", "islamic-civil"},
+//        {"PS", "gregorian", "islamic", "islamic-civil"},
+//        {"QA", "gregorian", "islamic", "islamic-civil"},
+//        {"SA", "gregorian", "islamic", "islamic-civil"},
+//        {"SD", "gregorian", "islamic", "islamic-civil"},
+//        {"SG", "gregorian", "chinese"},
+//        {"SY", "gregorian", "islamic", "islamic-civil"},
+//        {"TD", "gregorian", "islamic", "islamic-civil"},
+//        {"TH", "buddhist", "gregorian"},
+//        {"TN", "gregorian", "islamic", "islamic-civil"},
+//        {"TW", "gregorian", "roc", "chinese"},
+//        {"YE", "gregorian", "islamic", "islamic-civil"},
+//    };
 
     /**
      * {@icu} Given a key and a locale, returns an array of string values in a preferred
@@ -1941,7 +2017,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @stable ICU 4.2
      */
     public static final String[] getKeywordValuesForLocale(String key, ULocale locale,
-            boolean commonlyUsed) {
+                                                           boolean commonlyUsed) {
         // Resolve region
         String prefRegion = locale.getCountry();
         if (prefRegion.length() == 0){
@@ -1953,9 +2029,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         ArrayList<String> values = new ArrayList<String>();
 
         UResourceBundle rb = UResourceBundle.getBundleInstance(
-                ICUResourceBundle.ICU_BASE_NAME,
-                "supplementalData",
-                ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+                                        ICUResourceBundle.ICU_BASE_NAME,
+                                        "supplementalData",
+                                        ICUResourceBundle.ICU_DATA_CLASS_LOADER);
         UResourceBundle calPref = rb.get("calendarPreferenceData");
         UResourceBundle order = null;
         try {
@@ -1976,9 +2052,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             values.add(caltypes[i]);
         }
         // then, add other available clanedars
-        for (CalType t : CalType.values()) {
-            if (!values.contains(t.id)) {
-                values.add(t.id);
+        for (int i = 0; i < calTypes.length; i++) {
+            if (!values.contains(calTypes[i])) {
+                values.add(calTypes[i]);
             }
         }
         return values.toArray(new String[values.size()]);
@@ -2041,11 +2117,11 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         time = millis;
         areFieldsSet = areAllFieldsSet = false;
         isTimeSet = areFieldsVirtuallySet = true;
-
+        
         for (int i=0; i<fields.length; ++i) {
             fields[i] = stamp[i] = 0; // UNSET == 0
         }
-
+        
     }
 
     /**
@@ -2158,7 +2234,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @stable ICU 2.0
      */
     public final void set(int year, int month, int date, int hour, int minute,
-            int second)
+                          int second)
     {
         set(YEAR, year);
         set(MONTH, month);
@@ -2243,7 +2319,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         Calendar that = (Calendar) obj;
 
         return isEquivalentTo(that) &&
-                getTimeInMillis() == that.getTime().getTime();
+            getTimeInMillis() == that.getTime().getTime();
     }
 
     /**
@@ -2258,12 +2334,12 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      */
     public boolean isEquivalentTo(Calendar other) {
         return this.getClass() == other.getClass() &&
-                isLenient() == other.isLenient() &&
-                getFirstDayOfWeek() == other.getFirstDayOfWeek() &&
-                getMinimalDaysInFirstWeek() == other.getMinimalDaysInFirstWeek() &&
-                getTimeZone().equals(other.getTimeZone()) &&
-                getRepeatedWallTimeOption() == other.getRepeatedWallTimeOption() &&
-                getSkippedWallTimeOption() == other.getSkippedWallTimeOption();
+            isLenient() == other.isLenient() &&
+            getFirstDayOfWeek() == other.getFirstDayOfWeek() &&
+            getMinimalDaysInFirstWeek() == other.getMinimalDaysInFirstWeek() &&
+            getTimeZone().equals(other.getTimeZone()) &&
+            getRepeatedWallTimeOption() == other.getRepeatedWallTimeOption() &&
+            getSkippedWallTimeOption() == other.getSkippedWallTimeOption();
     }
 
     /**
@@ -2278,11 +2354,11 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
          * Note that it is not necessary for unequal objects to always have
          * unequal hashes, but equal objects must have equal hashes.  */
         return (lenient ? 1 : 0)
-                | (firstDayOfWeek << 1)
-                | (minimalDaysInFirstWeek << 4)
-                | (repeatedWallTime << 7)
-                | (skippedWallTime << 9)
-                | (zone.hashCode() << 11);
+            | (firstDayOfWeek << 1)
+            | (minimalDaysInFirstWeek << 4)
+            | (repeatedWallTime << 7)
+            | (skippedWallTime << 9)
+            | (zone.hashCode() << 11);
     }
 
     /**
@@ -2354,22 +2430,22 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
 
         switch (field) {
         case DAY_OF_MONTH:
-        {
-            Calendar cal = (Calendar) clone();
-            cal.setLenient(true);
-            cal.prepareGetActual(field, false);
-            result = handleGetMonthLength(cal.get(EXTENDED_YEAR), cal.get(MONTH));
-        }
-        break;
+            {
+                Calendar cal = (Calendar) clone();
+                cal.setLenient(true);
+                cal.prepareGetActual(field, false);
+                result = handleGetMonthLength(cal.get(EXTENDED_YEAR), cal.get(MONTH));
+            }
+            break;
 
         case DAY_OF_YEAR:
-        {
-            Calendar cal = (Calendar) clone();
-            cal.setLenient(true);
-            cal.prepareGetActual(field, false);
-            result = handleGetYearLength(cal.get(EXTENDED_YEAR));
-        }
-        break;
+            {
+                Calendar cal = (Calendar) clone();
+                cal.setLenient(true);
+                cal.prepareGetActual(field, false);
+                result = handleGetYearLength(cal.get(EXTENDED_YEAR));
+            }
+            break;
 
         case ERA:
         case DAY_OF_WEEK:
@@ -2497,17 +2573,17 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             // first or last localized DOW.  We know the last week of a month
             // or year will contain the first day of the week, and that the
             // first week will contain the last DOW.
-        {
-            int dow = firstDayOfWeek;
-            if (isMinimum) {
-                dow = (dow + 6) % 7; // set to last DOW
-                if (dow < SUNDAY) {
-                    dow += 7;
+            {
+                int dow = firstDayOfWeek;
+                if (isMinimum) {
+                    dow = (dow + 6) % 7; // set to last DOW
+                    if (dow < SUNDAY) {
+                        dow += 7;
+                    }
                 }
+                set(DAY_OF_WEEK, dow);
             }
-            set(DAY_OF_WEEK, dow);
-        }
-        break;
+            break;
         }
 
         // Do this last to give it the newest time stamp
@@ -2711,21 +2787,21 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             // These are the standard roll instructions.  These work for all
             // simple cases, that is, cases in which the limits are fixed, such
             // as the hour, the day of the month, and the era.
-        {
-            int min = getActualMinimum(field);
-            int max = getActualMaximum(field);
-            int gap = max - min + 1;
+            {
+                int min = getActualMinimum(field);
+                int max = getActualMaximum(field);
+                int gap = max - min + 1;
 
-            int value = internalGet(field) + amount;
-            value = (value - min) % gap;
-            if (value < 0) {
-                value += gap;
+                int value = internalGet(field) + amount;
+                value = (value - min) % gap;
+                if (value < 0) {
+                    value += gap;
+                }
+                value += min;
+
+                set(field, value);
+                return;
             }
-            value += min;
-
-            set(field, value);
-            return;
-        }
 
         case HOUR:
         case HOUR_OF_DAY:
@@ -2736,80 +2812,80 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             // CEASE: 12 Dst -> 1 Dst -> 1 Std -> 2 Std
             // To get around this problem we don't use fields; we manipulate
             // the time in millis directly.
-        {
-            // Assume min == 0 in calculations below
-            long start = getTimeInMillis();
-            int oldHour = internalGet(field);
-            int max = getMaximum(field);
-            int newHour = (oldHour + amount) % (max + 1);
-            if (newHour < 0) {
-                newHour += max + 1;
+            {
+                // Assume min == 0 in calculations below
+                long start = getTimeInMillis();
+                int oldHour = internalGet(field);
+                int max = getMaximum(field);
+                int newHour = (oldHour + amount) % (max + 1);
+                if (newHour < 0) {
+                    newHour += max + 1;
+                }
+                setTimeInMillis(start + ONE_HOUR * ((long)newHour - oldHour));
+                return;
             }
-            setTimeInMillis(start + ONE_HOUR * ((long)newHour - oldHour));
-            return;
-        }
 
         case MONTH:
             // Rolling the month involves both pinning the final value
             // and adjusting the DAY_OF_MONTH if necessary.  We only adjust the
             // DAY_OF_MONTH if, after updating the MONTH field, it is illegal.
             // E.g., <jan31>.roll(MONTH, 1) -> <feb28> or <feb29>.
-        {
-            int max = getActualMaximum(MONTH);
-            int mon = (internalGet(MONTH) + amount) % (max+1);
+            {
+                int max = getActualMaximum(MONTH);
+                int mon = (internalGet(MONTH) + amount) % (max+1);
 
-            if (mon < 0) {
-                mon += (max + 1);
+                if (mon < 0) {
+                    mon += (max + 1);
+                }
+                set(MONTH, mon);
+
+                // Keep the day of month in range.  We don't want to spill over
+                // into the next month; e.g., we don't want jan31 + 1 mo -> feb31 ->
+                // mar3.
+                pinField(DAY_OF_MONTH);
+                return;
             }
-            set(MONTH, mon);
-
-            // Keep the day of month in range.  We don't want to spill over
-            // into the next month; e.g., we don't want jan31 + 1 mo -> feb31 ->
-            // mar3.
-            pinField(DAY_OF_MONTH);
-            return;
-        }
 
         case YEAR:
         case YEAR_WOY:
             // * If era==0 and years go backwards in time, change sign of amount.
             // * Until we have new API per #9393, we temporarily hardcode knowledge of
             //   which calendars have era 0 years that go backwards.
-        {
-            boolean era0WithYearsThatGoBackwards = false;
-            int era = get(ERA);
-            if (era == 0) {
-                String calType = getType();
-                if (calType.equals("gregorian") || calType.equals("roc") || calType.equals("coptic")) {
-                    amount = -amount;
-                    era0WithYearsThatGoBackwards = true;
-                }
-            }
-            int newYear = internalGet(field) + amount;
-            if (era > 0 || newYear >= 1) {
-                int maxYear = getActualMaximum(field);
-                if (maxYear < 32768) {
-                    // this era has real bounds, roll should wrap years
-                    if (newYear < 1) {
-                        newYear = maxYear - ((-newYear) % maxYear);
-                    } else if (newYear > maxYear) {
-                        newYear = ((newYear - 1) % maxYear) + 1;
+            {
+                boolean era0WithYearsThatGoBackwards = false;
+                int era = get(ERA);
+                if (era == 0) {
+                    String calType = getType();
+                    if (calType.equals("gregorian") || calType.equals("roc") || calType.equals("coptic")) {
+                        amount = -amount;
+                        era0WithYearsThatGoBackwards = true;
                     }
-                    // else era is unbounded, just pin low year instead of wrapping
-                } else if (newYear < 1) {
-                    newYear = 1;
                 }
+                int newYear = internalGet(field) + amount;
+                if (era > 0 || newYear >= 1) {
+                    int maxYear = getActualMaximum(field);
+                    if (maxYear < 32768) {
+                        // this era has real bounds, roll should wrap years
+                        if (newYear < 1) {
+                            newYear = maxYear - ((-newYear) % maxYear);
+                        } else if (newYear > maxYear) {
+                            newYear = ((newYear - 1) % maxYear) + 1;
+                        }
+                    // else era is unbounded, just pin low year instead of wrapping
+                    } else if (newYear < 1) {
+                        newYear = 1;
+                    }
                 // else we are in era 0 with newYear < 1;
                 // calendars with years that go backwards must pin the year value at 0,
                 // other calendars can have years < 0 in era 0
-            } else if (era0WithYearsThatGoBackwards) {
-                newYear = 1;
+                } else if (era0WithYearsThatGoBackwards) {
+                    newYear = 1;
+                }
+                set(field, newYear);
+                pinField(MONTH);
+                pinField(DAY_OF_MONTH);
+                return;
             }
-            set(field, newYear);
-            pinField(MONTH);
-            pinField(DAY_OF_MONTH);
-            return;
-        }
         case EXTENDED_YEAR:
             // Rolling the year can involve pinning the DAY_OF_MONTH.
             set(field, internalGet(field) + amount);
@@ -2818,205 +2894,202 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             return;
 
         case WEEK_OF_MONTH:
-        {
-            // This is tricky, because during the roll we may have to shift
-            // to a different day of the week.  For example:
+            {
+                // This is tricky, because during the roll we may have to shift
+                // to a different day of the week.  For example:
 
-            //    s  m  t  w  r  f  s
-            //          1  2  3  4  5
-            //    6  7  8  9 10 11 12
+                //    s  m  t  w  r  f  s
+                //          1  2  3  4  5
+                //    6  7  8  9 10 11 12
 
-            // When rolling from the 6th or 7th back one week, we go to the
-            // 1st (assuming that the first partial week counts).  The same
-            // thing happens at the end of the month.
+                // When rolling from the 6th or 7th back one week, we go to the
+                // 1st (assuming that the first partial week counts).  The same
+                // thing happens at the end of the month.
 
-            // The other tricky thing is that we have to figure out whether
-            // the first partial week actually counts or not, based on the
-            // minimal first days in the week.  And we have to use the
-            // correct first day of the week to delineate the week
-            // boundaries.
+                // The other tricky thing is that we have to figure out whether
+                // the first partial week actually counts or not, based on the
+                // minimal first days in the week.  And we have to use the
+                // correct first day of the week to delineate the week
+                // boundaries.
 
-            // Here's our algorithm.  First, we find the real boundaries of
-            // the month.  Then we discard the first partial week if it
-            // doesn't count in this locale.  Then we fill in the ends with
-            // phantom days, so that the first partial week and the last
-            // partial week are full weeks.  We then have a nice square
-            // block of weeks.  We do the usual rolling within this block,
-            // as is done elsewhere in this method.  If we wind up on one of
-            // the phantom days that we added, we recognize this and pin to
-            // the first or the last day of the month.  Easy, eh?
+                // Here's our algorithm.  First, we find the real boundaries of
+                // the month.  Then we discard the first partial week if it
+                // doesn't count in this locale.  Then we fill in the ends with
+                // phantom days, so that the first partial week and the last
+                // partial week are full weeks.  We then have a nice square
+                // block of weeks.  We do the usual rolling within this block,
+                // as is done elsewhere in this method.  If we wind up on one of
+                // the phantom days that we added, we recognize this and pin to
+                // the first or the last day of the month.  Easy, eh?
 
-            // Normalize the DAY_OF_WEEK so that 0 is the first day of the week
-            // in this locale.  We have dow in 0..6.
-            int dow = internalGet(DAY_OF_WEEK) - getFirstDayOfWeek();
-            if (dow < 0) dow += 7;
+                // Normalize the DAY_OF_WEEK so that 0 is the first day of the week
+                // in this locale.  We have dow in 0..6.
+                int dow = internalGet(DAY_OF_WEEK) - getFirstDayOfWeek();
+                if (dow < 0) dow += 7;
 
-            // Find the day of the week (normalized for locale) for the first
-            // of the month.
-            int fdm = (dow - internalGet(DAY_OF_MONTH) + 1) % 7;
-            if (fdm < 0) fdm += 7;
+                // Find the day of the week (normalized for locale) for the first
+                // of the month.
+                int fdm = (dow - internalGet(DAY_OF_MONTH) + 1) % 7;
+                if (fdm < 0) fdm += 7;
 
-            // Get the first day of the first full week of the month,
-            // including phantom days, if any.  Figure out if the first week
-            // counts or not; if it counts, then fill in phantom days.  If
-            // not, advance to the first real full week (skip the partial week).
-            int start;
-            if ((7 - fdm) < getMinimalDaysInFirstWeek())
-                start = 8 - fdm; // Skip the first partial week
-            else
-                start = 1 - fdm; // This may be zero or negative
+                // Get the first day of the first full week of the month,
+                // including phantom days, if any.  Figure out if the first week
+                // counts or not; if it counts, then fill in phantom days.  If
+                // not, advance to the first real full week (skip the partial week).
+                int start;
+                if ((7 - fdm) < getMinimalDaysInFirstWeek())
+                    start = 8 - fdm; // Skip the first partial week
+                else
+                    start = 1 - fdm; // This may be zero or negative
 
-            // Get the day of the week (normalized for locale) for the last
-            // day of the month.
-            int monthLen = getActualMaximum(DAY_OF_MONTH);
-            int ldm = (monthLen - internalGet(DAY_OF_MONTH) + dow) % 7;
-            // We know monthLen >= DAY_OF_MONTH so we skip the += 7 step here.
+                // Get the day of the week (normalized for locale) for the last
+                // day of the month.
+                int monthLen = getActualMaximum(DAY_OF_MONTH);
+                int ldm = (monthLen - internalGet(DAY_OF_MONTH) + dow) % 7;
+                // We know monthLen >= DAY_OF_MONTH so we skip the += 7 step here.
 
-            // Get the limit day for the blocked-off rectangular month; that
-            // is, the day which is one past the last day of the month,
-            // after the month has already been filled in with phantom days
-            // to fill out the last week.  This day has a normalized DOW of 0.
-            int limit = monthLen + 7 - ldm;
+                // Get the limit day for the blocked-off rectangular month; that
+                // is, the day which is one past the last day of the month,
+                // after the month has already been filled in with phantom days
+                // to fill out the last week.  This day has a normalized DOW of 0.
+                int limit = monthLen + 7 - ldm;
 
-            // Now roll between start and (limit - 1).
-            int gap = limit - start;
-            int day_of_month = (internalGet(DAY_OF_MONTH) + amount*7 -
-                    start) % gap;
-            if (day_of_month < 0) day_of_month += gap;
-            day_of_month += start;
+                // Now roll between start and (limit - 1).
+                int gap = limit - start;
+                int day_of_month = (internalGet(DAY_OF_MONTH) + amount*7 -
+                                    start) % gap;
+                if (day_of_month < 0) day_of_month += gap;
+                day_of_month += start;
 
-            // Finally, pin to the real start and end of the month.
-            if (day_of_month < 1) day_of_month = 1;
-            if (day_of_month > monthLen) day_of_month = monthLen;
+                // Finally, pin to the real start and end of the month.
+                if (day_of_month < 1) day_of_month = 1;
+                if (day_of_month > monthLen) day_of_month = monthLen;
 
-            // Set the DAY_OF_MONTH.  We rely on the fact that this field
-            // takes precedence over everything else (since all other fields
-            // are also set at this point).  If this fact changes (if the
-            // disambiguation algorithm changes) then we will have to unset
-            // the appropriate fields here so that DAY_OF_MONTH is attended
-            // to.
-            set(DAY_OF_MONTH, day_of_month);
-            return;
-        }
+                // Set the DAY_OF_MONTH.  We rely on the fact that this field
+                // takes precedence over everything else (since all other fields
+                // are also set at this point).  If this fact changes (if the
+                // disambiguation algorithm changes) then we will have to unset
+                // the appropriate fields here so that DAY_OF_MONTH is attended
+                // to.
+                set(DAY_OF_MONTH, day_of_month);
+                return;
+            }
         case WEEK_OF_YEAR:
-        {
-            // This follows the outline of WEEK_OF_MONTH, except it applies
-            // to the whole year.  Please see the comment for WEEK_OF_MONTH
-            // for general notes.
+            {
+                // This follows the outline of WEEK_OF_MONTH, except it applies
+                // to the whole year.  Please see the comment for WEEK_OF_MONTH
+                // for general notes.
 
-            // Normalize the DAY_OF_WEEK so that 0 is the first day of the week
-            // in this locale.  We have dow in 0..6.
-            int dow = internalGet(DAY_OF_WEEK) - getFirstDayOfWeek();
-            if (dow < 0) dow += 7;
+                // Normalize the DAY_OF_WEEK so that 0 is the first day of the week
+                // in this locale.  We have dow in 0..6.
+                int dow = internalGet(DAY_OF_WEEK) - getFirstDayOfWeek();
+                if (dow < 0) dow += 7;
 
-            // Find the day of the week (normalized for locale) for the first
-            // of the year.
-            int fdy = (dow - internalGet(DAY_OF_YEAR) + 1) % 7;
-            if (fdy < 0) fdy += 7;
+                // Find the day of the week (normalized for locale) for the first
+                // of the year.
+                int fdy = (dow - internalGet(DAY_OF_YEAR) + 1) % 7;
+                if (fdy < 0) fdy += 7;
 
-            // Get the first day of the first full week of the year,
-            // including phantom days, if any.  Figure out if the first week
-            // counts or not; if it counts, then fill in phantom days.  If
-            // not, advance to the first real full week (skip the partial week).
-            int start;
-            if ((7 - fdy) < getMinimalDaysInFirstWeek())
-                start = 8 - fdy; // Skip the first partial week
-            else
-                start = 1 - fdy; // This may be zero or negative
+                // Get the first day of the first full week of the year,
+                // including phantom days, if any.  Figure out if the first week
+                // counts or not; if it counts, then fill in phantom days.  If
+                // not, advance to the first real full week (skip the partial week).
+                int start;
+                if ((7 - fdy) < getMinimalDaysInFirstWeek())
+                    start = 8 - fdy; // Skip the first partial week
+                else
+                    start = 1 - fdy; // This may be zero or negative
 
-            // Get the day of the week (normalized for locale) for the last
-            // day of the year.
-            int yearLen = getActualMaximum(DAY_OF_YEAR);
-            int ldy = (yearLen - internalGet(DAY_OF_YEAR) + dow) % 7;
-            // We know yearLen >= DAY_OF_YEAR so we skip the += 7 step here.
+                // Get the day of the week (normalized for locale) for the last
+                // day of the year.
+                int yearLen = getActualMaximum(DAY_OF_YEAR);
+                int ldy = (yearLen - internalGet(DAY_OF_YEAR) + dow) % 7;
+                // We know yearLen >= DAY_OF_YEAR so we skip the += 7 step here.
 
-            // Get the limit day for the blocked-off rectangular year; that
-            // is, the day which is one past the last day of the year,
-            // after the year has already been filled in with phantom days
-            // to fill out the last week.  This day has a normalized DOW of 0.
-            int limit = yearLen + 7 - ldy;
+                // Get the limit day for the blocked-off rectangular year; that
+                // is, the day which is one past the last day of the year,
+                // after the year has already been filled in with phantom days
+                // to fill out the last week.  This day has a normalized DOW of 0.
+                int limit = yearLen + 7 - ldy;
 
-            // Now roll between start and (limit - 1).
-            int gap = limit - start;
-            int day_of_year = (internalGet(DAY_OF_YEAR) + amount*7 -
-                    start) % gap;
-            if (day_of_year < 0) day_of_year += gap;
-            day_of_year += start;
+                // Now roll between start and (limit - 1).
+                int gap = limit - start;
+                int day_of_year = (internalGet(DAY_OF_YEAR) + amount*7 -
+                                    start) % gap;
+                if (day_of_year < 0) day_of_year += gap;
+                day_of_year += start;
 
-            // Finally, pin to the real start and end of the month.
-            if (day_of_year < 1) day_of_year = 1;
-            if (day_of_year > yearLen) day_of_year = yearLen;
+                // Finally, pin to the real start and end of the month.
+                if (day_of_year < 1) day_of_year = 1;
+                if (day_of_year > yearLen) day_of_year = yearLen;
 
-            // Make sure that the year and day of year are attended to by
-            // clearing other fields which would normally take precedence.
-            // If the disambiguation algorithm is changed, this section will
-            // have to be updated as well.
-            set(DAY_OF_YEAR, day_of_year);
-            clear(MONTH);
-            return;
-        }
+                // Make sure that the year and day of year are attended to by
+                // clearing other fields which would normally take precedence.
+                // If the disambiguation algorithm is changed, this section will
+                // have to be updated as well.
+                set(DAY_OF_YEAR, day_of_year);
+                clear(MONTH);
+                return;
+            }
         case DAY_OF_YEAR:
-        {
-            // Roll the day of year using millis.  Compute the millis for
-            // the start of the year, and get the length of the year.
-            long delta = amount * ONE_DAY; // Scale up from days to millis
-            long min2 = time - (internalGet(DAY_OF_YEAR) - 1) * ONE_DAY;
-            int yearLength = getActualMaximum(DAY_OF_YEAR);
-            time = (time + delta - min2) % (yearLength*ONE_DAY);
-            if (time < 0) time += yearLength*ONE_DAY;
-            setTimeInMillis(time + min2);
-            return;
-        }
+            {
+                // Roll the day of year using millis.  Compute the millis for
+                // the start of the year, and get the length of the year.
+                long delta = amount * ONE_DAY; // Scale up from days to millis
+                long min2 = time - (internalGet(DAY_OF_YEAR) - 1) * ONE_DAY;
+                int yearLength = getActualMaximum(DAY_OF_YEAR);
+                time = (time + delta - min2) % (yearLength*ONE_DAY);
+                if (time < 0) time += yearLength*ONE_DAY;
+                setTimeInMillis(time + min2);
+                return;
+            }
         case DAY_OF_WEEK:
         case DOW_LOCAL:
-        {
-            // Roll the day of week using millis.  Compute the millis for
-            // the start of the week, using the first day of week setting.
-            // Restrict the millis to [start, start+7days).
-            long delta = amount * ONE_DAY; // Scale up from days to millis
-            // Compute the number of days before the current day in this
-            // week.  This will be a value 0..6.
-            int leadDays = internalGet(field);
-            leadDays -= (field == DAY_OF_WEEK) ? getFirstDayOfWeek() : 1;
-            if (leadDays < 0) leadDays += 7;
-            long min2 = time - leadDays * ONE_DAY;
-            time = (time + delta - min2) % ONE_WEEK;
-            if (time < 0) time += ONE_WEEK;
-            setTimeInMillis(time + min2);
-            return;
-        }
+            {
+                // Roll the day of week using millis.  Compute the millis for
+                // the start of the week, using the first day of week setting.
+                // Restrict the millis to [start, start+7days).
+                long delta = amount * ONE_DAY; // Scale up from days to millis
+                // Compute the number of days before the current day in this
+                // week.  This will be a value 0..6.
+                int leadDays = internalGet(field);
+                leadDays -= (field == DAY_OF_WEEK) ? getFirstDayOfWeek() : 1;
+                if (leadDays < 0) leadDays += 7;
+                long min2 = time - leadDays * ONE_DAY;
+                time = (time + delta - min2) % ONE_WEEK;
+                if (time < 0) time += ONE_WEEK;
+                setTimeInMillis(time + min2);
+                return;
+            }
         case DAY_OF_WEEK_IN_MONTH:
-        {
-            // Roll the day of week in the month using millis.  Determine
-            // the first day of the week in the month, and then the last,
-            // and then roll within that range.
-            long delta = amount * ONE_WEEK; // Scale up from weeks to millis
-            // Find the number of same days of the week before this one
-            // in this month.
-            int preWeeks = (internalGet(DAY_OF_MONTH) - 1) / 7;
-            // Find the number of same days of the week after this one
-            // in this month.
-            int postWeeks = (getActualMaximum(DAY_OF_MONTH) -
-                    internalGet(DAY_OF_MONTH)) / 7;
-            // From these compute the min and gap millis for rolling.
-            long min2 = time - preWeeks * ONE_WEEK;
-            long gap2 = ONE_WEEK * (preWeeks + postWeeks + 1); // Must add 1!
-            // Roll within this range
-            time = (time + delta - min2) % gap2;
-            if (time < 0) time += gap2;
-            setTimeInMillis(time + min2);
-            return;
-        }
+            {
+                // Roll the day of week in the month using millis.  Determine
+                // the first day of the week in the month, and then the last,
+                // and then roll within that range.
+                long delta = amount * ONE_WEEK; // Scale up from weeks to millis
+                // Find the number of same days of the week before this one
+                // in this month.
+                int preWeeks = (internalGet(DAY_OF_MONTH) - 1) / 7;
+                // Find the number of same days of the week after this one
+                // in this month.
+                int postWeeks = (getActualMaximum(DAY_OF_MONTH) -
+                                 internalGet(DAY_OF_MONTH)) / 7;
+                // From these compute the min and gap millis for rolling.
+                long min2 = time - preWeeks * ONE_WEEK;
+                long gap2 = ONE_WEEK * (preWeeks + postWeeks + 1); // Must add 1!
+                // Roll within this range
+                time = (time + delta - min2) % gap2;
+                if (time < 0) time += gap2;
+                setTimeInMillis(time + min2);
+                return;
+            }
         case JULIAN_DAY:
             set(field, internalGet(field) + amount);
             return;
-        case TIME_SEPARATOR:
-            // Ignore.
-            break;
         default:
             // Other fields cannot be rolled by this method
             throw new IllegalArgumentException("Calendar.roll(" + fieldName(field) +
-                    ") not supported");
+                                               ") not supported");
         }
     }
 
@@ -3084,10 +3157,10 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         // a computed amount of millis to the current millis.  The only
         // wrinkle is with DST (and/or a change to the zone's UTC offset, which
         // we'll include with DST) -- for some fields, like the DAY_OF_MONTH,
-        // we don't want the wall time to shift due to changes in DST.  If the
+        // we don't want the HOUR to shift due to changes in DST.  If the
         // result of the add operation is to move from DST to Standard, or
         // vice versa, we need to adjust by an hour forward or back,
-        // respectively.  For such fields we set keepWallTimeInvariant to true.
+        // respectively.  For such fields we set keepHourInvariant to true.
 
         // We only adjust the DST for fields larger than an hour.  For
         // fields smaller than an hour, we cannot adjust for DST without
@@ -3102,7 +3175,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         // <April 30>, rather than <April 31> => <May 1>.
 
         long delta = amount; // delta in ms
-        boolean keepWallTimeInvariant = true;
+        boolean keepHourInvariant = true;
 
         switch (field) {
         case ERA:
@@ -3119,29 +3192,29 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             //   this by applying the amount to the EXTENDED_YEAR field; but since
             //   we would still need to handle YEAR_WOY as below, might as well
             //   also handle YEAR the same way.
-        {
-            int era = get(ERA);
-            if (era == 0) {
-                String calType = getType();
-                if (calType.equals("gregorian") || calType.equals("roc") || calType.equals("coptic")) {
-                    amount = -amount;
+            {
+                int era = get(ERA);
+                if (era == 0) {
+                    String calType = getType();
+                    if (calType.equals("gregorian") || calType.equals("roc") || calType.equals("coptic")) {
+                        amount = -amount;
+                    }
                 }
             }
-        }
-        // Fall through into standard handling
+            // Fall through into standard handling
         case EXTENDED_YEAR:
         case MONTH:
-        {
-            boolean oldLenient = isLenient();
-            setLenient(true);
-            set(field, get(field) + amount);
-            pinField(DAY_OF_MONTH);
-            if(oldLenient==false) {
-                complete();
-                setLenient(oldLenient);
+            {
+                boolean oldLenient = isLenient();
+                setLenient(true);
+                set(field, get(field) + amount);
+                pinField(DAY_OF_MONTH);
+                if(oldLenient==false) {
+                    complete();
+                    setLenient(oldLenient);
+                }
             }
-        }
-        return;
+            return;
 
         case WEEK_OF_YEAR:
         case WEEK_OF_MONTH:
@@ -3164,88 +3237,63 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         case HOUR_OF_DAY:
         case HOUR:
             delta *= ONE_HOUR;
-            keepWallTimeInvariant = false;
+            keepHourInvariant = false;
             break;
 
         case MINUTE:
             delta *= ONE_MINUTE;
-            keepWallTimeInvariant = false;
+            keepHourInvariant = false;
             break;
 
         case SECOND:
             delta *= ONE_SECOND;
-            keepWallTimeInvariant = false;
+            keepHourInvariant = false;
             break;
 
         case MILLISECOND:
         case MILLISECONDS_IN_DAY:
-            keepWallTimeInvariant = false;
-            break;
-
-        case TIME_SEPARATOR:
-            // Ignore.
+            keepHourInvariant = false;
             break;
 
         default:
             throw new IllegalArgumentException("Calendar.add(" + fieldName(field) +
-                    ") not supported");
+                                               ") not supported");
         }
 
-        // In order to keep the wall time invariant (for fields where this is
+        // In order to keep the hour invariant (for fields where this is
         // appropriate), check the combined DST & ZONE offset before and
         // after the add() operation. If it changes, then adjust the millis
         // to compensate.
         int prevOffset = 0;
-        int prevWallTime = 0;
-        if (keepWallTimeInvariant) {
+        int hour = 0;
+        if (keepHourInvariant) {
             prevOffset = get(DST_OFFSET) + get(ZONE_OFFSET);
-            prevWallTime = get(MILLISECONDS_IN_DAY);
+            hour = internalGet(HOUR_OF_DAY);
         }
 
         setTimeInMillis(getTimeInMillis() + delta);
 
-        if (keepWallTimeInvariant) {
-            int newWallTime = get(MILLISECONDS_IN_DAY);
-            if (newWallTime != prevWallTime) {
-                // There is at least one zone transition between the base
-                // time and the result time. As the result, wall time has
-                // changed.
-                long t = internalGetTimeInMillis();
-                int newOffset = get(DST_OFFSET) + get(ZONE_OFFSET);
-                if (newOffset != prevOffset) {
-                    // When the difference of the previous UTC offset and
-                    // the new UTC offset exceeds 1 full day, we do not want
-                    // to roll over/back the date. For now, this only happens
-                    // in Samoa (Pacific/Apia) on Dec 30, 2011. See ticket:9452.
-                    long adjAmount = (prevOffset - newOffset) % ONE_DAY;
-                    if (adjAmount != 0) {
-                        setTimeInMillis(t + adjAmount);
-                        newWallTime = get(MILLISECONDS_IN_DAY);
-                    }
-                    if (newWallTime != prevWallTime) {
-                        // The result wall time or adjusted wall time was shifted because
-                        // the target wall time does not exist on the result date.
-                        switch (skippedWallTime) {
-                        case WALLTIME_FIRST:
-                            if (adjAmount > 0) {
-                                setTimeInMillis(t);
-                            }
-                            break;
-                        case WALLTIME_LAST:
-                            if (adjAmount < 0) {
-                                setTimeInMillis(t);
-                            }
-                            break;
-                        case WALLTIME_NEXT_VALID:
-                            long tmpT = adjAmount > 0 ? internalGetTimeInMillis() : t;
-                            Long immediatePrevTrans = getImmediatePreviousZoneTransition(tmpT);
-                            if (immediatePrevTrans != null) {
-                                setTimeInMillis(immediatePrevTrans);
-                            } else {
-                                throw new RuntimeException("Could not locate a time zone transition before " + tmpT);
-                            }
-                            break;
-                        }
+        if (keepHourInvariant) {
+            int newOffset = get(DST_OFFSET) + get(ZONE_OFFSET);
+            if (newOffset != prevOffset) {
+                // We have done an hour-invariant adjustment but the
+                // combined offset has changed. We adjust millis to keep
+                // the hour constant. In cases such as midnight after
+                // a DST change which occurs at midnight, there is the
+                // danger of adjusting into a different day. To avoid
+                // this we make the adjustment only if it actually
+                // maintains the hour.
+
+                // When the difference of the previous UTC offset and
+                // the new UTC offset exceeds 1 full day, we do not want
+                // to roll over/back the date. For now, this only happens
+                // in Samoa (Pacific/Apia) on Dec 30, 2011. See ticket:9452.
+                long adjAmount = (prevOffset - newOffset) % ONE_DAY;
+                if (adjAmount != 0) {
+                    long t = time;
+                    setTimeInMillis(time + adjAmount);
+                    if (get(HOUR_OF_DAY) != hour) {
+                        setTimeInMillis(t);
                     }
                 }
             }
@@ -3393,7 +3441,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
 
     // date format pattern cache
     private static final ICUCache<String, PatternData> PATTERN_CACHE =
-            new SimpleCache<String, PatternData>();
+        new SimpleCache<String, PatternData>();
     // final fallback patterns
     private static final String[] DEFAULT_PATTERNS = {
         "HH:mm:ss z",
@@ -3412,14 +3460,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     };
 
     static private DateFormat formatHelper(Calendar cal, ULocale loc, int dateStyle,
-            int timeStyle) {
-        if (timeStyle < DateFormat.NONE || timeStyle > DateFormat.SHORT) {
-            throw new IllegalArgumentException("Illegal time style " + timeStyle);
-        }
-        if (dateStyle < DateFormat.NONE || dateStyle > DateFormat.SHORT) {
-            throw new IllegalArgumentException("Illegal date style " + dateStyle);
-        }
-
+                                           int timeStyle) {
         PatternData patternData = PatternData.make(cal, loc);
         String override = null;
 
@@ -3428,7 +3469,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         if ((timeStyle >= 0) && (dateStyle >= 0)) {
             pattern = MessageFormat.format(patternData.getDateTimePattern(dateStyle),
                     new Object[] {patternData.patterns[timeStyle],
-                patternData.patterns[dateStyle + 4]});
+                                  patternData.patterns[dateStyle + 4]});
             // Might need to merge the overrides from the date and time into a single
             // override string TODO: Right now we are forcing the date's override into the
             // time style.
@@ -3436,9 +3477,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
                 String dateOverride = patternData.overrides[dateStyle + 4];
                 String timeOverride = patternData.overrides[timeStyle];
                 override = mergeOverrideStrings(
-                        patternData.patterns[dateStyle+4],
-                        patternData.patterns[timeStyle],
-                        dateOverride, timeOverride);
+                    patternData.patterns[dateStyle+4],
+                    patternData.patterns[timeStyle],
+                    dateOverride, timeOverride);
             }
         } else if (timeStyle >= 0) {
             pattern = patternData.patterns[timeStyle];
@@ -3484,7 +3525,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
                 try {
                     CalendarData calData = new CalendarData(loc, calType);
                     patternData = new PatternData(calData.getDateTimePatterns(),
-                            calData.getOverrides());
+                                                  calData.getOverrides());
                 } catch (MissingResourceException e) {
                     patternData = new PatternData(DEFAULT_PATTERNS, null);
                 }
@@ -3498,14 +3539,13 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static String getDateTimePattern(Calendar cal, ULocale uLocale, int dateStyle) {
         PatternData patternData = PatternData.make(cal, uLocale);
         return patternData.getDateTimePattern(dateStyle);
     }
 
     private static String mergeOverrideStrings( String datePattern, String timePattern,
-            String dateOverride, String timeOverride ) {
+                                                String dateOverride, String timeOverride ) {
 
         if ( dateOverride == null && timeOverride == null ) {
             return null;
@@ -3542,9 +3582,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
 
         for (char c = it.first(); c!= StringCharacterIterator.DONE; c = it.next()) {
             if ( c == QUOTE ) {
-                inQuotes = !inQuotes;
-                prevChar = c;
-                continue;
+               inQuotes = !inQuotes;
+               prevChar = c;
+               continue;
             }
             if ( !inQuotes && c != prevChar ) {
                 if (result.length() > 0) {
@@ -3566,7 +3606,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static class FormatConfiguration {
         private String pattern;
         private String override;
@@ -3584,7 +3623,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public String getPatternString() {
             return pattern;
         }
@@ -3593,7 +3631,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public String getOverrideString() {
             return override;
         }
@@ -3604,7 +3641,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public Calendar getCalendar() {
             return cal;
         }
@@ -3615,7 +3651,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public ULocale getLocale() {
             return loc;
         }
@@ -3626,7 +3661,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public DateFormatSymbols getDateFormatSymbols() {
             return formatData;
         }
@@ -4078,9 +4112,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     }
 
     /**
-     * Sets what the first day of the week is,
-     * where 1 = {@link #SUNDAY} and 7 = {@link #SATURDAY}.
-     * @param value the given first day of the week, where 1 = {@link #SUNDAY} and 7 = {@link #SATURDAY}.
+     * Sets what the first day of the week is; e.g., Sunday in US,
+     * Monday in France.
+     * @param value the given first day of the week.
      * @stable ICU 2.0
      */
     public void setFirstDayOfWeek(int value)
@@ -4095,10 +4129,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     }
 
     /**
-     * Returns what the first day of the week is,      
-     * where 1 = {@link #SUNDAY} and 7 = {@link #SATURDAY}.
-     * e.g., Sunday in US, Monday in France
-     * @return the first day of the week, where 1 = {@link #SUNDAY} and 7 = {@link #SATURDAY}.
+     * Returns what the first day of the week is; e.g., Sunday in US,
+     * Monday in France.
+     * @return the first day of the week.
      * @stable ICU 2.0
      */
     public int getFirstDayOfWeek()
@@ -4132,8 +4165,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     }
 
     /**
-     * Returns what the minimal days required in the first week of the year are.
-     * That is, if the first week is defined as one that contains the first day
+     * Returns what the minimal days required in the first week of the year are;
+     * e.g., if the first week is defined as one that contains the first day
      * of the first month of a year, getMinimalDaysInFirstWeek returns 1. If
      * the minimal days required must be a full week, getMinimalDaysInFirstWeek
      * returns 7.
@@ -4170,7 +4203,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         { -0x7F000000,  -0x7F000000,    0x7F000000,    0x7F000000  }, // JULIAN_DAY
         {           0,            0, 24*ONE_HOUR-1, 24*ONE_HOUR-1  }, // MILLISECONDS_IN_DAY
         {           0,            0,             1,             1  }, // IS_LEAP_MONTH
-        { Character.MIN_VALUE, Character.MIN_VALUE, Character.MAX_VALUE, Character.MAX_VALUE }, // TIME_SEPARATOR
+
     };
 
     /**
@@ -4221,7 +4254,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         case JULIAN_DAY:
         case MILLISECONDS_IN_DAY:
         case IS_LEAP_MONTH:
-        case TIME_SEPARATOR:
             return LIMITS[field][limitType];
 
         case WEEK_OF_MONTH:
@@ -4356,9 +4388,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @see #getWeekendTransition
      * @see #isWeekend(Date)
      * @see #isWeekend()
-     * @deprecated ICU 54 use {@link #getWeekDataForRegion(String)}, {@link #getWeekData()}, {@link #setWeekData(WeekData)}
+     * @stable ICU 2.0
      */
-    @Deprecated
     public int getDayOfWeekType(int dayOfWeek) {
         if (dayOfWeek < SUNDAY || dayOfWeek > SATURDAY) {
             throw new IllegalArgumentException("Invalid day of week");
@@ -4401,9 +4432,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @see #getDayOfWeekType
      * @see #isWeekend(Date)
      * @see #isWeekend()
-     * @deprecated ICU 54 use {@link #getWeekDataForRegion(String)}, {@link #getWeekData()}, {@link #setWeekData(WeekData)}
+     * @stable ICU 2.0
      */
-    @Deprecated
     public int getWeekendTransition(int dayOfWeek) {
         if (dayOfWeek == weekendOnset) {
             return weekendOnsetMillis;
@@ -4455,11 +4485,11 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             //  For ICU4J, submit request for a MILLIS_IN_DAY field
             //  and a DAY_NUMBER field (could be Julian day #). - aliu]
             int millisInDay = internalGet(MILLISECOND) + 1000 * (internalGet(SECOND) +
-                    60 * (internalGet(MINUTE) + 60 * internalGet(HOUR_OF_DAY)));
+                60 * (internalGet(MINUTE) + 60 * internalGet(HOUR_OF_DAY)));
             int transition = getWeekendTransition(dow);
             return (dowt == WEEKEND_ONSET)
-                    ? (millisInDay >= transition)
-                            : (millisInDay <  transition);
+                ? (millisInDay >= transition)
+                : (millisInDay <  transition);
         }
         // (We can never reach this point.)
     }
@@ -4487,7 +4517,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         }
         catch (CloneNotSupportedException e) {
             // this shouldn't happen, since we are Cloneable
-            throw new ICUCloneNotSupportedException(e);
+            throw new IllegalStateException();
         }
     }
 
@@ -4529,228 +4559,103 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         return buffer.toString();
     }
 
-    /**
-     * Simple, immutable struct-like class for access to the CLDR weekend data.
-     * 
-     * @draft ICU 54
-     * @provisional This is a draft API and might change in a future release of ICU.
-     */
-    public static final class WeekData {
-        /**
-         * the first day of the week, where 1 = {@link #SUNDAY} and 7 = {@link #SATURDAY}
-         * 
-         * @draft ICU 54
-         * @provisional This is a draft API and might change in a future release of ICU.
-         */
-        public final int firstDayOfWeek;
-        /**
-         * the minimal number of days in the first week
-         * 
-         * @draft ICU 54
-         * @provisional This is a draft API and might change in a future release of ICU.
-         */
-        public final int minimalDaysInFirstWeek;
-        /**
-         * the onset day, where 1 = {@link #SUNDAY} and 7 = {@link #SATURDAY}
-         * 
-         * @draft ICU 54
-         * @provisional This is a draft API and might change in a future release of ICU.
-         */
-        public final int weekendOnset;
-        /**
-         * the onset time in millis during the onset day
-         * 
-         * @draft ICU 54
-         * @provisional This is a draft API and might change in a future release of ICU.
-         */
-        public final int weekendOnsetMillis;
-        /**
-         * the cease day, where 1 = {@link #SUNDAY} and 7 = {@link #SATURDAY}
-         * 
-         * @draft ICU 54
-         * @provisional This is a draft API and might change in a future release of ICU.
-         */
-        public final int weekendCease;
-        /**
-         * the cease time in millis during the cease day. Exclusive, so the max is 24:00:00.000.
-         * Note that this will format as 00:00 the next day.
-         * 
-         * @draft ICU 54
-         * @provisional This is a draft API and might change in a future release of ICU.
-         */
-        public final int weekendCeaseMillis;
+    // =======================privates===============================
 
-        /**
-         * Constructor
-         * 
-         * @param fdow the first day of the week, where 1 = {@link #SUNDAY} and 7 = {@link #SATURDAY}
-         * @param mdifw the minimal number of days in the first week
-         * @param weekendOnset the onset day, where 1 = Sunday and 7 = Saturday
-         * @param weekendOnsetMillis the onset time in millis during the onset day
-         * @param weekendCease the cease day, where 1 = Sunday and 7 = Saturday
-         * @param weekendCeaseMillis the cease time in millis during the cease day.
-         * 
-         * @draft ICU 54
-         * @provisional This is a draft API and might change in a future release of ICU.
-         */
+    /**
+     * Internal class that holds cached locale data.
+     */
+    private static class WeekData {
+        public int firstDayOfWeek;
+        public int minimalDaysInFirstWeek;
+        public int weekendOnset;
+        public int weekendOnsetMillis;
+        public int weekendCease;
+        public int weekendCeaseMillis;
+        public ULocale actualLocale;
         public WeekData(int fdow, int mdifw,
-                int weekendOnset, int weekendOnsetMillis,
-                int weekendCease, int weekendCeaseMillis) {
+                        int weekendOnset, int weekendOnsetMillis,
+                        int weekendCease, int weekendCeaseMillis,
+                        ULocale actualLoc) {
             this.firstDayOfWeek = fdow;
             this.minimalDaysInFirstWeek = mdifw;
+            this.actualLocale = actualLoc;
             this.weekendOnset = weekendOnset;
             this.weekendOnsetMillis = weekendOnsetMillis;
             this.weekendCease = weekendCease;
             this.weekendCeaseMillis = weekendCeaseMillis;
         }
+    }
 
-        /**
-         * {@inheritDoc}
-         * 
-         * @draft ICU 54
-         * @provisional This is a draft API and might change in a future release of ICU.
-         */
-        @Override
-        public int hashCode() {
-            return ((((firstDayOfWeek * 37 + minimalDaysInFirstWeek) * 37 + weekendOnset) * 37
-                    + weekendOnsetMillis) * 37 + weekendCease) * 37 + weekendCeaseMillis;
-        }
+    /**
+     * Set this calendar to contain week and weekend data for the given
+     * locale.
+     * @param locale the locale
+     */
+    private void setWeekData(ULocale locale)
+    {
+        /* try to get the Locale data from the cache */
+        WeekData data = cachedLocaleData.get(locale);
 
-        /**
-         * {@inheritDoc}
-         * 
-         * @draft ICU 54
-         * @provisional This is a draft API and might change in a future release of ICU.
-         */
-        @Override
-        public boolean equals(Object other) {
-            if (this == other) {
-                return true;
+        if (data == null) {  /* cache miss */
+            // Since week and weekend data is territory based instead of language based,
+            // we may need to tweak the locale that we are using to try to get the appropriate
+            // values, using the following logic:
+            // 1). If the locale has a language but no territory, use the territory as defined by 
+            //     the likely subtags.
+            // 2). If the locale has an unnecessary script designation then we ignore it,
+            //     ( i.e. "en_Latn_US" becomes "en_US" )
+ 
+            ULocale useLocale;
+            CalendarData calData = new CalendarData(locale, getType());
+            ULocale min = ULocale.minimizeSubtags(calData.getULocale());
+            if ( min.getCountry().length() > 0 ) {
+                useLocale = min;
+            } else {
+                ULocale max = ULocale.addLikelySubtags(min);
+                StringBuilder buf = new StringBuilder();
+                buf.append(min.getLanguage());
+                if ( min.getScript().length() > 0) {
+                    buf.append("_"+min.getScript());
+                }
+                if ( max.getCountry().length() > 0) {
+                    buf.append("_"+max.getCountry());
+                }
+                if ( min.getVariant().length() > 0) {
+                    buf.append("_"+min.getVariant());
+                }
+                useLocale = new ULocale(buf.toString());                
             }
-            if (!(other instanceof WeekData)) {
-                return false;
-            }
-            WeekData that = (WeekData) other;
-            return firstDayOfWeek == that.firstDayOfWeek
-                    && minimalDaysInFirstWeek == that.minimalDaysInFirstWeek
-                    && weekendOnset == that.weekendOnset
-                    && weekendOnsetMillis == that.weekendOnsetMillis
-                    && weekendCease == that.weekendCease
-                    && weekendCeaseMillis == that.weekendCeaseMillis;
-        }
-
-        /**
-         * {@inheritDoc}
-         * 
-         * @draft ICU 54
-         * @provisional This is a draft API and might change in a future release of ICU.
-         */
-        @Override
-        public String toString() {
-            return "{" + firstDayOfWeek
-                    + ", " + minimalDaysInFirstWeek
-                    + ", " + weekendOnset
-                    + ", " + weekendOnsetMillis
-                    + ", " + weekendCease
-                    + ", " + weekendCeaseMillis
-                    + "}";
-        }
-    }
-
-    /**
-     * {@icu} Return simple, immutable struct-like class for access to the CLDR weekend data.
-     * @param region The input region. The results are undefined if the region code is not valid.
-     * @return the WeekData for the input region. It is never null.
-     * 
-     * @draft ICU 54
-     * @provisional This is a draft API and might change in a future release of ICU.
-     */
-    public static WeekData getWeekDataForRegion(String region) {
-        return WEEK_DATA_CACHE.createInstance(region, region);
-    }
-    
-    /**
-     * {@icu} Return simple, immutable struct-like class for access to the weekend data in this calendar.
-     * @return the WeekData for this calendar.
-     * 
-     * @draft ICU 54
-     * @provisional This is a draft API and might change in a future release of ICU.
-     */
-    public WeekData getWeekData() {
-        return new WeekData(firstDayOfWeek, minimalDaysInFirstWeek, weekendOnset, weekendOnsetMillis, weekendCease, weekendCeaseMillis);
-    }
-    
-    /**
-     * {@icu} Set data in this calendar based on the WeekData input.
-     * @param wdata The week data to use
-     * @return this, for chaining
-     * 
-     * @draft ICU 54
-     * @provisional This is a draft API and might change in a future release of ICU.
-     */
-    public Calendar setWeekData(WeekData wdata) {
-        setFirstDayOfWeek(wdata.firstDayOfWeek);
-        setMinimalDaysInFirstWeek(wdata.minimalDaysInFirstWeek);
-
-        weekendOnset       = wdata.weekendOnset;
-        weekendOnsetMillis = wdata.weekendOnsetMillis;
-        weekendCease       = wdata.weekendCease;
-        weekendCeaseMillis = wdata.weekendCeaseMillis;
-        return this;
-    }
-
-    private static WeekData getWeekDataForRegionInternal(String region) {
-        if (region == null) {
-            region = "001";
-        }
-
-        UResourceBundle rb = UResourceBundle.getBundleInstance(
-                ICUResourceBundle.ICU_BASE_NAME,
-                "supplementalData",
-                ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-        UResourceBundle weekDataInfo = rb.get("weekData");
-        UResourceBundle weekDataBundle = null;
-
-        try {
-            weekDataBundle = weekDataInfo.get(region);
-        } catch (MissingResourceException mre) {
-            if (!region.equals("001")) {
+ 
+            UResourceBundle rb = UResourceBundle.getBundleInstance(
+                    ICUResourceBundle.ICU_BASE_NAME,
+                    "supplementalData",
+                    ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+            UResourceBundle weekDataInfo = rb.get("weekData");
+            UResourceBundle weekDataBundle = null;
+            try {
+                weekDataBundle = weekDataInfo.get(useLocale.getCountry());
+            } catch (MissingResourceException mre) {
                 // use "001" as fallback
                 weekDataBundle = weekDataInfo.get("001");
-            } else {
-                throw mre;
             }
+
+            int[] wdi = weekDataBundle.getIntVector();
+            data = new WeekData(wdi[0],wdi[1],wdi[2],wdi[3],wdi[4],wdi[5],
+                                calData.getULocale());
+            /* cache update */
+            cachedLocaleData.put(locale, data);
         }
+        
+        setFirstDayOfWeek(data.firstDayOfWeek);
+        setMinimalDaysInFirstWeek(data.minimalDaysInFirstWeek);
+        weekendOnset       = data.weekendOnset;
+        weekendOnsetMillis = data.weekendOnsetMillis;
+        weekendCease       = data.weekendCease;
+        weekendCeaseMillis = data.weekendCeaseMillis;
 
-        int[] wdi = weekDataBundle.getIntVector();
-        return new WeekData(wdi[0],wdi[1],wdi[2],wdi[3],wdi[4],wdi[5]);
-    }
-
-    /*
-     * Cache to hold week data by region
-     */
-    private static class WeekDataCache extends SoftCache<String, WeekData, String> {
-
-        /* (non-Javadoc)
-         * @see com.ibm.icu.impl.CacheBase#createInstance(java.lang.Object, java.lang.Object)
-         */
-        @Override
-        protected WeekData createInstance(String key, String data) {
-            return getWeekDataForRegionInternal(key);
-        }
-    }
-
-    private static final WeekDataCache WEEK_DATA_CACHE = new WeekDataCache();
-
-    /*
-     * Set this calendar to contain week and weekend data for the given region.
-     */
-    private void setWeekData(String region) {
-        if (region == null) {
-            region = "001";
-        }
-        WeekData wdata = WEEK_DATA_CACHE.getInstance(region, region);
-        setWeekData(wdata);
+        // TODO: determine the actual/valid locale
+        ULocale uloc = data.actualLocale;
+        setLocale(uloc, uloc);
     }
 
     /**
@@ -4772,8 +4677,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * Save the state of this object to a stream (i.e., serialize it).
      */
     private void writeObject(ObjectOutputStream stream)
-            throws IOException
-            {
+         throws IOException
+    {
         // Try to compute the time correctly, for the future (stream
         // version 2) in which we don't write out fields[] or isSet[].
         if (!isTimeSet) {
@@ -4785,13 +4690,13 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
 
         // Write out the 1.1 FCS object.
         stream.defaultWriteObject();
-            }
+    }
 
     /**
      * Reconstitute this object from a stream (i.e., deserialize it).
      */
     private void readObject(ObjectInputStream stream)
-            throws IOException, ClassNotFoundException {
+        throws IOException, ClassNotFoundException {
 
         stream.defaultReadObject();
 
@@ -4931,14 +4836,14 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         }
 
         boolean isLeap = ((year&0x3) == 0) && // equiv. to (year%4 == 0)
-                (year%100 != 0 || year%400 == 0);
+            (year%100 != 0 || year%400 == 0);
 
         int correction = 0;
         int march1 = isLeap ? 60 : 59; // zero-based DOY for March 1
         if (dayOfYear >= march1) correction = isLeap ? 1 : 2;
         month = (12 * (dayOfYear + correction) + 6) / 367; // zero-based month
         dayOfMonth = dayOfYear -
-                GREGORIAN_MONTH_COUNT[month][isLeap?3:2] + 1; // one-based DOM
+            GREGORIAN_MONTH_COUNT[month][isLeap?3:2] + 1; // one-based DOM
 
         gregorianYear = year;
         gregorianMonth = month; // 0-based already
@@ -5013,7 +4918,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
                     lastRelDow += 7;
                 }
                 if (((6 - lastRelDow) >= getMinimalDaysInFirstWeek()) &&
-                        ((dayOfYear + 7 - relDow) > lastDoy)) {
+                    ((dayOfYear + 7 - relDow) > lastDoy)) {
                     woy = 1;
                     yearOfWeekOfYear++;
                 }
@@ -5103,38 +5008,38 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         for (int g=0; g<precedenceTable.length && bestField < 0; ++g) {
             int[][] group = precedenceTable[g];
             int bestStamp = UNSET;
-            linesInGroup:
-                for (int l=0; l<group.length; ++l) {
-                    int[] line= group[l];
-                    int lineStamp = UNSET;
-                    // Skip over first entry if it is negative
-                    for (int i=(line[0]>=RESOLVE_REMAP)?1:0; i<line.length; ++i) {
-                        int s = stamp[line[i]];
-                        // If any field is unset then don't use this line
-                        if (s == UNSET) {
-                            continue linesInGroup;
-                        } else {
-                            lineStamp = Math.max(lineStamp, s);
-                        }
-                    }
-                    // Record new maximum stamp & field no.
-                    if (lineStamp > bestStamp) {
-                        tempBestField = line[0]; // First field refers to entire line
-                        if (tempBestField >= RESOLVE_REMAP) {
-                            tempBestField &= (RESOLVE_REMAP-1);
-                            // This check is needed to resolve some issues with UCAL_YEAR precedence mapping
-                            if (tempBestField != DATE || (stamp[WEEK_OF_MONTH] < stamp[tempBestField])) {
-                                bestField = tempBestField;
-                            }
-                        } else {
-                            bestField = tempBestField;
-                        }
-
-                        if (bestField == tempBestField) {
-                            bestStamp = lineStamp;
-                        }
+        linesInGroup:
+            for (int l=0; l<group.length; ++l) {
+                int[] line= group[l];
+                int lineStamp = UNSET;
+                // Skip over first entry if it is negative
+                for (int i=(line[0]>=RESOLVE_REMAP)?1:0; i<line.length; ++i) {
+                    int s = stamp[line[i]];
+                    // If any field is unset then don't use this line
+                    if (s == UNSET) {
+                        continue linesInGroup;
+                    } else {
+                        lineStamp = Math.max(lineStamp, s);
                     }
                 }
+                // Record new maximum stamp & field no.
+                if (lineStamp > bestStamp) {
+                    tempBestField = line[0]; // First field refers to entire line
+                    if (tempBestField >= RESOLVE_REMAP) {
+                        tempBestField &= (RESOLVE_REMAP-1);
+                        // This check is needed to resolve some issues with UCAL_YEAR precedence mapping
+                        if (tempBestField != DATE || (stamp[WEEK_OF_MONTH] < stamp[tempBestField])) {
+                            bestField = tempBestField;
+                        }
+                    } else {
+                        bestField = tempBestField;
+                    }
+
+                    if (bestField == tempBestField) {
+                        bestStamp = lineStamp;
+                    }
+                }
+            }
         }
         return (bestField>=RESOLVE_REMAP)?(bestField&(RESOLVE_REMAP-1)):bestField;
     }
@@ -5232,8 +5137,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         int value = fields[field];
         if (value < min || value > max) {
             throw new IllegalArgumentException(fieldName(field) +
-                    '=' + value + ", valid range=" +
-                    min + ".." + max);
+                                               '=' + value + ", valid range=" +
+                                               min + ".." + max);
         }
     }
 
@@ -5242,7 +5147,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * millisecond time value <code>time</code>.
      * @stable ICU 2.0
      */
-    protected void computeTime() {
+   protected void computeTime() {
         if (!isLenient()) {
             validateFields();
         }
@@ -5260,14 +5165,14 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         // is legacy behavior.  Without this, clear(MONTH) has no effect,
         // since the internally set JULIAN_DAY is used.
         if (stamp[MILLISECONDS_IN_DAY] >= MINIMUM_USER_STAMP &&
-                newestStamp(AM_PM, MILLISECOND, UNSET) <= stamp[MILLISECONDS_IN_DAY]) {
+            newestStamp(AM_PM, MILLISECOND, UNSET) <= stamp[MILLISECONDS_IN_DAY]) {
             millisInDay = internalGet(MILLISECONDS_IN_DAY);
         } else {
             millisInDay = computeMillisInDay();
         }
 
         if (stamp[ZONE_OFFSET] >= MINIMUM_USER_STAMP ||
-                stamp[DST_OFFSET] >= MINIMUM_USER_STAMP) {
+            stamp[DST_OFFSET] >= MINIMUM_USER_STAMP) {
             time = millis + millisInDay - (internalGet(ZONE_OFFSET) + internalGet(DST_OFFSET));
         } else {
             // Compute the time zone offset and DST offset.  There are two potential
@@ -5321,11 +5226,26 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
                     // Adjust time to the next valid wall clock time.
                     // At this point, tmpTime is on or after the zone offset transition causing
                     // the skipped time range.
-                    Long immediatePrevTransition = getImmediatePreviousZoneTransition(tmpTime);
-                    if (immediatePrevTransition == null) {
-                        throw new RuntimeException("Could not locate a time zone transition before " + tmpTime);
+                    if (zone instanceof BasicTimeZone) {
+                        TimeZoneTransition transition = ((BasicTimeZone)zone).getPreviousTransition(tmpTime, true);
+                        if (transition == null) {
+                            // Could not find any transitions
+                            throw new RuntimeException("Could not locate previous zone transition");
+                        }
+                        time = transition.getTime();
+                    } else {
+                        // Usually, it is enough to check past one hour because such transition is most
+                        // likely +1 hour shift. However, there is an example jumped +24 hour in the tz database.
+                        Long transitionT = getPreviousZoneTransitionTime(zone, tmpTime, 2*60*60*1000); // check last 2 hours
+                        if (transitionT == null) {
+                            transitionT = getPreviousZoneTransitionTime(zone, tmpTime, 30*60*60*1000); // try last 30 hours
+                            if (transitionT == null) {
+                                // Could not find any transitions in last 30 hours...
+                                throw new RuntimeException("Could not locate previous zone transition within 30 hours from " + tmpTime);
+                            }
+                        }
+                        time = transitionT.longValue();
                     }
-                    time = immediatePrevTransition;
                 } else {
                     time = tmpTime;
                 }
@@ -5335,118 +5255,94 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         }
     }
 
-    /**
-     * Find the previous zone transtion near the given time.
-     * 
-     * @param base The base time, inclusive.
-     * @return The time of the previous transition, or null if not found.
-     */
-    private Long getImmediatePreviousZoneTransition(long base) {
-        Long transitionTime = null;
+   /**
+    * Find the previous zone transition within the specified duration.
+    * Note: This method should not be used when TimeZone is a BasicTimeZone.
+    * {@link BasicTimeZone#getPreviousTransition(long, boolean)} is much more efficient.
+    * @param tz The time zone.
+    * @param base The base time, inclusive.
+    * @param duration The range of time evaluated.
+    * @return The time of the previous zone transition, or null if not available.
+    */
+   private Long getPreviousZoneTransitionTime(TimeZone tz, long base, long duration) {
+       assert duration > 0;
 
-        if (zone instanceof BasicTimeZone) {
-            TimeZoneTransition transition = ((BasicTimeZone) zone).getPreviousTransition(base, true);
-            if (transition != null) {
-                transitionTime = transition.getTime();
-            }
-        } else {
-            // Usually, it is enough to check past one hour because such transition is most
-            // likely +1 hour shift. However, there is an example jumped +24 hour in the tz database.
-            transitionTime = getPreviousZoneTransitionTime(zone, base, 2 * 60 * 60 * 1000); // check last 2 hours
-            if (transitionTime == null) {
-                transitionTime = getPreviousZoneTransitionTime(zone, base, 30 * 60 * 60 * 1000); // try last 30 hours
-            }
-        }
-        return transitionTime;
-    }
+       long upper = base;
+       long lower = base - duration - 1;
+       int offsetU = tz.getOffset(upper);
+       int offsetL = tz.getOffset(lower);
+       if (offsetU == offsetL) {
+           return null;
+       }
+       return findPreviousZoneTransitionTime(tz, offsetU, upper, lower);
+   }
 
-    /**
-     * Find the previous zone transition within the specified duration.
-     * Note: This method is only used when TimeZone is NOT a BasicTimeZone.
-     * @param tz The time zone.
-     * @param base The base time, inclusive.
-     * @param duration The range of time evaluated.
-     * @return The time of the previous zone transition, or null if not available.
-     */
-    private static Long getPreviousZoneTransitionTime(TimeZone tz, long base, long duration) {
-        assert duration > 0;
+   /**
+    * The time units used by {@link #findPreviousZoneTransitionTime(TimeZone, int, long, long)}
+    * for optimizing transition time binary search.
+    */
+   private static final int[] FIND_ZONE_TRANSITION_TIME_UNITS = {
+       60*60*1000, // 1 hour
+       30*60*1000, // 30 minutes
+       60*1000,    // 1 minute
+       1000,       // 1 second
+   };
 
-        long upper = base;
-        long lower = base - duration - 1;
-        int offsetU = tz.getOffset(upper);
-        int offsetL = tz.getOffset(lower);
-        if (offsetU == offsetL) {
-            return null;
-        }
-        return findPreviousZoneTransitionTime(tz, offsetU, upper, lower);
-    }
+   /**
+    * Implementing binary search for zone transtion detection, used by {@link #getPreviousZoneTransitionTime(TimeZone, long, long)}
+    * @param tz The time zone.
+    * @param upperOffset The zone offset at <code>upper</code>
+    * @param upper The upper bound, inclusive.
+    * @param lower The lower bound, exclusive.
+    * @return The time of the previous zone transition, or null if not available.
+    */
+   private Long findPreviousZoneTransitionTime(TimeZone tz, int upperOffset, long upper, long lower) {
+       boolean onUnitTime = false;
+       long mid = 0;
 
-    /**
-     * The time units used by {@link #findPreviousZoneTransitionTime(TimeZone, int, long, long)}
-     * for optimizing transition time binary search.
-     */
-    private static final int[] FIND_ZONE_TRANSITION_TIME_UNITS = {
-        60*60*1000, // 1 hour
-        30*60*1000, // 30 minutes
-        60*1000,    // 1 minute
-        1000,       // 1 second
-    };
+       for (int unit : FIND_ZONE_TRANSITION_TIME_UNITS) {
+           long lunits = lower/unit;
+           long uunits = upper/unit;
+           if (uunits > lunits) {
+               mid = ((lunits + uunits + 1) >>> 1) * unit;
+               onUnitTime = true;
+               break;
+           }
+       }
 
-    /**
-     * Implementing binary search for zone transtion detection, used by {@link #getPreviousZoneTransitionTime(TimeZone, long, long)}
-     * @param tz The time zone.
-     * @param upperOffset The zone offset at <code>upper</code>
-     * @param upper The upper bound, inclusive.
-     * @param lower The lower bound, exclusive.
-     * @return The time of the previous zone transition, or null if not available.
-     */
-    private static Long findPreviousZoneTransitionTime(TimeZone tz, int upperOffset, long upper, long lower) {
-        boolean onUnitTime = false;
-        long mid = 0;
+       int midOffset;
+       if (!onUnitTime) {
+           mid = (upper + lower) >>> 1;
+       }
 
-        for (int unit : FIND_ZONE_TRANSITION_TIME_UNITS) {
-            long lunits = lower/unit;
-            long uunits = upper/unit;
-            if (uunits > lunits) {
-                mid = ((lunits + uunits + 1) >>> 1) * unit;
-                onUnitTime = true;
-                break;
-            }
-        }
+       if (onUnitTime) {
+           if (mid != upper) {
+               midOffset  = tz.getOffset(mid);
+               if (midOffset != upperOffset) {
+                   return findPreviousZoneTransitionTime(tz, upperOffset, upper, mid);
+               }
+               upper = mid;
+           }
+           // check mid-1
+           mid--;
+       } else {
+           mid = (upper + lower) >>> 1;
+       }
 
-        int midOffset;
-        if (!onUnitTime) {
-            mid = (upper + lower) >>> 1;
-        }
+       if (mid == lower) {
+           return Long.valueOf(upper);
+       }
+       midOffset = tz.getOffset(mid);
+       if (midOffset != upperOffset) {
+           if (onUnitTime) {
+               return Long.valueOf(upper);
+           }
+           return findPreviousZoneTransitionTime(tz, upperOffset, upper, mid);
+       }
+       return findPreviousZoneTransitionTime(tz, upperOffset, mid, lower);
+   }
 
-        if (onUnitTime) {
-            if (mid != upper) {
-                midOffset  = tz.getOffset(mid);
-                if (midOffset != upperOffset) {
-                    return findPreviousZoneTransitionTime(tz, upperOffset, upper, mid);
-                }
-                upper = mid;
-            }
-            // check mid-1
-            mid--;
-        } else {
-            mid = (upper + lower) >>> 1;
-        }
-
-        if (mid == lower) {
-            return Long.valueOf(upper);
-        }
-        midOffset = tz.getOffset(mid);
-        if (midOffset != upperOffset) {
-            if (onUnitTime) {
-                return Long.valueOf(upper);
-            }
-            return findPreviousZoneTransitionTime(tz, upperOffset, upper, mid);
-        }
-        return findPreviousZoneTransitionTime(tz, upperOffset, mid, lower);
-    }
-
-    /**
+   /**
      * Compute the milliseconds in the day from the fields.  This is a
      * value from 0 to 23:59:59.999 inclusive, unless fields are out of
      * range, in which case it can be an arbitrary value.  This value
@@ -5599,7 +5495,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @stable ICU 2.0
      */
     abstract protected int handleComputeMonthStart(int eyear, int month,
-            boolean useMonth);
+                                                   boolean useMonth);
 
     /**
      * Returns the extended year defined by the current fields.  This will
@@ -5623,7 +5519,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      */
     protected int handleGetMonthLength(int extendedYear, int month) {
         return handleComputeMonthStart(extendedYear, month+1, true) -
-                handleComputeMonthStart(extendedYear, month, true);
+               handleComputeMonthStart(extendedYear, month, true);
     }
     ///CLOVER:ON
 
@@ -5636,7 +5532,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      */
     protected int handleGetYearLength(int eyear) {
         return handleComputeMonthStart(eyear+1, 0, false) -
-                handleComputeMonthStart(eyear, 0, false);
+               handleComputeMonthStart(eyear, 0, false);
     }
 
     /**
@@ -5690,8 +5586,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     protected int handleComputeJulianDay(int bestField) {
 
         boolean useMonth = (bestField == DAY_OF_MONTH ||
-                bestField == WEEK_OF_MONTH ||
-                bestField == DAY_OF_WEEK_IN_MONTH);
+                            bestField == WEEK_OF_MONTH ||
+                            bestField == DAY_OF_WEEK_IN_MONTH);
 
         int year;
 
@@ -5832,7 +5728,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         // Add 2 because Gregorian calendar starts 2 days after Julian
         // calendar.
         int julianDay = 365*y + floorDivide(y, 4) - floorDivide(y, 100) +
-                floorDivide(y, 400) + JAN_1_1_JULIAN_DAY - 1;
+            floorDivide(y, 400) + JAN_1_1_JULIAN_DAY - 1;
 
         // At this point julianDay indicates the day BEFORE the first day
         // of January 1, <eyear> of the Gregorian calendar.
@@ -5959,7 +5855,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     protected final void internalSet(int field, int value) {
         if (((1 << field) & internalSetMask) == 0) {
             throw new IllegalStateException("Subclass cannot set " +
-                    fieldName(field));
+                                            fieldName(field));
         }
         fields[field] = value;
         stamp[field] = INTERNALLY_SET;
@@ -6033,8 +5929,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         // We do this computation in order to handle
         // a numerator of Long.MIN_VALUE correctly
         return (numerator >= 0) ?
-                numerator / denominator :
-                    ((numerator + 1) / denominator) - 1;
+            numerator / denominator :
+            ((numerator + 1) / denominator) - 1;
     }
 
     /**
@@ -6052,8 +5948,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         // We do this computation in order to handle
         // a numerator of Integer.MIN_VALUE correctly
         return (numerator >= 0) ?
-                numerator / denominator :
-                    ((numerator + 1) / denominator) - 1;
+            numerator / denominator :
+            ((numerator + 1) / denominator) - 1;
     }
 
     /**
@@ -6076,7 +5972,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             remainder[0] = numerator % denominator;
             return numerator / denominator;
         }
-        int quotient = ((numerator + 1) / denominator) - 1;
+    int quotient = ((numerator + 1) / denominator) - 1;
         remainder[0] = numerator - (quotient * denominator);
         return quotient;
     }
@@ -6195,7 +6091,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public boolean haveDefaultCentury() {
         return true;
     }
@@ -6228,7 +6123,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      */
     public final ULocale getLocale(ULocale.Type type) {
         return type == ULocale.ACTUAL_LOCALE ?
-                this.actualLocale : this.validLocale;
+            this.actualLocale : this.validLocale;
     }
 
     /**

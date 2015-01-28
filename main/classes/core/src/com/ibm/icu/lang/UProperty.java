@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2014, International Business Machines Corporation and
+* Copyright (C) 1996-2013, International Business Machines Corporation and
 * others. All Rights Reserved.
 *******************************************************************************
 */
@@ -35,7 +35,6 @@ public interface UProperty
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static final int UNDEFINED = -1;
 
     /** 
@@ -778,7 +777,6 @@ public interface UProperty
      * Corresponds to UCharacter.getISOComment(int).
      * @deprecated ICU 49
      */
-    @Deprecated
     public static final int ISO_COMMENT = 0x4003;
 
     /**
@@ -837,7 +835,6 @@ public interface UProperty
      * Corresponds to UCharacter.getName1_0(int).
      * @deprecated ICU 49
      */
-    @Deprecated
     public static final int UNICODE_1_NAME = 0x400B;
 
     /**

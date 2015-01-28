@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2008-2014, International Business Machines Corporation and    *
+ * Copyright (C) 2008-2013, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -11,12 +11,8 @@ import java.text.ParsePosition;
 import java.util.Locale;
 
 import com.ibm.icu.dev.test.TestFmwk;
-import com.ibm.icu.math.BigDecimal;
-import com.ibm.icu.text.MeasureFormat;
 import com.ibm.icu.text.NumberFormat;
 import com.ibm.icu.text.TimeUnitFormat;
-import com.ibm.icu.util.Measure;
-import com.ibm.icu.util.MeasureUnit;
 import com.ibm.icu.util.TimeUnit;
 import com.ibm.icu.util.TimeUnitAmount;
 import com.ibm.icu.util.ULocale;
@@ -28,30 +24,6 @@ import com.ibm.icu.util.ULocale;
 public class TimeUnitTest extends TestFmwk {
     public static void main(String[] args) throws Exception{
         new TimeUnitTest().run(args);
-    }
-    
-    public void Test10219FractionalPlurals() {
-        TimeUnitFormat tuf = new TimeUnitFormat(ULocale.ENGLISH, TimeUnitFormat.FULL_NAME);
-        String[] expected = {"1 minute", "1.5 minutes", "1.58 minutes"};
-        for (int i = 2; i >= 0; i--) {
-            NumberFormat nf = NumberFormat.getNumberInstance(ULocale.ENGLISH);
-            nf.setRoundingMode(BigDecimal.ROUND_DOWN);
-            nf.setMaximumFractionDigits(i);
-            tuf.setNumberFormat(nf);
-            assertEquals("Test10219", expected[i], tuf.format(new TimeUnitAmount(1.588, TimeUnit.MINUTE)));
-        }   
-    }
-    
-    public void Test10219FactionalPluralsParse() throws ParseException {
-        TimeUnitFormat tuf = new TimeUnitFormat(ULocale.ENGLISH, TimeUnitFormat.FULL_NAME);
-        ParsePosition ppos = new ParsePosition(0);
-        String parseString = "1 minutes";
-        tuf.parseObject(parseString, ppos);
-        
-        // Parsing should go all the way to the end of the string.
-        // We want the longest match, and we don't care if the plural form of the unit
-        // matches the plural form of the number.
-        assertEquals("Test10219FractionalPluralParse", parseString.length(), ppos.getIndex());
     }
 
     public void TestBasic() {
@@ -116,30 +88,6 @@ public class TimeUnitTest extends TestFmwk {
         format.setNumberFormat(NumberFormat.getNumberInstance(new Locale("en")));
         formatParsing(format);
     }
-    
-    public void TestClone() {
-        TimeUnitFormat tuf = new TimeUnitFormat(ULocale.ENGLISH, TimeUnitFormat.ABBREVIATED_NAME);
-        NumberFormat nf = NumberFormat.getInstance();
-        tuf.setNumberFormat(nf);
-        TimeUnitFormat tufClone = (TimeUnitFormat) tuf.clone();
-        tuf.setLocale(Locale.GERMAN);
-        assertEquals("", "1 hr", tufClone.format(new TimeUnitAmount(1, TimeUnit.HOUR)));
-    }
-    
-    public void TestEqHashCode() {
-        TimeUnitFormat tf = new TimeUnitFormat(ULocale.ENGLISH, TimeUnitFormat.FULL_NAME);
-        MeasureFormat tfeq = new TimeUnitFormat(ULocale.ENGLISH, TimeUnitFormat.FULL_NAME);
-        
-        MeasureFormat tfne = new TimeUnitFormat(ULocale.ENGLISH, TimeUnitFormat.ABBREVIATED_NAME);
-        MeasureFormat tfne2 = new TimeUnitFormat(ULocale.GERMAN, TimeUnitFormat.FULL_NAME);
-        verifyEqualsHashCode(tf, tfeq, tfne);
-        verifyEqualsHashCode(tf, tfeq, tfne2);
-    }
-    
-    public void TestGetLocale() {
-        TimeUnitFormat tf = new TimeUnitFormat(ULocale.GERMAN);
-        assertEquals("", ULocale.GERMAN, tf.getLocale(ULocale.VALID_LOCALE));
-    }
 
     /*
      * @bug 7902
@@ -161,70 +109,62 @@ public class TimeUnitTest extends TestFmwk {
         int[] numbers = new int[] {1, 7};
 
         String[] expected = {
-                // "el_GR" 1 wide
-                "1 δευτερόλεπτο",
-                "1 λεπτό",
-                "1 ώρα",
-                "1 ημέρα",
-                "1 εβδομάδα",
-                "1 μήνας",
-                "1 έτος",
-                // "el_GR" 1 short
-                "1 δευτ.",
-                "1 λεπ.",
-                "1 ώρα",
-                "1 ημέρα",
-                "1 εβδ.",
-                "1 μήν.",
-                "1 έτ.",	        // year (one)
-                // "el_GR" 7 wide
-                "7 δευτερόλεπτα",
-                "7 λεπτά",
-                "7 ώρες",
-                "7 ημέρες",
-                "7 εβδομάδες",
-                "7 μήνες",
-                "7 έτη",
-                // "el_GR" 7 short
-                "7 δευτ.",
-                "7 λεπ.",
-                "7 ώρ.",		    // hour (other)
-                "7 ημέρες",
-                "7 εβδ.",
-                "7 μήν.",
-                "7 έτ.",            // year (other)
-                // "el" 1 wide
-                "1 δευτερόλεπτο",
-                "1 λεπτό",
-                "1 ώρα",
-                "1 ημέρα",
-                "1 εβδομάδα",
-                "1 μήνας",
-                "1 έτος",
-                // "el" 1 short
-                "1 δευτ.",
-                "1 λεπ.",
-                "1 ώρα",
-                "1 ημέρα",
-                "1 εβδ.",
-                "1 μήν.",
-                "1 έτ.",	        // year (one)
-                // "el" 7 wide
-                "7 δευτερόλεπτα",
-                "7 λεπτά",
-                "7 ώρες",
-                "7 ημέρες",
-                "7 εβδομάδες",
-                "7 μήνες",
-                "7 έτη",
-                // "el" 7 short
-                "7 δευτ.",
-                "7 λεπ.",
-                "7 ώρ.",		    // hour (other)
-                "7 ημέρες",
-                "7 εβδ.",
-                "7 μήν.",
-                "7 έτ."};           // year (other
+                "1 δευτερόλεπτο", 
+                "1 λεπτό", 
+                "1 ώρα", 
+                "1 ημέρα", 
+                "1 εβδομάδα", 
+                "1 μήνας", 
+                "1 έτος", 
+                "1 δευτ.", 
+                "1 λεπ.", 
+                "1 ώρα", 
+                "1 ημέρα", 
+                "1 εβδ.", 
+                "1 μήν.", 
+                "1 έτος", 
+                "7 δευτερόλεπτα", 
+                "7 λεπτά", 
+                "7 ώρες", 
+                "7 ημέρες", 
+                "7 εβδομάδες", 
+                "7 μήνες", 
+                "7 έτη", 
+                "7 δευτ.", 
+                "7 λεπ.", 
+                "7 ώρες", 
+                "7 ημέρες", 
+                "7 εβδ.", 
+                "7 μήν.", 
+                "7 έτη", 
+                "1 δευτερόλεπτο", 
+                "1 λεπτό", 
+                "1 ώρα", 
+                "1 ημέρα", 
+                "1 εβδομάδα", 
+                "1 μήνας", 
+                "1 έτος", 
+                "1 δευτ.", 
+                "1 λεπ.", 
+                "1 ώρα", 
+                "1 ημέρα", 
+                "1 εβδ.", 
+                "1 μήν.", 
+                "1 έτος", 
+                "7 δευτερόλεπτα", 
+                "7 λεπτά", 
+                "7 ώρες", 
+                "7 ημέρες", 
+                "7 εβδομάδες", 
+                "7 μήνες", 
+                "7 έτη", 
+                "7 δευτ.", 
+                "7 λεπ.", 
+                "7 ώρες", 
+                "7 ημέρες", 
+                "7 εβδ.", 
+                "7 μήν.", 
+                "7 έτη"}; 
 
         int counter = 0;
         TimeUnitFormat timeUnitFormat;
@@ -387,33 +327,5 @@ public class TimeUnitTest extends TestFmwk {
         TimeUnitFormat tuf1 = new TimeUnitFormat();
         tuf1.setNumberFormat(NumberFormat.getInstance());
         tuf1.parseObject("", new ParsePosition(0));
-    }
-    
-    public void TestStandInForMeasureFormat() {
-        TimeUnitFormat tuf = new TimeUnitFormat(ULocale.FRENCH, TimeUnitFormat.ABBREVIATED_NAME);
-        Measure measure = new Measure(23, MeasureUnit.CELSIUS);
-        assertEquals("23 °C", "23 °C", tuf.format(measure));
-        tuf = new TimeUnitFormat(ULocale.FRENCH, TimeUnitFormat.FULL_NAME);
-        assertEquals(
-                "70 pied et 5,3 pouces",
-                "70 pieds et 5,3 pouces",
-                tuf.formatMeasures(
-                        new Measure(70, MeasureUnit.FOOT),
-                        new Measure(5.3, MeasureUnit.INCH)));
-        assertEquals("getLocale", ULocale.FRENCH, tuf.getLocale());
-        assertEquals("getNumberFormat", ULocale.FRENCH, tuf.getNumberFormat().getLocale(ULocale.VALID_LOCALE));
-        assertEquals("getWidth", MeasureFormat.FormatWidth.WIDE, tuf.getWidth());
-    }
-    
-    private void verifyEqualsHashCode(Object o, Object eq, Object ne) {
-        assertEquals("verifyEqualsHashCodeSame", o, o);
-        assertEquals("verifyEqualsHashCodeEq", o, eq);
-        assertNotEquals("verifyEqualsHashCodeNe", o, ne);
-        assertNotEquals("verifyEqualsHashCodeEqTrans", eq, ne);
-        assertEquals("verifyEqualsHashCodeHashEq", o.hashCode(), eq.hashCode());
-        
-        // May be a flaky test, but generally should be true.
-        // May need to comment this out later.
-        assertNotEquals("verifyEqualsHashCodeHashNe", o.hashCode(), ne.hashCode());
     }
 }

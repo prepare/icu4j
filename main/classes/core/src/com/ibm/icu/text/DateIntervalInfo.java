@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2008-2014, International Business Machines Corporation and    *
+ * Copyright (C) 2008-2013, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.MissingResourceException;
@@ -24,7 +23,6 @@ import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Freezable;
-import com.ibm.icu.util.ICUCloneNotSupportedException;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 
@@ -283,7 +281,7 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
     // HashMap( skeleton, HashMap(largest_different_field, pattern) )
     private Map<String, Map<String, PatternInfo>> fIntervalPatterns = null;
 
-    private transient volatile boolean frozen = false;
+    private transient boolean frozen = false;
     
     // If true, fIntervalPatterns should not be modified in-place because it
     // is shared with other objects. Unlike frozen which is always true once
@@ -306,7 +304,6 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public DateIntervalInfo() 
     {
         fIntervalPatterns = new HashMap<String, Map<String, PatternInfo>>();
@@ -326,19 +323,6 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
         initializeData(locale);
     }
 
-
-    /** 
-     * Construct DateIntervalInfo for the given JDK locale,
-     * @param locale  the interval patterns are loaded from the appropriate 
-     *                calendar data (specified calendar or default calendar)
-     *                in this locale.
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release.
-     */
-    public DateIntervalInfo(Locale locale) 
-    {
-        this(ULocale.forLocale(locale));
-    }
 
     /*
      * Initialize the DateIntervalInfo from locale
@@ -666,10 +650,8 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
      * @param laterDateFirst   whether the first date in intervalPattern
      *                         is earlier date or later date
      * @return                 pattern info object
-     * @internal
-     * @deprecated This API is ICU internal only.
      */
-    public static PatternInfo genPatternInfo(String intervalPattern, 
+    static PatternInfo genPatternInfo(String intervalPattern, 
                                       boolean laterDateFirst) {
         int splitPoint = splitPatternInto2Part(intervalPattern);
         
@@ -804,7 +786,7 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
             return other;
         } catch ( CloneNotSupportedException e ) {
             ///CLOVER:OFF
-            throw new  ICUCloneNotSupportedException("clone is not supported", e);
+            throw new  IllegalStateException("clone is not supported");
             ///CLOVER:ON
         }
     }
@@ -841,8 +823,8 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
      * @stable ICU 4.4
      */
     public DateIntervalInfo freeze() {
-        fIntervalPatternsReadOnly = true;
         frozen = true;
+        fIntervalPatternsReadOnly = true;
         return this;
     }
     
@@ -1003,7 +985,6 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
      * @internal CLDR
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public Map<String,Set<String>> getPatterns() {
         LinkedHashMap<String,Set<String>> result = new LinkedHashMap<String,Set<String>>();
         for (Entry<String, Map<String, PatternInfo>> entry : fIntervalPatterns.entrySet()) {

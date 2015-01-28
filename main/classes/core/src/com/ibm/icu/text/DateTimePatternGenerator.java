@@ -1,6 +1,6 @@
 /*
  ********************************************************************************
- * Copyright (C) 2006-2014, Google, International Business Machines Corporation *
+ * Copyright (C) 2006-2013, Google, International Business Machines Corporation *
  * and others. All Rights Reserved.                                             *
  ********************************************************************************
  */
@@ -16,7 +16,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Set;
@@ -30,7 +29,6 @@ import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Freezable;
-import com.ibm.icu.util.ICUCloneNotSupportedException;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.ULocale.Category;
 import com.ibm.icu.util.UResourceBundle;
@@ -88,16 +86,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
     }
 
     /**
-     * Construct a flexible generator according to data for a given locale.
-     * @param locale The JDK locale to pass.
-     * @draft ICU 54
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static DateTimePatternGenerator getInstance(Locale locale) {
-        return getInstance(ULocale.forLocale(locale));
-    }
-
-    /**
      * Construct a frozen instance of DateTimePatternGenerator for a
      * given locale.  This method returns a cached frozen instance of
      * DateTimePatternGenerator, so less expensive than the regular
@@ -107,7 +95,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static DateTimePatternGenerator getFrozenInstance(ULocale uLocale) {
         String localeKey = uLocale.toString();
         DateTimePatternGenerator result = DTPNG_CACHE.get(localeKey);
@@ -255,7 +242,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public char getDefaultHourFormatChar() {
         return defaultHourFormatChar;
     }
@@ -264,7 +250,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public void setDefaultHourFormatChar(char defaultHourFormatChar) {
         this.defaultHourFormatChar = defaultHourFormatChar;
     }
@@ -344,7 +329,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
      * @internal CLDR
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static int getAppendFormatNumber(String string) {
         for (int i = 0; i < CLDR_FIELD_APPEND.length; ++i) {
             if (CLDR_FIELD_APPEND[i].equals(string)) return i;
@@ -512,7 +496,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public DateTimePatternGenerator addPatternWithSkeleton(String pattern, String skeletonToUse, boolean override, PatternInfo returnInfo) {
         checkFrozen();
         DateTimeMatcher matcher;
@@ -581,7 +564,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public String getSkeletonAllowingDuplicates(String pattern) {
         synchronized (this) { // synchronized since a getter must be thread-safe
             current.set(pattern, fp, true);
@@ -598,7 +580,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public String getCanonicalSkeletonAllowingDuplicates(String pattern) {
         synchronized (this) { // synchronized since a getter must be thread-safe
             current.set(pattern, fp, true);
@@ -774,7 +755,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public Collection<String> getRedundants(Collection<String> output) {
         synchronized (this) { // synchronized since a getter must be thread-safe
             if (output == null) {
@@ -927,7 +907,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static final int MATCH_MINUTE_FIELD_LENGTH = 1 << MINUTE;
 
     /**
@@ -935,7 +914,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static final int MATCH_SECOND_FIELD_LENGTH = 1 << SECOND;
 
     /**
@@ -1017,7 +995,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static boolean isSingleField(String skeleton) {
         char first = skeleton.charAt(0);
         for (int i = 1; i < skeleton.length(); ++i) {
@@ -1099,7 +1076,7 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
             return result;
         } catch (CloneNotSupportedException e) {
             ///CLOVER:OFF
-            throw new ICUCloneNotSupportedException("Internal Error", e);
+            throw new IllegalArgumentException("Internal Error");
             ///CLOVER:ON
         }
     }
@@ -1114,7 +1091,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public static class VariableField {
         private final String string;
         private final int canonicalIndex;
@@ -1125,7 +1101,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public VariableField(String string) {
             this(string, false);
         }
@@ -1137,7 +1112,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public VariableField(String string, boolean strict) {
             canonicalIndex = DateTimePatternGenerator.getCanonicalIndex(string, strict);
             if (canonicalIndex < 0) {
@@ -1155,7 +1129,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public int getType() {
             return types[canonicalIndex][1];
         }
@@ -1164,7 +1137,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public static String getCanonicalCode(int type) {
             try {
                 return CANONICAL_ITEMS[type];
@@ -1178,7 +1150,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public boolean isNumeric() {
             return types[canonicalIndex][2] > 0;
         }
@@ -1195,7 +1166,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public String toString() {
             return string;
         }
@@ -1227,13 +1197,11 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     static public class FormatParser {
-        private static final UnicodeSet SYNTAX_CHARS = new UnicodeSet("[a-zA-Z]").freeze();
-        private static final UnicodeSet QUOTING_CHARS = new UnicodeSet("[[[:script=Latn:][:script=Cyrl:]]&[[:L:][:M:]]]").freeze();
         private transient PatternTokenizer tokenizer = new PatternTokenizer()
-        .setSyntaxCharacters(SYNTAX_CHARS)
-        .setExtraQuotingCharacters(QUOTING_CHARS)
+        .setSyntaxCharacters(new UnicodeSet("[a-zA-Z]"))
+        .setExtraQuotingCharacters(new UnicodeSet("[[[:script=Latn:][:script=Cyrl:]]&[[:L:][:M:]]]"))
+        //.setEscapeCharacters(new UnicodeSet("[^\\u0020-\\u007E]")) // WARNING: DateFormat doesn't accept \\uXXXX
         .setUsingQuote(true);
         private List<Object> items = new ArrayList<Object>();
 
@@ -1242,7 +1210,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public FormatParser() {
         }
 
@@ -1253,7 +1220,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         final public FormatParser set(String string) {
             return set(string, false);
         }
@@ -1266,7 +1232,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public FormatParser set(String string, boolean strict) {
             items.clear();
             if (string.length() == 0) return this;
@@ -1323,6 +1288,8 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
         //        /**
         //         * Produce a string which concatenates all the variables. That is, it is the logically the same as the input with all literals removed.
         //         * @return a string which is a concatenation of all the variable fields
+        //         * @internal
+        //         * @deprecated This API is ICU internal only.
         //         */
         //        public String getVariableFieldString() {
         //            List list = getVariableFields(null);
@@ -1346,7 +1313,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public List<Object> getItems() {
             return items;
         }
@@ -1356,7 +1322,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public String toString() {
             return toString(0, items.size());
         }
@@ -1369,7 +1334,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public String toString(int start, int limit) {
             StringBuilder result = new StringBuilder();
             for (int i = start; i < limit; ++i) {
@@ -1390,7 +1354,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public boolean hasDateAndTimeFields() {
             int foundMask = 0;
             for (Object item : items) {
@@ -1409,6 +1372,8 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
         //         * @param value
         //         * @param result
         //         * @return list
+        //         * @internal
+        //         * @deprecated This API is ICU internal only.
         //         */
         //        public List getAutoPatterns(String value, List result) {
         //            if (result == null) result = new ArrayList();
@@ -1502,7 +1467,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        @Deprecated
         public Object quoteLiteral(String string) {
             return tokenizer.quoteLiteral(string);
         }
@@ -1525,7 +1489,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
     * @internal
     * @deprecated This API is ICU internal only.
     */
-    @Deprecated
     public boolean skeletonsAreSimilar(String id, String skeleton) {
         if (id.equals(skeleton)) {
             return true; // fast path
@@ -1599,7 +1562,7 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
     private char defaultHourFormatChar = 'H';
     //private boolean chineseMonthHack = false;
     //private boolean isComplete = false;
-    private volatile boolean frozen = false;
+    private boolean frozen = false;
 
     private transient DateTimeMatcher current = new DateTimeMatcher();
     private transient FormatParser fp = new FormatParser();
@@ -1834,7 +1797,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Deprecated
     public String getFields(String pattern) {
         fp.set(pattern);
         StringBuilder newPattern = new StringBuilder();
