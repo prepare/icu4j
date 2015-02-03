@@ -22,34 +22,38 @@ import com.ibm.icu.dev.test.TestUtil;
 public class DataDrivenNumberFormatTestSuite {
     
     /**
-     * A data driven test runner.
+     * Base class for code under test.
      */
-    public interface Runner {
+    public static abstract class CodeUnderTest {
         /**
-         * Runs a single data driven test represented by tuple. On success, returns null.
-         * On failure, returns the error.
+         *  Runs a single formatting test. On success, returns null.
+         *  On failure, returns the error. This implementation just returns null.
+         *  Subclasses should override.
+         *  @param tuple contains the parameters of the format test.
          */
-        String run(NumberFormatTestTuple tuple);
+        public String format(NumberFormatTestTuple tuple) {
+            return null;
+        }
     }
     
     private final TestFmwk fmwk;
-    private final Runner formatRunner;
-    private final boolean runAllTests;
+    private final CodeUnderTest codeUnderTest;
     private String fileLine = null;
     private int fileLineNumber = 0;
     private String fileTestName = "";
     private NumberFormatTestTuple tuple = new NumberFormatTestTuple();
       
     /**
-     * Runs all the format tests in the data driven test suite that should pass.
+     * Runs all the tests in the data driven test suite that should pass.
      * @param fmwk the test framework.
      * @param fileName The name of the test file.
-     * @param formatRunner What runs each test.
+     * @param code indicates the source of code under test. e.g 'J' or 'K'.
+     *   'J' for ICU, and 'K' for JDK. Used to exclude tests that are known to fail.
      */
-    static void runFormatSuite(
-            com.ibm.icu.dev.test.TestFmwk fmwk, String fileName, Runner formatRunner) {
+    static void runSuite(
+            com.ibm.icu.dev.test.TestFmwk fmwk, String fileName, CodeUnderTest codeUnderTest, char code) {
         new DataDrivenNumberFormatTestSuite(
-                fmwk, false, formatRunner).run(fileName);
+                fmwk, codeUnderTest).run(fileName, Character.toUpperCase(code));
     }
     
     /**
@@ -58,22 +62,20 @@ public class DataDrivenNumberFormatTestSuite {
      * 
      * @param fmwk the test framework.
      * @param fileName The name of the test file.
-     * @param formatRunner What runs each test.
      */
     static void runFormatSuiteIncludingKnownFailures(
-            com.ibm.icu.dev.test.TestFmwk fmwk, String fileName, Runner formatRunner) {
+            com.ibm.icu.dev.test.TestFmwk fmwk, String fileName, CodeUnderTest codeUnderTest) {
         new DataDrivenNumberFormatTestSuite(
-                fmwk, true, formatRunner).run(fileName);
+                fmwk, codeUnderTest).run(fileName, (char) 0);
     }
     
     private DataDrivenNumberFormatTestSuite(
-            TestFmwk fmwk, boolean runAllTests, Runner formatRunner) {
+            TestFmwk fmwk, CodeUnderTest codeUnderTest) {
         this.fmwk = fmwk;
-        this.runAllTests = runAllTests;
-        this.formatRunner = formatRunner;
+        this.codeUnderTest = codeUnderTest;
     }
        
-    private void run(String fileName) {
+    private void run(String fileName, char code) {
         BufferedReader in = null;
         try {
             in = TestUtil.getDataReader("numberformattestspecification.txt", "UTF-8");
@@ -119,11 +121,16 @@ public class DataDrivenNumberFormatTestSuite {
                     state = 2;
                 // run the tests
                 } else {
-                    columnValues = splitBy(columnNames.size(), (char) 0x09);
-                    for (int i = 0; i < columnValues.size(); ++i) {
+                    int columnNamesSize = columnNames.size();
+                    columnValues = splitBy(columnNamesSize, (char) 0x09);
+                    int columnValuesSize = columnValues.size();
+                    for (int i = 0; i < columnValuesSize; ++i) {
                         setField(columnNames.get(i), columnValues.get(i));
                     }
-                    if (runAllTests || !breaksJ()) {
+                    for (int i = columnValuesSize; i < columnNamesSize; ++i) {
+                        clearField(columnNames.get(i));
+                    }
+                    if (code == 0 || !breaks(code)) {
                         String errorMessage = isPass(tuple);
                         if (errorMessage != null) {
                             showError(errorMessage);
@@ -148,8 +155,8 @@ public class DataDrivenNumberFormatTestSuite {
         }
     }
 
-    private boolean breaksJ() {
-       return (tuple.breaks.getValue("").toUpperCase().indexOf('J') != -1);
+    private boolean breaks(char code) {
+       return (tuple.breaks.getValue("").toUpperCase().indexOf(code) != -1);
     }
 
     private static boolean isSpace(char c) {
@@ -170,6 +177,15 @@ public class DataDrivenNumberFormatTestSuite {
             tuple.setField(name,  unescape(value));
         } catch (Exception e) {
             showError("No such field: " + name + ", or bad value: " + value);
+            throw new DataDrivenException();
+        }
+    }
+    
+    private void clearField(String name) {
+        try {
+            tuple.clearField(name);
+        } catch (Exception e) {
+            showError("Field cannot be clared: " + name);
             throw new DataDrivenException();
         }
     }
@@ -300,7 +316,7 @@ public class DataDrivenNumberFormatTestSuite {
     private String isPass(NumberFormatTestTuple tuple) {
         StringBuilder result = new StringBuilder();
         if (tuple.format.isValue() && tuple.output.isValue()) {
-            String errorMessage = formatRunner.run(tuple);
+            String errorMessage = codeUnderTest.format(tuple);
             if (errorMessage != null) {
                 result.append(errorMessage);
             }

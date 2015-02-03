@@ -168,12 +168,34 @@ public class NumberFormatTestTuple {
     
     // end field setters.
     
+    // start of field clearers
+    // Add clear methods that can be set in one test and cleared
+    // in the next i.e the breaks field.
+    
+    public void clearBreaks() {
+        breaks = Maybe.nothing();
+    }
+    
+    // end field clearers
+    
     public void setField(String fieldName, String valueString)
             throws NoSuchMethodException {
         Method m = getClass().getMethod(
                 fieldToSetter(fieldName), String.class);
         try {
             m.invoke(this, valueString);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    public void clearField(String fieldName)
+            throws NoSuchMethodException {
+        Method m = getClass().getMethod(fieldToClearer(fieldName));
+        try {
+            m.invoke(this);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         } catch (InvocationTargetException e) {
@@ -213,6 +235,12 @@ public class NumberFormatTestTuple {
 
     private static String fieldToSetter(String fieldName) {
         return "set"
+                + Character.toUpperCase(fieldName.charAt(0))
+                + fieldName.substring(1);
+    }
+    
+    private static String fieldToClearer(String fieldName) {
+        return "clear"
                 + Character.toUpperCase(fieldName.charAt(0))
                 + fieldName.substring(1);
     }

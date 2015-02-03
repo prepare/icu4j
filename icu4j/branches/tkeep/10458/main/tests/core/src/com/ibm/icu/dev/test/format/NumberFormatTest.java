@@ -42,9 +42,9 @@ import com.ibm.icu.util.ULocale;
 
 public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         
-    private DataDrivenNumberFormatTestSuite.Runner FORMAT_RUNNER =
-            new DataDrivenNumberFormatTestSuite.Runner() {
-                public String run(NumberFormatTestTuple tuple) {
+    private DataDrivenNumberFormatTestSuite.CodeUnderTest ICU =
+            new DataDrivenNumberFormatTestSuite.CodeUnderTest() {
+                public String format(NumberFormatTestTuple tuple) {
                     ULocale en = new ULocale("en");
                     DecimalFormat fmt = new DecimalFormat(
                             tuple.pattern.getValue("0"),
@@ -75,6 +75,41 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                     return null;
                 }
     };
+    
+    private DataDrivenNumberFormatTestSuite.CodeUnderTest JDK =
+            new DataDrivenNumberFormatTestSuite.CodeUnderTest() {
+                public String format(NumberFormatTestTuple tuple) {
+                    ULocale en = new ULocale("en");
+                    java.text.DecimalFormat fmt = new java.text.DecimalFormat(
+                            tuple.pattern.getValue("0"),
+                            new java.text.DecimalFormatSymbols(tuple.locale.getValue(en).toLocale()));
+                    if (tuple.minIntegerDigits.isValue()) {
+                        fmt.setMinimumIntegerDigits(tuple.minIntegerDigits.getValue());
+                    }
+                    if (tuple.maxIntegerDigits.isValue()) {
+                        fmt.setMaximumIntegerDigits(tuple.maxIntegerDigits.getValue());
+                    }
+                    if (tuple.minFractionDigits.isValue()) {
+                        fmt.setMinimumFractionDigits(tuple.minFractionDigits.getValue());
+                    }
+                    if (tuple.maxFractionDigits.isValue()) {
+                        fmt.setMaximumFractionDigits(tuple.maxFractionDigits.getValue());
+                    }
+                    if (tuple.currency.isValue()) {
+                        fmt.setCurrency(java.util.Currency.getInstance(tuple.currency.getValue().toString()));
+                    }
+                    if (tuple.minGroupingDigits.isValue()) {
+                        // Oops we don't support this.
+                    }
+                    String actual = fmt.format(new BigDecimal(tuple.format.getValue()));
+                    String expected = tuple.output.getValue();
+                    if (!expected.equals(actual)) {
+                        return "Expected " + expected + ", got " + actual;
+                    }
+                    return null;
+                }
+    };
+
 
     public static void main(String[] args) throws Exception {
         new NumberFormatTest().run(args);
@@ -3774,8 +3809,13 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         assertEquals("", "a\\u00A0big bear", DataDrivenNumberFormatTestSuite.escape("a\u00a0big bear"));
     }
     
-    public void TestDataDrivenSpecification() {
-        DataDrivenNumberFormatTestSuite.runFormatSuite(
-                this, "numberformattestspecification.txt", FORMAT_RUNNER);
+    public void TestDataDrivenICU() {
+        DataDrivenNumberFormatTestSuite.runSuite(
+                this, "numberformattestspecification.txt", ICU, 'J');
+    } 
+    
+    public void TestDataDrivenJDK() {
+        DataDrivenNumberFormatTestSuite.runSuite(
+                this, "numberformattestspecification.txt", JDK, 'K');
     } 
 }
