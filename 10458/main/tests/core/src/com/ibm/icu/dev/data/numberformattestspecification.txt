@@ -31,33 +31,33 @@ format	output
 test rounding
 set locale fr
 begin
-pattern	format	output
-0.5	1.25	1,0
-0.5	1.75	2,0
-0.5	-1.25	-1,0
-00.5	-1.75	-02,0
-4	2.0	0
-4	6.0	8
-4	10.0	8
-2.70	99.0	99,90
-2.73	272.0	273,00
-#,#3.70	104.0	1\u00a003,60
+pattern	format	output	breaks
+0.5	1.25	1,0	K
+0.5	1.75	2,0	K
+0.5	-1.25	-1,0	K
+00.5	-1.75	-02,0	K
+4	2.0	0	K
+4	6.0	8	K
+4	10.0	8	K
+2.70	99.0	99,90	K
+2.73	272.0	273,00	K
+#,#3.70	104.0	1\u00a003,60	K
 
 test significant digits
 set locale en
 set pattern #,#@,@###
 begin
-format	output
-7	7.0
-23	23
-100	100
-1000	1000
-10000	1,0000
-10001	1,0001
-10001.5	1,0002
-1234567	1,23,4600
--1234567	-1,23,4600
-3.14159	3.1416
+format	output	breaks
+7	7.0	K
+23	23	K
+100	100	K
+1000	1000	K
+10000	1,0000	K
+10001	1,0001	K
+10001.5	1,0002	K
+1234567	1,23,4600	K
+-1234567	-1,23,4600	K
+3.14159	3.1416	K
 
 test scientific notation
 set locale fr
@@ -68,80 +68,94 @@ pattern	format	output	breaks
 000.0#E0	12300	123,0E2
 000.0#E0	12300.1	123,0E2
 000.0#E0	12301.0	123,01E2
-000.0#E+00	12301.0	123,01E+02
-##0.00E0	12345	12,3E3
-##0.0000E0	12300.1	12,300E3
-##0.000#E0	12300.1	12,30E3
+// JDK does not support exponent signs
+000.0#E+00	12301.0	123,01E+02	K
+// JDK gives 12,345E3. JDK seems to include the hashes in significant digits
+##0.00E0	12345	12,3E3	K
+// JDK gives 12,3001E3
+##0.0000E0	12300.1	12,300E3	K
+// JDK gives 12,3001E3
+##0.000#E0	12300.1	12,30E3	K
 ##0.000#E0	12301	12,301E3
 // This should round to nearest 0.05E4 but instead round to nearest 0.05
-0.05E0	12301.2	1,25E4	CJ
+0.05E0	12301.2	1,25E4	CJK
 ##0.000#E0	0.17	170,0E-3
 
 test percents
 set locale fr
 begin
-pattern	format	output
+pattern	format	output	breaks
 0.0%	0.573	57,3%
 %0.0	0.573	%57,3
 p%p0.0	0.573	p%p57,3
 p'%'p0.0	0.573	p%p0,6
-%@@@@	0.0326	%3,260
-%#,@@@	15.43	%1\u00a0540
-%#,##4.1	16.55	%1\u00a0656,4
-%##0.00E0	162.55	%16,3E3
+%@@@@	0.0326	%3,260	K
+%#,@@@	15.43	%1\u00a0540	K
+// JDK does not support rounding increments
+%#,##4.1	16.55	%1\u00a0656,4	K
+// JDK gives %16,255E3
+%##0.00E0	162.55	%16,3E3	K
 
 test permille
 set locale fr
 begin
-pattern	format	output
+pattern	format	output	breaks
 0.0\u2030	0.573	573,0\u2030
 \u20300.0	0.573	\u2030573,0
 p\u2030p0.0	0.573	p\u2030p573,0
 p'\u2030'p0.0	0.573	p\u2030p0,6
-\u2030@@@@	0.0326	\u203032,60
-\u2030#,@@@	15.43	\u203015\u00a0400
-\u2030#,##4.1	16.55	\u203016\u00a0551,7
-\u2030##0.00E0	162.55	\u2030163E3
+\u2030@@@@	0.0326	\u203032,60	K
+\u2030#,@@@	15.43	\u203015\u00a0400	K
+\u2030#,##4.1	16.55	\u203016\u00a0551,7	K
+// JDK gives \u2030162,55E3
+\u2030##0.00E0	162.55	\u2030163E3	K
 
 test padding
 set locale fr_FR
 begin
 pattern	format	output	breaks
-$**####,##0	1234	$***1\u00a0234
-*x$####,##0	1234	xxx$1\u00a0234
-####,##0*x$	1234	1\u00a0234xxx$
-####,##0$*x	1234	1\u00a0234$xxx
-####,##0$*x;ne#n	-1234	ne1\u00a0234nx
-####,##0$*x;n#'*'	-1234	n1\u00a0234*xx
-*y%4.2######	4.33	yyyy%432,6
+// JDK does not seem to support padding
+$**####,##0	1234	$***1\u00a0234	K
+*x$####,##0	1234	xxx$1\u00a0234	K
+####,##0*x$	1234	1\u00a0234xxx$	K
+####,##0$*x	1234	1\u00a0234$xxx	K
+// JDK doesn't seem to handle suffixes correctly dropping the 'nx' entirely
+####,##0$*x;ne#n	-1234	ne1\u00a0234nx	K
+####,##0$*x;n#'*'	-1234	n1\u00a0234*xx	K
+*y%4.2######	4.33	yyyy%432,6	K
 // In C & J ICU adds padding as if 'EUR' is only 2 chars (2 * 0xa4)
-\u00a4\u00a4 **####0.00	433.0	EUR *433,00	CJ
+\u00a4\u00a4 **####0.00	433.0	EUR *433,00	CJK
 // In C & J ICU adds padding as if 'EUR' is only 2 chars (2 * 0xa4)
-\u00a4\u00a4 **#######0	433.0	EUR *433,00	CJ
+\u00a4\u00a4 **#######0	433.0	EUR *433,00	CJK
 
 test padding and currencies
 begin
 locale	currency	pattern	format	output	breaks
 // In J, JPY is considered 2 char (2 * 0xa4) even though padding is done
 // after prefix. In C this test works.
-fr	JPY	\u00a4\u00a4 **#######0	433.22	JPY ****433	J
-en	USD	\u00a4\u00a4 **#######0;\u00a4\u00a4 (#)	-433.22	USD (433.22)
+fr	JPY	\u00a4\u00a4 **#######0	433.22	JPY ****433	JK
+// JDK doesn't correct rounding for currency, shows USD (433
+en	USD	\u00a4\u00a4 **#######0;\u00a4\u00a4 (#)	-433.22	USD (433.22)	K
 
 test currencies
 set locale fr
 set format 1234.567
 begin
-pattern	currency	output
-#,##0.00 \u00a4	EUR	1\u00a0234,57 \u20ac
-#,##0.00 \u00a4	JPY	1\u00a0235 JPY
+pattern	currency	output	breaks
+// JDK gives shows EUR instead of the euro symbol in this case
+#,##0.00 \u00a4	EUR	1\u00a0234,57 \u20ac	K
+// JDK gives 1\u00A0234,57. JDK doesn't seem to correct rounding
+// based on currency.
+#,##0.00 \u00a4	JPY	1\u00a0235 JPY	K
 
 test prefixes and suffixes
 set locale en
 set pattern 0.00+;(#)
 begin
-format	output
+format	output	breaks
 7	7.00+
--3.5	(3.50)
+// JDK does not support negative suffixes
+-3.5	(3.50)	K
 
 test minimum grouping digits
 set locale en
@@ -149,11 +163,75 @@ set pattern #,##0
 set minGroupingDigits 2
 begin
 format	output	breaks
-1000	1000	CJ
+// min grouping digits not supported in any existing implementation
+// but is supported in the new C code.
+1000	1000	CJK
 10000	10,000
 100000	100,000
 1000000	1,000,000
 
+test min max fraction digits
+set locale en
+set pattern #,##0.###
+set format 1234.567
+begin
+minFractionDigits	maxFractionDigits	output
+0	0	1,235
+0	2	1,234.57
+4	5	1,234.5670
 
+test min max integer digits
+set locale en
+set pattern #,##0.###
+set format 1234.567
+begin
+minIntegerDigits	maxIntegerDigits	output
+0	0	.567
+0	3	234.567
+5	5	01,234.567
+
+test min max fraction digits scientific
+set locale en
+set pattern #E0
+set format 299792458.0
+begin
+minIntegerDigits	maxIntegerDigits	minFractionDigits	maxFractionDigits	output	breaks
+// JDK gives .3E9 instead of unlimited precision.
+0	1	0	0	2.99792458E8	K
+1	1	0	0	3E8
+// JDK gives E0 instead of allowing for unlimited precision
+0	0	0	0	2.99792458E8	K
+// JDK gives .299792E9
+0	1	0	5	2.9979E8	K
+// JDK gives 300E6	
+0	3	0	0	299.792458E6	K
+// JDK gives 299.8E6 (maybe maxInt + maxFrac instead of minInt + maxFrac)?
+0	3	0	1	300E6	K
+// JDK gives 299.7925E6
+2	3	0	4	299.792E6	K
+// JDK gives 299.79246E6
+2	3	0	5	299.7925E6	K
+3	3	0	5	299.79246E6
+3	3	0	4	299.7925E6
+2	2	0	3	29.979E7
+4	4	0	0	2998E5
+0	0	1	5	.29979E9
+// JDK gives E0
+0	0	1	0	2.99792458E8	K
+// JDK gives .2998E9
+0	0	0	4	2.998E8	K
+
+test min max fraction digits scientific 2
+set locale en
+set pattern #E0
+set format 29979245.0
+begin
+minIntegerDigits	maxIntegerDigits	minFractionDigits	maxFractionDigits	output	breaks
+// JDK gives E0
+0	0	0	0	2.9979245E7	K
+// JDK gives .3E8
+0	1	0	0	2.9979245E7	K
+// JDK gives 2998E4.
+0	4	0	0	2997.9245E4	K
 
 
