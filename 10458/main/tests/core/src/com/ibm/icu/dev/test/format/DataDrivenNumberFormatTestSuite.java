@@ -13,6 +13,7 @@ import java.util.List;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.dev.test.TestUtil;
+import com.ibm.icu.impl.Utility;
 
 /**
  * A collection of methods to run the data driven number format test suite.
@@ -174,7 +175,7 @@ public class DataDrivenNumberFormatTestSuite {
     
     private void setField(String name, String value) {
         try {
-            tuple.setField(name,  unescape(value));
+            tuple.setField(name,  Utility.unescape(value));
         } catch (Exception e) {
             showError("No such field: " + name + ", or bad value: " + value);
             throw new DataDrivenException();
@@ -191,7 +192,7 @@ public class DataDrivenNumberFormatTestSuite {
     }
     
     private void showError(String message) {
-        fmwk.errln(String.format("line %d: %s", fileLineNumber, escape(message)));
+        fmwk.errln(String.format("line %d: %s", fileLineNumber, Utility.escape(message)));
         fmwk.errln("    " + fileTestName);
         fmwk.errln("    " + fileLine);
     }
@@ -233,84 +234,6 @@ public class DataDrivenNumberFormatTestSuite {
         }
         fileLine = idx < line.length() ? line.substring(0, idx) : line;
         return true;
-    }
-    
-    private static char toHexDigit(int digit) {
-        if (digit < 10) {
-            return (char) (digit | 0x30);
-        }
-        return (char) ((digit - 9) | 0x40);
-    }
-    
-    // TODO(rocketman): See if there is already a function that converts non printable chars
-    // to \\uxxxx
-    static String escape(String s) {
-        StringBuilder result = new StringBuilder();
-        int len = s.length();
-        for (int i = 0; i < len; ++i) {
-            int ch = (s.charAt(i) & 0xffff);
-            if (ch >= 0x20 && ch < 0x80) {
-                result.append((char) ch);
-            } else {
-                result.append("\\u");
-                result.append(toHexDigit((ch & 0xf000) >> 12));
-                result.append(toHexDigit((ch & 0x0f00) >> 8));
-                result.append(toHexDigit((ch & 0x00f0) >> 4));
-                result.append(toHexDigit(ch & 0x000f));
-            }
-        }    
-        return result.toString();
-    }
-    
-    // TODO(rocketman): See if there is already a function that resolves \\uxxxx
-    static String unescape(String s) {
-        StringBuilder result = new StringBuilder();
-        int state = 0;
-        int len = s.length();
-        int codex = 0;
-        int digitCount = 0;
-        for (int i = 0; i < len; ++i) {
-            char ch = s.charAt(i);
-            if (state == 0) {
-                if (ch == '\\') {
-                    state = 1;
-                } else {
-                    result.append(ch);
-                }
-            } else if (state == 1) {
-                if (ch == 'u') {
-                    state = 2;
-                } else {
-                    result.append('\\');
-                    result.append(ch);   
-                    state = 0;
-                }
-            } else if (state == 2) {
-                if (ch >= '0' && ch <= '9') {
-                    codex <<= 4;
-                    codex |= (ch & 0x000f);
-                    digitCount++;
-                } else if ((ch >= 'A' && ch <= 'F') || (ch >= 'a' && ch <= 'f')) {
-                    codex <<= 4;
-                    codex |= (ch & 0x000f) + 9;
-                    digitCount++;
-                } else {
-                    throw new IllegalArgumentException("Must have \\uxxxx where x is a hex digit.");
-                }
-                if (digitCount == 4) {
-                    result.append((char) codex);
-                    codex = 0;
-                    digitCount = 0;
-                    state = 0;
-                }
-            }
-        }
-        if (state == 1) {
-            result.append('\\');
-        } else if (state == 2) {
-            throw new IllegalArgumentException("Must have \\uxxxx where x is a hex digit");
-        }
-        return result.toString();
     }
     
     private String isPass(NumberFormatTestTuple tuple) {
