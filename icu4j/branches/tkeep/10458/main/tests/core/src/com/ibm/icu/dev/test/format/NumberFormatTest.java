@@ -3801,14 +3801,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         }
     }
     
-    public void TestUnescape() {
-        assertEquals("", "a\u00a0big bear", DataDrivenNumberFormatTestSuite.unescape("a\\u00a0big bear"));
-    }
-    
-    public void testEscape() {
-        assertEquals("", "a\\u00A0big bear", DataDrivenNumberFormatTestSuite.escape("a\u00a0big bear"));
-    }
-    
     public void TestDataDrivenICU() {
         DataDrivenNumberFormatTestSuite.runSuite(
                 this, "numberformattestspecification.txt", ICU, 'J');
