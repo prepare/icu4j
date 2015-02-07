@@ -11,97 +11,47 @@
 
 package com.ibm.icu.impl;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.ibm.icu.util.Freezable;
 import com.ibm.icu.util.ICUCloneNotSupportedException;
 
 /**
- * ValueObject is the base class of JAVA objects that mimic C++ value objects
+ * ValueObject is the base class of objects that are designed mimic C++ value objects
  * (objects that override the assignment operator).
- * Because with JAVA everything is a reference except for the primitive types,
- * JAVA provides built-in value type semantics with the assignment operator only
- * for primitive types and immutable types like Strings. This base class
- * provides efficient value type semantics for mutable objects.
- * <p>
- * Assignment: <br><br>
- * Just use clone like this:
- * 
- * <pre>
- *  // lhs can be modified without affecting rhs and vice versa.
- * MyObject lhs = rhs.clone();
- * </pre>
- * <p>
- * Calling clone on a ValueObject subclass is generally faster than calling
- * clone on a typical JAVA object because only a shallow copy is necessary
- * to clone as long as all the members are primitive types, immutable types,
- * or ValueObject types (more on this later).
- * <p>
- * If you know that you aren't going to immediately modify lhs or rhs,
- * the freeze method also can be used for assignment like this:<br>
- * 
- * <pre>
- * MyObject lhs = rhs.freeze();
- * </pre>
- * <p>
- * freeze is even faster than clone because freeze marks rhs as read-only and then
- * returns rhs itself instead of a clone. However with this latter method,
- * copying is deferred until either lhs or rhs needs to change.<br>
- * <p>
- * Accessing fields and "const" methods in a ValueObject:<br>
- * <p>
- * To access fields in a ValueObject, use the supplied getXXX() methods.
- * ValueObject getXXX() methods are like C++ const getXXX() methods that return
- * either const pointers or primitive types. Therefore, the caller must not
- * modify any object directly using the reference returned from a getXXX() method.
- * With no construct like "const" in JAVA, it is up to the caller to ensure
- * that they don't violate this rule (We aren't enforcing this
- * rule at runtime for performance reasons but that could change).
- * When a getXXX() method returns a mutable object, and the caller
- * needs to hold onto it, it should clone it
- * as the original returned object could change. Likewise, if the caller
- * needs its own copy of a returned object that it can change it should clone it.
- * However when a getXXX() method returns a ValueObject and the caller needs to hold
- * onto it without changing it, the caller can just call freeze() on it to prevent it
- * from changing.<br>
- * <p>
- * Modifying a ValueObject:<br>
- * <p>
- * To modify a ValueObject, clone it first to ensure you have a thawed clone.
- * If you know that your object is already thawed (for instance you just
- * constructed it or it is a precondition), then calling clone isn't necessary.
- * Attempting to call any method on a frozen object that mutates
- * it including setter methods will throw UnsupportedOperationException.
- * Here is an example:<br>
- * 
- * <pre>
- * objectToBeModified = originalObject.clone();
- * objectToBeModified.setFoo(foo);
- * objectToBeModified.setBar(bar);
- * objectToBeModified.doSomeMutation();
- * </pre>
- * 
- * <p>
- * Modifying an embedded ValueObject within a ValueObject:<br>
- * <p>
- * Use the corresponding, getMutableXXX() method which is like a C++ non-cost
- * get method that returns a non-const pointer. Callers can safely modify
- * the embedded ValueObject through the reference returned by getMutableXXX().
- * However, callers should hold onto such references only for a short time
- * such as during one short code block or one short function. Holding onto them
- * longer could enable a caller to make changes to the embedded ValueObject
- * even after the enclosing object has been frozen.<br>
- * <p>
+ * ValueObject and it subclasses follow the contract of the freezable interface.
+ * ValueObject adds on the following features to the freezable interface:<br>
+ * <ul>
+ *   <li>cloneAsThawed does only a shallow copy unless the class contains fields that
+ *        are plain old mutable JAVA objects. It accomplishes this by freezing any
+ *        freezable fields.</li>
+ *   <li>getMutableXXX() methods to modify the contents of freezable fields in place.</li>
+ * </ul>
+ * <br><br>
+ * getMutableXXX() methods:<br>
+ * <br>
+ * A getMutableXXX() method returns a reference whereby the caller can safely modify
+ * the corresponding freezable field in place. Think of a getMutableXXX() method as
+ * a C++ non-const getter method that returns a non-const pointer.
+ * A getMutableXXX() method accomplishes this by thawing the corresponding frozen
+ * field in place and returning that thawed field.
+ * Thawing a field means doing nothing if it is not frozen and
+ * replacing the field with a thawed clone if it is frozen.
+ * Calling a getMutableXXX() method on a frozen object throws an exception.
+ * Callers should never attempt to modify an embedded object in
+ * place via a getXXX() method as this could result in thrown exceptions if the embedded
+ * object is frozen (Remember that cloneAsThawed() only does shallow copies).
+ * <br><br>
  * Writing your own ValueObject class:<br>
- * <p>
+ * <br>
  * To write your own ValueObject class consider the fields/attributes of the
- * class. Fields fall into the following categories.<br>
+ * class. Field types fall into the following categories.<br>
  * <ol>
  *   <li>Primitive types and immutable types</li>
- *   <li>Mutable ValueObject types</li>
+ *   <li>Freezable types</li>
  *   <li>Other mutable types</li>
  * </ol><br>
  * <p>
- * The code below demonstrates how.<br>
+ * The code below is a sample subclass of ValueObject.<br>
  * <p>
  * <pre>
  * public class MyClass extends ValueObject<MyClass> {
@@ -111,8 +61,8 @@ import com.ibm.icu.util.ICUCloneNotSupportedException;
  *   
  *   private int primitive = 0;
  *   private ImmutablePoint point = ImmutablePoint.valueOf(2, 3);
- *   private AValueObjectClass value = AValueObjectClass.DEFAULT;
- *   private AValueObjectClass optionalValue = null;
+ *   private FreezableClass value = FreezableClass.DEFAULT;
+ *   private FreezableClass optionalValue = null;
  *   private MutableClass pojo = new MutableClass();
  *   
  *   public int getPrimitive() { return primitive; }
@@ -132,73 +82,68 @@ import com.ibm.icu.util.ICUCloneNotSupportedException;
  *   }
  *   
  *   public void getPoint() { return point; }
- *   public void setPoint(Point p) {
+ *   public void setPoint(ImmutablePoint p) {
  *       checkThawed();
  *       point = p;
  *   }
  *   
- *   // Caller must take care not to modify returned
- *   // value directly.
- *   public AValueObjectClass getValue() { return value; }
+ *   public FreezableClass getValue() { return value; }
  *   
- *   // Remember getMutableXXX methods can only be used on
- *   // thawed objects.
- *   public AValueObjectClass getMutableValue() {
+ *   // Remember getMutableXXX methods cannot be called
+ *   // on frozen objects.
+ *   public FreezableClass getMutableValue() {
  *       // Throws exception if this object is frozen. Otherwise
  *       // thaws the 'value' field so caller can change it.
  *       value = safeThaw(value);
  *       return value;
  *   }
- *   public void setValue(AValueObjectClass v) {
+ *   public void setValue(FreezableClass v) {
  *       // Throws exception if this object is frozen.
  *       // or v is null. Otherwise
  *       // freezes v before setting it to value.
  *       this.value = safeSet(v);
  *   }
  *   
- *   // Caller must take care not to modify returned
- *   // value directly.
- *   public AValueObjectClass getOptionalValue() { return optionalValue; }
+ *   public FreezableClass getOptionalValue() { return optionalValue; }
  *   
- *   public void setOptionalValue(AValueObjectClass v) {
+ *   public void setOptionalValue(FreezableClass v) {
  *       // like safeSet, but handles v == null.
  *       this.value = optSafeSet(v);
  *   }
  *   
- *   // Caller must take care not to modify returned value directly.
- *   public MutableClass getPojo() { return pojo; }
+ *   public MutableClass getPojo() { return pojo.clone(); }
  *   public void setPojo(MutableClass o) {
  *       checkThawed();
  *       pojo = o == null ? null : o.clone();
  *   }
  *   
- *   // If MyClass contained only primitive fields and immutable fields
+ *   // If MyClass contained no ordinary mutable fields,
  *   // then it would not be necessary to override clone.
  *   public MyClass clone() {
- *       MyClass result = super.clone();
- *       
- *       // For each required ValueObject field, call freeze
- *       value.freeze();
- *       
- *       // For each optional ValueObject filed, call optFreeze
- *       optFreeze(optionalValue);
- *       
+ *     
  *       // For each mutable field, clone
  *       if (pojo != null)
- *           pojo = (MutableClass) pojo.clone();
+ *           pojo = pojo.clone();
  *       }
  *   }
+ *   
+ *   // Subclasses override only if they have freezable fields
+ *   protected void freezeFields() {
+ *       value.freeze();
+ *       optFreeze(optionalValue);
+ *   }
+ *   
  * }
  * </pre>
  * 
  * @param <T> The subclass of ValueObject.
  */
-public abstract class ValueObject<T extends ValueObject<T>> implements Cloneable {
+public abstract class ValueObject<T extends ValueObject<T>> implements Freezable<T>, Cloneable {
 
-    /** Initially thawed */
+    /** Initially not frozen */
     public ValueObject() {}
 
-    /** Returns a thawed clone */
+    /** Returns a thawed clone. */
     @SuppressWarnings("unchecked")
     @Override
     public T clone() {
@@ -209,8 +154,24 @@ public abstract class ValueObject<T extends ValueObject<T>> implements Cloneable
             // Should never happen.
             throw new ICUCloneNotSupportedException(e);
         }
-        c.frozen = new AtomicBoolean();
-        return c;
+        c.bFrozen = false;
+        c.freezeFields();
+        return c;   
+    }
+    
+    /**
+     * Returns whether or not this object is frozen according to the contract of freezable.
+     */
+    public boolean isFrozen() {
+        return bFrozen;
+    }
+    
+    /**
+     * Returns a thawed clone according to the contract of the freezable interface.
+     * Same as clone().
+     */
+    public final T cloneAsThawed() {
+        return clone();
     }
     
     /**
@@ -218,8 +179,24 @@ public abstract class ValueObject<T extends ValueObject<T>> implements Cloneable
      */
     @SuppressWarnings("unchecked")
     public final T freeze() { 
-        frozen.set(true);
+        boolean wasFrozen = bFrozen;
+        bFrozen = true;
+        if (!wasFrozen) {
+            freezeFields();
+        }
         return (T) this;
+    }
+    
+    /**
+     * freeze() calls this to freeze any fields that implement freezable if
+     * this object was not previously frozen already.
+     * Subclasses that have freezable fields override this method to freeze
+     * those fields. subclasses can use optFreeze to freeze fields that
+     * could be null.
+     */
+    protected void freezeFields() {
+        // Default implementation assumes there are no
+        // fields that implement Freezable.
     }
     
     /**
@@ -227,18 +204,18 @@ public abstract class ValueObject<T extends ValueObject<T>> implements Cloneable
      * ensure this object is thawed.
      */
     protected final void checkThawed() {
-        if (!isThawed()) {
+        if (isFrozen()) {
             throw new UnsupportedOperationException("Cannot modify a frozen object");
         }
     }
     
     /**
-     * Call within the setXXX method for an optional ValueObject attribute. See coding
+     * Call within the setXXX method for an optional, freezable field. See coding
      * example in documentation.
      * @param newValue the new value. May be null.
      * @return Returns the new value or null.
      */
-    protected final <U extends ValueObject<U>> U optSafeSet(U newValue) {
+    protected final <U extends Freezable<U>> U optSafeSet(U newValue) {
         checkThawed();
         if (newValue == null) {
             return null;
@@ -247,12 +224,12 @@ public abstract class ValueObject<T extends ValueObject<T>> implements Cloneable
     }
     
     /**
-     * Call within the setXXX method for a required ValueObject attribute. See coding
+     * Call within the setXXX method for a required, freezable field. See coding
      * example in documentation.
      * @param newValue the new value.
      * @return Returns the new value.
      */
-    protected final <U extends ValueObject<U>> U safeSet(U newValue) {
+    protected final <U extends Freezable<U>> U safeSet(U newValue) {
         if (newValue == null) {
             throw new NullPointerException("null not allowed in field.");
         }
@@ -262,37 +239,34 @@ public abstract class ValueObject<T extends ValueObject<T>> implements Cloneable
     
     /**
      * Call within a getMutableXXX method to thaw the corresponding
-     * attribute. See coding example in documentation.
+     * required ValueObject field. See coding example in documentation.
      * @param value the value to thaw
      * @return the thawed value.
      */
-    protected final <U extends ValueObject<U>> U safeThaw(U value) {
+    protected final <U extends Freezable<U>> U safeThaw(U value) {
         checkThawed();
-        return value.thaw();
+        return thaw(value);
     }
     
     /**
-     * Call within the clone method to freeze an optional embedded ValueObject.
+     * Call within the clone method or freezeFields method
+     * to freeze an optional, freezable field.
      * See coding example in documentation.
      * @param value The value to freeze. May be null.
      */
-    protected final void optFreeze(ValueObject<?> value) {
+    protected final void optFreeze(Freezable<?> value) {
         if (value != null) {
             value.freeze();
         }
     }
     
-    private boolean isThawed() {
-        return !frozen.get();
-    }
-    
     @SuppressWarnings("unchecked")
-    private T thaw() {
-        if (isThawed()) {
-            return (T) this;
+    private static <U extends Freezable<U>> U thaw(U value) {
+        if (!value.isFrozen()) {
+            return value;
         }
-        return clone();
+        return value.cloneAsThawed();
     }
 
-    private AtomicBoolean frozen = new AtomicBoolean();
+    private volatile boolean bFrozen = false;
 }

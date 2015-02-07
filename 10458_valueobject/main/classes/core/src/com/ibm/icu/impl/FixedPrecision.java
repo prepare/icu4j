@@ -46,11 +46,11 @@ public class FixedPrecision extends ValueObject<FixedPrecision> {
         this.sig = safeSet(interval);
     }
     
-    public FixedPrecision clone() {
-        FixedPrecision result = super.clone();
-        result.min.freeze();
-        result.max.freeze();
-        result.sig.freeze();
-        return result;
+    @Override
+    protected void freezeFields() {
+        min.freeze();
+        max.freeze();
+        sig.freeze();
     }
+   
 }
