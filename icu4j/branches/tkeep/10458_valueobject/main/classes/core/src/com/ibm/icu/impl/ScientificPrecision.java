@@ -21,10 +21,9 @@ public class ScientificPrecision extends ValueObject<ScientificPrecision> {
         this.mantissa = safeSet(m);
     }
     
-    public ScientificPrecision clone() {
-        ScientificPrecision result = super.clone();
-        result.mantissa.freeze();
-        return result;
+    @Override
+    protected void freezeFields() {
+        mantissa.freeze();
     }
 
 }
