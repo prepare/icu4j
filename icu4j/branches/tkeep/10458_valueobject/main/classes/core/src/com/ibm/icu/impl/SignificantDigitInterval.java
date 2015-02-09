@@ -25,8 +25,14 @@ public class SignificantDigitInterval extends ValueObject<SignificantDigitInterv
     public int getMax() { return max; }
     
     public void setMin(int count) {
+        checkThawed();
         min = count <= 0 ? 0 : count;
     }
     
     public int getMin() { return min; }
+    
+    @Override
+    public String toString() {
+        return String.format("{min: %d, max: %d", min, max);
+    }
 }

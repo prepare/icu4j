@@ -8,22 +8,30 @@ package com.ibm.icu.impl;
 
 
 public class ScientificPrecision extends ValueObject<ScientificPrecision> {
-    public static final ScientificPrecision DEFAULT = new ScientificPrecision().freeze();
     
     private FixedPrecision mantissa = FixedPrecision.DEFAULT;
     
+    public static final ScientificPrecision DEFAULT = new ScientificPrecision().freeze();
+    
     public FixedPrecision getMantissa() { return mantissa; }
     public FixedPrecision getMutableMantissa() {
-        mantissa = safeThaw(mantissa);
+        checkThawed();
+        mantissa = thaw(mantissa);
         return mantissa;
     }
     public void setMantissa(FixedPrecision m) {
-        this.mantissa = safeSet(m);
+        checkThawed();
+        this.mantissa = m.freeze();
     }
     
     @Override
     protected void freezeFields() {
         mantissa.freeze();
+    }
+    
+    @Override
+    public String toString() {
+        return String.format("{Mantissa: %s}", mantissa.toString());
     }
 
 }

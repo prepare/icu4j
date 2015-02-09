@@ -41,6 +41,7 @@ public class DigitInterval extends ValueObject<DigitInterval> {
     }
     
     public void setFracDigitCount(int count) {
+        checkThawed();
         smallestInclusive = count < 0 ? Integer.MIN_VALUE : -count;
     }
     
@@ -48,5 +49,10 @@ public class DigitInterval extends ValueObject<DigitInterval> {
     
     public int getFracDigitCount() {
         return smallestInclusive == Integer.MIN_VALUE ? Integer.MAX_VALUE : -smallestInclusive;
+    }
+    
+    @Override
+    public String toString() {
+        return String.format("{smallestInclusive: %d, largestExclusive: %d", smallestInclusive, largestExclusive);
     }
 }
