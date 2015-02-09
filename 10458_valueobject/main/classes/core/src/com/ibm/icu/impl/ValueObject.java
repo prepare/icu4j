@@ -128,12 +128,12 @@ import com.ibm.icu.util.ICUCloneNotSupportedException;
  *       this.optionalValue = optFreeze(v);
  *   }
  *   
- *   // A plain old mutable field getter must return either a clone or
- *   // an unmodifiable view of the field if this object is frozen. If this
- *   // object is not frozen, this type of getter can return a direct reference
- *   // to the mutable field.
+ *   // A plain old mutable field getter must always return either clone of the
+ *   // field or an umodifiable view of the field. If this method ever returned a
+ *   // direct reference to its field even while unfrozen, the caller could use
+ *   // that reference to make changes even after this object is frozen.
  *   public MutableClass getPojo() {
- *     return isFrozen() ? pojo.clone() : pojo;
+ *     return pojo.clone();
  *   }
  *   
  *   // A setter of a plain old mutable field always makes a defensive copy.
