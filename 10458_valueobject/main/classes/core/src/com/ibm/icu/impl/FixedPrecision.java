@@ -11,7 +11,6 @@ package com.ibm.icu.impl;
  *
  */
 public class FixedPrecision extends ValueObject<FixedPrecision> {
-    public static final FixedPrecision DEFAULT = new FixedPrecision().freeze();
     
     private static final DigitInterval MIN_INTERVAL = new DigitInterval(1, 0).freeze();
     
@@ -19,31 +18,39 @@ public class FixedPrecision extends ValueObject<FixedPrecision> {
     private DigitInterval max = DigitInterval.DEFAULT;
     private SignificantDigitInterval sig = SignificantDigitInterval.DEFAULT;
     
+    public static final FixedPrecision DEFAULT = new FixedPrecision().freeze();
+    
     public DigitInterval getMin() { return min; }
     public DigitInterval getMutableMin() {
-        min = safeThaw(min);
+        checkThawed();
+        min = thaw(min);
         return min;
     }
     public void setMin(DigitInterval interval) {
-        this.min = safeSet(interval);
+        checkThawed();
+        this.min = interval.freeze();
     }
     
     public DigitInterval getMax() { return max; }
     public DigitInterval getMutableMax() {
-        max = safeThaw(max);
+        checkThawed();
+        max = thaw(max);
         return max;
     }
     public void setMax(DigitInterval interval) {
-        this.max = safeSet(interval);
+        checkThawed();
+        this.max = interval.freeze();
     }
     
     public SignificantDigitInterval getSig() { return sig; }
     public SignificantDigitInterval getMutableSig() {
-        sig = safeThaw(sig);
+        checkThawed();
+        sig = thaw(sig);
         return sig;
     }
     public void setSig(SignificantDigitInterval interval) {
-        this.sig = safeSet(interval);
+        checkThawed();
+        this.sig = interval.freeze();
     }
     
     @Override
@@ -51,6 +58,11 @@ public class FixedPrecision extends ValueObject<FixedPrecision> {
         min.freeze();
         max.freeze();
         sig.freeze();
+    }
+    
+    @Override
+    public String toString() {
+        return String.format("{min: %s, max: %s, sig: %s}", min, max, sig);
     }
    
 }
