@@ -54,7 +54,7 @@ public class FixedPrecision extends ValueObject<FixedPrecision> {
     }
     
     @Override
-    protected void freezeFields() {
+    protected void freezeValueFields() {
         min.freeze();
         max.freeze();
         sig.freeze();
