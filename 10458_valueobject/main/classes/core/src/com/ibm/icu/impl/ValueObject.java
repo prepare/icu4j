@@ -18,21 +18,22 @@ import com.ibm.icu.util.ICUCloneNotSupportedException;
 /**
  * ValueObject is the base class of objects that are designed mimic C++ value objects
  * (objects that override the assignment operator).
- * ValueObject and its subclasses follow the contract of the freezable interface.
- * ValueObject adds on the following features to the freezable interface:<br>
+ * ValueObject and its subclasses follow the contract of the Freezable interface.
+ * ValueObject adds on the following features to the Freezable interface:<br>
  * <ul>
  *   <li>cloneAsThawed does only a shallow copy unless the class contains fields that
  *        are plain old mutable JAVA objects. It accomplishes this by freezing any
- *        freezable fields when cloning.</li>
- *   <li>getMutableXXX() methods to modify the contents of freezable fields in place.</li>
- *   <li>Handles some of the boilerplate code associated with freezable objects</li>
+ *        ValueObject fields when cloning and ensuring that other Freezable objects
+ *        are always frozen.</li>
+ *   <li>getMutableXXX() methods to modify the contents of ValueObject fields in place.</li>
+ *   <li>Handles some of the boilerplate code associated with Freezable objects</li>
  *   <li>Shallow clones coupled with getMutableXXX methods provide copy-on-write semantics</li>
  * </ul>
  * <br><br>
  * getMutableXXX() methods:<br>
  * <br>
  * A getMutableXXX() method returns a reference whereby the caller can safely modify
- * the corresponding freezable field in place. Think of a getMutableXXX() method as
+ * the corresponding ValueObject field in place. Think of a getMutableXXX() method as
  * a C++ non-const getter method that returns a non-const pointer.
  
  * <br><br>
@@ -42,7 +43,8 @@ import com.ibm.icu.util.ICUCloneNotSupportedException;
  * class. Field types fall into the following categories.<br>
  * <ol>
  *   <li>Primitive types and immutable types</li>
- *   <li>Freezable types</li>
+ *   <li>ValueObject subclasses</li>
+ *   <li>Freezable implementations that are not ValueObject</li>
  *   <li>Other mutable types</li>
  * </ol><br>
  * <p>
@@ -53,8 +55,9 @@ import com.ibm.icu.util.ICUCloneNotSupportedException;
  *   
  *   private int primitive = 0;
  *   private ImmutablePoint point = ImmutablePoint.valueOf(2, 3);
- *   private FreezableClass value = FreezableClass.DEFAULT;
- *   private FreezableClass optionalValue = null;
+ *   private ValueObjectClass value = ValueObjectClass.DEFAULT;
+ *   private ValueObjectClass optionalValue = null;
+ *   private FreezableClass freezable = new FreezableClass().freeze();
  *   private MutableClass pojo = new MutableClass();
  *   
  *   // Default instance. This has to be defined after all the fields because of
@@ -62,19 +65,35 @@ import com.ibm.icu.util.ICUCloneNotSupportedException;
  *   // may result in exception in initialization errors caused by null pointer exception.
  *   public static final MyClass DEFAULT = new MyClass().freeze();
  *   
- *   public int getPrimitive() { return primitive; }
- *   
  *   public void doSomeMutations() {
  *       // Throw an exception if this object is frozen.
  *       checkThawed();
  *       
- *       // do a mutation.
+ *       // Modify a primitive.
  *       primitive = 3;
  *       
- *       // do another mutation. Always thaw a freezable field first before modifying it.
+ *       // Modify a ValueObject. Always thaw a ValueObject field first before modifying it.
  *       value = thaw(value);
- *       value.setFoo(7);     
+ *       value.setFoo(7);
+ *       
+ *       // Modify an optional ValueOjbect.
+ *       if (optionalValue != null) {
+ *           optionalValue = thaw(optionalValue);
+ *           optionalValue.setFoo(11);
+ *       }
+ *       
+ *       // Modify a Freezable field. Freezable fields must ALWAYS be frozen within
+ *       // a ValueObject. 
+ *       FreezableClass copy = freezable.cloneAsThawed();
+ *       copy.doSomeMutation();
+ *       freezable = copy.freeze();
+ *       
+ *       // Modify a plain old mutable object in place as these are deep
+ *       // copied during cloning.
+ *       pojo.doSomeMutation();
  *   }
+ *   
+ *   public int getPrimitive() { return primitive; }
  *   
  *   public void setPrimitive(int i) {
  *       // Throw an exception if this object is frozen.
@@ -89,49 +108,63 @@ import com.ibm.icu.util.ICUCloneNotSupportedException;
  *       point = p;
  *   }
  *   
- *   // getXXX methods on freezable fields return a direct reference to that field.
+ *   // getXXX methods on ValueObject fields return a direct reference to that field.
  *   // If this object is frozen, the returned field is frozen; if this object
- *   // is not frozen, the returned field may or may not be frozen because of
- *   // shallow cloning. Therefore, a caller should use getMutableXXX to modify a
- *   // freezable field in place and should use getXXX only to get a read-only view
- *   // of the corresponding freezable field. If a caller needs to hold onto the
- *   // returned reference, it should freeze it. Note that setter methods on
- *   // ValueObjects freeze their parameter for the caller.
- *   public FreezableClass getValue() { return value; }
+ *   // is not frozen, the returned field may or may not be frozen.
+ *   // Therefore, a caller should use getMutableXXX to modify a ValueObject
+ *   // field in place and should use getXXX only to get a read-only view
+ *   // of the corresponding ValueObject field. If a caller needs to hold onto the
+ *   // returned reference, it should freeze it.
+ *   public ValueObjectClass getValue() { return value; }
  *   
- *   // getMutableXXX methods guarantee that their corresponding
+ *   // getMutableXXX methods guarantee that their corresponding ValueObject
  *   // field is unfrozen and that the caller can modify it through the
  *   // returned reference. This guarantee holds only until this object is
  *   // frozen or cloned. getMutableXXX methods only work if this object is
  *   // not frozen.
- *   public FreezableClass getMutableValue() {
+ *   public ValueObjectClass getMutableValue() {
  *       // Be sure this object is not frozen
  *       checkThawed();
  *       value = thaw(value);
  *       return value;
  *   }
  *   
- *   // Setters of freezable fields always freeze their parameter to
+ *   // Setters of ValueObject fields always freeze their parameter to
  *   // help prevent shared, unfrozen objects.
- *   public void setValue(FreezableClass v) {
+ *   public void setValue(ValueObjectClass v) {
  *       // Be sure this object is not frozen.
  *       checkThawed();
  *       this.value = v.freeze();
  *   }
  *   
- *   public FreezableClass getOptionalValue() { return optionalValue; }
- *   
- *   // Setters of freezable fields always freeze their parameter to
- *   // help prevent shared, unfrozen objects. 
- *   public void setOptionalValue(FreezableClass v) {
+ *   // Optional ValueObject fields work just like required ones except that their is
+ *   // no getMutableXXX() method.
+ *   public ValueObjectClass getOptionalValue() { return optionalValue; }
+ *    
+ *   public void setOptionalValue(ValueObjectClass v) {
  *       checkThawed();
+ *       // We use optFreeze since v may be null.
  *       this.optionalValue = optFreeze(v);
+ *   }
+ *   
+ *   // getXXX methods for Freezable fields return a direct reference to that field.
+ *   // The returned Freezable field is ALWAYS frozen even if this object is not frozen.
+ *   // This is because ValueObject.freeze() must not cause data races, yet the general
+ *   // contract of Freezable does not mandate this constraint.
+ *   public FreezableClass getFreezable() { return freezable; }
+ *   
+ *   // Setters of Freezable fields always freeze their parameter.
+ *   public void setFreezable(FreezableClass f) {
+ *       checkThawed();
+ *       // If this field were optional, we would use optFreeze() here.
+ *       this.freezable = f.freeze();
  *   }
  *   
  *   // A plain old mutable field getter must always return either clone of the
  *   // field or an umodifiable view of the field. If this method ever returned a
- *   // direct reference to its field even while unfrozen, the caller could use
- *   // that reference to make changes even after this object is frozen.
+ *   // direct reference to its field even while this object is unfrozen,
+ *   // the caller could continue to use that reference to make changes even after
+ *   // this object is later frozen.
  *   public MutableClass getPojo() {
  *     return pojo.clone();
  *   }
@@ -147,15 +180,17 @@ import com.ibm.icu.util.ICUCloneNotSupportedException;
  *   public MyClass clone() {
  *      MyClass result = super.clone();
  *      // Clone only the mutable fields. The base class clone takes care of freezing
- *      // any freezable fields.
+ *      // any ValueObject fields. Other Freezable fields are already frozen.
  *      result.pojo = result.pojo.clone();
  *      return result;
  *   }
  *   
- *   // Subclasses override only if they have freezable fields
- *   protected void freezeFields() {
+ *   // Subclasses override only if they have ValueObject fields
+ *   protected void freezeValueFields() {
  *       value.freeze();
  *       optFreeze(optionalValue);
+ *       // No freezing ordinary Freezable fields in here.
+ *       // Doing so may cause data races.
  *   }
  *   
  * }
@@ -170,7 +205,7 @@ public abstract class ValueObject<T extends ValueObject<T>> implements Freezable
 
     /** Returns a thawed clone.
      * Subclasses override only if they contain plain old mutable fields that are not
-     * freezable.
+     * Freezable.
      */
     @SuppressWarnings("unchecked")
     @Override
@@ -183,19 +218,19 @@ public abstract class ValueObject<T extends ValueObject<T>> implements Freezable
             throw new ICUCloneNotSupportedException(e);
         }
         c.bFrozen = false;
-        c.freezeFields();
+        c.freezeValueFields();
         return c;   
     }
     
     /**
-     * Returns whether or not this object is frozen according to the contract of freezable.
+     * Returns whether or not this object is frozen according to the contract of Freezable.
      */
     public final boolean isFrozen() {
         return bFrozen;
     }
     
     /**
-     * Returns a thawed clone according to the contract of the freezable interface.
+     * Returns a thawed clone according to the contract of the Freezable interface.
      * Same as clone().
      */
     public final T cloneAsThawed() {
@@ -208,23 +243,23 @@ public abstract class ValueObject<T extends ValueObject<T>> implements Freezable
     @SuppressWarnings("unchecked")
     public final T freeze() { 
         if (!bFrozen) {
-            freezeFields();
+            freezeValueFields();
         }
         bFrozen = true;
         return (T) this;
     }
     
     /**
-     * freeze() calls this to freeze any fields that implement freezable if
+     * freeze() calls this to freeze any fields that extend ValueObject if
      * this object was not previously frozen already.
-     * Subclasses that have freezable fields override this method to freeze
+     * Subclasses that have ValueObject fields override this method to freeze
      * those fields. subclasses can use optFreeze to freeze fields that
      * could be null. Subclasses should override this method to do nothing more than
-     * freeze fields. Mutating other state may create data races.
+     * freeze ValueObject fields. Mutating other state may create data races.
      */
-    protected void freezeFields() {
+    protected void freezeValueFields() {
         // Default implementation assumes there are no
-        // fields that implement Freezable.
+        // fields that extend ValueObject
     }
     
     /**
@@ -239,7 +274,7 @@ public abstract class ValueObject<T extends ValueObject<T>> implements Freezable
     
     /**
      * Call within the freezeFields method or a setXXX method.
-     * to freeze an optional, freezable field.
+     * to freeze an optional, Freezable field.
      * See coding example in documentation.
      * @param value The value to freeze. value may be null.
      * @return value itself
@@ -252,7 +287,7 @@ public abstract class ValueObject<T extends ValueObject<T>> implements Freezable
     }
     
     /**
-     * Call from a mutating method to thaw a freezable a field so that it can be
+     * Call from a mutating method to thaw a ValueObject field so that it can be
      * modified like this.<br>
      * <pre>
      *   fieldToBeMutated = thaw(fieldToBeMutated);
@@ -263,7 +298,7 @@ public abstract class ValueObject<T extends ValueObject<T>> implements Freezable
      * fieldToBeMutated must be non-null.
      */
     @SuppressWarnings("unchecked")
-    protected static <U extends Freezable<U>> U thaw(U fieldToBeMutated) {
+    protected static <U extends ValueObject<U>> U thaw(U fieldToBeMutated) {
         if (!fieldToBeMutated.isFrozen()) {
             return fieldToBeMutated;
         }

@@ -25,7 +25,7 @@ public class ScientificPrecision extends ValueObject<ScientificPrecision> {
     }
     
     @Override
-    protected void freezeFields() {
+    protected void freezeValueFields() {
         mantissa.freeze();
     }
     
